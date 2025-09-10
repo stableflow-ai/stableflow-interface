@@ -9,7 +9,9 @@ interface ConfigState {
 export const useConfigStore = create(
   persist<ConfigState>(
     (set) => ({
-      config: null,
+      config: {
+        slippage: 1
+      },
       set: (params) => set(() => ({ ...params }))
     }),
     {
