@@ -5,6 +5,7 @@ import {
 } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import Bridge from "./views/bridge";
+import WalletsProvider from "./libs/wallets/providers";
 
 const router = createBrowserRouter([
   {
@@ -19,7 +20,7 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <>
+    <WalletsProvider>
       <RouterProvider router={router} />
       <ToastContainer
         position="top-right"
@@ -32,7 +33,7 @@ function App() {
         pauseOnFocusLoss
         closeButton={false}
       />
-    </>
+    </WalletsProvider>
   );
 }
 

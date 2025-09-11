@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
-body {
-  background-color: #0d0f12;
-}
-
 #root {
   width: 100%;
+}
+
+#root [data-rk] {
+  --rk-colors-accentColor: #34372b;
 }
 
 /* Reset */

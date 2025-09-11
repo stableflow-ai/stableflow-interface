@@ -14,12 +14,14 @@ export default defineConfig({
     ]
   },
   define: {
-    global: "globalThis"
+    global: "globalThis",
+    "process.env": "{}"
   },
   optimizeDeps: {
     esbuildOptions: {
       define: {
-        global: "globalThis"
+        global: "globalThis",
+        "process.env": "{}"
       }
     }
   }
