@@ -42,7 +42,7 @@ export default function NEARProvider({
     helperUrl: "https://helper.mainnet.near.org",
     explorerUrl: "https://nearblocks.io"
   };
-  const setWallets = useWalletsStore((state) => state.set);
+  const walletsStore = useWalletsStore();
 
   useEffect(() => {
     const init = async () => {
@@ -58,34 +58,38 @@ export default function NEARProvider({
         });
 
         const state = _selector.store.getState();
+        const params = {
+          wallet: new NearWallet(_selector),
+          connect: () => {
+            _modal.show();
+          },
+          disconnect: async () => {
+            const wallet = await _selector.wallet();
+            await wallet.signOut();
+            walletsStore.set({
+              near: {
+                account: null,
+                wallet: null,
+                connect: () => {},
+                disconnect: () => {}
+              }
+            });
+          }
+        };
 
-        setWallets({
+        walletsStore.set({
           near: {
+            ...params,
             account:
               state.accounts.find((account) => account.active)?.accountId ||
-              null,
-            wallet: new NearWallet(_selector),
-            connect: () => {
-              _modal.show();
-            },
-            disconnect: async () => {
-              const wallet = await _selector.wallet();
-              await wallet.signOut();
-              setWallets({
-                near: {
-                  account: null,
-                  wallet: null,
-                  connect: () => {},
-                  disconnect: () => {}
-                }
-              });
-            }
+              null
           }
         });
 
         _selector.store.observable.subscribe((state) => {
-          setWallets({
+          walletsStore.set({
             near: {
+              ...params,
               account:
                 state.accounts.find((account) => account.active)?.accountId ||
                 null

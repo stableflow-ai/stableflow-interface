@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { mainnet, polygon } from "wagmi/chains";
+import { mainnet, polygon, arbitrum } from "wagmi/chains";
 import {
   WagmiProvider,
   useAccount,
   useDisconnect,
   usePublicClient,
   useWalletClient,
-  useConnect,
   cookieToInitialState
 } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -23,7 +22,7 @@ import useWalletsStore from "@/stores/use-wallets";
 const config = getDefaultConfig({
   appName: "StableFlow.ai",
   projectId: import.meta.env.VITE_RAINBOW_PROJECT_ID,
-  chains: [mainnet, polygon]
+  chains: [mainnet, polygon, arbitrum]
 });
 
 const queryClient = new QueryClient();
@@ -49,7 +48,8 @@ export default function RainbowProvider({
 
 function Content() {
   const { disconnect } = useDisconnect();
-  const { address } = useAccount();
+  const account = useAccount();
+
   const { openConnectModal } = useConnectModal();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
@@ -61,6 +61,7 @@ function Content() {
 
     const init = async () => {
       const provider = new ethers.BrowserProvider(publicClient);
+
       const signer = walletClient
         ? await new ethers.BrowserProvider(walletClient).getSigner()
         : null;
@@ -69,9 +70,12 @@ function Content() {
 
       setWallets({
         evm: {
-          account: address || null,
+          account: account.address || null,
+          chainId: account.chainId,
           wallet: wallet,
-          connect: () => {},
+          connect: () => {
+            openConnectModal?.();
+          },
           disconnect: () => {
             disconnect?.();
             setWallets({
@@ -88,7 +92,7 @@ function Content() {
     };
 
     init();
-  }, [address, publicClient, walletClient, mounted, openConnectModal]);
+  }, [account, publicClient, walletClient, mounted]);
 
   useEffect(() => {
     setMounted(true);

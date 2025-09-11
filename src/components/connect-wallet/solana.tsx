@@ -1,17 +1,54 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "../button";
 import Modal from "../modal";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { wallets as configWallets } from "@/libs/wallets/solana/provider";
+import useWalletsStore from "@/stores/use-wallets";
+import SolanaWallet from "@/libs/wallets/solana/wallet";
 
 export default function SolanaConnectWallet({ account }: any) {
-  const { wallets, connect, select } = useWallet();
-
+  const { wallets, connect, select, publicKey, disconnect } = useWallet();
+  const [mounted, setMounted] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
   const mergedWallets = useMemo(() => {
     return wallets.filter((wallet: any) => wallet.adapter.name === "Phantom");
   }, [configWallets, wallets]);
+
+  const setWallets = useWalletsStore((state) => state.set);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const solanaWallet = new SolanaWallet();
+
+    setTimeout(() => {
+      setWallets({
+        sol: {
+          account:
+            publicKey?.toString() ||
+            window?.solana?._publicKey?.toString() ||
+            null,
+          wallet: solanaWallet,
+          connect: () => {},
+          disconnect: () => {
+            disconnect();
+            setWallets({
+              sol: {
+                account: null,
+                wallet: null,
+                connect: () => {},
+                disconnect: () => {}
+              }
+            });
+          }
+        }
+      });
+    }, 1000);
+  }, [publicKey, mounted]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return account ? (
     <div>{account}</div>
@@ -31,7 +68,13 @@ export default function SolanaConnectWallet({ account }: any) {
               key={wallet.adapter.name}
               onClick={async () => {
                 select(wallet.adapter.name);
-                connect();
+                connect()
+                  .then(() => {
+                    console.log("connect success");
+                  })
+                  .catch((err) => {
+                    console.log("err", err);
+                  });
               }}
             >
               <img

@@ -16,6 +16,7 @@ interface WalletsState {
   evm: {
     account: string | null;
     wallet: any;
+    chainId: number | null;
     connect: () => void;
     disconnect: () => void;
   };
@@ -38,6 +39,7 @@ const useWalletsStore = create<WalletsState>((set) => ({
   evm: {
     account: null,
     wallet: null,
+    chainId: null,
     connect: () => {},
     disconnect: () => {}
   },

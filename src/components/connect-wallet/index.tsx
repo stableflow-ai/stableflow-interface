@@ -15,7 +15,15 @@ export default function ConnectWallet({
     return wallets.evm?.account ? (
       <div>{wallets.evm.account}</div>
     ) : (
-      <ConnectButton showBalance={false} />
+      // <ConnectButton showBalance={false} />
+      <Button
+        {...buttonProps}
+        onClick={() => {
+          wallets.evm.connect();
+        }}
+      >
+        Connect Wallet
+      </Button>
     );
   }
   if (type === "solana") {

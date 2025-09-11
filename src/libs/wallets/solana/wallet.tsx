@@ -15,20 +15,25 @@ import {
 } from "@solana/spl-token";
 
 export default class SolanaWallet {
-  selector: any;
-  constructor(_selector: any) {
-    this.selector = _selector;
+  connection: any;
+  constructor() {
+    // https://api.mainnet-beta.solana.com
+    // https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170
+    this.connection = new Connection(
+      "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
+      "confirmed"
+    );
   }
 
   // Transfer SOL
   async transferSOL(to: string, amount: string) {
     const solana = (window as any).solana;
-    if (!solana || !solana.account) {
+
+    if (!solana) {
       throw new Error("Wallet not connected");
     }
 
-    const connection = new Connection("https://api.mainnet-beta.solana.com");
-    const fromPubkey = new PublicKey(solana.account);
+    const fromPubkey = solana._publicKey;
     const toPubkey = new PublicKey(to);
     const lamports = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
 
@@ -40,28 +45,27 @@ export default class SolanaWallet {
       })
     );
 
-    const { blockhash } = await connection.getLatestBlockhash();
+    const { blockhash } = await this.connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = fromPubkey;
 
     const signedTransaction = await solana.signTransaction(transaction);
-    const signature = await connection.sendRawTransaction(
+    const signature = await this.connection.sendRawTransaction(
       signedTransaction.serialize()
     );
 
-    await connection.confirmTransaction(signature);
+    await this.connection.confirmTransaction(signature);
     return signature;
   }
 
   // Transfer SPL token
   async transferToken(tokenMint: string, to: string, amount: string) {
     const solana = (window as any).solana;
-    if (!solana || !solana.account) {
+    if (!solana) {
       throw new Error("Wallet not connected");
     }
 
-    const connection = new Connection("https://api.mainnet-beta.solana.com");
-    const fromPubkey = new PublicKey(solana.account);
+    const fromPubkey = solana._publicKey;
     const toPubkey = new PublicKey(to);
     const mint = new PublicKey(tokenMint);
 
@@ -73,7 +77,7 @@ export default class SolanaWallet {
 
     // Check if recipient has token account, create if not
     try {
-      await getAccount(connection, toTokenAccount);
+      await getAccount(this.connection, toTokenAccount);
     } catch (error) {
       // If token account doesn't exist, create it
       transaction.add(
@@ -98,16 +102,16 @@ export default class SolanaWallet {
       )
     );
 
-    const { blockhash } = await connection.getLatestBlockhash();
+    const { blockhash } = await this.connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = fromPubkey;
 
     const signedTransaction = await solana.signTransaction(transaction);
-    const signature = await connection.sendRawTransaction(
+    const signature = await this.connection.sendRawTransaction(
       signedTransaction.serialize()
     );
 
-    await connection.confirmTransaction(signature);
+    await this.connection.confirmTransaction(signature);
     return signature;
   }
 
@@ -129,21 +133,19 @@ export default class SolanaWallet {
   }
 
   async getSOLBalance(account: string) {
-    const connection = new Connection("https://api.mainnet-beta.solana.com");
     const publicKey = new PublicKey(account);
-    const balance = await connection.getBalance(publicKey);
+    const balance = await this.connection.getBalance(publicKey);
     return balance / 1e9;
   }
 
   async getTokenBalance(tokenMint: string, account: string) {
-    const connection = new Connection("https://api.mainnet-beta.solana.com");
     const mint = new PublicKey(tokenMint);
     const owner = new PublicKey(account);
 
     try {
       const tokenAccount = await getAssociatedTokenAddress(mint, owner);
 
-      const accountInfo = await getAccount(connection, tokenAccount);
+      const accountInfo = await getAccount(this.connection, tokenAccount);
 
       return accountInfo.amount;
     } catch (error: any) {
