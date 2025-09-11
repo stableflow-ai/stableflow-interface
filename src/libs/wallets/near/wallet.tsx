@@ -1,11 +1,15 @@
 export default class NearWallet {
-  selector: any;
+  private selector: any;
+  private rpcUrl: string;
   constructor(_selector: any) {
     this.selector = _selector;
+    // https://rpc.mainnet.near.org
+    // https://nearinner.deltarpc.com
+    this.rpcUrl = "https://nearinner.deltarpc.com";
   }
 
   private async query(contractId: string, methodName: string, args: any = {}) {
-    const response = await fetch("https://rpc.mainnet.near.org", {
+    const response = await fetch(this.rpcUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -89,12 +93,10 @@ export default class NearWallet {
     return result;
   }
 
-  async getBalance(token: string, account: string) {
-    const wallet = await this.selector.wallet();
-    if (token === "near") {
-      return wallet.getNearBalance(account);
-    } else {
-      return wallet.getBalance(token, account);
-    }
+  async getBalance(token: string, _account: string) {
+    const balance = await this.query(token, "ft_balance_of", {
+      account_id: _account
+    });
+    return balance || "0";
   }
 }
