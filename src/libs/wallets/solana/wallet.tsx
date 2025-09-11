@@ -162,4 +162,8 @@ export default class SolanaWallet {
     }
     return await this.getTokenBalance(token, account);
   }
+
+  async balanceOf(token: string, account: string) {
+    return await this.getBalance(token, account);
+  }
 }

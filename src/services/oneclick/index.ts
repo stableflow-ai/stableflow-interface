@@ -5,7 +5,7 @@ class OneClickService {
   private offsetTime = 1000 * 60 * 5;
   constructor() {
     this.api = axios.create({
-      baseURL: "https://api.oneclick.com/v0",
+      baseURL: "https://1click.chaindefuser.com/v0",
       timeout: 30000,
       headers: {
         "Content-Type": "application/json"
@@ -49,4 +49,4 @@ class OneClickService {
   }
 }
 
-export default OneClickService;
+export default new OneClickService();

@@ -48,4 +48,8 @@ export default class RainbowWallet {
       return "0";
     }
   }
+
+  async balanceOf(token: string, account: string) {
+    return await this.getBalance(token, account);
+  }
 }

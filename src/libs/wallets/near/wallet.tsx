@@ -60,8 +60,8 @@ export default class NearWallet {
                 account_id: data.depositAddress,
                 registration_only: true
               },
-              gas: "30000000000000",
-              deposit: "1"
+              gas: "15000000000000",
+              deposit: "1250000000000000000000"
             }
           }
         ]
@@ -98,5 +98,9 @@ export default class NearWallet {
       account_id: _account
     });
     return balance || "0";
+  }
+
+  async balanceOf(token: string, account: string) {
+    return await this.getBalance(token, account);
   }
 }

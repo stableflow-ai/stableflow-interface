@@ -3,19 +3,31 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 interface HistoryState {
   history: any[];
-  set: (params: any) => void;
+  status: Record<string, any>;
+  addHistory: (item: string) => void;
+  updateStatus: (address: string, status: any) => void;
 }
 
-export const useConfigStore = create(
+export const useHistoryStore = create(
   persist<HistoryState>(
-    (set) => ({
+    (set, get) => ({
       history: [],
-      set: (params) => set(() => ({ ...params }))
+      status: {},
+      addHistory: (item: any) => {
+        const _history = get().history;
+        _history.push(item);
+        set({ history: _history });
+      },
+      updateStatus: (address: string, status: any) => {
+        const _status = get().status;
+        _status[address] = status;
+        set({ status: _status });
+      }
     }),
     {
       name: "_history",
       version: 0.1,
-      storage: createJSONStorage(() => sessionStorage)
+      storage: createJSONStorage(() => localStorage)
     }
   )
 );
