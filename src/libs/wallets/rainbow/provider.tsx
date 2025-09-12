@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { mainnet, polygon, arbitrum } from "wagmi/chains";
+import {
+  mainnet,
+  polygon,
+  arbitrum,
+  bsc,
+  base,
+  avalanche,
+  optimism,
+  gnosis
+} from "wagmi/chains";
 import {
   WagmiProvider,
   useAccount,
@@ -22,7 +31,7 @@ import useWalletsStore from "@/stores/use-wallets";
 const config = getDefaultConfig({
   appName: "StableFlow.ai",
   projectId: import.meta.env.VITE_RAINBOW_PROJECT_ID,
-  chains: [mainnet, polygon, arbitrum]
+  chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis]
 });
 
 const queryClient = new QueryClient();

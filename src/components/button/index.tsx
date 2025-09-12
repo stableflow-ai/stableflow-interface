@@ -32,9 +32,11 @@ export default function Button({
       disabled={disabled}
       className={clsx(
         "rounded-[12px] flex items-center justify-center",
-        isPrimary && "text-[12px] text-[#2B3337] font-[500]",
+        isPrimary && "text-[12px] font-[500]",
         className,
-        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer button"
+        disabled
+          ? "bg-[#B3BBCE] cursor-not-allowed text-[#9FA7BA]"
+          : "cursor-pointer button text-[#2B3337]"
       )}
     >
       {loading ? <Loading size={Math.min(size, 20)} /> : children}

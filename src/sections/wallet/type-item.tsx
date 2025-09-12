@@ -1,12 +1,43 @@
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import CheckIcon from "./check-icon";
+import useWalletStore from "@/stores/use-wallet";
+import { usdtSol, usdtNear } from "@/config/tokens/usdt";
+import { usdcSol, usdcNear } from "@/config/tokens/usdc";
+import { useMemo } from "react";
 
 export default function TypeItem({ type = "evm" }: { type: WalletType }) {
   const wallets = useWalletsStore();
   const wallet = wallets[type || "evm"];
+  const walletStore = useWalletStore();
+  const token = useMemo(() => {
+    if (type === "evm") return null;
+    if (type === "sol")
+      return walletStore.fromToken.symbol === "USDT" ? usdtSol : usdcSol;
+    if (type === "near")
+      return walletStore.fromToken.symbol === "USDT" ? usdtNear : usdcNear;
+  }, [type]);
 
   return (
-    <div className="mx-[10px] px-[10px] py-[6px] flex justify-between items-center rounded-[12px] hover:bg-[#EDF0F7] duration-300">
+    <div
+      className="button mx-[10px] px-[10px] py-[6px] flex justify-between items-center rounded-[12px] hover:bg-[#EDF0F7] duration-300"
+      onClick={() => {
+        if (!wallet.account || type === "evm" || !token) {
+          return;
+        }
+
+        if (
+          (walletStore.isTo &&
+            walletStore.fromToken?.contractAddress === token.contractAddress) ||
+          (!walletStore.isTo &&
+            walletStore.toToken?.contractAddress === token.contractAddress)
+        ) {
+          return;
+        }
+        walletStore.set({
+          [walletStore.isTo ? "toToken" : "fromToken"]: token
+        });
+      }}
+    >
       <div className="flex items-center gap-[10px]">
         {type === "sol" && (
           <img
@@ -25,7 +56,12 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
         <span className="text-[16px] font-[500]">
           {type === "evm" ? "EVM-based" : type === "sol" ? "Solana" : "Near"}
         </span>
-        {type !== "evm" && <CheckIcon circleColor="#EDF0EF" />}
+        {type !== "evm" &&
+          !!token &&
+          (walletStore.fromToken?.contractAddress === token.contractAddress ||
+            walletStore.toToken?.contractAddress === token.contractAddress) && (
+            <CheckIcon circleColor="#fff" />
+          )}
       </div>
       {wallet.account ? (
         <div className="text-[#4DCF5E] text-[12px]">connected</div>

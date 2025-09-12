@@ -2,6 +2,8 @@ import Amount from "@/components/amount";
 import { motion, AnimatePresence } from "framer-motion";
 import Loading from "@/components/loading/icon";
 import CheckIcon from "./check-icon";
+import useWalletStore from "@/stores/use-wallet";
+import { useSwitchChain } from "wagmi";
 
 export default function Token({
   token,
@@ -11,6 +13,8 @@ export default function Token({
   loading,
   totalBalance
 }: any) {
+  const walletStore = useWalletStore();
+  const { switchChain } = useSwitchChain();
   return (
     <div className="mx-[10px] mt-[4px] rounded-[12px] border border-[#EDF0F7] bg-[#EDF0F7]">
       <div className="flex items-center justify-between px-[10px] h-[50px]">
@@ -49,13 +53,44 @@ export default function Token({
                 <div
                   key={chain.chainName}
                   className="p-[10px] duration-300 flex justify-between items-center cursor-pointer hover:bg-[#FAFBFF]"
+                  onClick={async () => {
+                    if (
+                      (walletStore.isTo &&
+                        walletStore.fromToken?.contractAddress ===
+                          chain.contractAddress) ||
+                      (!walletStore.isTo &&
+                        walletStore.toToken?.contractAddress ===
+                          chain.contractAddress)
+                    ) {
+                      return;
+                    }
+
+                    const token = walletStore.isTo
+                      ? walletStore.toToken
+                      : walletStore.fromToken;
+                    const mergedToken = {
+                      ...token,
+                      ...chain
+                    };
+
+                    await switchChain({ chainId: chain.chainId });
+
+                    walletStore.set({
+                      [walletStore.isTo ? "toToken" : "fromToken"]: mergedToken
+                    });
+                  }}
                 >
                   <div className="flex items-center gap-[8px]">
                     <img src={chain.chainIcon} className="w-[24px] h-[24px]" />
                     <span className="text-[14px] text-[#444C59]">
                       {chain.chainName}
                     </span>
-                    {/* <CheckIcon circleColor="#fff" /> */}
+                    {(walletStore.fromToken?.contractAddress ===
+                      chain.contractAddress ||
+                      walletStore.toToken?.contractAddress ===
+                        chain.contractAddress) && (
+                      <CheckIcon circleColor={"#fff"} />
+                    )}
                   </div>
                   {loading ? (
                     <Loading size={14} />

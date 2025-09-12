@@ -1,4 +1,5 @@
 import { create } from "zustand/index";
+import { usdt } from "@/config/tokens/usdt";
 
 interface WalletState {
   showWallet: boolean;
@@ -6,6 +7,7 @@ interface WalletState {
   usdtExpand: boolean;
   fromToken: any;
   toToken: any;
+  isTo: boolean;
   set: (params: any) => void;
 }
 
@@ -13,8 +15,9 @@ const useWalletStore = create<WalletState>((set) => ({
   showWallet: false,
   usdcExpand: false,
   usdtExpand: false,
-  fromToken: null,
+  fromToken: usdt,
   toToken: null,
+  isTo: false,
   set: (params) => set(() => ({ ...params }))
 }));
 

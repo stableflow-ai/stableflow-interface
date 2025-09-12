@@ -4,106 +4,89 @@ import {
   validateAddress,
   type AddressValidationResult
 } from "@/utils/address-validation";
-import useWalletsStore from "@/stores/use-wallets";
+import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import Big from "big.js";
 import { useDebounceFn } from "ahooks";
 import { useHistoryStore } from "@/stores/use-history";
-
-interface Chain {
-  name: string;
-  icon: string;
-  key: string;
-  type?: string;
-}
-
-interface Token {
-  assetId: string;
-  decimals: number;
-  blockchain: string;
-  symbol: string;
-  price: number;
-  priceUpdatedAt: string;
-  contractAddress: string;
-}
+import { useConfigStore } from "@/stores/use-config";
+import useWalletStore from "@/stores/use-wallet";
+import useBridgeStore from "@/stores/use-bridge";
 
 export default function useBridge() {
-  const [quoting, setQuoting] = useState(false);
-  const [transfering, setTransfering] = useState(false);
-  const [quoteData, setQuoteData] = useState<any>(null);
   const wallets = useWalletsStore();
   const historyStore = useHistoryStore();
-
-  // Chain selection state
-  const [fromChain, setFromChain] = useState<Chain | null>(null);
-  const [toChain, setToChain] = useState<Chain | null>(null);
-
-  // Token selection state
-  const [fromToken, setFromToken] = useState<Token | null>(null);
-  const [toToken, setToToken] = useState<Token | null>(null);
+  const configStore = useConfigStore();
+  const walletStore = useWalletStore();
+  const bridgeStore = useBridgeStore();
 
   // Recipient address state
-  const [recipientAddress, setRecipientAddress] = useState<string>("");
   const [addressValidation, setAddressValidation] =
     useState<AddressValidationResult>({
       isValid: false
     });
 
   // Amount state
-  const [amount, setAmount] = useState<string>("");
   const [amountError, setAmountError] = useState<string>("");
 
   const quote = async (dry: boolean) => {
-    // @ts-ignore
-    const wallet = wallets[fromChain.type === "evm" ? "evm" : fromChain.key];
+    const wallet = wallets[walletStore.fromToken.chainType as WalletType];
+    const toChainWalletAddress =
+      wallets[walletStore.toToken.chainType as WalletType].account;
 
-    if (!toToken || !fromToken || !fromChain || !toChain || !wallet) return;
+    if (
+      !walletStore.toToken ||
+      !walletStore.fromToken ||
+      !wallet?.account ||
+      !(bridgeStore.recipientAddress || toChainWalletAddress)
+    )
+      return;
     try {
-      setQuoting(true);
+      bridgeStore.set({ quoting: true });
 
-      const _amount = Big(amount)
-        .times(10 ** fromToken.decimals)
+      const _amount = Big(bridgeStore.amount)
+        .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
       const quoteRes = await oneClickService.quote({
         dry: dry,
-        slippageTolerance: 100,
-        originAsset: fromToken.assetId,
-        destinationAsset: toToken.assetId,
+        slippageTolerance: configStore.slippage * 100,
+        originAsset: walletStore.fromToken.assetId,
+        destinationAsset: walletStore.toToken.assetId,
         amount: _amount,
         refundTo: wallet.account,
         refundType: "ORIGIN_CHAIN",
-        recipient: recipientAddress
+        recipient: bridgeStore.recipientAddress || toChainWalletAddress || ""
       });
 
-      setQuoteData(quoteRes.data);
+      bridgeStore.set({ quoteData: quoteRes.data });
       return quoteRes.data;
     } catch (error) {
       console.error(error);
+      bridgeStore.set({ quoteData: null });
     } finally {
-      setQuoting(false);
+      bridgeStore.set({ quoting: false });
     }
   };
 
   const transfer = async () => {
-    if (!fromToken || !fromChain) return;
+    if (!walletStore.fromToken) return;
     try {
-      setTransfering(true);
+      bridgeStore.set({ transferring: true });
       const _quote = await quote(false);
 
       // @ts-ignore
-      const wallet = wallets[fromChain.type === "evm" ? "evm" : fromChain.key];
-      const _amount = Big(amount)
-        .times(10 ** fromToken.decimals)
+      const wallet = wallets[fromToken.chainType];
+      const _amount = Big(bridgeStore.amount)
+        .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
       await wallet.wallet.transfer({
-        originAsset: fromToken.contractAddress,
+        originAsset: walletStore.fromToken.contractAddress,
         depositAddress: _quote.quote.depositAddress,
         amount: _amount
       });
       historyStore.addHistory(_quote);
 
-      setTransfering(false);
       let timer: any = null;
       const getStatus = async () => {
         const result = await oneClickService.getStatus({
@@ -122,51 +105,28 @@ export default function useBridge() {
           }, 5000);
         } else {
           clearTimeout(timer);
+          bridgeStore.set({ transferring: false });
         }
       };
     } catch (error) {
       console.error(error);
-      setTransfering(false);
+      bridgeStore.set({ transferring: false });
     }
-  };
-
-  // Chain selection handlers
-  const handleFromChainSelect = (chain: Chain) => {
-    setFromChain(chain);
-    // Clear source token selection when source chain changes
-    setFromToken(null);
-  };
-
-  const handleToChainSelect = (chain: Chain) => {
-    setToChain(chain);
-    // Clear target token selection when target chain changes
-    setToToken(null);
-  };
-
-  // Token selection handlers
-  const handleFromTokenSelect = (token: Token) => {
-    setFromToken(token);
-  };
-
-  const handleToTokenSelect = (token: Token) => {
-    setToToken(token);
   };
 
   // Validate address when recipient address or target chain changes
   useEffect(() => {
-    if (recipientAddress && toChain) {
-      const validation = validateAddress(recipientAddress, toChain.key);
+    if (bridgeStore.recipientAddress && walletStore.toToken) {
+      const validation = validateAddress(
+        bridgeStore.recipientAddress,
+        walletStore.toToken.chainType
+      );
 
       setAddressValidation(validation);
     } else {
       setAddressValidation({ isValid: false });
     }
-  }, [recipientAddress, toChain]);
-
-  // Recipient address handler
-  const handleRecipientAddressChange = (address: string) => {
-    setRecipientAddress(address);
-  };
+  }, [bridgeStore.recipientAddress, walletStore.toToken]);
 
   // Amount validation and handler
   const validateAmount = async (value: string): Promise<string> => {
@@ -191,24 +151,23 @@ export default function useBridge() {
     }
 
     // Check balance if wallet and token are available
-    if (fromToken && fromChain && wallets) {
+    if (walletStore.fromToken && walletStore.toToken && wallets) {
       try {
-        const walletKey = fromChain.type === "evm" ? "evm" : fromChain.key;
-        const wallet = (wallets as any)[walletKey];
+        const wallet = (wallets as any)[walletStore.fromToken.chainType];
         if (wallet?.wallet?.balanceOf && wallet?.account) {
           const balance = await wallet.wallet.balanceOf(
-            fromToken.contractAddress,
+            walletStore.fromToken.contractAddress,
             wallet.account
           );
 
           // Convert balance to the same unit as amount (considering decimals)
-          const balanceInTokenUnit = Big(balance).div(10 ** fromToken.decimals);
+          const balanceInTokenUnit = Big(balance).div(
+            10 ** walletStore.fromToken.decimals
+          );
           const amountBig = Big(value);
 
           if (amountBig.gt(balanceInTokenUnit)) {
-            return `Insufficient balance. Available: ${balanceInTokenUnit.toFixed(
-              6
-            )} ${fromToken.symbol}`;
+            return `Insufficient balance.`;
           }
         }
       } catch (error) {
@@ -218,22 +177,6 @@ export default function useBridge() {
     }
 
     return "";
-  };
-
-  const handleAmountChange = (value: string) => {
-    // Only allow numbers and decimal point
-    const sanitizedValue = value.replace(/[^0-9.]/g, "");
-
-    // Prevent multiple decimal points
-    const parts = sanitizedValue.split(".");
-    if (parts.length > 2) {
-      return;
-    }
-
-    setAmount(sanitizedValue);
-
-    // Use debounced validation for balance checking
-    debouncedValidateAmount(sanitizedValue);
   };
 
   const { run: debouncedQuote } = useDebounceFn(quote, {
@@ -252,54 +195,64 @@ export default function useBridge() {
 
   // Re-validate amount when token or chain changes
   useEffect(() => {
-    if (amount && fromToken && fromChain) {
-      debouncedValidateAmount(amount);
+    if (bridgeStore.amount && walletStore.fromToken) {
+      debouncedValidateAmount(bridgeStore.amount);
     }
-  }, [fromToken, fromChain, amount]);
+  }, [walletStore.fromToken, bridgeStore.amount]);
 
   useEffect(() => {
     if (
-      !fromToken ||
-      !toToken ||
-      !amount ||
-      !recipientAddress ||
+      !walletStore.fromToken ||
+      !walletStore.toToken ||
+      !bridgeStore.amount ||
+      !bridgeStore.recipientAddress ||
       amountError ||
       !addressValidation?.isValid
     )
       return;
     debouncedQuote(true);
   }, [
-    fromToken,
-    toToken,
-    recipientAddress,
-    amount,
+    walletStore.fromToken,
+    walletStore.toToken,
+    bridgeStore.recipientAddress,
+    bridgeStore.amount,
     amountError,
     addressValidation
   ]);
 
-  return {
-    quoting,
-    quoteData,
-    quote,
-    // Chain selection state and methods
-    fromChain,
-    toChain,
-    handleFromChainSelect,
-    handleToChainSelect,
-    // Token selection state and methods
-    fromToken,
-    toToken,
-    handleFromTokenSelect,
-    handleToTokenSelect,
-    // Recipient address state and methods
-    recipientAddress,
-    handleRecipientAddressChange,
-    addressValidation,
-    // Amount state and methods
-    amount,
+  useEffect(() => {
+    const check = () => {
+      if (!walletStore.fromToken?.contractAddress) {
+        return "Please select from chain";
+      }
+      if (!walletStore.toToken?.contractAddress) {
+        return "Please select to chain";
+      }
+      if (!bridgeStore.amount) {
+        return "Please enter amount";
+      }
+      if (amountError) {
+        return amountError;
+      }
+      if (!addressValidation.isValid) {
+        return addressValidation.error;
+      }
+
+      return "";
+    };
+    const error = check();
+
+    bridgeStore.set({ errorTips: error });
+  }, [
     amountError,
-    handleAmountChange,
-    transfering,
+    addressValidation,
+    walletStore.fromToken,
+    bridgeStore.amount,
+    walletStore.toToken
+  ]);
+
+  return {
+    quote,
     transfer
   };
 }

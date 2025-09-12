@@ -1,6 +1,6 @@
 import chains from "@/config/chains";
 
-const usdc = {
+export const usdc = {
   symbol: "USDC",
   decimals: 6,
   icon: "/usdc.png"

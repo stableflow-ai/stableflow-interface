@@ -4,6 +4,7 @@ import useTokenBalance from "@/hooks/use-token-balance";
 
 export default function TokenSimple({ token }: any) {
   const { balance, loading } = useTokenBalance(token);
+
   return (
     <div className="mx-[10px] mt-[4px] px-[10px] h-[50px] flex items-center justify-between rounded-[12px] border border-[#EDF0F7] bg-[#EDF0F7]">
       <div className="flex items-center gap-[8px]">
