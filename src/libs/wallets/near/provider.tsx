@@ -58,13 +58,15 @@ export default function NEARProvider({
         });
 
         const state = _selector.store.getState();
+        const wallet = await _selector.wallet();
+
         const params = {
           wallet: new NearWallet(_selector),
+          walletIcon: wallet?.metadata.iconUrl,
           connect: () => {
             _modal.show();
           },
           disconnect: async () => {
-            const wallet = await _selector.wallet();
             await wallet.signOut();
             walletsStore.set({
               near: {

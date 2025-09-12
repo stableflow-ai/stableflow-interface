@@ -6,11 +6,18 @@ import {
 import { ToastContainer } from "react-toastify";
 import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
+import Layout from "./layouts";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Bridge />
+    element: <Layout />,
+    children: [
+      {
+        index: true,
+        element: <Bridge />
+      }
+    ]
   },
   {
     path: "*",

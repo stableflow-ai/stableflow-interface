@@ -57,8 +57,7 @@ function Content() {
   const setWallets = useWalletsStore((state) => state.set);
 
   useEffect(() => {
-    if (!mounted || !publicClient) return;
-
+    if (!publicClient || !mounted) return;
     const init = async () => {
       const provider = new ethers.BrowserProvider(publicClient);
 
@@ -92,7 +91,7 @@ function Content() {
     };
 
     init();
-  }, [account, publicClient, walletClient, mounted]);
+  }, [account, publicClient, walletClient]);
 
   useEffect(() => {
     setMounted(true);

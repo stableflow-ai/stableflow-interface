@@ -2,16 +2,14 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 interface ConfigState {
-  config: any;
+  slippage: number;
   set: (params: any) => void;
 }
 
 export const useConfigStore = create(
   persist<ConfigState>(
     (set) => ({
-      config: {
-        slippage: 1
-      },
+      slippage: 1,
       set: (params) => set(() => ({ ...params }))
     }),
     {

@@ -1,20 +1,11 @@
 import clsx from "clsx";
-import Loading from "../icons/loading";
-
-const isAndroid = () => {
-  if (typeof window === "undefined") return false;
-  return /Android/i.test(navigator.userAgent);
-};
+import Loading from "../loading/icon";
 
 export default function Toast({ type, title, text, closeToast }: any) {
-  const isAndroidDevice = isAndroid();
   return (
     <div
       className={clsx(
-        "rounded-[12px] border border-[#743EFF] px-[12px] py-[8px] flex gap-[10px] w-[288px] items-center md:w-[288px] max-md:w-[calc(100vw-32px)]",
-        isAndroidDevice
-          ? "bg-[#35302B]"
-          : "bg-[#35302B]/30 backdrop-blur-[10px]"
+        "rounded-[12px] px-[12px] py-[8px] flex gap-[10px] w-[288px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)] items-center md:w-[288px] max-md:w-[calc(100vw-32px)]"
       )}
     >
       {type === "success" && (
@@ -66,7 +57,7 @@ export default function Toast({ type, title, text, closeToast }: any) {
           />
         </svg>
       )}
-      <div className="flex items-start justify-between flex-grow text-white">
+      <div className="flex items-start justify-between flex-grow text-[#444C59]">
         <div className="flex flex-col gap-[5px]">
           <div className="text-[16px] font-semibold leading-normal items-center">
             {title}
@@ -88,7 +79,7 @@ export default function Toast({ type, title, text, closeToast }: any) {
           >
             <path
               d="M7.73284 6.00004L11.7359 1.99701C12.0368 1.696 12.0882 1.2593 11.8507 1.0219L10.9779 0.14909C10.7404 -0.0884124 10.3043 -0.0363122 10.0028 0.264491L6.00013 4.26743L1.99719 0.264591C1.69619 -0.036712 1.25948 -0.0884125 1.02198 0.14939L0.149174 1.0223C-0.0882277 1.2594 -0.0368271 1.6961 0.264576 1.99711L4.26761 6.00004L0.264576 10.0033C-0.0363271 10.3041 -0.0884277 10.7405 0.149174 10.978L1.02198 11.8509C1.25948 12.0884 1.69619 12.0369 1.99719 11.736L6.00033 7.73276L10.0029 11.7354C10.3044 12.037 10.7405 12.0884 10.978 11.8509L11.8508 10.978C12.0882 10.7405 12.0368 10.3041 11.736 10.0029L7.73284 6.00004Z"
-              fill="white"
+              fill="#A1A699"
             />
           </svg>
         </div>

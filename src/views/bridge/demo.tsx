@@ -1,87 +1,250 @@
-import ConnectWallet from "@/components/connect-wallet";
-import useWalletsStore from "@/stores/use-wallets";
-import { useChainId, useSwitchChain } from "wagmi";
-import Big from "big.js";
-
-const buttonProps = {
-  className: "w-[100px] h-[40px]",
-  isPrimary: false
-};
+import useBridge from "./hooks/use-bridge";
+import ChainSelector from "./components/chain-selector";
+import TokenSelector from "./components/token-selector";
+import { getAddressPlaceholder } from "@/utils/address-validation";
+import Button from "@/components/button";
 
 export default function Bridge() {
-  const wallets = useWalletsStore();
-  const { switchChain } = useSwitchChain();
-  const chainId = useChainId();
+  const {
+    fromChain,
+    toChain,
+    handleFromChainSelect,
+    handleToChainSelect,
+    fromToken,
+    toToken,
+    handleFromTokenSelect,
+    handleToTokenSelect,
+    recipientAddress,
+    handleRecipientAddressChange,
+    addressValidation,
+    amount,
+    amountError,
+    handleAmountChange,
+    quoting,
+    transfer
+  } = useBridge();
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">跨链桥接</h1>
+      <div className="w-[400px] border border-gray-200 p-6 rounded-[10px] space-y-4">
+        {/* From section */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-medium text-gray-900">From</h3>
+          <ChainSelector
+            selectedChain={fromChain}
+            onChainSelect={handleFromChainSelect}
+            label="Select Source Chain"
+          />
+          <TokenSelector
+            selectedChain={fromChain?.key || null}
+            selectedToken={fromToken}
+            onTokenSelect={handleFromTokenSelect}
+            label="Select Source Token"
+          />
 
-      {/* EVM 钱包连接 */}
-      <div className="border rounded-lg p-4">
-        <h2 className="text-lg font-semibold mb-4">EVM 钱包</h2>
-        <ConnectWallet type="evm" buttonProps={buttonProps} />
+          {/* Amount Input */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Amount
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={amount}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                placeholder="Enter amount"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                  amount && amountError
+                    ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+                    : amount && !amountError
+                    ? "border-green-300 focus:ring-green-500 focus:border-green-500"
+                    : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                }`}
+              />
+              {fromToken && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <span className="text-sm text-gray-500">
+                    {fromToken.symbol}
+                  </span>
+                </div>
+              )}
+            </div>
+            {amountError && (
+              <p className="text-xs text-red-600 flex items-center">
+                <svg
+                  className="w-3 h-3 mr-1"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {amountError}
+              </p>
+            )}
+            {amount && !amountError && (
+              <p className="text-xs text-green-600 flex items-center">
+                <svg
+                  className="w-3 h-3 mr-1"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Valid amount
+              </p>
+            )}
+          </div>
+        </div>
 
-        <button
-          onClick={() => wallets.evm.disconnect()}
-          className="ml-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-        >
-          EVM 断开连接
-        </button>
+        {/* Swap button */}
+        <div className="flex justify-center">
+          <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+              />
+            </svg>
+          </button>
+        </div>
 
-        {/* <button
-          className="button ml-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          onClick={() => {
-            console.log(49, "switchChain");
-            switchChain({ chainId: 42161 });
-          }}
-        >
-          Switch Chain {chainId}
-        </button> */}
-      </div>
+        {/* To section */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-medium text-gray-900">To</h3>
+          <ChainSelector
+            selectedChain={toChain}
+            onChainSelect={handleToChainSelect}
+            label="Select Target Chain"
+          />
+          <TokenSelector
+            selectedChain={toChain?.key || null}
+            selectedToken={toToken}
+            onTokenSelect={handleToTokenSelect}
+            label="Select Target Token"
+          />
+        </div>
 
-      {/* Solana 钱包连接 */}
-      <div className="border rounded-lg p-4">
-        <h2 className="text-lg font-semibold mb-4">Solana 钱包</h2>
-        <ConnectWallet type="solana" buttonProps={buttonProps} />
-        <button
-          onClick={() => wallets.sol.disconnect()}
-          className="ml-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-        >
-          Solana 断开连接
-        </button>
-      </div>
+        {/* Recipient Address Input */}
+        <div className="space-y-3">
+          <h3 className="text-lg font-medium text-gray-900">
+            Recipient Address
+          </h3>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Enter recipient address
+            </label>
+            <input
+              type="text"
+              value={recipientAddress}
+              onChange={(e) => handleRecipientAddressChange(e.target.value)}
+              placeholder={
+                toChain
+                  ? getAddressPlaceholder(toChain.key)
+                  : "Enter the recipient's wallet address"
+              }
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                recipientAddress && toChain
+                  ? addressValidation.isValid
+                    ? "border-green-300 focus:ring-green-500 focus:border-green-500"
+                    : "border-red-300 focus:ring-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+              }`}
+            />
+            {recipientAddress && toChain && (
+              <div className="space-y-1">
+                {addressValidation.isValid ? (
+                  <p className="text-xs text-green-600 flex items-center">
+                    <svg
+                      className="w-3 h-3 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Valid {toChain.name} address
+                  </p>
+                ) : (
+                  <p className="text-xs text-red-600 flex items-center">
+                    <svg
+                      className="w-3 h-3 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {addressValidation.error || "Invalid address format"}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
-      {/* NEAR 钱包连接 */}
-      <div className="border rounded-lg p-4">
-        <h2 className="text-lg font-semibold mb-4">NEAR 钱包</h2>
-        <ConnectWallet type="near" buttonProps={buttonProps} />
-        <button
-          onClick={async () => {
-            // const balance = await wallets.near.wallet?.getBalance(
-            //   "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-            //   "sharproom177.near"
-            // );
-            // wallets.near.wallet?.transfer({
-            //   originAsset:
-            //     "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
-            //   depositAddress: "amywang.near",
-            //   amount: "100000"
-            // });
-          }}
-          className="button ml-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Transfer
-        </button>
-        <button
-          onClick={() => {
-            console.log("near disconnect", wallets.near);
-            wallets.near.disconnect();
-          }}
-          className="ml-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-        >
-          NEAR 断开连接
-        </button>
+        {/* Submit Button */}
+        <div className="pt-4">
+          <Button
+            className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+              fromChain &&
+              toChain &&
+              fromToken &&
+              toToken &&
+              recipientAddress &&
+              addressValidation.isValid &&
+              amount &&
+              !amountError
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+            disabled={
+              !fromChain ||
+              !toChain ||
+              !fromToken ||
+              !toToken ||
+              !recipientAddress ||
+              !addressValidation.isValid ||
+              !amount ||
+              !!amountError
+            }
+            loading={quoting}
+            onClick={() => {
+              transfer();
+            }}
+          >
+            {fromChain &&
+            toChain &&
+            fromToken &&
+            toToken &&
+            recipientAddress &&
+            addressValidation.isValid &&
+            amount &&
+            !amountError
+              ? "Start Bridge Transfer"
+              : "Complete all fields to continue"}
+          </Button>
+        </div>
       </div>
     </div>
   );

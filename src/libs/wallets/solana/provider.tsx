@@ -3,7 +3,10 @@ import {
   ConnectionProvider,
   WalletProvider
 } from "@solana/wallet-adapter-react";
-import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import {
+  WalletModalProvider,
+  useWalletModal
+} from "@solana/wallet-adapter-react-ui";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import SolanaWallet from "@/libs/wallets/solana/wallet";
@@ -31,7 +34,8 @@ export default function SolanaProvider({
 const Content = () => {
   const [mounted, setMounted] = useState(false);
   const setWallets = useWalletsStore((state) => state.set);
-  const { publicKey, disconnect } = useWallet();
+  const { publicKey, disconnect, connect, wallet } = useWallet();
+  const { setVisible } = useWalletModal();
 
   useEffect(() => {
     if (!mounted) return;
@@ -40,12 +44,16 @@ const Content = () => {
     setTimeout(() => {
       setWallets({
         sol: {
-          account:
-            publicKey?.toString() ||
-            window?.solana?._publicKey?.toString() ||
-            null,
+          account: publicKey?.toString() || null,
           wallet: solanaWallet,
-          connect: () => {},
+          walletIcon: wallet?.adapter.icon,
+          connect: () => {
+            if (wallet) {
+              connect();
+            } else {
+              setVisible(true);
+            }
+          },
           disconnect: () => {
             disconnect();
             setWallets({
@@ -61,6 +69,12 @@ const Content = () => {
       });
     }, 1000);
   }, [publicKey, mounted]);
+
+  useEffect(() => {
+    if (wallet) {
+      wallet.adapter.connect();
+    }
+  }, [wallet]);
 
   useEffect(() => {
     setMounted(true);
