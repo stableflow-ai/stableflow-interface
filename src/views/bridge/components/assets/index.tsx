@@ -3,6 +3,9 @@ import { usdt } from "@/config/tokens/usdt";
 import { usdc } from "@/config/tokens/usdc";
 import clsx from "clsx";
 import useWalletStore from "@/stores/use-wallet";
+import useBalancesStore from "@/stores/use-balances";
+import { formatNumber } from "@/utils/format/number";
+import { useMemo } from "react";
 
 export default function Assets() {
   const walletStore = useWalletStore();
@@ -50,6 +53,18 @@ const AssetItem = ({
   active: boolean;
   onClick: () => void;
 }) => {
+  const balancesStore = useBalancesStore();
+  const walletStore = useWalletStore();
+  const balance = useMemo(() => {
+    if (
+      !walletStore.fromToken?.contractAddress ||
+      walletStore.fromToken?.symbol !== asset.symbol
+    )
+      return "-";
+    const _balance =
+      balancesStore.balances[walletStore.fromToken.contractAddress];
+    return _balance ? formatNumber(_balance, 2, true) : "0.00";
+  }, [walletStore.fromToken.contractAddress]);
   return (
     <div
       className={clsx(
@@ -63,7 +78,7 @@ const AssetItem = ({
       <img src={asset.icon} alt={asset.symbol} className="w-[24px] h-[24px]" />
       <div>
         <div className="text-[16px] font-[500]">{asset.symbol}</div>
-        <div className="text-[12px] text-[#9FA7BA] mt-[-4px]">-</div>
+        <div className="text-[12px] text-[#9FA7BA] mt-[-2px]">{balance}</div>
       </div>
     </div>
   );

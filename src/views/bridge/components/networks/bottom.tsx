@@ -1,19 +1,39 @@
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import Amount from "@/components/amount";
 import useBridgeStore from "@/stores/use-bridge";
+import useBalancesStore from "@/stores/use-balances";
 import Loading from "@/components/loading/icon";
+import Big from "big.js";
 
 export default function Bottom({ token }: { token: any }) {
   const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const bridgeStore = useBridgeStore();
-  const handleProgressChange = useCallback((newProgress: number) => {
-    const clampedProgress = Math.max(0, Math.min(100, newProgress));
-    setProgress(clampedProgress);
-  }, []);
+  const balancesStore = useBalancesStore();
+
+  const balance = useMemo(() => {
+    if (!token?.contractAddress) return "0";
+    const _balance = balancesStore.balances[token.contractAddress];
+    if (!_balance) return "0";
+    if (_balance === "-") return "0";
+    return _balance;
+  }, [token.contractAddress]);
+
+  const handleProgressChange = useCallback(
+    (newProgress: number) => {
+      const clampedProgress = Math.max(0, Math.min(100, newProgress));
+      setProgress(clampedProgress);
+
+      const _amount = Big(balance)
+        .mul(clampedProgress / 100)
+        .toString();
+      bridgeStore.set({ amount: _amount });
+    },
+    [balance]
+  );
 
   return (
     <div className="h-[56px] px-[20px] border-t border-[#EBF0F8] flex items-center">
@@ -27,7 +47,7 @@ export default function Bottom({ token }: { token: any }) {
 
       <Progress
         progress={progress}
-        disabled={!!bridgeStore.errorTips}
+        disabled={balance === "0"}
         token={token}
         onProgressChange={handleProgressChange}
         isDragging={isDragging}

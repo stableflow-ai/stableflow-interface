@@ -1,9 +1,10 @@
 import useBridgeStore from "@/stores/use-bridge";
+import { formatNumber } from "@/utils/format/number";
 
 export default function Input() {
   const bridgeStore = useBridgeStore();
   return (
-    <div className="w-[106px] relative z-[2]">
+    <div className="min-w-[106px] relative z-[2] grow">
       <input
         className="text-[32px] font-[500] border-none outline-none text-center w-full"
         type="text"
@@ -24,7 +25,7 @@ export default function Input() {
         }}
       />
       <div className="text-[12px] text-[#9FA7BA] text-center w-full">
-        ${bridgeStore.amount || "-"}
+        ${bridgeStore.amount ? formatNumber(bridgeStore.amount, 2, true) : "-"}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import useWalletsStore from "@/stores/use-wallets";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import {
   evmBalancesTokens,
@@ -7,13 +7,15 @@ import {
   usdtAddresses
 } from "@/config/tokens";
 import Big from "big.js";
+import useBalancesStore from "@/stores/use-balances";
 
 export default function useEvmBalances() {
-  const [balances, setBalances] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState("0");
   const [usdtBalance, setUsdtBalance] = useState("0");
+  const [balances, setBalances] = useState<any>({});
   const wallets = useWalletsStore();
+  const balancesStore = useBalancesStore();
 
   const getBalances = async () => {
     const wallet = wallets.evm;
@@ -48,6 +50,7 @@ export default function useEvmBalances() {
       setUsdtBalance(usdtBalance.toString());
 
       setBalances(_balances);
+
       setLoading(false);
     } catch (error) {
       console.error(error);
@@ -56,5 +59,11 @@ export default function useEvmBalances() {
     }
   };
 
-  return { balances, loading, getBalances, usdcBalance, usdtBalance };
+  useEffect(() => {
+    balancesStore.set({
+      balances: { ...balancesStore.balances, ...balances }
+    });
+  }, [balances]);
+
+  return { loading, getBalances, usdcBalance, usdtBalance };
 }

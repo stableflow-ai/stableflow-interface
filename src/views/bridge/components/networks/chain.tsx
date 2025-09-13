@@ -23,7 +23,7 @@ export default function Chain({ token, isTo }: any) {
     return (
       <div
         className={clsx(
-          "button w-[184px] h-[100px] shrink-0 flex flex-col justify-center rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
+          "button h-[100px] shrink-0 flex flex-col justify-center rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
           isTo ? "items-end" : "items-start"
         )}
         onClick={openWallet}
@@ -47,7 +47,7 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
   return (
     <div
       className={clsx(
-        "button w-[184px] h-[100px] shrink-0 flex flex-col justify-center rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
+        "button h-[100px] shrink-0 flex flex-col justify-center rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
         isTo ? "items-end" : "items-start"
       )}
       onClick={openWallet}
@@ -68,8 +68,8 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
           <path
             d="M1 1L5.13793 4L9 1"
             stroke="#B3BBCE"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
       </div>

@@ -9,11 +9,12 @@ import { usdtEvm, usdtSol, usdtNear } from "@/config/tokens/usdt";
 import useWalletStore from "@/stores/use-wallet";
 import useEvmBalances from "@/hooks/use-evm-balances";
 import { useEffect } from "react";
+import useBalancesStore from "@/stores/use-balances";
 
 export default function Wallet() {
   const walletStore = useWalletStore();
-  const { balances, loading, getBalances, usdcBalance, usdtBalance } =
-    useEvmBalances();
+  const balancesStore = useBalancesStore();
+  const { loading, getBalances, usdcBalance, usdtBalance } = useEvmBalances();
 
   useEffect(() => {
     if (walletStore.showWallet) {
@@ -50,7 +51,7 @@ export default function Wallet() {
               onExpand={() => {
                 walletStore.set({ usdcExpand: !walletStore.usdcExpand });
               }}
-              balances={balances}
+              balances={balancesStore.balances}
               loading={loading}
               totalBalance={usdcBalance}
             />
@@ -60,7 +61,7 @@ export default function Wallet() {
               onExpand={() => {
                 walletStore.set({ usdtExpand: !walletStore.usdtExpand });
               }}
-              balances={balances}
+              balances={balancesStore.balances}
               loading={loading}
               totalBalance={usdtBalance}
             />

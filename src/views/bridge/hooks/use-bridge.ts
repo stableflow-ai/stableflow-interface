@@ -11,6 +11,7 @@ import { useHistoryStore } from "@/stores/use-history";
 import { useConfigStore } from "@/stores/use-config";
 import useWalletStore from "@/stores/use-wallet";
 import useBridgeStore from "@/stores/use-bridge";
+import useTokenBalance from "@/hooks/use-token-balance";
 
 export default function useBridge() {
   const wallets = useWalletsStore();
@@ -18,6 +19,7 @@ export default function useBridge() {
   const configStore = useConfigStore();
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
+  const { getBalance } = useTokenBalance(walletStore.fromToken);
 
   // Recipient address state
   const [addressValidation, setAddressValidation] =
@@ -106,6 +108,7 @@ export default function useBridge() {
         } else {
           clearTimeout(timer);
           bridgeStore.set({ transferring: false });
+          getBalance();
         }
       };
     } catch (error) {
