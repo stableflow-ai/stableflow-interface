@@ -7,6 +7,9 @@ import { ToastContainer } from "react-toastify";
 import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
+import { lazy } from "react";
+
+const History = lazy(() => import("./views/history"));
 
 const router = createBrowserRouter([
   {
@@ -16,6 +19,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Bridge />
+      },
+      {
+        path: "history",
+        element: <History />
       }
     ]
   },

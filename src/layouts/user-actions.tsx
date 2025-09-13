@@ -1,10 +1,12 @@
 import useWalletStore from "@/stores/use-wallet";
 import ChainIcon from "./chain-icon";
 import useWalletsStore from "@/stores/use-wallets";
+import { useNavigate } from "react-router-dom";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
   const walletsStore = useWalletsStore();
+  const navigate = useNavigate();
 
   return (
     <div className="absolute right-[14px] top-[14px]">
@@ -21,7 +23,11 @@ export default function UserActions() {
         </button>
       ) : (
         <div className="flex items-center gap-[14px]">
-          <HistoryButton onClick={() => {}} />
+          <HistoryButton
+            onClick={() => {
+              navigate("/history");
+            }}
+          />
           <ChainsButton
             onClick={() => {
               walletStore.set({ showWallet: true });
@@ -40,7 +46,7 @@ const HistoryButton = ({ onClick }: any) => {
   return (
     <button
       onClick={onClick}
-      className="w-[106px] h-[36px] flex justify-center items-center gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      className="button w-[106px] h-[36px] flex justify-center items-center gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
