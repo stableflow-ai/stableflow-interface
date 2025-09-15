@@ -16,9 +16,8 @@ export default function useEvmBalances() {
   const [balances, setBalances] = useState<any>({});
   const wallets = useWalletsStore();
   const balancesStore = useBalancesStore();
-
+  const wallet = wallets.evm;
   const getBalances = async () => {
-    const wallet = wallets.evm;
     if (!wallet || !wallet.account) return;
     try {
       setLoading(true);
@@ -73,18 +72,23 @@ export default function useEvmBalances() {
   }, [balances, usdcBalance, usdtBalance]);
 
   useEffect(() => {
+    if (!wallet?.account) {
+      clearTimeout(window.updateEvmBalancesTimer);
+      return;
+    }
     const loop = async () => {
       await getBalances();
       window.updateEvmBalancesTimer = setTimeout(() => {
         loop();
       }, 5000);
     };
+
     loop();
 
     return () => {
       clearTimeout(window.updateEvmBalancesTimer);
     };
-  }, []);
+  }, [wallet?.account]);
 
   return { loading, getBalances };
 }
