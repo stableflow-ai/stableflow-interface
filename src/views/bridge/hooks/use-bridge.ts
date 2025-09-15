@@ -105,7 +105,7 @@ export default function useBridge() {
       bridgeStore.set({ transferring: false });
       getBalance();
       toast.success({
-        title: "Transfer successful"
+        title: "Transfer submitted"
       });
     } catch (error) {
       console.error(error);
@@ -145,8 +145,8 @@ export default function useBridge() {
 
     // Check for too many decimal places (max 6 for most tokens)
     const decimalPlaces = (value.split(".")[1] || "").length;
-    if (decimalPlaces > 6) {
-      return "Maximum 6 decimal places allowed";
+    if (decimalPlaces > walletStore.fromToken.decimals) {
+      return `Maximum ${walletStore.fromToken.decimals} decimal places allowed`;
     }
 
     // Check balance if wallet and token are available
@@ -204,10 +204,10 @@ export default function useBridge() {
       !walletStore.fromToken ||
       !walletStore.toToken ||
       !bridgeStore.amount ||
-      amountError ||
       (!addressValidation?.isValid && bridgeStore.recipientAddress)
     )
       return;
+
     debouncedQuote(true);
   }, [
     walletStore.fromToken,
