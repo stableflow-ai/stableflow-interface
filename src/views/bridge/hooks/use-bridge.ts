@@ -145,8 +145,8 @@ export default function useBridge() {
 
     // Check for too many decimal places (max 6 for most tokens)
     const decimalPlaces = (value.split(".")[1] || "").length;
-    if (decimalPlaces > 6) {
-      return "Maximum 6 decimal places allowed";
+    if (decimalPlaces > walletStore.fromToken.decimals) {
+      return `Maximum ${walletStore.fromToken.decimals} decimal places allowed`;
     }
 
     // Check balance if wallet and token are available
