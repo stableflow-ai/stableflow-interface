@@ -2,6 +2,7 @@ import clsx from "clsx";
 import ethSmallIcon from "@/assets/eth-small.png";
 import solSmallIcon from "@/assets/sol-small.png";
 import nearSmallIcon from "@/assets/near-small.png";
+import tronSmallIcon from "@/assets/tron-small.png";
 
 const CHAINS = {
   evm: {
@@ -15,6 +16,10 @@ const CHAINS = {
   near: {
     color: "#01ED97",
     icon: <img src={nearSmallIcon} alt="near" />
+  },
+  tron: {
+    color: "#D21F10",
+    icon: <img src={tronSmallIcon} alt="tron" />
   }
 };
 
