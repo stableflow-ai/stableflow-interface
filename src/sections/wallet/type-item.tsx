@@ -1,7 +1,7 @@
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
-import { usdtSol, usdtNear } from "@/config/tokens/usdt";
+import { usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
 import { usdcSol, usdcNear } from "@/config/tokens/usdc";
 import { useMemo } from "react";
 
@@ -22,16 +22,19 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
       return walletStore.selectedToken === "USDT" ? usdtSol : usdcSol;
     if (type === "near")
       return walletStore.selectedToken === "USDT" ? usdtNear : usdcNear;
+    if (type === "tron" && walletStore.selectedToken === "USDT")
+      return usdtTron;
   }, [type, walletStore.selectedToken]);
 
   return (
     <div
       className="button mx-[10px] px-[10px] py-[6px] flex justify-between items-center rounded-[12px] hover:bg-[#EDF0F7] duration-300"
       onClick={() => {
+        console.log("wallet", wallet, type, token);
         if (!wallet.account || type === "evm" || !token) {
           return;
         }
-
+        console.log("token", token);
         if (
           (walletStore.isTo &&
             walletStore.fromToken?.contractAddress === token.contractAddress) ||

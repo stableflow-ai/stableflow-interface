@@ -47,6 +47,11 @@ export const usdtChains = {
     assetId: "nep141:sol-c800a4bd850783ccb82c2b2c7e84175443606352.omft.near",
     contractAddress: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
     ...chains.sol
+  },
+  tron: {
+    assetId: "nep141:tron-d28a265909efecdcee7c5028585214ea0b96f015.omft.near",
+    contractAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+    ...chains.tron
   }
 };
 
@@ -63,4 +68,9 @@ export const usdtNear = {
 export const usdtEvm = {
   ...usdt,
   chains: Object.values(usdtChains).filter((chain) => chain.chainType === "evm")
+};
+
+export const usdtTron = {
+  ...usdt,
+  ...usdtChains.tron
 };

@@ -5,7 +5,7 @@ import Address from "./address";
 import TokenSimple from "./token-simple";
 import Token from "./token";
 // import { usdcEvm, usdcSol, usdcNear } from "@/config/tokens/usdc";
-import { usdtEvm, usdtSol, usdtNear } from "@/config/tokens/usdt";
+import { usdtEvm, usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
 import useWalletStore from "@/stores/use-wallet";
 import useEvmBalances from "@/hooks/use-evm-balances";
 import useBalancesStore from "@/stores/use-balances";
@@ -73,6 +73,7 @@ export default function Wallet() {
             <div className="mt-[10px]">
               <TypeItem type="tron" />
               <Address type="tron" />
+              <TokenSimple token={usdtTron} />
             </div>
           </div>
         </motion.div>

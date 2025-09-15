@@ -89,7 +89,7 @@ export default class TronWallet {
     await this.waitForTronWeb();
 
     const balance = await this.tronWeb.trx.getBalance(account);
-    return this.tronWeb.fromSun(balance);
+    return balance.toString();
   }
 
   async getTokenBalance(contractAddress: string, account: string) {
@@ -100,7 +100,7 @@ export default class TronWallet {
       const balance = await contract.balanceOf(account).call();
 
       // Convert from smallest unit to token unit (assuming 6 decimals)
-      return this.tronWeb.fromSun(balance.toString());
+      return balance.toString();
     } catch (error) {
       console.error("Error getting token balance:", error);
       return "0";
