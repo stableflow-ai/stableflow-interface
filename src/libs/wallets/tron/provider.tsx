@@ -1,5 +1,5 @@
 import useWalletsStore from "@/stores/use-wallets";
-import { TronLinkAdapter } from "@tronweb3/tronwallet-adapter-tronlink";
+import { TronLinkAdapter } from "@tronweb3/tronwallet-adapters";
 import { useEffect, useRef } from "react";
 import TronWallet from "./wallet";
 

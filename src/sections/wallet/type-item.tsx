@@ -34,7 +34,7 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
         if (!wallet.account || type === "evm" || !token) {
           return;
         }
-        console.log("token", token);
+
         if (
           (walletStore.isTo &&
             walletStore.fromToken?.contractAddress === token.contractAddress) ||
@@ -51,20 +51,14 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
       }}
     >
       <div className="flex items-center gap-[10px]">
-        {type === "sol" && (
+        {token?.chainIcon && (
           <img
-            src="/chains/solana.png"
-            alt="solana"
+            src={token?.chainIcon}
+            alt={token?.chainName}
             className="w-[24px] h-[24px]"
           />
         )}
-        {type === "near" && (
-          <img
-            src="/chains/near.png"
-            alt="near"
-            className="w-[24px] h-[24px]"
-          />
-        )}
+
         <span className="text-[16px] font-[500]">{LABEL[type]}</span>
         {type !== "evm" &&
           !!token &&
