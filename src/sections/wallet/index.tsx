@@ -13,7 +13,7 @@ import useBalancesStore from "@/stores/use-balances";
 export default function Wallet() {
   const walletStore = useWalletStore();
   const balancesStore = useBalancesStore();
-  useEvmBalances();
+  useEvmBalances(walletStore.showWallet);
 
   return (
     <AnimatePresence>

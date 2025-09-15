@@ -9,7 +9,7 @@ import {
 import Big from "big.js";
 import useBalancesStore from "@/stores/use-balances";
 
-export default function useEvmBalances() {
+export default function useEvmBalances(auto = false) {
   const [loading, setLoading] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState("0");
   const [usdtBalance, setUsdtBalance] = useState("0");
@@ -78,6 +78,7 @@ export default function useEvmBalances() {
     }
     const loop = async () => {
       await getBalances();
+      if (!auto) return;
       window.updateEvmBalancesTimer = setTimeout(() => {
         loop();
       }, 5000);
@@ -88,7 +89,7 @@ export default function useEvmBalances() {
     return () => {
       clearTimeout(window.updateEvmBalancesTimer);
     };
-  }, [wallet?.account]);
+  }, [wallet?.account, auto]);
 
   return { loading, getBalances };
 }

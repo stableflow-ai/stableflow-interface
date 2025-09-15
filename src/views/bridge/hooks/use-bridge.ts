@@ -105,7 +105,7 @@ export default function useBridge() {
       bridgeStore.set({ transferring: false });
       getBalance();
       toast.success({
-        title: "Transfer successful"
+        title: "Transfer submitted"
       });
     } catch (error) {
       console.error(error);

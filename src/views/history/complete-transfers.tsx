@@ -1,26 +1,20 @@
 import { useHistoryStore } from "@/stores/use-history";
 import dayjs from "dayjs";
 import { formatNumber } from "@/utils/format/number";
-import { useMemo } from "react";
 import clsx from "clsx";
 
 export default function CompleteTransfers() {
   const historyStore = useHistoryStore();
-  const mergedHistory = useMemo(() => {
-    return historyStore.completeStatus
-      .map((item) => historyStore.history[item])
-      .sort((a, b) => b.time - a.time);
-  }, [historyStore.completeStatus]);
 
   return (
     <div className="mt-[12px] rounded-[12px] px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
       <div className="text-[16px] font-[500]">History transfers</div>
       <div className="mt-[14px]">
-        {mergedHistory.map((item) => (
+        {historyStore.completeStatus.map((item) => (
           <CompleteTransferItem
-            key={item.despoitAddress}
-            data={item}
-            status={historyStore.status[item.despoitAddress]}
+            key={item}
+            data={historyStore.history[item]}
+            status={historyStore.status[item]}
           />
         ))}
       </div>
