@@ -75,7 +75,8 @@ export default function Token({
                     await switchChain({ chainId: chain.chainId });
 
                     walletStore.set({
-                      [walletStore.isTo ? "toToken" : "fromToken"]: mergedToken
+                      [walletStore.isTo ? "toToken" : "fromToken"]: mergedToken,
+                      showWallet: false
                     });
                   }}
                 >

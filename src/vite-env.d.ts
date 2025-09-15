@@ -3,6 +3,7 @@
 declare global {
   interface Window {
     updateTxnTimer: NodeJS.Timeout;
+    updateEvmBalancesTimer: NodeJS.Timeout;
   }
 }
 

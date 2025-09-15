@@ -32,10 +32,12 @@ export default function useEvmBalances() {
       let usdcBalance = Big(0);
       let usdtBalance = Big(0);
 
-      Object.values(_data).forEach((item: any) => {
+      Object.entries(_data).forEach(([key, item]: any) => {
         if (!item) return;
         item.forEach((sl: any) => {
-          const _balance = Big(sl.balance).div(10 ** 6);
+          const _balance = Big(sl.balance).div(
+            10 ** (Number(key) === 56 ? 18 : 6)
+          );
           if (usdcAddresses.includes(sl.address)) {
             usdcBalance = usdcBalance.plus(_balance);
           }
@@ -69,6 +71,20 @@ export default function useEvmBalances() {
       }
     });
   }, [balances, usdcBalance, usdtBalance]);
+
+  useEffect(() => {
+    const loop = async () => {
+      await getBalances();
+      window.updateEvmBalancesTimer = setTimeout(() => {
+        loop();
+      }, 5000);
+    };
+    loop();
+
+    return () => {
+      clearTimeout(window.updateEvmBalancesTimer);
+    };
+  }, []);
 
   return { loading, getBalances };
 }
