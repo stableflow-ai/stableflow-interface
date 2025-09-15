@@ -11,7 +11,7 @@ export default function Layout() {
       {/* Video Background */}
       <div className="absolute inset-0 w-full h-full z-0 bg-white">
         <video
-          className="w-full h-full object-cover opacity-20"
+          className="w-full h-full object-cover opacity-40"
           autoPlay
           muted
           loop
