@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 interface HistoryState {
   history: Record<string, any>;
+  status: Record<string, any>;
   pendingStatus: any[];
   completeStatus: any[];
   addHistory: (item: any) => void;
@@ -13,6 +14,7 @@ export const useHistoryStore = create(
   persist<HistoryState>(
     (set, get) => ({
       history: {},
+      status: {},
       pendingStatus: [],
       completeStatus: [],
       addHistory: (item: any) => {
@@ -24,7 +26,9 @@ export const useHistoryStore = create(
         if (!address) return;
         const _pendingStatus = get().pendingStatus;
         const _completeStatus = get().completeStatus;
+        const _status = get().status;
         const _index = _pendingStatus.indexOf(address);
+        _status[address] = status;
 
         if (status === "PENDING_DEPOSIT" || status === "PROCESSING") {
           if (_index === -1) _pendingStatus.push(address);
@@ -36,7 +40,11 @@ export const useHistoryStore = create(
           if (_completeIndex === -1) _completeStatus.push(address);
         }
 
-        set({ pendingStatus: _pendingStatus, completeStatus: _completeStatus });
+        set({
+          pendingStatus: _pendingStatus,
+          completeStatus: _completeStatus,
+          status: _status
+        });
       }
     }),
     {
