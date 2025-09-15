@@ -29,7 +29,6 @@ export default defineConfig({
   define: {
     global: "globalThis",
     "process.env": "{}",
-    Buffer: "Buffer",
     "process.browser": "true"
   },
   optimizeDeps: {
@@ -37,7 +36,6 @@ export default defineConfig({
       define: {
         global: "globalThis",
         "process.env": "{}",
-        Buffer: "Buffer",
         "process.browser": "true"
       }
     },
