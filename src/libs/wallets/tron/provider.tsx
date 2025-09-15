@@ -20,6 +20,7 @@ export default function TronProvider({
     const params = {
       connect: async () => {
         try {
+          console.log("Tron wallet connect", adapter);
           await adapter.connect();
         } catch (error) {
           console.error("Tron wallet connect failed:", error);
@@ -45,10 +46,10 @@ export default function TronProvider({
 
     setWallets({
       tron: {
-        account: null,
+        account: adapter.address,
         wallet: walletRef.current,
         ...params,
-        walletIcon: null
+        walletIcon: adapter.icon
       }
     });
 

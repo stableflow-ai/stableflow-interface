@@ -5,20 +5,6 @@ export default class TronWallet {
     this.tronWeb = (window as any).tronWeb;
   }
 
-  // 获取当前连接的账号地址
-  getCurrentAddress() {
-    if (!this.tronWeb || !this.tronWeb.ready) {
-      return null;
-    }
-    return this.tronWeb.defaultAddress?.base58 || null;
-  }
-
-  // 检查钱包是否已连接
-  isConnected() {
-    return this.tronWeb && this.tronWeb.ready && this.getCurrentAddress();
-  }
-
-  // 等待 TronWeb 准备就绪
   async waitForTronWeb() {
     return new Promise((resolve, reject) => {
       if (this.tronWeb && this.tronWeb.ready) {
@@ -37,9 +23,8 @@ export default class TronWallet {
 
       checkTronWeb();
 
-      // 设置超时
       setTimeout(() => {
-        reject(new Error("TronWeb 初始化超时"));
+        reject(new Error("TronWeb initialization timeout"));
       }, 10000);
     });
   }
@@ -51,10 +36,8 @@ export default class TronWallet {
   }) {
     const { originAsset, depositAddress, amount } = data;
 
-    // 等待 TronWeb 准备就绪
     await this.waitForTronWeb();
 
-    // Transfer TRX
     if (originAsset === "TRX" || originAsset === "trx") {
       return await this.transferTRX(depositAddress, amount);
     }
