@@ -11,6 +11,7 @@ const useBalancesStore = create<BalancesState>((set) => ({
   evmBalances: {},
   solBalances: {},
   nearBalances: {},
+  tronBalances: {},
   set: (params) => set(() => ({ ...params }))
 }));
 

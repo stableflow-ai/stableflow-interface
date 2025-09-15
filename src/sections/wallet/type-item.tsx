@@ -1,9 +1,16 @@
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
-import { usdtSol, usdtNear } from "@/config/tokens/usdt";
+import { usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
 import { usdcSol, usdcNear } from "@/config/tokens/usdc";
 import { useMemo } from "react";
+
+const LABEL = {
+  evm: "EVM-based",
+  sol: "Solana",
+  near: "Near",
+  tron: "Tron"
+};
 
 export default function TypeItem({ type = "evm" }: { type: WalletType }) {
   const wallets = useWalletsStore();
@@ -15,12 +22,15 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
       return walletStore.selectedToken === "USDT" ? usdtSol : usdcSol;
     if (type === "near")
       return walletStore.selectedToken === "USDT" ? usdtNear : usdcNear;
+    if (type === "tron" && walletStore.selectedToken === "USDT")
+      return usdtTron;
   }, [type, walletStore.selectedToken]);
 
   return (
     <div
       className="button mx-[10px] px-[10px] py-[6px] flex justify-between items-center rounded-[12px] hover:bg-[#EDF0F7] duration-300"
       onClick={() => {
+        console.log("wallet", wallet, type, token);
         if (!wallet.account || type === "evm" || !token) {
           return;
         }
@@ -41,23 +51,15 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
       }}
     >
       <div className="flex items-center gap-[10px]">
-        {type === "sol" && (
+        {token?.chainIcon && (
           <img
-            src="/chains/solana.png"
-            alt="solana"
+            src={token?.chainIcon}
+            alt={token?.chainName}
             className="w-[24px] h-[24px]"
           />
         )}
-        {type === "near" && (
-          <img
-            src="/chains/near.png"
-            alt="near"
-            className="w-[24px] h-[24px]"
-          />
-        )}
-        <span className="text-[16px] font-[500]">
-          {type === "evm" ? "EVM-based" : type === "sol" ? "Solana" : "Near"}
-        </span>
+
+        <span className="text-[16px] font-[500]">{LABEL[type]}</span>
         {type !== "evm" &&
           !!token &&
           (walletStore.fromToken?.contractAddress === token.contractAddress ||
