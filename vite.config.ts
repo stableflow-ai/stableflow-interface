@@ -16,13 +16,15 @@ export default defineConfig({
   },
   define: {
     global: "globalThis",
-    "process.env": "{}"
+    "process.env": "{}",
+    Buffer: "Buffer"
   },
   optimizeDeps: {
     esbuildOptions: {
       define: {
         global: "globalThis",
-        "process.env": "{}"
+        "process.env": "{}",
+        Buffer: "Buffer"
       }
     },
     include: ["buffer", "process"]
