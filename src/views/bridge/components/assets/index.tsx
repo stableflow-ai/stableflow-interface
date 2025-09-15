@@ -3,7 +3,7 @@ import { usdt } from "@/config/tokens/usdt";
 import { usdc } from "@/config/tokens/usdc";
 import clsx from "clsx";
 import useWalletStore from "@/stores/use-wallet";
-import useBalancesStore from "@/stores/use-balances";
+import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { formatNumber } from "@/utils/format/number";
 import { useMemo } from "react";
 
@@ -21,22 +21,24 @@ export default function Assets() {
       <div className="mt-[8px] flex items-center gap-[16px]">
         <AssetItem
           asset={usdt}
-          active={
-            walletStore.fromToken?.symbol === usdt.symbol ||
-            walletStore.toToken?.symbol === usdt.symbol
-          }
+          active={walletStore.selectedToken === "USDT"}
           onClick={() => {
-            walletStore.set({ fromToken: usdt, toToken: null });
+            walletStore.set({
+              fromToken: null,
+              toToken: null,
+              selectedToken: "USDT"
+            });
           }}
         />
         <AssetItem
           asset={usdc}
-          active={
-            walletStore.fromToken?.symbol === usdc.symbol ||
-            walletStore.toToken?.symbol === usdc.symbol
-          }
+          active={walletStore.selectedToken === "USDC"}
           onClick={() => {
-            walletStore.set({ fromToken: usdc, toToken: null });
+            walletStore.set({
+              fromToken: null,
+              toToken: null,
+              selectedToken: "USDC"
+            });
           }}
         />
       </div>
@@ -55,16 +57,21 @@ const AssetItem = ({
 }) => {
   const balancesStore = useBalancesStore();
   const walletStore = useWalletStore();
+  const key =
+    `${walletStore.fromToken?.chainType}Balances` as keyof BalancesState;
   const balance = useMemo(() => {
     if (
       !walletStore.fromToken?.contractAddress ||
       walletStore.fromToken?.symbol !== asset.symbol
     )
       return "-";
-    const _balance =
-      balancesStore.balances[walletStore.fromToken.contractAddress];
+    const _balance = balancesStore[key][walletStore.fromToken.contractAddress];
     return _balance ? formatNumber(_balance, 2, true) : "0.00";
-  }, [walletStore.fromToken.contractAddress]);
+  }, [
+    walletStore.fromToken?.contractAddress,
+    balancesStore[key]?.[walletStore.fromToken?.contractAddress]
+  ]);
+
   return (
     <div
       className={clsx(

@@ -65,11 +65,10 @@ export default function Token({
                       return;
                     }
 
-                    const token = walletStore.isTo
-                      ? walletStore.toToken
-                      : walletStore.fromToken;
                     const mergedToken = {
-                      ...token,
+                      symbol: token.symbol,
+                      decimals: token.decimals,
+                      icon: token.icon,
                       ...chain
                     };
 

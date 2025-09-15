@@ -1,27 +1,33 @@
 import { useEffect, useState } from "react";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import Big from "big.js";
-import useBalancesStore from "@/stores/use-balances";
+import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 
 export default function useTokenBalance(token: any, isAuto: boolean = true) {
   const [balance, setBalance] = useState("-");
   const [loading, setLoading] = useState(false);
   const wallets = useWalletsStore();
   const balancesStore = useBalancesStore();
+  const wallet = wallets[token?.chainType as WalletType];
 
   const getBalance = async () => {
     if (!token?.chainType) return;
-    const wallet = wallets[token.chainType as WalletType];
-    if (!wallet) return;
+
+    if (!wallet?.wallet || !wallet.account) return;
+
     try {
       setLoading(true);
-      const balance = await wallet.wallet.balanceOf(
+
+      const balance = await wallet.wallet?.balanceOf(
         token.contractAddress,
         wallet.account
       );
-      const _balance = Big(balance)
-        .div(10 ** token.decimals)
-        .toString();
+
+      const _balance = balance
+        ? Big(balance)
+            .div(10 ** token.decimals)
+            .toString()
+        : "-";
       setBalance(_balance);
     } catch (error) {
       console.error(error);
@@ -32,17 +38,19 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
   };
 
   useEffect(() => {
+    const key = `${token.chainType}Balances`;
+
     balancesStore.set({
-      balances: {
-        ...balancesStore.balances,
+      [key]: {
+        ...balancesStore[key as keyof BalancesState],
         [token.contractAddress]: balance
       }
     });
   }, [balance]);
 
   useEffect(() => {
-    if (token?.contractAddress && isAuto) getBalance();
-  }, [token, isAuto]);
+    if (token?.contractAddress && isAuto && wallet?.account) getBalance();
+  }, [token, isAuto, wallet?.account]);
 
   return { balance, loading, getBalance };
 }

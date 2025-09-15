@@ -29,8 +29,9 @@ export default class RainbowWallet {
     const contract = new ethers.Contract(originAsset, erc20Abi, this.signer);
 
     const tx = await contract.transfer(depositAddress, amount);
-    await tx.wait();
-    return tx;
+    const result = await tx.wait();
+
+    return result.hash;
   }
 
   async getBalance(token: string, account: string) {

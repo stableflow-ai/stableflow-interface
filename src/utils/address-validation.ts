@@ -29,7 +29,7 @@ export function validateAddress(
       return validateNearAddress(trimmedAddress);
     case "sol":
       return validateSolanaAddress(trimmedAddress);
-    case "arb":
+    case "evm":
       return validateEthereumAddress(trimmedAddress);
     default:
       return {
@@ -82,8 +82,7 @@ function validateNearAddress(address: string): AddressValidationResult {
   if (!nearPattern.test(address)) {
     return {
       isValid: false,
-      error:
-        "Invalid NEAR address format. Should contain only alphanumeric characters and dots."
+      error: "Invalid NEAR address"
     };
   }
 
@@ -108,7 +107,7 @@ function validateSolanaAddress(address: string): AddressValidationResult {
   if (!solanaPattern.test(address)) {
     return {
       isValid: false,
-      error: "Invalid Solana address format. Should be 32-44 base58 characters."
+      error: "Invalid Solana address"
     };
   }
 
@@ -126,8 +125,7 @@ function validateEthereumAddress(address: string): AddressValidationResult {
   if (!ethereumPattern.test(address)) {
     return {
       isValid: false,
-      error:
-        "Invalid Ethereum address format. Should be 0x followed by 40 hexadecimal characters."
+      error: "Invalid Ethereum address"
     };
   }
 

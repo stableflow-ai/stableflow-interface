@@ -18,9 +18,9 @@ export default function Amount({
   return (
     <span
       className={clsx(
-        "font-[500]",
+        "font-[500] text-[#444C59]",
         className,
-        int === "0" && float === ".00" ? "text-black/30" : "text-[#444C59]"
+        int === "0" && float === ".00" && "text-black/30"
       )}
     >
       <span className="text-[16px]">{int}</span>

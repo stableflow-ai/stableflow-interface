@@ -1,15 +1,22 @@
 import { formatAddress } from "@/utils/format/address";
 import clsx from "clsx";
 import dayjs from "dayjs";
+import { useHistoryStore } from "@/stores/use-history";
+import { formatNumber } from "@/utils/format/number";
 
 export default function Pending() {
+  const historyStore = useHistoryStore();
+
   return (
     <div className="mt-[12px] rounded-[12px] px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
-      <div className="text-[16px] font-[500]">2 Pending transfers</div>
+      <div className="text-[16px] font-[500]">
+        {historyStore.pendingStatus.length} Pending transfers
+      </div>
       <div className="mt-[14px] flex flex-wrap">
-        {[1, 2, 3].map((item, index) => (
+        {historyStore.pendingStatus.map((item, index) => (
           <PendingItem
             key={item}
+            data={historyStore.history[item]}
             className={clsx(
               index > 1 && "mt-[18px]",
               index % 2 === 0 && "mr-[18px]"
@@ -17,23 +24,36 @@ export default function Pending() {
           />
         ))}
       </div>
+      {historyStore.pendingStatus.length === 0 && (
+        <div className="text-[14px] font-[300] opacity-50 text-center">
+          No Data.
+        </div>
+      )}
     </div>
   );
 }
 
-const PendingItem = ({ className }: any) => {
+const PendingItem = ({ className, data }: any) => {
   return (
     <div className={clsx("w-[300px] bg-[#EDF0F7] rounded-[12px]", className)}>
       <div className="rounded-[12px] bg-white border border-[#EDF0F7] p-[12px]">
         <div className="flex items-center gap-[10px]">
-          <img src="/usdt.png" alt="usdt" className="w-[28px] h-[28px]" />
+          <img
+            src={data.fromToken.icon}
+            alt="usdt"
+            className="w-[28px] h-[28px]"
+          />
           <span>
-            <span className="text-[16px] font-bold">1,000</span>{" "}
-            <span className="text-[12px] font-[500]">USDT</span>
+            <span className="text-[16px] font-bold">
+              {formatNumber(data.amount, 2, true)}
+            </span>{" "}
+            <span className="text-[12px] font-[500]">
+              {data.fromToken.symbol}
+            </span>
           </span>
         </div>
         <div className="mt-[10px] flex items-center">
-          <ChainAndAddress />
+          <ChainAndAddress data={data.fromToken} address={data.fromAddress} />
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="5"
@@ -49,24 +69,24 @@ const PendingItem = ({ className }: any) => {
               strokeLinejoin="round"
             />
           </svg>
-          <ChainAndAddress />
+          <ChainAndAddress data={data.toToken} address={data.toAddress} />
         </div>
       </div>
       <div className="h-[30px] text-[12px] font-[400] text-center leading-[30px]">
-        {dayjs().format("MMM D, YYYY h:mm A")}
+        {dayjs(data.time).format("MMM D, YYYY h:mm A")}
       </div>
     </div>
   );
 };
 
-const ChainAndAddress = ({ className }: any) => {
+const ChainAndAddress = ({ className, data, address }: any) => {
   return (
     <div className={clsx("flex items-center gap-[6px]", className)}>
-      <img src="/chains/solana.png" alt="sol" className="w-[26px] h-[26px]" />
+      <img src={data.chainIcon} alt="sol" className="w-[26px] h-[26px]" />
       <div>
-        <div className="text-[12px] font-[500]">Ethereum</div>
+        <div className="text-[12px] font-[500]">{data.chainName}</div>
         <div className="text-[12px] font-[400]">
-          {formatAddress("0x229E549c97C22b139b8C05fba770D94C086853d8", 5, 4)}
+          {formatAddress(address, 5, 4)}
         </div>
       </div>
     </div>

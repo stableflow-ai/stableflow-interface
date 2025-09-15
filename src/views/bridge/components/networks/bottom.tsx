@@ -1,9 +1,15 @@
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect
+} from "react";
 import Amount from "@/components/amount";
 import useBridgeStore from "@/stores/use-bridge";
-import useBalancesStore from "@/stores/use-balances";
+import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import Loading from "@/components/loading/icon";
 import Big from "big.js";
 
@@ -16,11 +22,20 @@ export default function Bottom({ token }: { token: any }) {
 
   const balance = useMemo(() => {
     if (!token?.contractAddress) return "0";
-    const _balance = balancesStore.balances[token.contractAddress];
+    const _balance =
+      balancesStore[`${token.chainType}Balances` as keyof BalancesState][
+        token.contractAddress
+      ];
     if (!_balance) return "0";
     if (_balance === "-") return "0";
     return _balance;
-  }, [token.contractAddress]);
+  }, [token?.contractAddress]);
+
+  useEffect(() => {
+    if (balance === "0") return;
+    if (bridgeStore?.amount === "0") return;
+    setProgress((Number(bridgeStore.amount) / balance) * 100);
+  }, [balance, bridgeStore?.amount]);
 
   const handleProgressChange = useCallback(
     (newProgress: number) => {
@@ -58,7 +73,13 @@ export default function Bottom({ token }: { token: any }) {
         {bridgeStore.quoting ? (
           <Loading size={12} />
         ) : bridgeStore.quoteData?.quote?.amountOutFormatted ? (
-          <Amount amount={bridgeStore.quoteData.quote.amountOutFormatted} />
+          <div className="text-[#4DCF5E]">
+            +
+            <Amount
+              amount={bridgeStore.quoteData.quote.amountOutFormatted}
+              className="!text-[#4DCF5E]"
+            />
+          </div>
         ) : (
           <div className="w-[38px] h-[12px] rounded-[6px] bg-[#EDF0F7]" />
         )}

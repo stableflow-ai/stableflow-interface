@@ -19,7 +19,7 @@ export default function useEvmBalances() {
 
   const getBalances = async () => {
     const wallet = wallets.evm;
-    if (!wallet) return;
+    if (!wallet || !wallet.account) return;
     try {
       setLoading(true);
       const res = await axios.post("https://api.db3.app/api/balance/tokens", {
@@ -61,9 +61,14 @@ export default function useEvmBalances() {
 
   useEffect(() => {
     balancesStore.set({
-      balances: { ...balancesStore.balances, ...balances }
+      evmBalances: {
+        ...balancesStore.evmBalances,
+        ...balances,
+        usdcBalance,
+        usdtBalance
+      }
     });
-  }, [balances]);
+  }, [balances, usdcBalance, usdtBalance]);
 
-  return { loading, getBalances, usdcBalance, usdtBalance };
+  return { loading, getBalances };
 }

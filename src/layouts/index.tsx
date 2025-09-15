@@ -1,8 +1,10 @@
 import { Outlet } from "react-router-dom";
 import Wallet from "@/sections/wallet";
 import UserActions from "./user-actions";
+import useUpdateTxns from "@/hooks/use-update-txns";
 
 export default function Layout() {
+  useUpdateTxns();
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* Video Background */}

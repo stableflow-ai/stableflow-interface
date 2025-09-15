@@ -8,11 +8,11 @@ export default function Chain({ token, isTo }: any) {
       showWallet: true,
       isTo
     };
-    if (walletStore.fromToken.symbol === "USDT") {
+    if (walletStore.selectedToken === "USDT") {
       params.usdtExpand = true;
       params.usdcExpand = false;
     }
-    if (walletStore.fromToken.symbol === "USDC") {
+    if (walletStore.selectedToken === "USDC") {
       params.usdtExpand = false;
       params.usdcExpand = true;
     }

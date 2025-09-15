@@ -3,14 +3,22 @@ import metamask from "@/assets/metamask.png";
 import { formatAddress } from "@/utils/format/address";
 import { useState } from "react";
 import useBridgeStore from "@/stores/use-bridge";
+import Popover from "@/components/popover";
+import clsx from "clsx";
 
-export default function Address({ token, isTo }: any) {
+export default function Address({ token, isTo, addressValidation }: any) {
   if (!token?.chainType)
     return <div className="w-[38px] h-[12px] rounded-[6px] bg-[#EDF0F7]" />;
-  return <WithChain token={token} isTo={isTo} />;
+  return (
+    <WithChain
+      token={token}
+      isTo={isTo}
+      addressValidation={addressValidation}
+    />
+  );
 }
 
-const WithChain = ({ token, isTo }: any) => {
+const WithChain = ({ token, isTo, addressValidation }: any) => {
   const wallet = useWalletsStore()[token.chainType as WalletType];
 
   if (!wallet.account)
@@ -24,10 +32,17 @@ const WithChain = ({ token, isTo }: any) => {
         Connect {token.chainName} wallet
       </div>
     );
-  return <WithAccount token={token} wallet={wallet} isTo={isTo} />;
+  return (
+    <WithAccount
+      token={token}
+      wallet={wallet}
+      isTo={isTo}
+      addressValidation={addressValidation}
+    />
+  );
 };
 
-const WithAccount = ({ token, wallet, isTo }: any) => {
+const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
   const [edit, setEdit] = useState(false);
   const bridgeStore = useBridgeStore();
   return (
@@ -41,6 +56,18 @@ const WithAccount = ({ token, wallet, isTo }: any) => {
           value={bridgeStore.recipientAddress}
           onChange={(e) => {
             bridgeStore.set({ recipientAddress: e.target.value });
+          }}
+          onBlur={() => {
+            setEdit(false);
+          }}
+        />
+      ) : bridgeStore.recipientAddress && !!addressValidation ? (
+        <ValidateAddress
+          isError={!addressValidation.isValid}
+          address={bridgeStore.recipientAddress}
+          onClick={() => {
+            bridgeStore.set({ recipientAddress: "" });
+            setEdit(true);
           }}
         />
       ) : (
@@ -69,7 +96,19 @@ const WithAccount = ({ token, wallet, isTo }: any) => {
             Cancel
           </button>
         ) : (
-          <EditButton onClick={() => setEdit(true)} />
+          !(bridgeStore.recipientAddress && !!addressValidation) && (
+            <Popover
+              content={
+                <div className="w-[142px] h-[42px] text-[14px] text-center leading-[42px] rounded-[8px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
+                  Custom Address
+                </div>
+              }
+              placement="Top"
+              trigger="Hover"
+            >
+              <EditButton onClick={() => setEdit(true)} />
+            </Popover>
+          )
         ))}
     </div>
   );
@@ -94,5 +133,65 @@ const EditButton = ({ onClick }: any) => {
         />
       </svg>
     </button>
+  );
+};
+
+const ValidateAddress = ({ isError, address, onClick }: any) => {
+  return (
+    <div className="flex items-center">
+      {isError ? (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <rect opacity="0.2" width="14" height="14" rx="4" fill="#FF6A19" />
+          <path
+            d="M7 4V7"
+            stroke="#FF6A19"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+          <circle cx="7" cy="10" r="1" fill="#FF6A19" />
+        </svg>
+      ) : (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          fill="none"
+        >
+          <rect opacity="0.2" width="14" height="14" rx="4" fill="#4DCF5E" />
+          <path
+            d="M4 7L6 9L10 5"
+            stroke="#4DCF5E"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      )}
+      <span
+        className={clsx(
+          "text-[12px] font-[400] ml-[6px] mr-[2px]",
+          isError ? "text-[#FF6A19]" : "text-[#444C59]"
+        )}
+      >
+        {address}
+      </span>
+      <button className="button p-[2px]" onClick={onClick}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+        >
+          <circle cx="6" cy="6" r="5.2" stroke="#B3BBCE" strokeWidth="1.6" />
+          <path
+            d="M3.5 6H8.5"
+            stroke="#B3BBCE"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+    </div>
   );
 };

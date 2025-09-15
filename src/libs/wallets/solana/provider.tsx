@@ -48,6 +48,7 @@ const Content = () => {
           wallet: solanaWallet,
           walletIcon: wallet?.adapter.icon,
           connect: () => {
+            console.log(5123456, wallet);
             if (wallet) {
               connect();
             } else {

@@ -1,28 +1,52 @@
+import { useHistoryStore } from "@/stores/use-history";
 import dayjs from "dayjs";
+import { formatNumber } from "@/utils/format/number";
 
 export default function CompleteTransfers() {
+  const historyStore = useHistoryStore();
   return (
     <div className="mt-[12px] rounded-[12px] px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
-      <div className="text-[16px] font-[500]">6 Completed transfers</div>
-      <div className="mt-[14px]">
-        <CompleteTransferItem />
+      <div className="text-[16px] font-[500]">
+        {historyStore.completeStatus.length} Completed transfers
       </div>
+      <div className="mt-[14px]">
+        {historyStore.completeStatus.reverse().map((item) => (
+          <CompleteTransferItem key={item} data={historyStore.history[item]} />
+        ))}
+      </div>
+      {historyStore.completeStatus.length === 0 && (
+        <div className="text-[14px] font-[300] h-[200px] flex items-center justify-center opacity-50 text-center">
+          No Data.
+        </div>
+      )}
     </div>
   );
 }
 
-const CompleteTransferItem = () => {
+const CompleteTransferItem = ({ data }: any) => {
   return (
     <div className="flex items-center justify-between border-b border-[#EBF0F8] py-[10px]">
       <div className="flex items-center gap-[10px]">
-        <img src="/usdt.png" alt="usdt" className="w-[28px] h-[28px]" />
+        <img
+          src={data.fromToken.icon}
+          alt="usdt"
+          className="w-[28px] h-[28px]"
+        />
         <span>
-          <span className="text-[16px] font-bold">1,000</span>{" "}
-          <span className="text-[12px] font-[500]">USDT</span>
+          <span className="text-[16px] font-bold">
+            {formatNumber(data.amount, 2, true)}
+          </span>{" "}
+          <span className="text-[12px] font-[500]">
+            {data.fromToken.symbol}
+          </span>
         </span>
       </div>
       <div className="flex items-center gap-[10px]">
-        <img src="/chains/solana.png" alt="sol" className="w-[26px] h-[26px]" />
+        <img
+          src={data.fromToken.chainIcon}
+          alt="sol"
+          className="w-[26px] h-[26px]"
+        />
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="5"
@@ -37,11 +61,23 @@ const CompleteTransferItem = () => {
             strokeLinejoin="round"
           />
         </svg>
-        <img src="/chains/solana.png" alt="sol" className="w-[26px] h-[26px]" />
+        <img
+          src={data.toToken.chainIcon}
+          alt="sol"
+          className="w-[26px] h-[26px]"
+        />
         <div className="text-[14px] font-[500]">
-          {dayjs().format("MMM D, YYYY h:mm A")}
+          {dayjs(data.time).format("MMM D, YYYY h:mm A")}
         </div>
-        <button className="text-[14px] font-[500] underline ml-[10px] button">
+        <button
+          className="text-[14px] font-[500] underline ml-[10px] button"
+          onClick={() => {
+            window.open(
+              `${data.fromToken.blockExplorerUrl}/${data.txHash}`,
+              "_blank"
+            );
+          }}
+        >
           Tx
         </button>
       </div>

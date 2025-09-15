@@ -4,7 +4,7 @@ import Chain from "./chain";
 import Input from "./input";
 import Bottom from "./bottom";
 
-export default function Networks() {
+export default function Networks({ addressValidation }: any) {
   const walletStore = useWalletStore();
   return (
     <div className="mt-[20px]">
@@ -15,7 +15,11 @@ export default function Networks() {
             <Address token={walletStore.fromToken} isTo={false} />
           </div>
           <div className="w-1/2 flex items-center justify-end h-full">
-            <Address token={walletStore.toToken} isTo={true} />
+            <Address
+              token={walletStore.toToken}
+              isTo={true}
+              addressValidation={addressValidation}
+            />
           </div>
         </div>
         <div className="h-[168px] w-full mt-[8px]">

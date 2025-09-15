@@ -8,19 +8,22 @@ import { usdcEvm, usdcSol, usdcNear } from "@/config/tokens/usdc";
 import { usdtEvm, usdtSol, usdtNear } from "@/config/tokens/usdt";
 import useWalletStore from "@/stores/use-wallet";
 import useEvmBalances from "@/hooks/use-evm-balances";
+import useWalletsStore from "@/stores/use-wallets";
 import { useEffect } from "react";
 import useBalancesStore from "@/stores/use-balances";
 
 export default function Wallet() {
   const walletStore = useWalletStore();
   const balancesStore = useBalancesStore();
-  const { loading, getBalances, usdcBalance, usdtBalance } = useEvmBalances();
+  const walletsStore = useWalletsStore();
+  const { loading, getBalances } = useEvmBalances();
+  const wallet = walletsStore.evm;
 
   useEffect(() => {
-    if (walletStore.showWallet) {
+    if (walletStore.showWallet && wallet.account) {
       getBalances();
     }
-  }, [walletStore.showWallet]);
+  }, [walletStore.showWallet, wallet.account]);
 
   return (
     <AnimatePresence>
@@ -51,9 +54,9 @@ export default function Wallet() {
               onExpand={() => {
                 walletStore.set({ usdcExpand: !walletStore.usdcExpand });
               }}
-              balances={balancesStore.balances}
+              balances={balancesStore.evmBalances}
               loading={loading}
-              totalBalance={usdcBalance}
+              totalBalance={balancesStore.evmBalances.usdcBalance}
             />
             <Token
               token={usdtEvm}
@@ -61,9 +64,9 @@ export default function Wallet() {
               onExpand={() => {
                 walletStore.set({ usdtExpand: !walletStore.usdtExpand });
               }}
-              balances={balancesStore.balances}
+              balances={balancesStore.evmBalances}
               loading={loading}
-              totalBalance={usdtBalance}
+              totalBalance={balancesStore.evmBalances.usdtBalance}
             />
             <div className="mt-[10px]">
               <TypeItem type="sol" />

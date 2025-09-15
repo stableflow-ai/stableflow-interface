@@ -5,7 +5,7 @@ import BridgeButton from "./components/button";
 import useBridge from "./hooks/use-bridge";
 
 export default function Bridge() {
-  const { transfer } = useBridge();
+  const { transfer, addressValidation } = useBridge();
   return (
     <div className="w-[488px] mx-auto pt-[60px]">
       <div className="flex justify-center items-center gap-[10px]">
@@ -16,7 +16,7 @@ export default function Bridge() {
         Stablecoins, any chain, one move.
       </div>
       <Assets />
-      <Networks />
+      <Networks addressValidation={addressValidation} />
       <Result />
       <BridgeButton onClick={transfer} />
     </div>

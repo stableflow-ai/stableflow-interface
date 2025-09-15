@@ -1,10 +1,10 @@
 import Amount from "@/components/amount";
 import Loading from "@/components/loading/icon";
 import useTokenBalance from "@/hooks/use-token-balance";
-import useBalancesStore from "@/stores/use-balances";
+import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 
 export default function TokenSimple({ token }: any) {
-  const { loading } = useTokenBalance(token, true);
+  const { loading, balance } = useTokenBalance(token, true);
   const balancesStore = useBalancesStore();
 
   return (
@@ -16,7 +16,13 @@ export default function TokenSimple({ token }: any) {
       {loading ? (
         <Loading size={14} />
       ) : (
-        <Amount amount={balancesStore.balances[token.contractAddress]} />
+        <Amount
+          amount={
+            balancesStore[`${token.chainType}Balances` as keyof BalancesState][
+              token.contractAddress
+            ] || balance
+          }
+        />
       )}
     </div>
   );

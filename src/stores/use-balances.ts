@@ -1,12 +1,16 @@
 import { create } from "zustand/index";
 
-interface BalancesState {
-  balances: any;
+export interface BalancesState {
+  evmBalances: any;
+  solBalances: any;
+  nearBalances: any;
   set: (params: any) => void;
 }
 
 const useBalancesStore = create<BalancesState>((set) => ({
-  balances: {},
+  evmBalances: {},
+  solBalances: {},
+  nearBalances: {},
   set: (params) => set(() => ({ ...params }))
 }));
 

@@ -90,7 +90,12 @@ export default class NearWallet {
       transactions,
       callbackUrl: "/"
     });
-    return result;
+
+    if (result.slice(-1).length) {
+      return result.slice(-1)[0].transaction.hash;
+    }
+
+    return "";
   }
 
   async getBalance(token: string, _account: string) {

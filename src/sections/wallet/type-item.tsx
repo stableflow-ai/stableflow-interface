@@ -12,10 +12,10 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
   const token = useMemo(() => {
     if (type === "evm") return null;
     if (type === "sol")
-      return walletStore.fromToken.symbol === "USDT" ? usdtSol : usdcSol;
+      return walletStore.selectedToken === "USDT" ? usdtSol : usdcSol;
     if (type === "near")
-      return walletStore.fromToken.symbol === "USDT" ? usdtNear : usdcNear;
-  }, [type]);
+      return walletStore.selectedToken === "USDT" ? usdtNear : usdcNear;
+  }, [type, walletStore.selectedToken]);
 
   return (
     <div
@@ -33,6 +33,7 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
         ) {
           return;
         }
+
         walletStore.set({
           [walletStore.isTo ? "toToken" : "fromToken"]: token
         });

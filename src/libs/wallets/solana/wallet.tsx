@@ -112,6 +112,7 @@ export default class SolanaWallet {
     );
 
     await this.connection.confirmTransaction(signature);
+
     return signature;
   }
 
@@ -129,7 +130,12 @@ export default class SolanaWallet {
     }
 
     // Transfer SPL token
-    return await this.transferToken(originAsset, depositAddress, amount);
+    const result = await this.transferToken(
+      originAsset,
+      depositAddress,
+      amount
+    );
+    return result;
   }
 
   async getSOLBalance(account: string) {

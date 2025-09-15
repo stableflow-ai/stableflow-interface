@@ -12,6 +12,7 @@ import { useConfigStore } from "@/stores/use-config";
 import useWalletStore from "@/stores/use-wallet";
 import useBridgeStore from "@/stores/use-bridge";
 import useTokenBalance from "@/hooks/use-token-balance";
+import useToast from "@/hooks/use-toast";
 
 export default function useBridge() {
   const wallets = useWalletsStore();
@@ -20,6 +21,7 @@ export default function useBridge() {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
   const { getBalance } = useTokenBalance(walletStore.fromToken);
+  const toast = useToast();
 
   // Recipient address state
   const [addressValidation, setAddressValidation] =
@@ -77,43 +79,40 @@ export default function useBridge() {
       const _quote = await quote(false);
 
       // @ts-ignore
-      const wallet = wallets[fromToken.chainType];
+      const wallet = wallets[walletStore.fromToken.chainType];
       const _amount = Big(bridgeStore.amount)
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
-      await wallet.wallet.transfer({
+      const hash = await wallet.wallet.transfer({
         originAsset: walletStore.fromToken.contractAddress,
         depositAddress: _quote.quote.depositAddress,
         amount: _amount
       });
-      historyStore.addHistory(_quote);
 
-      let timer: any = null;
-      const getStatus = async () => {
-        const result = await oneClickService.getStatus({
-          depositAddress: _quote.quote.despoitAddress
-        });
-        historyStore.updateStatus(
-          _quote.quote.despoitAddress,
-          result.data.status
-        );
-        if (
-          result.data.status !== "SUCCESS" &&
-          result.data.status !== "FAILED"
-        ) {
-          timer = setTimeout(() => {
-            getStatus();
-          }, 5000);
-        } else {
-          clearTimeout(timer);
-          bridgeStore.set({ transferring: false });
-          getBalance();
-        }
-      };
+      historyStore.addHistory({
+        despoitAddress: _quote.quote.depositAddress,
+        amount: bridgeStore.amount,
+        fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        fromAddress: wallet.account,
+        toAddress: _quote.quoteRequest.recipient,
+        time: Date.now(),
+        txHash: hash
+      });
+
+      historyStore.updateStatus(_quote.quote.depositAddress, "PENDING_DEPOSIT");
+      bridgeStore.set({ transferring: false });
+      getBalance();
+      toast.success({
+        title: "Transfer successful"
+      });
     } catch (error) {
       console.error(error);
       bridgeStore.set({ transferring: false });
+      toast.fail({
+        title: "Transfer failed"
+      });
     }
   };
 
@@ -124,10 +123,7 @@ export default function useBridge() {
         bridgeStore.recipientAddress,
         walletStore.toToken.chainType
       );
-
       setAddressValidation(validation);
-    } else {
-      setAddressValidation({ isValid: false });
     }
   }, [bridgeStore.recipientAddress, walletStore.toToken]);
 
@@ -208,16 +204,14 @@ export default function useBridge() {
       !walletStore.fromToken ||
       !walletStore.toToken ||
       !bridgeStore.amount ||
-      !bridgeStore.recipientAddress ||
       amountError ||
-      !addressValidation?.isValid
+      (!addressValidation?.isValid && bridgeStore.recipientAddress)
     )
       return;
     debouncedQuote(true);
   }, [
     walletStore.fromToken,
     walletStore.toToken,
-    bridgeStore.recipientAddress,
     bridgeStore.amount,
     amountError,
     addressValidation
@@ -256,6 +250,7 @@ export default function useBridge() {
 
   return {
     quote,
-    transfer
+    transfer,
+    addressValidation
   };
 }
