@@ -204,10 +204,10 @@ export default function useBridge() {
       !walletStore.fromToken ||
       !walletStore.toToken ||
       !bridgeStore.amount ||
-      amountError ||
       (!addressValidation?.isValid && bridgeStore.recipientAddress)
     )
       return;
+
     debouncedQuote(true);
   }, [
     walletStore.fromToken,
