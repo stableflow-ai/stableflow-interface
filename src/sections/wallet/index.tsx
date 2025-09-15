@@ -13,7 +13,6 @@ import useBalancesStore from "@/stores/use-balances";
 export default function Wallet() {
   const walletStore = useWalletStore();
   const balancesStore = useBalancesStore();
-  const { loading } = useEvmBalances();
 
   return (
     <AnimatePresence>
@@ -55,7 +54,7 @@ export default function Wallet() {
                 walletStore.set({ usdtExpand: !walletStore.usdtExpand });
               }}
               balances={balancesStore.evmBalances}
-              loading={loading}
+              // loading={loading}
               totalBalance={balancesStore.evmBalances.usdtBalance}
             />
             <div className="mt-[10px]">
