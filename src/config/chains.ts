@@ -66,6 +66,12 @@ const chains = {
     chainType: "evm",
     chainId: 10,
     blockExplorerUrl: "https://optimistic.etherscan.io/tx"
+  },
+  tron: {
+    chainName: "Tron",
+    chainIcon: "/chains/tron.png",
+    chainType: "tron",
+    blockExplorerUrl: "https://tronscan.org/tx"
   }
 };
 

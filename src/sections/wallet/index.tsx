@@ -45,7 +45,7 @@ export default function Wallet() {
               walletStore.set({ showWallet: false });
             }}
           />
-          <div className="h-[calc(100%-50px)] overflow-y-auto">
+          <div className="h-[calc(100%-50px)] overflow-y-auto pb-[20px]">
             <TypeItem type="evm" />
             <Address type="evm" />
             <Token
@@ -74,11 +74,15 @@ export default function Wallet() {
               <TokenSimple token={usdcSol} />
               <TokenSimple token={usdtSol} />
             </div>
-            <div className="mt-[10px] pb-[20px]">
+            <div className="mt-[10px]">
               <TypeItem type="near" />
               <Address type="near" />
               <TokenSimple token={usdcNear} />
               <TokenSimple token={usdtNear} />
+            </div>
+            <div className="mt-[10px]">
+              <TypeItem type="tron" />
+              <Address type="tron" />
             </div>
           </div>
         </motion.div>

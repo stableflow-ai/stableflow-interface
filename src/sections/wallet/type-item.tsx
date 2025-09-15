@@ -5,6 +5,13 @@ import { usdtSol, usdtNear } from "@/config/tokens/usdt";
 import { usdcSol, usdcNear } from "@/config/tokens/usdc";
 import { useMemo } from "react";
 
+const LABEL = {
+  evm: "EVM-based",
+  sol: "Solana",
+  near: "Near",
+  tron: "Tron"
+};
+
 export default function TypeItem({ type = "evm" }: { type: WalletType }) {
   const wallets = useWalletsStore();
   const wallet = wallets[type || "evm"];
@@ -54,9 +61,7 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
             className="w-[24px] h-[24px]"
           />
         )}
-        <span className="text-[16px] font-[500]">
-          {type === "evm" ? "EVM-based" : type === "sol" ? "Solana" : "Near"}
-        </span>
+        <span className="text-[16px] font-[500]">{LABEL[type]}</span>
         {type !== "evm" &&
           !!token &&
           (walletStore.fromToken?.contractAddress === token.contractAddress ||
