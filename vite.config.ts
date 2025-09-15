@@ -10,7 +10,8 @@ export default defineConfig({
       {
         find: "@",
         replacement: "/src"
-      }
+      },
+      { find: "buffer", replacement: "buffer" }
     ]
   },
   define: {
@@ -23,6 +24,7 @@ export default defineConfig({
         global: "globalThis",
         "process.env": "{}"
       }
-    }
+    },
+    include: ["buffer", "process"]
   }
 });
