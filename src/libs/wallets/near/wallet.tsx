@@ -1,3 +1,5 @@
+import { Buffer } from "buffer";
+
 export default class NearWallet {
   private selector: any;
   private rpcUrl: string;
