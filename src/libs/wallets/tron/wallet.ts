@@ -66,13 +66,12 @@ export default class TronWallet {
     // Get contract instance
     const contract = await this.tronWeb.contract().at(contractAddress);
 
-    // Convert amount to proper format (assuming 6 decimals for USDT/USDC)
-    const amountInSun = this.tronWeb.toSun(amount);
-
     // Call transfer function
-    const transaction = await contract.transfer(to, amountInSun).send();
+    const transaction = await contract.transfer(to, amount).send({
+      feeLimit: 100_000_000
+    });
 
-    return transaction.txid;
+    return transaction;
   }
 
   async getBalance(token: string, account: string) {
