@@ -57,7 +57,7 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
   return (
     <div
       className={clsx(
-        "button h-[100px] shrink-0 flex flex-col justify-center rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
+        "button w-[120px] h-[100px] shrink-0 flex flex-col justify-center rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
         isTo ? "items-end" : "items-start"
       )}
       onClick={openWallet}
