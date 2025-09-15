@@ -38,7 +38,7 @@ class OneClickService {
   }
 
   public async submitHash(params: { txHash: string; depositAddress: string }) {
-    return await this.api.post("/deposit/submit", { params });
+    return await this.api.post("/deposit/submit", params);
   }
 
   public async getStatus(params: {

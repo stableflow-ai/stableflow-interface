@@ -23,6 +23,17 @@ export default function useUpdateTxns() {
   useEffect(() => {
     updateTxns();
 
+    // const sumbit = async () => {
+    //   const result = await oneClickService.submitHash({
+    //     txHash:
+    //       "0x78b74dadb2ad4891bcd945fd19d96105a3c66723f1fdea3fd022afd963df009a",
+    //     depositAddress:
+    //       "0x03caab97eb4a7458be8168b75542030b489aa180568fcd84711efc3622c655ac"
+    //   });
+    //   console.log(result);
+    // };
+    // sumbit();
+
     return () => {
       clearTimeout(window.updateTxnTimer);
     };
