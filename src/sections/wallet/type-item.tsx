@@ -35,7 +35,8 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
         }
 
         walletStore.set({
-          [walletStore.isTo ? "toToken" : "fromToken"]: token
+          [walletStore.isTo ? "toToken" : "fromToken"]: token,
+          showWallet: false
         });
       }}
     >

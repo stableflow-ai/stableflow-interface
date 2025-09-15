@@ -51,8 +51,8 @@ export default function Bottom({ token }: { token: any }) {
   );
 
   return (
-    <div className="h-[56px] px-[20px] border-t border-[#EBF0F8] flex items-center">
-      <div className="shrink-0 pr-[50px] w-[100px]">
+    <div className="h-[56px] px-[20px] border-t border-[#EBF0F8] gap-[10px] flex items-center justify-between">
+      <div className="shrink-0">
         {!!bridgeStore.amount ? (
           <Amount amount={bridgeStore.amount} />
         ) : (
@@ -69,7 +69,7 @@ export default function Bottom({ token }: { token: any }) {
         setIsDragging={setIsDragging}
         progressBarRef={progressBarRef}
       />
-      <div className="shrink-0 pl-[50px] w-[100px]">
+      <div className="shrink-0">
         {bridgeStore.quoting ? (
           <Loading size={12} />
         ) : bridgeStore.quoteData?.quote?.amountOutFormatted ? (
@@ -111,7 +111,7 @@ const Progress = ({
       className="w-[269px] h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] shrink-0"
     >
       <div
-        className="h-[8px] rounded-[12px] bg-linear-to-r from-[#B7CCBA00] to-[#B7CCBA] relative"
+        className="h-[8px] rounded-[12px] bg-linear-to-r from-[#B7CCBA00] to-[#B7CCBA] relative max-w-full"
         style={{ width: `${progress}%` }}
       >
         {token && (

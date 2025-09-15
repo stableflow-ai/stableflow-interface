@@ -4,26 +4,16 @@ import TypeItem from "./type-item";
 import Address from "./address";
 import TokenSimple from "./token-simple";
 import Token from "./token";
-import { usdcEvm, usdcSol, usdcNear } from "@/config/tokens/usdc";
+// import { usdcEvm, usdcSol, usdcNear } from "@/config/tokens/usdc";
 import { usdtEvm, usdtSol, usdtNear } from "@/config/tokens/usdt";
 import useWalletStore from "@/stores/use-wallet";
 import useEvmBalances from "@/hooks/use-evm-balances";
-import useWalletsStore from "@/stores/use-wallets";
-import { useEffect } from "react";
 import useBalancesStore from "@/stores/use-balances";
 
 export default function Wallet() {
   const walletStore = useWalletStore();
   const balancesStore = useBalancesStore();
-  const walletsStore = useWalletsStore();
-  const { loading, getBalances } = useEvmBalances();
-  const wallet = walletsStore.evm;
-
-  useEffect(() => {
-    if (walletStore.showWallet && wallet.account) {
-      getBalances();
-    }
-  }, [walletStore.showWallet, wallet.account]);
+  const { loading } = useEvmBalances();
 
   return (
     <AnimatePresence>
@@ -48,7 +38,7 @@ export default function Wallet() {
           <div className="h-[calc(100%-50px)] overflow-y-auto">
             <TypeItem type="evm" />
             <Address type="evm" />
-            <Token
+            {/* <Token
               token={usdcEvm}
               expand={walletStore.usdcExpand}
               onExpand={() => {
@@ -57,7 +47,7 @@ export default function Wallet() {
               balances={balancesStore.evmBalances}
               loading={loading}
               totalBalance={balancesStore.evmBalances.usdcBalance}
-            />
+            /> */}
             <Token
               token={usdtEvm}
               expand={walletStore.usdtExpand}
@@ -71,13 +61,13 @@ export default function Wallet() {
             <div className="mt-[10px]">
               <TypeItem type="sol" />
               <Address type="sol" />
-              <TokenSimple token={usdcSol} />
+              {/* <TokenSimple token={usdcSol} /> */}
               <TokenSimple token={usdtSol} />
             </div>
             <div className="mt-[10px] pb-[20px]">
               <TypeItem type="near" />
               <Address type="near" />
-              <TokenSimple token={usdcNear} />
+              {/* <TokenSimple token={usdcNear} /> */}
               <TokenSimple token={usdtNear} />
             </div>
           </div>

@@ -1,6 +1,7 @@
 import Setting from "@/sections/setting";
 import { usdt } from "@/config/tokens/usdt";
 import { usdc } from "@/config/tokens/usdc";
+import { usd1 } from "@/config/tokens/usd1";
 import clsx from "clsx";
 import useWalletStore from "@/stores/use-wallet";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
@@ -33,11 +34,24 @@ export default function Assets() {
         <AssetItem
           asset={usdc}
           active={walletStore.selectedToken === "USDC"}
+          disabled={true}
           onClick={() => {
             walletStore.set({
               fromToken: null,
               toToken: null,
               selectedToken: "USDC"
+            });
+          }}
+        />
+        <AssetItem
+          asset={usd1}
+          active={false}
+          disabled={true}
+          onClick={() => {
+            walletStore.set({
+              fromToken: null,
+              toToken: null,
+              selectedToken: "USD1"
             });
           }}
         />
@@ -49,10 +63,12 @@ export default function Assets() {
 const AssetItem = ({
   asset,
   active,
+  disabled = false,
   onClick
 }: {
   asset: any;
   active: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }) => {
   const balancesStore = useBalancesStore();
@@ -82,10 +98,23 @@ const AssetItem = ({
       )}
       onClick={onClick}
     >
-      <img src={asset.icon} alt={asset.symbol} className="w-[24px] h-[24px]" />
+      <img
+        src={asset.icon}
+        alt={asset.symbol}
+        className={clsx(
+          "w-[24px] h-[24px]",
+          disabled && "grayscale opacity-50"
+        )}
+      />
       <div>
-        <div className="text-[16px] font-[500]">{asset.symbol}</div>
-        <div className="text-[12px] text-[#9FA7BA] mt-[-2px]">{balance}</div>
+        <div
+          className={clsx("text-[16px] font-[500]", disabled && "opacity-50")}
+        >
+          {asset.symbol}
+        </div>
+        <div className="text-[12px] text-[#9FA7BA] mt-[-2px]">
+          {disabled ? "soon" : balance}
+        </div>
       </div>
     </div>
   );

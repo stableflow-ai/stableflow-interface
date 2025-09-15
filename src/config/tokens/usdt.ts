@@ -25,7 +25,8 @@ export const usdtChains = {
   bsc: {
     assetId: "nep245:v2_1.omni.hot.tg:56_2CMMyVTGZkeyNZTSvS5sarzfir6g",
     contractAddress: "0x55d398326f99059ff775485246999027b3197955",
-    ...chains.bsc
+    ...chains.bsc,
+    decimals: 18
   },
   op: {
     assetId: "nep245:v2_1.omni.hot.tg:10_359RPSJVdTxwTJT9TyGssr2rFoWo",
