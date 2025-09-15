@@ -51,7 +51,7 @@ export default function Bottom({ token }: { token: any }) {
   );
 
   return (
-    <div className="h-[60px] px-[20px] pb-[2px] border-t border-[#EBF0F8] flex items-center justify-between">
+    <div className="h-[70px] px-[20px] pt-[24px] border-t border-[#EBF0F8] flex  justify-between">
       <div className="shrink-0 w-[90px]">
         {!!bridgeStore.amount ? (
           // <Amount amount={bridgeStore.amount} />
@@ -133,7 +133,7 @@ const Progress = ({
           />
         )}
       </div>
-      <div className="absolute top-[16px] left-0 w-full h-full flex items-center text-[#9FA7BA] text-[10px]">
+      <div className="absolute bottom-[-24px] left-0 w-full h-full flex items-center text-[#9FA7BA] text-[10px]">
         {[25, 50, 75, 100].map((item) => (
           <div key={item} className="w-1/4 text-right">
             <span className="button" onClick={() => onProgressChange(item)}>

@@ -22,7 +22,7 @@ export default function Networks({ addressValidation }: any) {
             />
           </div>
         </div>
-        <div className="h-[168px] w-full mt-[8px]">
+        <div className="w-full mt-[8px]">
           <div className="p-[6px] flex items-center relative">
             <Chain token={walletStore.fromToken} isTo={false} />
             <Input />

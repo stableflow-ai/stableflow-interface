@@ -80,7 +80,7 @@ export default function Setting() {
                 className="w-[94px] h-[22px] bg-transparent outline-none border-b border-[#EDF0F7] text-[#0E3616] text-[16px]"
               />
               <div className="flex items-center gap-[6px]">
-                {[0.5, 1, 5].map((item) => (
+                {[0.01, 0.05, 1].map((item) => (
                   <Item
                     key={item}
                     value={item}
@@ -92,7 +92,7 @@ export default function Setting() {
                 ))}
               </div>
             </div>
-            {configStore.slippage > 5 && (
+            {configStore.slippage > 1 && (
               <div className="text-[12px] text-[#FF6A19] mt-[8px]">
                 You may pay high fees
               </div>
