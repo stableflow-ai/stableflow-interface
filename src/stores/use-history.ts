@@ -31,13 +31,13 @@ export const useHistoryStore = create(
         _status[address] = status;
 
         if (status === "PENDING_DEPOSIT" || status === "PROCESSING") {
-          if (_index === -1) _pendingStatus.push(address);
+          if (_index === -1) _pendingStatus.unshift(address);
         } else {
           if (_index !== -1) {
             _pendingStatus.splice(_index, 1);
           }
           const _completeIndex = _completeStatus.indexOf(address);
-          if (_completeIndex === -1) _completeStatus.push(address);
+          if (_completeIndex === -1) _completeStatus.unshift(address);
         }
 
         set({
