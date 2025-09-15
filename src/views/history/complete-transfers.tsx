@@ -28,6 +28,8 @@ export default function CompleteTransfers() {
 }
 
 const CompleteTransferItem = ({ data, status }: any) => {
+  const isSuccess = status === "SUCCESS";
+
   return (
     <div className="flex items-center justify-between border-b border-[#EBF0F8] py-[10px]">
       <div className="flex items-center gap-[10px]">
@@ -84,14 +86,14 @@ const CompleteTransferItem = ({ data, status }: any) => {
         >
           Tx
         </button>
-        <span
+        <div
           className={clsx(
-            "text-[14px] font-[500px] ml-[20px]",
-            status === "SUCCESS" ? "text-[#4DCF5E]" : "text-[#FF6A19]"
+            "text-[14px] font-[500px] ml-[20px] w-[60px]",
+            isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
           )}
         >
-          {status === "SUCCESS" ? "Success" : "Failed"}
-        </span>
+          {isSuccess ? "Success" : "Failed"}
+        </div>
       </div>
     </div>
   );

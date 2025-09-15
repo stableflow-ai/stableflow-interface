@@ -173,7 +173,7 @@ const ValidateAddress = ({ isError, address, onClick }: any) => {
           isError ? "text-[#FF6A19]" : "text-[#444C59]"
         )}
       >
-        {address}
+        {formatAddress(address, 12, 10)}
       </span>
       <button className="button p-[2px]" onClick={onClick}>
         <svg
