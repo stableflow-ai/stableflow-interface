@@ -71,9 +71,9 @@ const AssetItem = ({
   return (
     <div
       className={clsx(
-        "flex items-center gap-[10px] p-[10px] w-[132px] h-[52px] rounded-[26px] duration-300",
+        "flex items-center gap-[10px] p-[10px] w-[132px] h-[46px] md:h-[52px] rounded-[26px] duration-300",
         active
-          ? "shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] bg-white border border-transparent"
+          ? "shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] bg-white border border-transparent text-black"
           : "border-dashed border-[#B3BBCE] border",
         disabled ? "cursor-not-allowed" : "cursor-pointer"
       )}

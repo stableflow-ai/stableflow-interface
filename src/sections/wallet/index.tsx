@@ -9,26 +9,28 @@ import useWalletStore from "@/stores/use-wallet";
 import useEvmBalances from "@/hooks/use-evm-balances";
 import useBalancesStore from "@/stores/use-balances";
 import Total from "./total";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 export default function Wallet() {
   const walletStore = useWalletStore();
   const balancesStore = useBalancesStore();
+  const isMobile = useIsMobile();
   useEvmBalances(walletStore.showWallet);
 
   return (
     <AnimatePresence>
       {walletStore.showWallet && (
         <motion.div
-          initial={{ x: "100%", opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: "100%", opacity: 0 }}
+          initial={isMobile ? { y: "100%", opacity: 0 } : { x: "100%", opacity: 0 }}
+          animate={isMobile ? { y: 0, opacity: 1 } : { x: 0, opacity: 1 }}
+          exit={isMobile ? { y: "100%", opacity: 0 } : { x: "100%", opacity: 0 }}
           transition={{
             type: "spring",
             stiffness: 300,
-            damping: 30,
+            damping: isMobile ? 20 : 30,
             duration: 0.3
           }}
-          className="fixed z-10 right-0 md:right-[10px] top-0 md:top-[10px] w-[85vw] md:w-[320px] h-full md:h-[calc(100%-20px)] overflow-hidden rounded-r-[0px] md:rounded-r-[16px] rounded-l-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)]"
+          className="fixed z-10 right-[unset] md:right-[10px] bottom-0 md:bottom-[unset] md:top-[10px] w-full md:w-[320px] h-[calc(100%-70px)] md:h-[calc(100%-20px)] overflow-hidden rounded-b-[0px] md:rounded-b-[16px] rounded-t-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)]"
         >
           <Title
             onClose={() => {

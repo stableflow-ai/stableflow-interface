@@ -6,7 +6,7 @@ export default function BackButton({ className }: { className: string }) {
   return (
     <button
       className={clsx(
-        "button w-[90px] h-[32px] flex justify-center items-center gap-[14px] rounded-[16px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]",
+        "button pl-[14px] md:pl-[17px] pr-[14px] md:pr-[22px] h-[32px] flex justify-center items-center gap-[14px] rounded-[16px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]",
         className
       )}
       onClick={() => {
@@ -27,7 +27,7 @@ export default function BackButton({ className }: { className: string }) {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="text-[14px] text-[#444C59]">Back</span>
+      <span className="text-[14px] text-[#444C59] hidden md:block">Back</span>
     </button>
   );
 }

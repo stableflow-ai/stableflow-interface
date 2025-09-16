@@ -4,6 +4,7 @@ import useWalletsStore from "@/stores/use-wallets";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useHistoryStore } from "@/stores/use-history";
 import { useMemo } from "react";
+import MainTitle from "@/components/main-title";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -16,40 +17,45 @@ export default function UserActions() {
   }, [pathname]);
 
   return (
-    <div className="absolute z-[9] right-[14px] top-[14px]">
-      {!walletsStore.evm.account &&
-        !walletsStore.sol.account &&
-        !walletsStore.near.account ? (
-        <button
-          onClick={() => {
-            walletStore.set({ showWallet: true });
-          }}
-          className="button  px-[20px] py-[8px] bg-[#6284F5] rounded-[18px] text-[16px] text-white"
-        >
-          Connect
-        </button>
-      ) : (
-        <div className="flex items-center gap-[14px]">
-          {
-            !isHistory && (
-              <HistoryButton
-                onClick={() => {
-                  navigate("/history");
-                }}
-              />
-            )
-          }
-          <ChainsButton
+    <div className="w-full absolute z-[9] pl-[6px] md:pl-0 pr-[10px] top-[14px] flex justify-between items-center gap-[10px]">
+      <div className="shrink-0">
+        <MainTitle className="!flex md:!hidden !w-[unset]" />
+      </div>
+      <div className="shrink-0">
+        {!walletsStore.evm.account &&
+          !walletsStore.sol.account &&
+          !walletsStore.near.account ? (
+          <button
             onClick={() => {
               walletStore.set({ showWallet: true });
             }}
-            evmConnected={!!walletsStore.evm.account}
-            solConnected={!!walletsStore.sol.account}
-            nearConnected={!!walletsStore.near.account}
-            tronConnected={!!walletsStore.tron.account}
-          />
-        </div>
-      )}
+            className="button px-[15px] md:px-[20px] py-[6px] md:py-[8px] bg-[#6284F5] rounded-[18px] text-[16px] text-white"
+          >
+            Connect
+          </button>
+        ) : (
+          <div className="flex items-center gap-[14px]">
+            {
+              !isHistory && (
+                <HistoryButton
+                  onClick={() => {
+                    navigate("/history");
+                  }}
+                />
+              )
+            }
+            <ChainsButton
+              onClick={() => {
+                walletStore.set({ showWallet: true });
+              }}
+              evmConnected={!!walletsStore.evm.account}
+              solConnected={!!walletsStore.sol.account}
+              nearConnected={!!walletsStore.near.account}
+              tronConnected={!!walletsStore.tron.account}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -59,7 +65,7 @@ const HistoryButton = ({ onClick }: any) => {
   return (
     <button
       onClick={onClick}
-      className="button w-[106px] h-[36px] flex justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      className="button px-[15px] md:px-[18px] h-[36px] flex justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
     >
       {pendingNumber > 0 ? (
         <>
@@ -70,21 +76,12 @@ const HistoryButton = ({ onClick }: any) => {
         </>
       ) : (
         <>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="16"
-            viewBox="0 0 14 16"
-            fill="none"
-          >
-            <path
-              d="M4.85714 1V4.0625M9.57143 1V4.0625M4 6.6875H10M4 10.625H7.85714M3 15H11C12.1046 15 13 14.1046 13 13V4.75C13 3.64543 12.1046 2.75 11 2.75H3C1.89543 2.75 1 3.64543 1 4.75V13C1 14.1046 1.89543 15 3 15Z"
-              stroke="#B3BBCE"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-          </svg>
-          <span className="text-[#444C59]">History</span>
+          <img
+            src="/icon-records.svg"
+            alt=""
+            className="w-[14px] h-[16px] object-center object-contain shrink-0"
+          />
+          <span className="text-[#444C59] hidden md:block">History</span>
         </>
       )}
     </button>
