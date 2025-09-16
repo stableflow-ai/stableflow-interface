@@ -4,6 +4,7 @@ import useWalletStore from "@/stores/use-wallet";
 import { usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
 import { usdcSol, usdcNear } from "@/config/tokens/usdc";
 import { useMemo } from "react";
+import Address from "./address";
 
 const LABEL = {
   evm: "EVM-based",
@@ -28,9 +29,8 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
 
   return (
     <div
-      className="button mx-[10px] px-[10px] py-[6px] flex justify-between items-center rounded-[12px] hover:bg-[#EDF0F7] duration-300"
+      className="button mx-[10px] py-[6px] flex justify-between items-center"
       onClick={() => {
-        console.log("wallet", wallet, type, token);
         if (!wallet.account || type === "evm" || !token) {
           return;
         }
@@ -68,7 +68,7 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
           )}
       </div>
       {wallet.account ? (
-        <div className="text-[#4DCF5E] text-[12px]">connected</div>
+        <Address type={type} />
       ) : (
         <button
           className="duration-300 cursor-pointer w-[90px] h-[32px] rounded-[16px] bg-white shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-[14px] text-[#444C59] hover:bg-[#6284F5] hover:text-white"

@@ -35,10 +35,10 @@ export default function Wallet() {
               walletStore.set({ showWallet: false });
             }}
           />
-          <div className="h-[calc(100%-50px)] overflow-y-auto pb-[20px]">
-            <TypeItem type="evm" />
-            <Address type="evm" />
-            {/* <Token
+          <div className="h-[calc(100%-50px)] overflow-y-auto pb-[20px] px-[15px]">
+            <div className="pt-[10px] cursor-pointer hover:rounded-[12px] hover:bg-[#EDF0F7] duration-300 border-b border-[#EDF0EF]">
+              <TypeItem type="evm" />
+              {/* <Token
               token={usdcEvm}
               expand={walletStore.usdcExpand}
               onExpand={() => {
@@ -48,31 +48,29 @@ export default function Wallet() {
               loading={loading}
               totalBalance={balancesStore.evmBalances.usdcBalance}
             /> */}
-            <Token
-              token={usdtEvm}
-              expand={walletStore.usdtExpand}
-              onExpand={() => {
-                walletStore.set({ usdtExpand: !walletStore.usdtExpand });
-              }}
-              balances={balancesStore.evmBalances}
-              // loading={loading}
-              totalBalance={balancesStore.evmBalances.usdtBalance}
-            />
-            <div className="mt-[10px]">
+              <Token
+                token={usdtEvm}
+                expand={walletStore.usdtExpand}
+                onExpand={() => {
+                  walletStore.set({ usdtExpand: !walletStore.usdtExpand });
+                }}
+                balances={balancesStore.evmBalances}
+                // loading={loading}
+                totalBalance={balancesStore.evmBalances.usdtBalance}
+              />
+            </div>
+            <div className="mt-[4px] pt-[6px] cursor-pointer hover:rounded-[12px] hover:bg-[#EDF0F7] duration-300 border-b border-[#EDF0EF]">
               <TypeItem type="sol" />
-              <Address type="sol" />
               {/* <TokenSimple token={usdcSol} /> */}
               <TokenSimple token={usdtSol} />
             </div>
-            <div className="mt-[10px]">
+            <div className="mt-[4px] pt-[6px] cursor-pointer hover:rounded-[12px] hover:bg-[#EDF0F7] duration-300 border-b border-[#EDF0EF]">
               <TypeItem type="near" />
-              <Address type="near" />
               {/* <TokenSimple token={usdcNear} /> */}
               <TokenSimple token={usdtNear} />
             </div>
-            <div className="mt-[10px]">
+            <div className="mt-[4px] pt-[6px] cursor-pointer hover:rounded-[12px] hover:bg-[#EDF0F7] duration-300 border-b border-[#EDF0EF]">
               <TypeItem type="tron" />
-              <Address type="tron" />
               <TokenSimple token={usdtTron} />
             </div>
           </div>

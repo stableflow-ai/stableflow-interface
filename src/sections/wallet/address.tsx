@@ -11,7 +11,7 @@ export default function Address({ type = "evm" }: { type: WalletType }) {
   const wallet = wallets[type || "evm"];
   return (
     wallet?.account && (
-      <div className="flex items-center justify-between px-[20px]">
+      <div className="flex items-center ">
         <div className="flex items-center gap-[8px]">
           {type === "evm" ? (
             <img className="w-[12px] h-[12px]" src={metamask} />

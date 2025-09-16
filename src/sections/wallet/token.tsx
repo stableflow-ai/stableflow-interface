@@ -16,7 +16,7 @@ export default function Token({
   const walletStore = useWalletStore();
   const { switchChain } = useSwitchChain();
   return (
-    <div className="mx-[10px] mt-[4px] rounded-[12px] border border-[#EDF0F7] bg-[#EDF0F7]">
+    <div className="mx-[10px] rounded-[12px]">
       <div className="flex items-center justify-between px-[10px] h-[50px]">
         <div className="flex items-center gap-[8px]">
           <img className="w-[24px] h-[24px] rounded-full" src={token.icon} />
