@@ -115,7 +115,7 @@ const Progress = ({
   return (
     <div
       ref={progressBarRef}
-      className="w-[269px] h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] shrink-0 relative"
+      className="md:w-[269px] flex-1 h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] shrink-0 relative"
     >
       <div
         className="h-[8px] rounded-[12px] bg-linear-to-r from-[#B7CCBA00] to-[#B7CCBA] relative max-w-full"

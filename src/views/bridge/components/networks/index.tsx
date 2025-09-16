@@ -7,14 +7,14 @@ import Bottom from "./bottom";
 export default function Networks({ addressValidation }: any) {
   const walletStore = useWalletStore();
   return (
-    <div className="mt-[20px]">
+    <div className="mt-[20px] px-[10px] md:px-0">
       <div className="text-[16px] text-[#0E3616]">Select Networks</div>
       <div className="mt-[10px] bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)]">
         <div className="h-[36px] px-[20px] flex items-center bg-[#FAFBFF] rounded-t-[12px] border-b border-[#EBF0F8]">
           <div className="w-1/2 border-r border-[#EBF0F8] flex items-center h-full">
             <Address token={walletStore.fromToken} isTo={false} />
           </div>
-          <div className="w-1/2 flex items-center justify-end h-full">
+          <div className="w-1/2 flex items-center justify-end h-full pl-[10px]">
             <Address
               token={walletStore.toToken}
               isTo={true}

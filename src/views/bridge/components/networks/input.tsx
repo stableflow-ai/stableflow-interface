@@ -4,7 +4,7 @@ import { formatNumber } from "@/utils/format/number";
 export default function Input() {
   const bridgeStore = useBridgeStore();
   return (
-    <div className="min-w-[106px] relative z-[2] grow">
+    <div className="md:min-w-[106px] relative z-[2] grow">
       <input
         className="text-[32px] font-[500] border-none outline-none text-center w-full"
         type="text"

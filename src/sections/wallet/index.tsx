@@ -28,7 +28,7 @@ export default function Wallet() {
             damping: 30,
             duration: 0.3
           }}
-          className="fixed right-[10px] top-[10px] w-[320px] h-[calc(100%-20px)] overflow-hidden rounded-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)]"
+          className="fixed z-10 right-0 md:right-[10px] top-0 md:top-[10px] w-[85vw] md:w-[320px] h-full md:h-[calc(100%-20px)] overflow-hidden rounded-r-[0px] md:rounded-r-[16px] rounded-l-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)]"
         >
           <Title
             onClose={() => {
