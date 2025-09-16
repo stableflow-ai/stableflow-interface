@@ -20,7 +20,7 @@ export default function useBridge() {
   const configStore = useConfigStore();
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
-  const { getBalance } = useTokenBalance(walletStore.fromToken);
+  const { getBalance } = useTokenBalance(walletStore.fromToken, false);
   const toast = useToast();
 
   // Recipient address state
@@ -163,9 +163,8 @@ export default function useBridge() {
           const balanceInTokenUnit = Big(balance).div(
             10 ** walletStore.fromToken.decimals
           );
-          const amountBig = Big(value);
 
-          if (amountBig.gt(balanceInTokenUnit)) {
+          if (Big(value).gt(balanceInTokenUnit)) {
             return `Insufficient balance.`;
           }
         }

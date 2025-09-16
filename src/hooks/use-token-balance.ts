@@ -29,6 +29,15 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
             .toString()
         : "-";
       setBalance(_balance);
+
+      const key = `${token.chainType}Balances`;
+
+      balancesStore.set({
+        [key]: {
+          ...balancesStore[key as keyof BalancesState],
+          [token.contractAddress]: _balance
+        }
+      });
     } catch (error) {
       console.error(error);
       setBalance("-");
@@ -36,18 +45,6 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!token?.chainType) return;
-    const key = `${token.chainType}Balances`;
-
-    balancesStore.set({
-      [key]: {
-        ...balancesStore[key as keyof BalancesState],
-        [token.contractAddress]: balance
-      }
-    });
-  }, [balance]);
 
   useEffect(() => {
     if (token?.contractAddress && isAuto && wallet?.account) getBalance();

@@ -27,6 +27,7 @@ import { ethers } from "ethers";
 import RainbowWallet from "./wallet";
 import "@rainbow-me/rainbowkit/styles.css";
 import useWalletsStore from "@/stores/use-wallets";
+import { useDebounceFn } from "ahooks";
 
 const config = getDefaultConfig({
   appName: "StableFlow.ai",
@@ -64,10 +65,9 @@ function Content() {
   const { data: walletClient } = useWalletClient();
   const [mounted, setMounted] = useState(false);
   const setWallets = useWalletsStore((state) => state.set);
-
-  useEffect(() => {
-    if (!publicClient || !mounted) return;
-    const init = async () => {
+  const { run: debouncedDisconnect } = useDebounceFn(
+    async () => {
+      if (!publicClient || !mounted) return;
       const provider = new ethers.BrowserProvider(publicClient);
 
       const signer = walletClient
@@ -89,17 +89,20 @@ function Content() {
             setWallets({
               evm: {
                 account: null,
-                wallet: null,
-                connect: () => {},
-                disconnect: () => {}
+                wallet: null
               }
             });
           }
         }
       });
-    };
+    },
+    {
+      wait: 500
+    }
+  );
 
-    init();
+  useEffect(() => {
+    debouncedDisconnect();
   }, [account, publicClient, walletClient]);
 
   useEffect(() => {

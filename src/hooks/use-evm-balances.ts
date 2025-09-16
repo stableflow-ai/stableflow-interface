@@ -1,5 +1,5 @@
 import useWalletsStore from "@/stores/use-wallets";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import {
   evmBalancesTokens,
@@ -8,15 +8,16 @@ import {
 } from "@/config/tokens";
 import Big from "big.js";
 import useBalancesStore from "@/stores/use-balances";
+import { useDebounceFn } from "ahooks";
 
 export default function useEvmBalances(auto = false) {
   const [loading, setLoading] = useState(false);
-  const [usdcBalance, setUsdcBalance] = useState("0");
-  const [usdtBalance, setUsdtBalance] = useState("0");
-  const [balances, setBalances] = useState<any>({});
+
   const wallets = useWalletsStore();
   const balancesStore = useBalancesStore();
   const wallet = wallets.evm;
+  const initRef = useRef(false);
+
   const getBalances = async () => {
     if (!wallet || !wallet.account) return;
     try {
@@ -47,10 +48,13 @@ export default function useEvmBalances(auto = false) {
         });
       });
 
-      setUsdcBalance(usdcBalance.toString());
-      setUsdtBalance(usdtBalance.toString());
-
-      setBalances(_balances);
+      balancesStore.set({
+        evmBalances: {
+          ..._balances,
+          usdcBalance: usdcBalance.toString(),
+          usdtBalance: usdtBalance.toString()
+        }
+      });
 
       setLoading(false);
     } catch (error) {
@@ -60,18 +64,7 @@ export default function useEvmBalances(auto = false) {
     }
   };
 
-  useEffect(() => {
-    balancesStore.set({
-      evmBalances: {
-        ...balancesStore.evmBalances,
-        ...balances,
-        usdcBalance,
-        usdtBalance
-      }
-    });
-  }, [balances, usdcBalance, usdtBalance]);
-
-  useEffect(() => {
+  const fetchBalances = async () => {
     if (!wallet?.account) {
       clearTimeout(window.updateEvmBalancesTimer);
       return;
@@ -85,7 +78,20 @@ export default function useEvmBalances(auto = false) {
     };
 
     loop();
+  };
 
+  const { run: debouncedGetBalances } = useDebounceFn(fetchBalances, {
+    wait: 5000
+  });
+
+  useEffect(() => {
+    if (!initRef.current) {
+      initRef.current = true;
+      fetchBalances();
+      return;
+    }
+
+    debouncedGetBalances();
     return () => {
       clearTimeout(window.updateEvmBalancesTimer);
     };
