@@ -12,8 +12,9 @@ export default function Total() {
     let _total = Big(0);
     Object.entries(balancesStore).forEach(([key, value]) => {
       if (!key.includes("Balances")) return;
-      Object.entries(value).forEach(([key, value]) => {
+      Object.entries(value).forEach(([address, value]) => {
         if (value === "-") return;
+        if (address.includes("Balance")) return;
         _total = _total.plus(Big(value as string));
       });
     });
