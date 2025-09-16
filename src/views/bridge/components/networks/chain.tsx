@@ -84,7 +84,7 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
         </svg>
       </div>
       <div className="text-[#9FA7BA] text-[12px]">
-        {formatNumber(balance, 2, true)}
+        {balance}
       </div>
     </div>
   );

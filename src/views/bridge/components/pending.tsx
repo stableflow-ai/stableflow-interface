@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 
 const PendingTransfer = (props: any) => {
-  const { className: _className } = props;
+  const { className } = props;
 
   const { pendingStatus, history } = useHistoryStore();
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -20,7 +20,7 @@ const PendingTransfer = (props: any) => {
   if (!hasPending) return null;
 
   return (
-    <div className="w-full">
+    <div className={clsx("w-full", className)}>
       <Swiper
         style={{
           width: "100%",

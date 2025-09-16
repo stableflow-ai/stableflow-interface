@@ -6,10 +6,12 @@ import {
   type SetStateAction,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState
 } from "react";
 import { useDebounceFn } from "ahooks";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 // Placement:
 //            TopLeft         Top         TopRight
@@ -35,6 +37,16 @@ const Popover = forwardRef((props: Props, ref: any) => {
   } = props;
 
   const triggerRef = useRef<any>(null);
+
+  const isMobile = useIsMobile();
+
+  const _trigger = useMemo(() => {
+    let __trigger = trigger;
+    if (isMobile && __trigger === "Hover") {
+      __trigger = "Click";
+    }
+    return __trigger;
+  }, [isMobile, trigger]);
 
   const [visible, setVisible] = useState(false);
   const [realVisible, setRealVisible] = useState(false);
@@ -64,7 +76,7 @@ const Popover = forwardRef((props: Props, ref: any) => {
         style={triggerContainerStyle}
         className={triggerContainerClassName}
         onClick={async (e) => {
-          if (trigger === "Hover") return;
+          if (_trigger === "Hover") return;
           if (onClickBefore) {
             const isContinue = await onClickBefore(e, () => {
               setVisible(true);
@@ -74,12 +86,12 @@ const Popover = forwardRef((props: Props, ref: any) => {
           setVisible(true);
         }}
         onMouseEnter={() => {
-          if (trigger === "Click") return;
+          if (_trigger === "Click") return;
           closeCancel();
           setVisible(true);
         }}
         onMouseLeave={() => {
-          if (trigger === "Click") return;
+          if (_trigger === "Click") return;
           closeDelay();
         }}
       >
@@ -195,7 +207,7 @@ const Popover = forwardRef((props: Props, ref: any) => {
             setVisible={setVisible}
             closeDelay={closeDelay}
             closeCancel={closeCancel}
-            trigger={trigger}
+            trigger={_trigger}
           >
             {content}
           </Card>,

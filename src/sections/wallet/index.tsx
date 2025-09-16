@@ -4,26 +4,33 @@ import Token from "./token";
 // import { usdcEvm, usdcSol, usdcNear } from "@/config/tokens/usdc";
 import { usdtEvm, usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
 import useWalletStore from "@/stores/use-wallet";
+import useWalletsStore from "@/stores/use-wallets";
 import useEvmBalances from "@/hooks/use-evm-balances";
 import useBalancesStore from "@/stores/use-balances";
 import Total from "./total";
 import Drawer from "@/components/drawer";
+import { useMemo } from "react";
 
 export default function Wallet() {
   const walletStore = useWalletStore();
+  const walletsStore = useWalletsStore();
   const balancesStore = useBalancesStore();
   useEvmBalances(walletStore.showWallet);
 
+  const walletConnected = useMemo(() => {
+    return !!walletsStore.evm.account || !!walletsStore.sol.account || !!walletsStore.near.account || !!walletsStore.tron.account;
+  }, [walletsStore]);
+
   return (
     <Drawer
-      title="Connect Wallet"
+      title={walletConnected ? "My Wallets" : "Connect Wallet"}
       open={walletStore.showWallet}
       onClose={() => {
         walletStore.set({ showWallet: false });
       }}
     >
       <Total />
-      <div className="h-[calc(100%-190px)] overflow-y-auto pb-[20px] px-[10px]">
+      <div className="h-[calc(100%-224px)] overflow-y-auto pb-[20px] px-[10px]">
         <div className="pt-[10px] cursor-pointer hover:rounded-[12px] hover:bg-[#EDF0F7] duration-300 border-b border-[#EDF0EF]">
           <TypeItem type="evm" />
           {/* <Token

@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { useMemo } from "react";
 import { formatNumber } from "@/utils/format/number";
+import Big from "big.js";
 
 export default function Amount({
   amount,
@@ -8,14 +9,14 @@ export default function Amount({
   integerClassName,
   decimalClassName
 }: {
-  amount?: string;
+  amount?: any;
   className?: string;
   integerClassName?: string;
   decimalClassName?: string;
 }) {
   const [int, float] = useMemo(() => {
     const _amount = formatNumber(amount, 2, false, {
-      isZeroPrecision: true
+      isZeroPrecision: true,
     });
     return [_amount.integer, _amount.decimal];
   }, [amount]);
