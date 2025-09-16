@@ -13,10 +13,10 @@ const SupportedNetworks = (props: any) => {
       </div>
       <div className="relative overflow-hidden pb-[50px] px-0 md:px-[10px] pt-[20px] md:pt-[40px] w-full md:w-[70.97vw] md:mx-auto">
         {/* Left gradient mask */}
-        <div className="absolute left-[-5px] top-[15px] md:top-[35px] h-[60px] w-[120px] md:w-[300px] bg-gradient-to-r from-white to-transparent z-[1] pointer-events-none blur-[5px]" />
+        <div className="hidden absolute left-[-5px] top-[15px] md:top-[35px] h-[60px] w-[120px] md:w-[300px] bg-gradient-to-r from-white to-transparent z-[1] pointer-events-none blur-[5px]" />
 
         {/* Right gradient mask */}
-        <div className="absolute right-[-5px] top-[15px] md:top-[35px] h-[60px] w-[120px] md:w-[300px] bg-gradient-to-l from-white to-transparent z-[1] pointer-events-none blur-[5px]" />
+        <div className="hidden absolute right-[-5px] top-[15px] md:top-[35px] h-[60px] w-[120px] md:w-[300px] bg-gradient-to-l from-white to-transparent z-[1] pointer-events-none blur-[5px]" />
 
         <div
           className="flex items-center flex-nowrap"
