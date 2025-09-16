@@ -48,6 +48,22 @@ export default function Total() {
       }
       item.balanceString = formatNumber(item.balance, 2, true, { round: Big.roundDown });
     });
+
+    // Adjust percentages to ensure small balances take at least 1%
+    const adjustedPercentages = _balanceSummariesListWithBalance.map((item: any) => {
+      const originalPercent = parseFloat(item.percent);
+      return originalPercent < 1 ? 1 : originalPercent;
+    });
+
+    // Calculate total adjusted percentage and adjustment factor
+    const totalAdjustedPercent = adjustedPercentages.reduce((sum, percent) => sum + percent, 0);
+    const adjustmentFactor = 100 / totalAdjustedPercent;
+
+    // Apply adjustment factor to ensure total percentage is 100%
+    const finalPercentages = adjustedPercentages.map(percent => 
+      (percent * adjustmentFactor).toFixed(2)
+    );
+
     return [
       _total,
       _balanceSummaries,
@@ -55,7 +71,7 @@ export default function Total() {
       _balanceSummariesListWithBalance,
       _balanceSummariesListWithBalance.length > 0,
       _balanceSummariesListWithBalance.length,
-      _balanceSummariesListWithBalance.map((item: any) => item.percent + "%").join(" ")
+      finalPercentages.map(percent => percent + "%").join(" ")
     ];
   }, [balancesStore]);
 
