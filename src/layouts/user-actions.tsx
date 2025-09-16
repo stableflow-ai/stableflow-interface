@@ -63,28 +63,45 @@ export default function UserActions() {
 const HistoryButton = ({ onClick }: any) => {
   const pendingNumber = useHistoryStore((state) => state.pendingStatus.length);
   return (
-    <button
-      onClick={onClick}
-      className="button px-[15px] md:px-[18px] h-[36px] flex justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
-    >
-      {pendingNumber > 0 ? (
-        <>
-          <div className="w-[20px] h-[20px] rounded-[50%] bg-[#6284F5] text-white font-[400] flex justify-center items-center">
-            {pendingNumber}
-          </div>
-          <div className="font-[400]">Pending</div>
-        </>
-      ) : (
-        <>
-          <img
-            src="/icon-records.svg"
-            alt=""
-            className="w-[14px] h-[16px] object-center object-contain shrink-0"
-          />
-          <span className="text-[#444C59] hidden md:block">History</span>
-        </>
-      )}
-    </button>
+    <>
+      <button
+        onClick={onClick}
+        className="flex md:hidden relative button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      >
+        <img
+          src="/icon-records.svg"
+          alt=""
+          className="w-[14px] h-[16px] object-center object-contain shrink-0"
+        />
+        {
+          pendingNumber > 0 && (
+            <div className="w-[9px] h-[9px] rounded-full bg-[#FFBF19] absolute right-[10px] top-[8px] border border-white z-[1]"></div>
+          )
+        }
+      </button>
+      <button
+        onClick={onClick}
+        className="hidden md:flex button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      >
+        {pendingNumber > 0 ? (
+          <>
+            <div className="w-[20px] h-[20px] rounded-[50%] bg-[#6284F5] text-white font-[400] flex justify-center items-center">
+              {pendingNumber}
+            </div>
+            <div className="font-[400]">Pending</div>
+          </>
+        ) : (
+          <>
+            <img
+              src="/icon-records.svg"
+              alt=""
+              className="w-[14px] h-[16px] object-center object-contain shrink-0"
+            />
+            <span className="text-[#444C59]">History</span>
+          </>
+        )}
+      </button>
+    </>
   );
 };
 

@@ -50,21 +50,11 @@ const PendingItem = ({ className, data }: any) => {
         </div>
         <div className="mt-[10px] flex items-center">
           <ChainAndAddress data={data.fromToken} address={data.fromAddress} />
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="5"
-            height="8"
-            viewBox="0 0 5 8"
-            fill="none"
-            className="ml-[30px] mr-[20px]"
-          >
-            <path
-              d="M1 1L4 4.10345L1 7"
-              stroke="#444C59"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <img
+            src="/icon-arrow-right.svg"
+            alt=""
+            className="w-[5px] h-[8px] object-center object-contain shrink-0"
+          />
           <ChainAndAddress data={data.toToken} address={data.toAddress} />
         </div>
       </div>
