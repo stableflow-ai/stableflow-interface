@@ -46,11 +46,11 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
   const [edit, setEdit] = useState(false);
   const bridgeStore = useBridgeStore();
   return (
-    <div className="flex items-center gap-[8px]">
+    <div className="flex items-center gap-[8px] w-full md:w-[unset]">
       {edit ? (
         <input
           type="text"
-          className="text-[12px] font-[500] text-[#444C59] outline-none px-[14px]"
+          className="text-[12px] font-[500] text-[#444C59] outline-none px-[5px] md:px-[14px] flex-1 w-0 md:w-[unset]"
           placeholder="Paste here"
           autoFocus
           value={bridgeStore.recipientAddress}

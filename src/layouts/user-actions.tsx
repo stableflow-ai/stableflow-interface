@@ -1,19 +1,25 @@
 import useWalletStore from "@/stores/use-wallet";
 import ChainIcon from "./chain-icon";
 import useWalletsStore from "@/stores/use-wallets";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useHistoryStore } from "@/stores/use-history";
+import { useMemo } from "react";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
   const walletsStore = useWalletsStore();
   const navigate = useNavigate();
+  const pathname = useLocation();
+
+  const isHistory = useMemo(() => {
+    return pathname.pathname === "/history";
+  }, [pathname]);
 
   return (
-    <div className="absolute right-[14px] top-[14px]">
+    <div className="absolute z-[9] right-[14px] top-[14px]">
       {!walletsStore.evm.account &&
-      !walletsStore.sol.account &&
-      !walletsStore.near.account ? (
+        !walletsStore.sol.account &&
+        !walletsStore.near.account ? (
         <button
           onClick={() => {
             walletStore.set({ showWallet: true });
@@ -24,11 +30,15 @@ export default function UserActions() {
         </button>
       ) : (
         <div className="flex items-center gap-[14px]">
-          <HistoryButton
-            onClick={() => {
-              navigate("/history");
-            }}
-          />
+          {
+            !isHistory && (
+              <HistoryButton
+                onClick={() => {
+                  navigate("/history");
+                }}
+              />
+            )
+          }
           <ChainsButton
             onClick={() => {
               walletStore.set({ showWallet: true });

@@ -7,7 +7,7 @@ import useBridge from "./hooks/use-bridge";
 export default function Bridge() {
   const { transfer, addressValidation } = useBridge();
   return (
-    <div className="w-[488px] mx-auto pt-[60px]">
+    <div className="md:w-[488px] w-full mx-auto pt-[60px]">
       <div className="flex justify-center items-center gap-[10px]">
         <img src="/logo.svg" alt="logo" className="w-[39px] h-[39px]" />
         <span className="text-[30px] font-[500]">Stableflow</span>
@@ -18,7 +18,9 @@ export default function Bridge() {
       <Assets />
       <Networks addressValidation={addressValidation} />
       <Result />
-      <BridgeButton onClick={transfer} />
+      <div className="px-[10px] md:px-0">
+        <BridgeButton onClick={transfer} />
+      </div>
     </div>
   );
 }
