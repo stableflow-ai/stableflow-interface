@@ -24,7 +24,7 @@ export default function Address({ type = "evm" }: { type: WalletType }) {
             {formatAddress(wallet.account, 5, 4)}
           </span>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center pl-[4px]">
           <CopyButton
             onClick={() => {
               wallet.account && onCopy(wallet.account);
@@ -47,7 +47,7 @@ export default function Address({ type = "evm" }: { type: WalletType }) {
 const CopyButton = ({ onClick }: any) => {
   return (
     <button
-      className="p-[8px] rounded-[8px] hover:bg-white hover:shadow-[0_0_4px_0_rgba(0,0,0,0.15)] button"
+      className="p-[4px] rounded-[8px] hover:bg-white hover:shadow-[0_0_4px_0_rgba(0,0,0,0.15)] button"
       onClick={onClick}
     >
       <svg
@@ -69,7 +69,7 @@ const CopyButton = ({ onClick }: any) => {
 const DisconnectButton = ({ onClick }: any) => {
   return (
     <button
-      className="p-[8px] rounded-[8px] hover:bg-white hover:shadow-[0_0_4px_0_rgba(0,0,0,0.15)] button"
+      className="p-[4px] rounded-[8px] hover:bg-white hover:shadow-[0_0_4px_0_rgba(0,0,0,0.15)] button"
       onClick={onClick}
     >
       <svg

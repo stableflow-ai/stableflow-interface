@@ -1,11 +1,19 @@
 import useBridgeStore from "@/stores/use-bridge";
+import useWalletStore from "@/stores/use-wallet";
+import nearIntentsLogo from "@/assets/near-intents-logo.png";
 
 export default function Result() {
   const bridgeStore = useBridgeStore();
+  const walletStore = useWalletStore();
+
   return (
     <div className="flex justify-between items-center p-[10px]">
       <div className="text-[12px] text-[#70788A]">Result</div>
       <div className="flex items-center">
+        <div className="flex items-center gap-[3px] pr-[10px]">
+          <span className="text-[12px] text-[#0E3616]/50">Powered by</span>
+          <img src={nearIntentsLogo} className="w-[53px] h-[14px]" />
+        </div>
         <div className="px-[14px] items-center flex gap-[6px] border-l border-[#B3BBCE]">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -23,7 +31,12 @@ export default function Result() {
           <div className="text-[12px] text-[#444C59]">~13s</div>
         </div>
         <div className="px-[14px] items-center flex gap-[6px] border-l border-[#B3BBCE]">
-          <img className="w-[14px] h-[14px]" src={"/usdt.png"} />
+          {walletStore.fromToken?.icon && (
+            <img
+              className="w-[14px] h-[14px]"
+              src={walletStore.fromToken?.icon}
+            />
+          )}
           <div className="text-[12px] text-[#444C59]">
             ~{bridgeStore.quoteData?.quote?.amountOutFormatted || "-"}
           </div>

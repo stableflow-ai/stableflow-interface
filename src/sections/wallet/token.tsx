@@ -16,8 +16,8 @@ export default function Token({
   const walletStore = useWalletStore();
   const { switchChain } = useSwitchChain();
   return (
-    <div className="mx-[10px] rounded-[12px]">
-      <div className="flex items-center justify-between px-[10px] h-[50px]">
+    <div className="rounded-[12px]">
+      <div className="flex items-center justify-between h-[50px] mx-[10px]">
         <div className="flex items-center gap-[8px]">
           <img className="w-[24px] h-[24px] rounded-full" src={token.icon} />
           <span className="text-[14px] font-[500]">{token.symbol}</span>
@@ -117,7 +117,10 @@ export const ExpandButton = ({
   onClick: () => void;
 }) => {
   return (
-    <button className="p-[5px] button" onClick={onClick}>
+    <button
+      className="w-[26px] h-[26px] ml-[10px] flex justify-center items-center button rounded-[8px] bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)]"
+      onClick={onClick}
+    >
       <motion.svg
         xmlns="http://www.w3.org/2000/svg"
         width="10"

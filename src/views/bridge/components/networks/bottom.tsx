@@ -21,7 +21,7 @@ export default function Bottom({ token }: { token: any }) {
   const balancesStore = useBalancesStore();
 
   const balance = useMemo(() => {
-    if (!token?.contractAddress) return "0";
+    if (!token?.chainType) return "0";
     const _balance =
       balancesStore[`${token.chainType}Balances` as keyof BalancesState][
         token.contractAddress

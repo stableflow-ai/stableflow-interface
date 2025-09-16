@@ -4,10 +4,14 @@ import { formatNumber } from "@/utils/format/number";
 
 export default function Amount({
   amount,
-  className
+  className,
+  integerClassName,
+  decimalClassName
 }: {
   amount?: string;
   className?: string;
+  integerClassName?: string;
+  decimalClassName?: string;
 }) {
   const [int, float] = useMemo(() => {
     const _amount = formatNumber(amount, 2, false, {
@@ -23,8 +27,8 @@ export default function Amount({
         int === "0" && float === ".00" && "text-black/30"
       )}
     >
-      <span className="text-[16px]">{int}</span>
-      <span className="text-[10px]">{float}</span>
+      <span className={clsx("text-[16px]", integerClassName)}>{int}</span>
+      <span className={clsx("text-[10px]", decimalClassName)}>{float}</span>
     </span>
   );
 }

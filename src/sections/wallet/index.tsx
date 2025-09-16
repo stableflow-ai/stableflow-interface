@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import Title from "./title";
 import TypeItem from "./type-item";
-import Address from "./address";
 import TokenSimple from "./token-simple";
 import Token from "./token";
 // import { usdcEvm, usdcSol, usdcNear } from "@/config/tokens/usdc";
@@ -9,6 +8,7 @@ import { usdtEvm, usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
 import useWalletStore from "@/stores/use-wallet";
 import useEvmBalances from "@/hooks/use-evm-balances";
 import useBalancesStore from "@/stores/use-balances";
+import Total from "./total";
 
 export default function Wallet() {
   const walletStore = useWalletStore();
@@ -35,7 +35,8 @@ export default function Wallet() {
               walletStore.set({ showWallet: false });
             }}
           />
-          <div className="h-[calc(100%-50px)] overflow-y-auto pb-[20px] px-[15px]">
+          <Total />
+          <div className="h-[calc(100%-50px)] overflow-y-auto pb-[20px] px-[10px]">
             <div className="pt-[10px] cursor-pointer hover:rounded-[12px] hover:bg-[#EDF0F7] duration-300 border-b border-[#EDF0EF]">
               <TypeItem type="evm" />
               {/* <Token

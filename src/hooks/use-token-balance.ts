@@ -38,6 +38,7 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
   };
 
   useEffect(() => {
+    if (!token?.chainType) return;
     const key = `${token.chainType}Balances`;
 
     balancesStore.set({

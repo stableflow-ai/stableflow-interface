@@ -3,7 +3,7 @@ export const formatAddress = (
   prefixLength = 4,
   suffixLength = 4
 ) => {
-  return address
-    ? `${address.slice(0, prefixLength)}...${address.slice(-suffixLength)}`
-    : "-";
+  if (!address) return "-";
+  if (address.length < prefixLength + suffixLength) return address;
+  return `${address.slice(0, prefixLength)}...${address.slice(-suffixLength)}`;
 };

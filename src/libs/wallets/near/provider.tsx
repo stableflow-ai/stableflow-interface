@@ -71,9 +71,7 @@ export default function NEARProvider({
             walletsStore.set({
               near: {
                 account: null,
-                wallet: null,
-                connect: () => {},
-                disconnect: () => {}
+                wallet: null
               }
             });
           }
@@ -106,7 +104,7 @@ export default function NEARProvider({
     };
 
     init();
-  }, [nearNetwork.networkId]);
+  }, [nearNetwork.networkId, walletsStore?.near?.account]);
 
   return children;
 }
