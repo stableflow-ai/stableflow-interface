@@ -3,6 +3,9 @@ import dayjs from "dayjs";
 import { formatNumber } from "@/utils/format/number";
 import clsx from "clsx";
 import useIsMobile from "@/hooks/use-is-mobile";
+import Pagination from "@/components/pagination";
+import { useEffect, useState } from "react";
+import Big from "big.js";
 
 export default function CompleteTransfers(props: any) {
   const { className, contentClassName } = props;
@@ -10,11 +13,24 @@ export default function CompleteTransfers(props: any) {
   const historyStore = useHistoryStore();
   const isMobile = useIsMobile();
 
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalPage, setTotalPage] = useState(10);
+
+  useEffect(() => {
+    if (!historyStore.completeStatus || !historyStore.completeStatus.length) {
+      setTotalPage(0);
+      setPage(1);
+      return;
+    }
+    setTotalPage(+Big(historyStore.completeStatus.length).div(pageSize).toFixed(0, Big.roundUp));
+  }, [historyStore.completeStatus]);
+
   return (
     <div className={clsx("mt-[12px] rounded-[12px] px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]", className)}>
       <div className="text-[16px] font-[500] text-[#444C59]">History transfers</div>
       <div className={clsx("mt-[14px] w-full overflow-x-auto", contentClassName)}>
-        {historyStore.completeStatus.map((item) => (
+        {historyStore.completeStatus.slice((page - 1) * pageSize, page * pageSize).map((item) => (
           <CompleteTransferItem
             key={item}
             data={historyStore.history[item]}
@@ -28,6 +44,15 @@ export default function CompleteTransfers(props: any) {
           No Data.
         </div>
       )}
+      <Pagination
+        className="py-[18px] justify-end"
+        totalPage={totalPage}
+        page={page}
+        pageSize={pageSize}
+        onPageChange={(page: number) => {
+          setPage(page);
+        }}
+      />
     </div>
   );
 }
