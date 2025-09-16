@@ -6,6 +6,7 @@ import useBridge from "./hooks/use-bridge";
 import SupportedNetworks from "./components/supported-networks";
 import MainTitle from "@/components/main-title";
 import PendingTransfer from "./components/pending";
+import HistoryDrawer from "../history/drawer";
 
 export default function Bridge() {
   const { transfer, addressValidation } = useBridge();
@@ -25,6 +26,7 @@ export default function Bridge() {
         </div>
       </div>
       <SupportedNetworks />
+      <HistoryDrawer />
     </div>
   );
 }

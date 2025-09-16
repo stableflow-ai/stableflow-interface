@@ -4,15 +4,21 @@ import dayjs from "dayjs";
 import { useHistoryStore } from "@/stores/use-history";
 import { formatNumber } from "@/utils/format/number";
 
-export default function Pending() {
+export default function Pending(props: any) {
+  const { className, isTitle = true, contentClassName } = props;
+
   const historyStore = useHistoryStore();
 
   return (
-    <div className="mt-[12px] rounded-[12px] px-[15px] md:px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
-      <div className="text-[16px] font-[500]">
-        {historyStore.pendingStatus.length} Pending transfers
-      </div>
-      <div className="mt-[14px] grid grid-cols-1 md:grid-cols-2 gap-[18px]">
+    <div className={clsx("mt-[12px] rounded-[12px] px-[15px] md:px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]", className)}>
+      {
+        isTitle && (
+          <div className="text-[16px] font-[500]">
+            {historyStore.pendingStatus.length} Pending transfers
+          </div>
+        )
+      }
+      <div className={clsx("mt-[14px] grid grid-cols-1 md:grid-cols-2 gap-[18px]", contentClassName)}>
         {historyStore.pendingStatus.map((item, index) => (
           <PendingItem
             key={item}
@@ -48,7 +54,7 @@ const PendingItem = ({ className, data }: any) => {
             </span>
           </span>
         </div>
-        <div className="mt-[10px] flex items-center">
+        <div className="mt-[10px] flex items-center justify-between">
           <ChainAndAddress data={data.fromToken} address={data.fromAddress} />
           <img
             src="/icon-arrow-right.svg"

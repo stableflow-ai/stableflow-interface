@@ -90,3 +90,7 @@ div::-webkit-scrollbar-thumb:hover {
 .button:hover:not([disabled]) {
   opacity: 0.9;
 }
+
+.drawer-open {
+  overflow: hidden;
+}

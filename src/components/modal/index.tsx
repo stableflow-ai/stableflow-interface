@@ -52,11 +52,11 @@ export const ModalContent = (props: ModalProps) => {
 
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = "hidden";
+      document.body.classList.add("drawer-open");
     }
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.classList.remove("drawer-open");
     };
   }, [open]);
 

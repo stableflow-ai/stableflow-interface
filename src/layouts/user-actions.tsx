@@ -5,12 +5,15 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useHistoryStore } from "@/stores/use-history";
 import { useMemo } from "react";
 import MainTitle from "@/components/main-title";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
   const walletsStore = useWalletsStore();
   const navigate = useNavigate();
   const pathname = useLocation();
+  const isMobile = useIsMobile();
+  const historyStore = useHistoryStore();
 
   const isHistory = useMemo(() => {
     return pathname.pathname === "/history";
@@ -39,6 +42,10 @@ export default function UserActions() {
               !isHistory && (
                 <HistoryButton
                   onClick={() => {
+                    if (isMobile) {
+                      historyStore.setOpenDrawer(!historyStore.openDrawer);
+                      return;
+                    }
                     navigate("/history");
                   }}
                 />

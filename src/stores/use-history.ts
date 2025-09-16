@@ -6,6 +6,8 @@ interface HistoryState {
   status: Record<string, any>;
   pendingStatus: any[];
   completeStatus: any[];
+  openDrawer: boolean;
+  setOpenDrawer: (open?: boolean) => void;
   addHistory: (item: any) => void;
   updateStatus: (address: string, status: any) => void;
 }
@@ -45,6 +47,10 @@ export const useHistoryStore = create(
           completeStatus: _completeStatus,
           status: _status
         });
+      },
+      openDrawer: false,
+      setOpenDrawer: (open?: boolean) => {
+        set({ openDrawer: open || false });
       }
     }),
     {
