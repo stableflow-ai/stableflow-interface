@@ -8,19 +8,15 @@ export default function Pending() {
   const historyStore = useHistoryStore();
 
   return (
-    <div className="mt-[12px] rounded-[12px] px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
+    <div className="mt-[12px] rounded-[12px] px-[15px] md:px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
       <div className="text-[16px] font-[500]">
         {historyStore.pendingStatus.length} Pending transfers
       </div>
-      <div className="mt-[14px] flex flex-wrap">
+      <div className="mt-[14px] grid grid-cols-1 md:grid-cols-2 gap-[18px]">
         {historyStore.pendingStatus.map((item, index) => (
           <PendingItem
             key={item}
             data={historyStore.history[item]}
-            className={clsx(
-              index > 1 && "mt-[18px]",
-              index % 2 === 0 && "mr-[18px]"
-            )}
           />
         ))}
       </div>
@@ -35,7 +31,7 @@ export default function Pending() {
 
 const PendingItem = ({ className, data }: any) => {
   return (
-    <div className={clsx("w-[300px] bg-[#EDF0F7] rounded-[12px]", className)}>
+    <div className={clsx("w-full md:w-[300px] bg-[#EDF0F7] rounded-[12px]", className)}>
       <div className="rounded-[12px] bg-white border border-[#EDF0F7] p-[12px]">
         <div className="flex items-center gap-[10px]">
           <img

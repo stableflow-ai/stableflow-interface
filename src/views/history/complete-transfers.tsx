@@ -9,7 +9,7 @@ export default function CompleteTransfers() {
   return (
     <div className="mt-[12px] rounded-[12px] px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
       <div className="text-[16px] font-[500]">History transfers</div>
-      <div className="mt-[14px]">
+      <div className="mt-[14px] w-full overflow-x-auto">
         {historyStore.completeStatus.map((item) => (
           <CompleteTransferItem
             key={item}
@@ -31,8 +31,8 @@ const CompleteTransferItem = ({ data, status }: any) => {
   const isSuccess = status === "SUCCESS";
 
   return (
-    <div className="flex items-center justify-between border-b border-[#EBF0F8] py-[10px]">
-      <div className="flex items-center gap-[10px]">
+    <div className="flex items-center justify-between border-b border-[#EBF0F8] py-[10px] gap-[10px]">
+      <div className="flex items-center gap-[10px] shrink-0">
         <img
           src={data.fromToken.icon}
           alt="usdt"
@@ -47,7 +47,7 @@ const CompleteTransferItem = ({ data, status }: any) => {
           </span>
         </span>
       </div>
-      <div className="flex items-center gap-[10px]">
+      <div className="flex items-center gap-[10px] shrink-0">
         <img
           src={data.fromToken.chainIcon}
           alt="sol"
