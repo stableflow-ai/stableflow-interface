@@ -112,10 +112,20 @@ const Progress = ({
   setIsDragging: (dragging: boolean) => void;
   progressBarRef: React.RefObject<HTMLDivElement | null>;
 }) => {
+  // Click on progress bar to jump to position
+  const handleProgressBarClick = (e: React.MouseEvent) => {
+    if (disabled || !progressBarRef.current) return;
+
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = (x / rect.width) * 100;
+    onProgressChange(percentage);
+  };
   return (
     <div
       ref={progressBarRef}
-      className="md:w-[269px] flex-1 h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] shrink-0 relative"
+      className="md:w-[269px] cursor-pointer flex-1 h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] shrink-0 relative"
+      onClick={handleProgressBarClick}
     >
       <div
         className="h-[8px] rounded-[12px] bg-linear-to-r from-[#B7CCBA00] to-[#B7CCBA] relative max-w-full"
@@ -197,21 +207,13 @@ const Pointer = ({
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Click on progress bar to jump to position
-  const handleProgressBarClick = (e: React.MouseEvent) => {
-    if (disabled || !progressBarRef.current) return;
-
-    const rect = progressBarRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percentage = (x / rect.width) * 100;
-    onProgressChange(percentage);
-  };
-
   return (
     <div
       className="w-[26px] h-[26px] absolute top-[-8px] right-[-6px] cursor-pointer select-none"
       onMouseDown={handleMouseDown}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
     >
       {!disabled && (
         <>
@@ -252,18 +254,6 @@ const Pointer = ({
           isDragging && "scale-110"
         )}
         draggable={false}
-      />
-
-      {/* Clickable progress bar area */}
-      <div
-        className="absolute inset-0 w-full h-full cursor-pointer"
-        onClick={handleProgressBarClick}
-        style={{
-          left: "-6px",
-          top: "-8px",
-          width: "calc(100% + 12px)",
-          height: "calc(100% + 16px)"
-        }}
       />
     </div>
   );
