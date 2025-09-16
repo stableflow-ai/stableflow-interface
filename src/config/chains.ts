@@ -2,18 +2,21 @@ const chains = {
   near: {
     chainName: "Near",
     chainIcon: "/chains/near.png",
+    chainIconGray: "/chains/near-gray.png",
     chainType: "near",
     blockExplorerUrl: "https://nearblocks.io/txns"
   },
   sol: {
     chainName: "Solana",
     chainIcon: "/chains/solana.png",
+    chainIconGray: "/chains/solana-gray.png",
     chainType: "sol",
     blockExplorerUrl: "https://solscan.io/tx"
   },
   eth: {
     chainName: "Ethereum",
     chainIcon: "/chains/ethereum.png",
+    chainIconGray: "/chains/ethereum-gray.png",
     chainType: "evm",
     chainId: 1,
     blockExplorerUrl: "https://etherscan.io/tx"
@@ -21,6 +24,7 @@ const chains = {
   arb: {
     chainName: "Arbitrum",
     chainIcon: "/chains/arbitrum.png",
+    chainIconGray: "/chains/arbitrum-gray.png",
     chainType: "evm",
     chainId: 42161,
     blockExplorerUrl: "https://arbiscan.io/tx"
@@ -28,6 +32,7 @@ const chains = {
   bsc: {
     chainName: "BNB Chain",
     chainIcon: "/chains/bsc.png",
+    chainIconGray: "/chains/bsc-gray.png",
     chainType: "evm",
     chainId: 56,
     blockExplorerUrl: "https://bscscan.com/tx"
@@ -35,6 +40,7 @@ const chains = {
   avax: {
     chainName: "Avalanche",
     chainIcon: "/chains/avalanche.png",
+    chainIconGray: "/chains/avalanche-gray.png",
     chainType: "evm",
     chainId: 43114,
     blockExplorerUrl: "https://snowtrace.io/tx"
@@ -42,6 +48,7 @@ const chains = {
   base: {
     chainName: "Base",
     chainIcon: "/chains/base.png",
+    chainIconGray: "/chains/base-gray.png",
     chainType: "evm",
     chainId: 8453,
     blockExplorerUrl: "https://basescan.org/tx"
@@ -49,6 +56,7 @@ const chains = {
   pol: {
     chainName: "Polygon",
     chainIcon: "/chains/polygon.png",
+    chainIconGray: "/chains/polygon-gray.png",
     chainType: "evm",
     chainId: 137,
     blockExplorerUrl: "https://polygonscan.com/tx"
@@ -56,6 +64,7 @@ const chains = {
   gnosis: {
     chainName: "Gnosis",
     chainIcon: "/chains/gnosis.png",
+    chainIconGray: "/chains/gnosis-gray.png",
     chainType: "evm",
     chainId: 100,
     blockExplorerUrl: "https://gnosisscan.io/tx"
@@ -63,6 +72,7 @@ const chains = {
   op: {
     chainName: "Optimism",
     chainIcon: "/chains/optimism.png",
+    chainIconGray: "/chains/optimism-gray.png",
     chainType: "evm",
     chainId: 10,
     blockExplorerUrl: "https://optimistic.etherscan.io/tx"
@@ -70,6 +80,7 @@ const chains = {
   tron: {
     chainName: "Tron",
     chainIcon: "/chains/tron.png",
+    chainIconGray: "/chains/tron-gray.png",
     chainType: "tron",
     blockExplorerUrl: "https://tronscan.org/tx"
   }

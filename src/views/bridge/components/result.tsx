@@ -8,7 +8,7 @@ export default function Result() {
   const walletStore = useWalletStore();
 
   return (
-    <div className="flex justify-between items-center p-[10px]">
+    <div className="w-full flex justify-between items-center p-[10px]">
       <div className="text-[12px] text-[#70788A]">Result</div>
       <div className="flex items-center">
         <div className="flex items-center gap-[3px] pr-[10px]">
