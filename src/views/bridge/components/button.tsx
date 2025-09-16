@@ -13,7 +13,7 @@ export default function BridgeButton({ onClick }: { onClick: () => void }) {
         onClick();
       }}
     >
-      {bridgeStore.errorTips ? bridgeStore.errorTips : "Bridge"}
+      {bridgeStore.errorTips ? bridgeStore.errorTips : "Transfer"}
     </Button>
   );
 }

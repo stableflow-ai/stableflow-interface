@@ -1,6 +1,7 @@
 import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";
 import nearIntentsLogo from "@/assets/near-intents-logo.png";
+import { formatNumber } from "@/utils/format/number";
 
 export default function Result() {
   const bridgeStore = useBridgeStore();
@@ -38,7 +39,14 @@ export default function Result() {
             />
           )}
           <div className="text-[12px] text-[#444C59]">
-            ~{bridgeStore.quoteData?.quote?.amountOutFormatted || "-"}
+            ~
+            {bridgeStore.quoteData?.quote?.amountOutFormatted
+              ? formatNumber(
+                  bridgeStore.quoteData?.quote?.amountOutFormatted,
+                  2,
+                  true
+                )
+              : "-"}
           </div>
         </div>
       </div>
