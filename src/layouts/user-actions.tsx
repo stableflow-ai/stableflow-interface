@@ -26,8 +26,9 @@ export default function UserActions() {
       </div>
       <div className="shrink-0">
         {!walletsStore.evm.account &&
-          !walletsStore.sol.account &&
-          !walletsStore.near.account ? (
+        !walletsStore.sol.account &&
+        !walletsStore.near.account &&
+        !walletsStore.tron.account ? (
           <button
             onClick={() => {
               walletStore.set({ showWallet: true });
@@ -38,19 +39,17 @@ export default function UserActions() {
           </button>
         ) : (
           <div className="flex items-center gap-[14px]">
-            {
-              !isHistory && (
-                <HistoryButton
-                  onClick={() => {
-                    if (isMobile) {
-                      historyStore.setOpenDrawer(!historyStore.openDrawer);
-                      return;
-                    }
-                    navigate("/history");
-                  }}
-                />
-              )
-            }
+            {!isHistory && (
+              <HistoryButton
+                onClick={() => {
+                  if (isMobile) {
+                    historyStore.setOpenDrawer(!historyStore.openDrawer);
+                    return;
+                  }
+                  navigate("/history");
+                }}
+              />
+            )}
             <ChainsButton
               onClick={() => {
                 walletStore.set({ showWallet: true });
@@ -80,11 +79,9 @@ const HistoryButton = ({ onClick }: any) => {
           alt=""
           className="w-[14px] h-[16px] object-center object-contain shrink-0"
         />
-        {
-          pendingNumber > 0 && (
-            <div className="w-[9px] h-[9px] rounded-full bg-[#FFBF19] absolute right-[10px] top-[8px] border border-white z-[1]"></div>
-          )
-        }
+        {pendingNumber > 0 && (
+          <div className="w-[9px] h-[9px] rounded-full bg-[#FFBF19] absolute right-[10px] top-[8px] border border-white z-[1]"></div>
+        )}
       </button>
       <button
         onClick={onClick}
