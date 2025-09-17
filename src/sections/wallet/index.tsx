@@ -30,7 +30,7 @@ export default function Wallet() {
       }}
     >
       <Total />
-      <div className="h-[calc(100%-224px)] overflow-y-auto pb-[20px] px-[10px]">
+      <div className="h-[calc(100%-201px)] overflow-y-auto pb-[20px] px-[10px]">
         <div className="pt-[10px] cursor-pointer hover:rounded-[12px] hover:bg-[#EDF0F7] duration-300 border-b border-[#EDF0EF]">
           <TypeItem type="evm" />
           {/* <Token
