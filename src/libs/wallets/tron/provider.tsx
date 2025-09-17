@@ -33,9 +33,7 @@ export default function TronProvider({
             tron: {
               account: null,
               wallet: null,
-              connect: () => {},
-              disconnect: () => {},
-              walletIcon: null
+              ...params
             }
           });
         } catch (error) {
@@ -122,7 +120,7 @@ export default function TronProvider({
         adapterRef.current.removeAllListeners();
       }
     };
-  }, [setWallets]);
+  }, []);
 
   return children;
 }
