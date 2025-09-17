@@ -7,13 +7,28 @@ import {
   WalletModalProvider,
   useWalletModal
 } from "@solana/wallet-adapter-react-ui";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { PhantomWalletAdapter, WalletConnectWalletAdapter } from "@solana/wallet-adapter-wallets";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import SolanaWallet from "@/libs/wallets/solana/wallet";
 import useWalletsStore from "@/stores/use-wallets";
 import { useWallet } from "@solana/wallet-adapter-react";
 
-export const wallets = [new PhantomWalletAdapter()];
+export const wallets = [
+  new PhantomWalletAdapter(),
+  new WalletConnectWalletAdapter({
+    // @ts-ignore
+    network: "mainnet-beta",
+    options: {
+      projectId: import.meta.env.VITE_RAINBOW_PROJECT_ID,
+      metadata: {
+        name: "StableFlow.ai",
+        description: "",
+        url: "https://demo.stableflow.ai",
+        icons: [],
+      },
+    }
+  })
+];
 
 export default function SolanaProvider({
   children
@@ -60,8 +75,8 @@ const Content = () => {
               sol: {
                 account: null,
                 wallet: null,
-                connect: () => {},
-                disconnect: () => {}
+                connect: () => { },
+                disconnect: () => { }
               }
             });
           }
