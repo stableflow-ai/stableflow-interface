@@ -29,13 +29,6 @@ export default function TronProvider({
       disconnect: async () => {
         try {
           await adapter.disconnect();
-          setWallets({
-            tron: {
-              account: null,
-              wallet: null,
-              ...params
-            }
-          });
         } catch (error) {
           console.error("Tron wallet disconnect failed:", error);
         }
@@ -57,7 +50,7 @@ export default function TronProvider({
           account: address,
           wallet: walletRef.current,
           ...params,
-          walletIcon: null
+          walletIcon: adapter.icon
         }
       });
     });
@@ -79,8 +72,7 @@ export default function TronProvider({
         tron: {
           account: newAccount,
           wallet: walletRef.current,
-          ...params,
-          walletIcon: null
+          ...params
         }
       });
     });
@@ -94,8 +86,7 @@ export default function TronProvider({
             tron: {
               account: data.address,
               wallet: walletRef.current,
-              ...params,
-              walletIcon: null
+              ...params
             }
           });
         } else if (action === "disconnect") {
