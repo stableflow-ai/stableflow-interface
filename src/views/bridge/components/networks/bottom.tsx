@@ -112,7 +112,7 @@ const Progress = ({
   setIsDragging: (dragging: boolean) => void;
   progressBarRef: React.RefObject<HTMLDivElement | null>;
 }) => {
-  // Click on progress bar to jump to position
+  // Click/Touch on progress bar to jump to position
   const handleProgressBarClick = (e: React.MouseEvent) => {
     if (disabled || !progressBarRef.current) return;
 
@@ -121,11 +121,22 @@ const Progress = ({
     const percentage = (x / rect.width) * 100;
     onProgressChange(percentage);
   };
+
+  const handleProgressBarTouch = (e: React.TouchEvent) => {
+    if (disabled || !progressBarRef.current) return;
+
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const percentage = (x / rect.width) * 100;
+    onProgressChange(percentage);
+  };
   return (
     <div
       ref={progressBarRef}
       className="md:w-[269px] cursor-pointer flex-1 h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] shrink-0 relative"
       onClick={handleProgressBarClick}
+      onTouchStart={handleProgressBarTouch}
     >
       <div
         className="h-[8px] rounded-[12px] bg-linear-to-r from-[#B7CCBA00] to-[#B7CCBA] relative max-w-full"
@@ -179,6 +190,12 @@ const Pointer = ({
     setIsDragging(true);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (disabled) return;
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!isDragging || !progressBarRef.current) return;
@@ -191,26 +208,56 @@ const Pointer = ({
     [isDragging, progressBarRef, onProgressChange]
   );
 
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (!isDragging || !progressBarRef.current) return;
+
+      const rect = progressBarRef.current.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = touch.clientX - rect.left;
+      const percentage = (x / rect.width) * 100;
+      onProgressChange(percentage);
+    },
+    [isDragging, progressBarRef, onProgressChange]
+  );
+
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, [setIsDragging]);
 
-  // Add global mouse event listeners
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+  }, [setIsDragging]);
+
+  // Add global mouse and touch event listeners
   React.useEffect(() => {
     if (isDragging) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchmove", handleTouchMove, {
+        passive: false
+      });
+      document.addEventListener("touchend", handleTouchEnd);
       return () => {
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
+        document.removeEventListener("touchmove", handleTouchMove);
+        document.removeEventListener("touchend", handleTouchEnd);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [
+    isDragging,
+    handleMouseMove,
+    handleMouseUp,
+    handleTouchMove,
+    handleTouchEnd
+  ]);
 
   return (
     <div
       className="w-[26px] h-[26px] absolute top-[-8px] right-[-6px] cursor-pointer select-none"
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
       onClick={(e) => {
         e.stopPropagation();
       }}

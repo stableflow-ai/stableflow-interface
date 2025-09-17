@@ -13,6 +13,7 @@ import useWalletStore from "@/stores/use-wallet";
 import useBridgeStore from "@/stores/use-bridge";
 import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
+import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 
 export default function useBridge() {
   const wallets = useWalletsStore();
@@ -21,6 +22,7 @@ export default function useBridge() {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
   const { getBalance } = useTokenBalance(walletStore.fromToken, false);
+  const balancesStore = useBalancesStore();
   const toast = useToast();
 
   // Recipient address state
@@ -152,21 +154,13 @@ export default function useBridge() {
     // Check balance if wallet and token are available
     if (walletStore.fromToken && walletStore.toToken && wallets) {
       try {
-        const wallet = (wallets as any)[walletStore.fromToken.chainType];
-        if (wallet?.wallet?.balanceOf && wallet?.account) {
-          const balance = await wallet.wallet.balanceOf(
-            walletStore.fromToken.contractAddress,
-            wallet.account
-          );
+        const balance =
+          balancesStore[
+            `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
+          ]?.[walletStore.fromToken.contractAddress] || 0;
 
-          // Convert balance to the same unit as amount (considering decimals)
-          const balanceInTokenUnit = Big(balance).div(
-            10 ** walletStore.fromToken.decimals
-          );
-
-          if (Big(value).gt(balanceInTokenUnit)) {
-            return `Insufficient balance.`;
-          }
+        if (Big(value).gt(balance)) {
+          return `Insufficient balance.`;
         }
       } catch (error) {
         console.error("Error checking balance:", error);

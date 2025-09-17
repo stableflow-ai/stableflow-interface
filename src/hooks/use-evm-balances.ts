@@ -85,6 +85,7 @@ export default function useEvmBalances(auto = false) {
   });
 
   useEffect(() => {
+    if (!wallet?.account) return;
     if (!initRef.current) {
       initRef.current = true;
       fetchBalances();
