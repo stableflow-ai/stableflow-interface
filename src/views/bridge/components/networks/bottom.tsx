@@ -51,7 +51,7 @@ export default function Bottom({ token }: { token: any }) {
   );
 
   return (
-    <div className="h-[70px] px-[20px] pt-[24px] border-t border-[#EBF0F8] flex  justify-between relative">
+    <div className="h-[70px] px-[20px] pt-[24px] border-t border-[#EBF0F8] flex justify-between relative">
       <div className="shrink-0 w-[90px]">
         {!!bridgeStore.amount ? (
           // <Amount amount={bridgeStore.amount} />
@@ -122,30 +122,28 @@ const Progress = ({
     onProgressChange(percentage);
   };
   return (
-    <>
+    <div
+      ref={progressBarRef}
+      className="md:w-[269px] cursor-pointer flex-1 h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] shrink-0 relative"
+      onClick={handleProgressBarClick}
+    >
       <div
-        ref={progressBarRef}
-        className="md:w-[269px] cursor-pointer flex-1 h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] shrink-0 relative"
-        onClick={handleProgressBarClick}
+        className="h-[8px] rounded-[12px] bg-linear-to-r from-[#B7CCBA00] to-[#B7CCBA] relative max-w-full"
+        style={{ width: `${progress}%` }}
       >
-        <div
-          className="h-[8px] rounded-[12px] bg-linear-to-r from-[#B7CCBA00] to-[#B7CCBA] relative max-w-full"
-          style={{ width: `${progress}%` }}
-        >
-          {token && (
-            <Pointer
-              disabled={disabled}
-              token={token}
-              progress={progress}
-              onProgressChange={onProgressChange}
-              isDragging={isDragging}
-              setIsDragging={setIsDragging}
-              progressBarRef={progressBarRef}
-            />
-          )}
-        </div>
+        {token && (
+          <Pointer
+            disabled={disabled}
+            token={token}
+            progress={progress}
+            onProgressChange={onProgressChange}
+            isDragging={isDragging}
+            setIsDragging={setIsDragging}
+            progressBarRef={progressBarRef}
+          />
+        )}
       </div>
-      <div className="absolute bottom-[10px] left-[50%] -translate-x-1/2 md:w-[269px] w-[184px] flex items-center text-[#9FA7BA] text-[10px]">
+      <div className="absolute left-[0px] bottom-[-20px] w-full flex items-center text-[#9FA7BA] text-[10px]">
         {[25, 50, 75, 100].map((item) => (
           <div key={item} className="w-1/4 text-right">
             <span className="button" onClick={() => onProgressChange(item)}>
@@ -154,7 +152,7 @@ const Progress = ({
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 };
 

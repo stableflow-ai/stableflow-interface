@@ -40,5 +40,9 @@ export default defineConfig({
       }
     },
     include: ["buffer", "process"]
+  },
+  server: {
+    host: "0.0.0.0",
+    port: 5173
   }
 });
