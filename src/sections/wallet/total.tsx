@@ -45,6 +45,13 @@ export default function Total() {
     const _balanceSummariesList = Object.values(_balanceSummaries);
     const _balanceSummariesListWithBalance = _balanceSummariesList.filter((item: any) => item.balance.gt(0)).sort((a: any, b: any) => b.balance.minus(a.balance).toNumber());
 
+    _balanceSummariesList.forEach((item: any) => {
+      if (Big(_total).gt(0)) {
+        item.percent = Big(item.balance).div(_total).times(100).toFixed(2);
+      }
+      item.balanceString = formatNumber(item.balance, 2, true, { round: Big.roundDown });
+    });
+
     // only show the front 2 items
     // others should be merged into the last item
     const _balanceSummariesListWithBalanceFinalFront = _balanceSummariesListWithBalance.slice(0, 2);
@@ -67,15 +74,8 @@ export default function Total() {
       _balanceSummariesListWithBalanceFinal.push(_balanceSummariesListWithBalanceFinalOthers);
     }
 
-    _balanceSummariesList.forEach((item: any) => {
-      if (Big(_total).gt(0)) {
-        item.percent = Big(item.balance).div(_total).times(100).toFixed(2);
-      }
-      item.balanceString = formatNumber(item.balance, 2, true, { round: Big.roundDown });
-    });
-
     // Adjust percentages to ensure small balances take at least 1%
-    const adjustedPercentages = _balanceSummariesListWithBalance.map((item: any) => {
+    const adjustedPercentages = _balanceSummariesListWithBalanceFinal.map((item: any) => {
       const originalPercent = parseFloat(item.percent);
       return originalPercent < 1 ? 1 : originalPercent;
     });
