@@ -17,7 +17,6 @@ export default function TronProvider({
   const walletRef = useRef<TronWallet | null>(null);
 
   useEffect(() => {
-    console.log("configStore.tronWalletAdapter", configStore.tronWalletAdapter);
     if (configStore.tronWalletAdapter) {
       setAdapter(
         wallets.find((wallet) => wallet.name === configStore.tronWalletAdapter)
