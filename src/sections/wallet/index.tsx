@@ -2,7 +2,7 @@ import TypeItem from "./type-item";
 import TokenSimple from "./token-simple";
 import Token from "./token";
 // import { usdcEvm, usdcSol, usdcNear } from "@/config/tokens/usdc";
-import { usdtEvm, usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
+import { usdtEvm, usdtSol, usdtNear, usdtTron, usdtTon } from "@/config/tokens/usdt";
 import useWalletStore from "@/stores/use-wallet";
 import useWalletsStore from "@/stores/use-wallets";
 import useEvmBalances from "@/hooks/use-evm-balances";
@@ -67,6 +67,10 @@ export default function Wallet() {
         <div className="mt-[4px] pt-[6px] cursor-pointer hover:rounded-[12px] hover:bg-[#EDF0F7] duration-300 border-b border-[#EDF0EF]">
           <TypeItem type="tron" />
           <TokenSimple token={usdtTron} />
+        </div>
+        <div className="mt-[4px] pt-[6px] cursor-pointer hover:rounded-[12px] hover:bg-[#EDF0F7] duration-300 border-b border-[#EDF0EF]">
+          <TypeItem type="ton" />
+          <TokenSimple token={usdtTon} />
         </div>
       </div>
     </Drawer>

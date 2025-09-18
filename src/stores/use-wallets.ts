@@ -1,6 +1,6 @@
 import { create } from "zustand/index";
 
-export type WalletType = "near" | "sol" | "evm" | "tron";
+export type WalletType = "near" | "sol" | "evm" | "tron" | "ton";
 
 interface WalletsState {
   near: {
@@ -26,6 +26,13 @@ interface WalletsState {
     walletIcon: string | null;
   };
   tron: {
+    account: string | null;
+    wallet: any;
+    connect: () => void;
+    disconnect: () => void;
+    walletIcon: string | null;
+  };
+  ton: {
     account: string | null;
     wallet: any;
     connect: () => void;
@@ -61,6 +68,14 @@ const useWalletsStore = create<WalletsState>((set) => ({
   tron: {
     account: null,
     wallet: null,
+    connect: () => {},
+    disconnect: () => {},
+    walletIcon: null
+  },
+  ton: {
+    account: null,
+    wallet: null,
+    chainId: null,
     connect: () => {},
     disconnect: () => {},
     walletIcon: null

@@ -52,6 +52,11 @@ export const usdtChains = {
     assetId: "nep141:tron-d28a265909efecdcee7c5028585214ea0b96f015.omft.near",
     contractAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
     ...chains.tron
+  },
+  ton: {
+    assetId: "nep141:tron-d28a265909efecdcee7c5028585214ea0b96f015.omft.near",
+    contractAddress: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
+    ...chains.ton
   }
 };
 
@@ -73,4 +78,9 @@ export const usdtEvm = {
 export const usdtTron = {
   ...usdt,
   ...usdtChains.tron
+};
+
+export const usdtTon = {
+  ...usdt,
+  ...usdtChains.ton
 };

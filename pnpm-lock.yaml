@@ -47,6 +47,12 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.87.1
         version: 5.87.1(react@19.1.1)
+      '@ton/ton':
+        specifier: ^15.3.1
+        version: 15.3.1(@ton/core@0.61.0(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)
+      '@tonconnect/ui-react':
+        specifier: ^2.3.0
+        version: 2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@tronweb3/tronwallet-adapters':
         specifier: ^1.2.13
         version: 1.2.13(@react-native-async-storage/async-storage@1.24.0(react-native@0.81.1(@babel/core@7.28.4)(@types/react@19.1.12)(bufferutil@4.0.9)(react@19.1.1)(utf-8-validate@5.0.10)))(@types/react@19.1.12)(bufferutil@4.0.9)(react@19.1.1)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.4)
@@ -2297,6 +2303,44 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
+  '@ton/core@0.61.0':
+    resolution: {integrity: sha512-0qyVfP2dDue2bq80ydXggo2MlufcmzuFk6G94qRrZxvyQ3NSe4UeBTeRf1gQmN7tywgTsX2gS61e4yvJrlUu4Q==}
+    peerDependencies:
+      '@ton/crypto': '>=3.2.0'
+
+  '@ton/crypto-primitives@2.1.0':
+    resolution: {integrity: sha512-PQesoyPgqyI6vzYtCXw4/ZzevePc4VGcJtFwf08v10OevVJHVfW238KBdpj1kEDQkxWLeuNHEpTECNFKnP6tow==}
+
+  '@ton/crypto@3.3.0':
+    resolution: {integrity: sha512-/A6CYGgA/H36OZ9BbTaGerKtzWp50rg67ZCH2oIjV1NcrBaCK9Z343M+CxedvM7Haf3f/Ee9EhxyeTp0GKMUpA==}
+
+  '@ton/ton@15.3.1':
+    resolution: {integrity: sha512-+UuvbE0o0VIU/0W90STO+emRIDr3Vs39LdbX5ySm/Ra+RQJSiH0KX6TDOFqWDmD2Wzk4/zw21KwSiZ6Xjk8zlw==}
+    peerDependencies:
+      '@ton/core': '>=0.60.0'
+      '@ton/crypto': '>=3.2.0'
+
+  '@tonconnect/isomorphic-eventsource@0.0.2':
+    resolution: {integrity: sha512-B4UoIjPi0QkvIzZH5fV3BQLWrqSYABdrzZQSI9sJA9aA+iC0ohOzFwVVGXanlxeDAy1bcvPbb29f6sVUk0UnnQ==}
+
+  '@tonconnect/isomorphic-fetch@0.0.3':
+    resolution: {integrity: sha512-jIg5nTrDwnite4fXao3dD83eCpTvInTjZon/rZZrIftIegh4XxyVb5G2mpMqXrVGk1e8SVXm3Kj5OtfMplQs0w==}
+
+  '@tonconnect/protocol@2.3.0':
+    resolution: {integrity: sha512-OxrmcXF/EsSdGeASP9VpTRojuMtTV87DKYFLRq4ZJvF/Hirfm2cgcxzzj2uksEGm5IIR010UWo6b38RuokNwFQ==}
+
+  '@tonconnect/sdk@3.3.0':
+    resolution: {integrity: sha512-jwO23Uwy13Wht96Xp4euSG3I5fk9rd+3MFk/eXIzI68aznZUiXlDKBHP5l+/w5PJQhULyCkaHB9/UIXZL3DNTg==}
+
+  '@tonconnect/ui-react@2.3.0':
+    resolution: {integrity: sha512-Gh25xASc2nmexmCEWWiJKmccgk5MvAym215f/nevB/KMGh7t9COaKZs3dnOs3r3AE4l18asN0kuVAQG4Fcyfaw==}
+    peerDependencies:
+      react: '>=17.0.0'
+      react-dom: '>=17.0.0'
+
+  '@tonconnect/ui@2.3.0':
+    resolution: {integrity: sha512-oRcfZHTt5WLXCpXMz0JWWg50Bkx0GiT9JodzT94XuqQdsuLHTUKc0pPqOgvCii98kMRmxhbVu5OiKJIJmdr/6A==}
+
   '@toruslabs/base-controllers@5.11.0':
     resolution: {integrity: sha512-5AsGOlpf3DRIsd6PzEemBoRq+o2OhgSFXj5LZD6gXcBlfe0OpF+ydJb7Q8rIt5wwpQLNJCs8psBUbqIv7ukD2w==}
     engines: {node: '>=18.x', npm: '>=9.x'}
@@ -3420,6 +3464,9 @@ packages:
     resolution: {integrity: sha512-3Ek9H3X6pj5TgenXYtNWdaBon1tgYCaebd+XPg0keyjEbEfkD4KkmAxkQ/i1vYvxdcT5nscLBfq9VJRmCBcFSw==}
     engines: {node: '>= 0.10'}
 
+  classnames@2.5.1:
+    resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
+
   cliui@6.0.0:
     resolution: {integrity: sha512-t6wbgtoCXvAzst7QgXxJYqPt0usEfbgQdftEPbLL/cvv6HPE5VgvqCuAIDR0NgU52ds6rFwqrgakNLrHEjCbrQ==}
 
@@ -3568,6 +3615,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  dataloader@2.2.3:
+    resolution: {integrity: sha512-y2krtASINtPFS1rSDjacrFgn1dcUuoREVabwlOGOe4SdxenREqwjwjElAdwvbGM7kgZz9a3KVicWR7vcz8rnzA==}
 
   date-fns@2.30.0:
     resolution: {integrity: sha512-fnULvOpxnC5/Vg3NCiWelDsLiUc9bRwAPs/+LfTLNvetFCtCTN+yQz15C/fs4AwX1R9K5GLtLfn8QW+dWisaAw==}
@@ -4510,6 +4560,9 @@ packages:
 
   jsqr@1.4.0:
     resolution: {integrity: sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==}
+
+  jssha@3.2.0:
+    resolution: {integrity: sha512-QuruyBENDWdN4tZwJbQq7/eAK85FqrI4oDbXjy5IBhYD+2pTJyBUWZe8ctWaCkrV0gy6AaelgOZZBMeswEa/6Q==}
 
   jwa@2.0.1:
     resolution: {integrity: sha512-hRF04fqJIP8Abbkq5NKGN0Bbr3JxlQ+qhZufXVr0DvujKy93ZCbXZMHDL4EOtodSbCWxOqR8MS1tXA5hwqCXDg==}
@@ -5723,6 +5776,9 @@ packages:
     resolution: {integrity: sha512-Fi+gNw/tfc4hsGowQU5tRC/f1HFknkh4Vz8PaDI4JTinLUMTwhZyaovcH/va+iXq98BNUHN5ok0c2lEI82Fsgw==}
     engines: {node: '>= 4.7.0'}
 
+  symbol.inspect@1.0.1:
+    resolution: {integrity: sha512-YQSL4duoHmLhsTD1Pw8RW6TZ5MaTX5rXJnqacJottr2P2LZBF/Yvrc3ku4NUpMOm8aM0KOCqM+UAkMA5HWQCzQ==}
+
   tailwindcss@4.1.13:
     resolution: {integrity: sha512-i+zidfmTqtwquj4hMEwdjshYYgMbOrPzb9a0M3ZgNa0JMoZeFC6bxZvO8yr8ozS6ix2SDz0+mvryPeBs2TFE+w==}
 
@@ -5738,6 +5794,9 @@ packages:
     resolution: {integrity: sha512-nIVck8DK+GM/0Frwd+nIhZ84pR/BX7rmXMfYwyg+Sri5oGVE99/E3KvXqpC2xHFxyqXyGHTKBSioxxplrO4I4w==}
     engines: {node: '>=10'}
     hasBin: true
+
+  teslabot@1.5.0:
+    resolution: {integrity: sha512-e2MmELhCgrgZEGo7PQu/6bmYG36IDH+YrBI1iGm6jovXkeDIGa3pZ2WSqRjzkuw2vt1EqfkZoV5GpXgqL8QJVg==}
 
   test-exclude@6.0.0:
     resolution: {integrity: sha512-cAGWPIyOHU6zlmg88jwm7VRyXnMN7iV68OGAbYDk/Mh/xC/pzVPlQtY6ngoIH/5/tciuhGfvESU8GrHrcxD56w==}
@@ -5815,6 +5874,9 @@ packages:
 
   tty-browserify@0.0.1:
     resolution: {integrity: sha512-C3TaO7K81YvjCgQH9Q1S3R3P3BtN3RIM8n+OvX4il1K1zgE8ZhI0op7kClgkxtutIE8hQrcrHBXvIheqKUUCxw==}
+
+  tweetnacl-util@0.15.1:
+    resolution: {integrity: sha512-RKJBIj8lySrShN4w6i/BonWp2Z/uxwC3h4y7xsRrpP59ZboCd0GpEVsOnMDYLMmKBpYhb5TgHzZXy7wTfYFBRw==}
 
   tweetnacl@1.0.3:
     resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
@@ -9731,6 +9793,74 @@ snapshots:
       '@tanstack/query-core': 5.87.1
       react: 19.1.1
 
+  '@ton/core@0.61.0(@ton/crypto@3.3.0)':
+    dependencies:
+      '@ton/crypto': 3.3.0
+      symbol.inspect: 1.0.1
+
+  '@ton/crypto-primitives@2.1.0':
+    dependencies:
+      jssha: 3.2.0
+
+  '@ton/crypto@3.3.0':
+    dependencies:
+      '@ton/crypto-primitives': 2.1.0
+      jssha: 3.2.0
+      tweetnacl: 1.0.3
+
+  '@ton/ton@15.3.1(@ton/core@0.61.0(@ton/crypto@3.3.0))(@ton/crypto@3.3.0)':
+    dependencies:
+      '@ton/core': 0.61.0(@ton/crypto@3.3.0)
+      '@ton/crypto': 3.3.0
+      axios: 1.11.0
+      dataloader: 2.2.3
+      symbol.inspect: 1.0.1
+      teslabot: 1.5.0
+      zod: 3.22.4
+    transitivePeerDependencies:
+      - debug
+
+  '@tonconnect/isomorphic-eventsource@0.0.2':
+    dependencies:
+      eventsource: 2.0.2
+
+  '@tonconnect/isomorphic-fetch@0.0.3':
+    dependencies:
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@tonconnect/protocol@2.3.0':
+    dependencies:
+      tweetnacl: 1.0.3
+      tweetnacl-util: 0.15.1
+
+  '@tonconnect/sdk@3.3.0':
+    dependencies:
+      '@tonconnect/isomorphic-eventsource': 0.0.2
+      '@tonconnect/isomorphic-fetch': 0.0.3
+      '@tonconnect/protocol': 2.3.0
+    transitivePeerDependencies:
+      - encoding
+
+  '@tonconnect/ui-react@2.3.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      '@tonconnect/ui': 2.3.0
+      react: 19.1.1
+      react-dom: 19.1.1(react@19.1.1)
+    transitivePeerDependencies:
+      - encoding
+
+  '@tonconnect/ui@2.3.0':
+    dependencies:
+      '@tonconnect/sdk': 3.3.0
+      classnames: 2.5.1
+      csstype: 3.1.3
+      deepmerge: 4.3.1
+      ua-parser-js: 1.0.41
+    transitivePeerDependencies:
+      - encoding
+
   '@toruslabs/base-controllers@5.11.0(@babel/runtime@7.28.4)(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
     dependencies:
       '@babel/runtime': 7.28.4
@@ -12536,6 +12666,8 @@ snapshots:
       inherits: 2.0.4
       safe-buffer: 5.2.1
 
+  classnames@2.5.1: {}
+
   cliui@6.0.0:
     dependencies:
       string-width: 4.2.3
@@ -12705,6 +12837,8 @@ snapshots:
       react-dom: 19.1.1(react@19.1.1)
     optionalDependencies:
       typescript: 5.8.3
+
+  dataloader@2.2.3: {}
 
   date-fns@2.30.0:
     dependencies:
@@ -13699,6 +13833,8 @@ snapshots:
   jsonpointer@5.0.1: {}
 
   jsqr@1.4.0: {}
+
+  jssha@3.2.0: {}
 
   jwa@2.0.1:
     dependencies:
@@ -15156,6 +15292,8 @@ snapshots:
 
   swiper@12.0.1: {}
 
+  symbol.inspect@1.0.1: {}
+
   tailwindcss@4.1.13: {}
 
   tapable@2.2.3: {}
@@ -15175,6 +15313,8 @@ snapshots:
       acorn: 8.15.0
       commander: 2.20.3
       source-map-support: 0.5.21
+
+  teslabot@1.5.0: {}
 
   test-exclude@6.0.0:
     dependencies:
@@ -15258,6 +15398,8 @@ snapshots:
   tslib@2.8.1: {}
 
   tty-browserify@0.0.1: {}
+
+  tweetnacl-util@0.15.1: {}
 
   tweetnacl@1.0.3: {}
 

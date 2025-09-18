@@ -58,6 +58,7 @@ export default function UserActions() {
               solConnected={!!walletsStore.sol.account}
               nearConnected={!!walletsStore.near.account}
               tronConnected={!!walletsStore.tron.account}
+              tonConnected={!!walletsStore.ton.account}
             />
           </div>
         )}
@@ -114,7 +115,8 @@ const ChainsButton = ({
   evmConnected,
   solConnected,
   nearConnected,
-  tronConnected
+  tronConnected,
+  tonConnected,
 }: any) => {
   return (
     <button
@@ -125,6 +127,7 @@ const ChainsButton = ({
       <ChainIcon chain="sol" connected={solConnected} className="ml-[-8px]" />
       <ChainIcon chain="near" connected={nearConnected} className="ml-[-8px]" />
       <ChainIcon chain="tron" connected={tronConnected} className="ml-[-8px]" />
+      <ChainIcon chain="ton" connected={tonConnected} className="ml-[-8px]" />
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="10"

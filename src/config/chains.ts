@@ -19,6 +19,11 @@ export const chainTypes: Record<string, { value: string, name: string, color: st
     name: "Tron",
     color: "#F66273",
   },
+  ton: {
+    value: "ton",
+    name: "Ton",
+    color: "#5ABEF3",
+  },
 };
 
 const chains = {
@@ -106,6 +111,13 @@ const chains = {
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
     blockExplorerUrl: "https://tronscan.org/tx",
+  },
+  ton: {
+    chainName: "Ton",
+    chainIcon: "/chains/ton.png",
+    chainIconGray: "/chains/ton-gray.png",
+    chainType: chainTypes.ton.value,
+    blockExplorerUrl: "https://tonscan.org/tx",
   }
 };
 
