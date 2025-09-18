@@ -24,7 +24,7 @@ export default function Bottom({ token }: { token: any }) {
     if (!token?.chainType) return "0";
     const _balance =
       balancesStore[`${token.chainType}Balances` as keyof BalancesState][
-        token.contractAddress
+      token.contractAddress
       ];
     if (!_balance) return "0";
     if (_balance === "-") return "0";
@@ -50,12 +50,29 @@ export default function Bottom({ token }: { token: any }) {
     [balance, token?.decimals]
   );
 
+  const getAmountNumberFontSize = (_amount: string, offset: number = 0) => {
+    if (!_amount) return "text-[16px]";
+    let _amountString = _amount + "";
+    _amountString = _amountString.replace(/[^\d]/g, "");
+    const _amountStringLength = _amountString.length || 0;
+    if (_amountStringLength >= (10 + offset)) {
+      return "text-[10px]";
+    }
+    if (_amountStringLength >= (8 + offset)) {
+      return "text-[12px]";
+    }
+    if (_amountStringLength >= (7 + offset)) {
+      return "text-[14px]";
+    }
+    return "text-[16px]";
+  };
+
   return (
     <div className="h-[70px] px-[20px] pt-[24px] border-t border-[#EBF0F8] flex justify-between relative">
-      <div className="shrink-0 w-[90px]">
+      <div className={clsx("shrink-0 w-[100px] whitespace-nowrap overflow-hidden text-ellipsis pr-[18px]", getAmountNumberFontSize(bridgeStore.amount, 0))}>
         {!!bridgeStore.amount ? (
           // <Amount amount={bridgeStore.amount} />
-          formatNumber(bridgeStore.amount, 2, true, { isShort: true })
+          formatNumber(bridgeStore.amount, 2, true, { isShort: false })
         ) : (
           <div className="w-[38px] h-[12px] rounded-[6px] bg-[#EDF0F7]" />
         )}
@@ -70,11 +87,11 @@ export default function Bottom({ token }: { token: any }) {
         setIsDragging={setIsDragging}
         progressBarRef={progressBarRef}
       />
-      <div className="shrink-0 w-[90px] flex justify-end">
+      <div className="shrink-0 w-[100px] flex justify-end">
         {bridgeStore.quoting ? (
           <Loading size={12} />
         ) : bridgeStore.quoteData?.quote?.amountOutFormatted ? (
-          <div className="text-[#4DCF5E]">
+          <div className={clsx("text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis", getAmountNumberFontSize(bridgeStore.quoteData.quote.amountOutFormatted, 0))}>
             +
             {/* <Amount
                 amount={bridgeStore.quoteData.quote.amountOutFormatted}
@@ -84,7 +101,7 @@ export default function Bottom({ token }: { token: any }) {
               bridgeStore.quoteData.quote.amountOutFormatted,
               2,
               true,
-              { isShort: true }
+              { isShort: false }
             )}
           </div>
         ) : (
@@ -134,7 +151,7 @@ const Progress = ({
   return (
     <div
       ref={progressBarRef}
-      className="md:w-[269px] cursor-pointer flex-1 h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] shrink-0 relative"
+      className="md:w-[269px] cursor-pointer flex-1 h-[12px] rounded-[6px] bg-[#EDF0F7] p-[2px] relative"
       onClick={handleProgressBarClick}
       onTouchStart={handleProgressBarTouch}
     >
