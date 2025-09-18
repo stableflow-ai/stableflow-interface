@@ -9,7 +9,7 @@ import PendingTransfer from "./components/pending";
 import HistoryDrawer from "../history/drawer";
 
 export default function Bridge() {
-  const { transfer, addressValidation } = useBridge();
+  const { transfer, addressValidation, errorChain } = useBridge();
   return (
     <div className="w-full min-h-[100dvh] flex flex-col items-center">
       <div className="md:w-[488px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0">
@@ -22,7 +22,7 @@ export default function Bridge() {
         <Networks addressValidation={addressValidation} />
         <Result />
         <div className="px-[10px] md:px-0 w-full">
-          <BridgeButton onClick={transfer} />
+          <BridgeButton onClick={transfer} errorChain={errorChain} />
         </div>
       </div>
       <SupportedNetworks />
