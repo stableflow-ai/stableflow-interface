@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import oneClickService from "@/services/oneclick";
 import {
   validateAddress,
@@ -14,6 +14,7 @@ import useBridgeStore from "@/stores/use-bridge";
 import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
+import { BridgeDefaultWallets } from "../config";
 
 export default function useBridge() {
   const wallets = useWalletsStore();
@@ -25,6 +26,17 @@ export default function useBridge() {
   const balancesStore = useBalancesStore();
   const toast = useToast();
 
+  const [fromWalletAddress, toWalletAddress] = useMemo(() => {
+    const _fromChainType: WalletType = walletStore.fromToken?.chainType;
+    const _toChainType: WalletType = walletStore.toToken?.chainType;
+    if (!_fromChainType || !_toChainType) return [];
+    const _fromWallet = wallets[_fromChainType];
+    const _toWallet = wallets[_toChainType];
+    const _fromWalletAddress = _fromWallet?.account || BridgeDefaultWallets[_fromChainType];
+    const _toWalletAddress = _toWallet?.account || BridgeDefaultWallets[_toChainType];
+    return [_fromWalletAddress, _toWalletAddress];
+  }, [wallets, walletStore]);
+
   // Recipient address state
   const [addressValidation, setAddressValidation] =
     useState<AddressValidationResult>({
@@ -35,17 +47,15 @@ export default function useBridge() {
   const [amountError, setAmountError] = useState<string>("");
 
   const quote = async (dry: boolean) => {
-    const wallet = wallets[walletStore.fromToken.chainType as WalletType];
-    const toChainWalletAddress =
-      wallets[walletStore.toToken.chainType as WalletType].account;
-
     if (
       !walletStore.toToken ||
       !walletStore.fromToken ||
-      !wallet?.account ||
-      !(bridgeStore.recipientAddress || toChainWalletAddress)
-    )
+      !fromWalletAddress ||
+      !(bridgeStore.recipientAddress || toWalletAddress)
+    ) {
       return;
+    }
+
     try {
       bridgeStore.set({ quoting: true });
 
@@ -53,15 +63,18 @@ export default function useBridge() {
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
+      console.log("%cQuote refund address: %s", "background:#F5BABB;color:#fff;", fromWalletAddress);
+      console.log("%cQuote recipient address: %s", "background:#DEE791;color:#fff;", bridgeStore.recipientAddress || toWalletAddress || "");
+
       const quoteRes = await oneClickService.quote({
         dry: dry,
         slippageTolerance: configStore.slippage * 100,
         originAsset: walletStore.fromToken.assetId,
         destinationAsset: walletStore.toToken.assetId,
         amount: _amount,
-        refundTo: wallet.account,
+        refundTo: fromWalletAddress,
         refundType: "ORIGIN_CHAIN",
-        recipient: bridgeStore.recipientAddress || toChainWalletAddress || ""
+        recipient: bridgeStore.recipientAddress || toWalletAddress || ""
       });
 
       bridgeStore.set({ quoteData: quoteRes.data });
@@ -156,7 +169,7 @@ export default function useBridge() {
       try {
         const balance =
           balancesStore[
-            `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
+          `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
           ]?.[walletStore.fromToken.contractAddress] || 0;
 
         if (Big(value).gt(balance)) {
@@ -190,7 +203,7 @@ export default function useBridge() {
     if (bridgeStore.amount && walletStore.fromToken) {
       debouncedValidateAmount(bridgeStore.amount);
     }
-  }, [walletStore.fromToken, bridgeStore.amount]);
+  }, [walletStore.fromToken, bridgeStore.amount, balancesStore]);
 
   useEffect(() => {
     if (
@@ -198,8 +211,9 @@ export default function useBridge() {
       !walletStore.toToken ||
       !bridgeStore.amount ||
       (!addressValidation?.isValid && bridgeStore.recipientAddress)
-    )
+    ) {
       return;
+    }
 
     debouncedQuote(true);
   }, [
@@ -207,7 +221,9 @@ export default function useBridge() {
     walletStore.toToken,
     bridgeStore.amount,
     amountError,
-    addressValidation
+    addressValidation,
+    fromWalletAddress,
+    toWalletAddress
   ]);
 
   useEffect(() => {
