@@ -7,6 +7,7 @@ interface BridgeState {
   quoting: boolean;
   transferring: boolean;
   errorTips: string;
+  showFee: boolean;
   set: (params: any) => void;
 }
 
@@ -17,6 +18,7 @@ const useBridgeStore = create<BridgeState>((set) => ({
   quoting: false,
   transferring: false,
   errorTips: "",
+  showFee: false,
   set: (params) => set(() => ({ ...params }))
 }));
 

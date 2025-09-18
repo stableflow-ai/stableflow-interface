@@ -1,5 +1,12 @@
 import axios, { type AxiosInstance } from "axios";
 
+export const BridgeFee = [
+  {
+    recipient: "recipient.near",
+    fee: 0, // 100=1%
+  },
+];
+
 class OneClickService {
   private api: AxiosInstance;
   private offsetTime = 1000 * 60 * 5;
@@ -33,6 +40,7 @@ class OneClickService {
       recipientType: "DESTINATION_CHAIN",
       deadline: new Date(Date.now() + this.offsetTime).toISOString(),
       quoteWaitingTimeMs: 3000,
+      appFees: BridgeFee,
       ...params
     });
   }

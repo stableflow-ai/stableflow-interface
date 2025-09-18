@@ -68,20 +68,11 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
       />
       <div className="text-[14px] flex items-center gap-[8px] mt-[6px]">
         <div className="text-[#444C59]">{token.chainName}</div>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="10"
-          height="5"
-          viewBox="0 0 10 5"
-          fill="none"
-        >
-          <path
-            d="M1 1L5.13793 4L9 1"
-            stroke="#B3BBCE"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <img
+          src="/icon-arrow-down.svg"
+          className="w-[10px] h-[5px] shrink-0 object-center object-contain"
+          alt=""
+        />
       </div>
       <div className="text-[#9FA7BA] text-[12px]">
         {balance}
