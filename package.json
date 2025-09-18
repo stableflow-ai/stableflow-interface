@@ -15,6 +15,8 @@
     "@near-wallet-selector/meteor-wallet": "^9.5.1",
     "@near-wallet-selector/modal-ui": "^9.5.1",
     "@near-wallet-selector/my-near-wallet": "^9.5.1",
+    "@okxconnect/solana-provider": "^1.9.0",
+    "@okxconnect/universal-provider": "^1.9.0",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "@solana/spl-token": "^0.4.14",
     "@solana/wallet-adapter-react": "^0.15.39",

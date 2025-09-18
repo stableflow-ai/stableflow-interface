@@ -264,14 +264,14 @@ export default function useBridge() {
       if (amountError) {
         return amountError;
       }
+      if (Object.values(BridgeDefaultWallets).includes(fromWalletAddress || "")) {
+        return "Refund wallet not connected";
+      };
+      if (Object.values(BridgeDefaultWallets).includes(toWalletAddress || "")) {
+        return "Recipient wallet not connected";
+      };
       if (!addressValidation.isValid) {
         return addressValidation.error;
-      }
-      if (
-        Object.values(BridgeDefaultWallets).includes(fromWalletAddress || "") ||
-        Object.values(BridgeDefaultWallets).includes(toWalletAddress || "")
-      ) {
-        return "Wallet not connected";
       }
 
       return "";
