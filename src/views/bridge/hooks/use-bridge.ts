@@ -243,6 +243,9 @@ export default function useBridge() {
       if (!addressValidation.isValid) {
         return addressValidation.error;
       }
+      if (Object.values(BridgeDefaultWallets).includes(fromWalletAddress || "") || Object.values(BridgeDefaultWallets).includes(toWalletAddress || "")) {
+        return "Wallet not connected";
+      };
 
       return "";
     };
@@ -254,7 +257,9 @@ export default function useBridge() {
     addressValidation,
     walletStore.fromToken,
     bridgeStore.amount,
-    walletStore.toToken
+    walletStore.toToken,
+    fromWalletAddress,
+    toWalletAddress
   ]);
 
   return {
