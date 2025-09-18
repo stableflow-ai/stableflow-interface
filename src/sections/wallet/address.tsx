@@ -31,7 +31,8 @@ export default function Address({ type = "evm" }: { type: WalletType }) {
             }}
           />
           <DisconnectButton
-            onClick={() => {
+            onClick={(ev: any) => {
+              ev.stopPropagation();
               wallet.disconnect();
               balancesStore.set({
                 [`${type}Balances`]: {}
