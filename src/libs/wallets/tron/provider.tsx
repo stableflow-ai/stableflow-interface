@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import TronWallet from "./wallet";
 import WalletSelector, { wallets } from "./wallet-selector";
 import { useConfigStore } from "@/stores/use-config";
+import useBalancesStore from "@/stores/use-balances";
 
 export default function TronProvider({
   children
@@ -13,7 +14,7 @@ export default function TronProvider({
   const [adapter, setAdapter] = useState<any>(null);
   const [showWalletSelector, setShowWalletSelector] = useState<boolean>(false);
   const configStore = useConfigStore();
-
+  const setBalancesStore = useBalancesStore((state) => state.set);
   const walletRef = useRef<TronWallet | null>(null);
 
   useEffect(() => {
@@ -87,6 +88,9 @@ export default function TronProvider({
           ...params,
           walletIcon: null
         }
+      });
+      setBalancesStore({
+        tronBalances: {}
       });
     });
 

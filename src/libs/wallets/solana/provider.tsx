@@ -7,11 +7,15 @@ import {
   WalletModalProvider,
   useWalletModal
 } from "@solana/wallet-adapter-react-ui";
-import { PhantomWalletAdapter, WalletConnectWalletAdapter } from "@solana/wallet-adapter-wallets";
+import {
+  PhantomWalletAdapter,
+  WalletConnectWalletAdapter
+} from "@solana/wallet-adapter-wallets";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import SolanaWallet from "@/libs/wallets/solana/wallet";
 import useWalletsStore from "@/stores/use-wallets";
 import { useWallet } from "@solana/wallet-adapter-react";
+import useBalancesStore from "@/stores/use-balances";
 
 export const wallets = [
   new PhantomWalletAdapter(),
@@ -24,8 +28,8 @@ export const wallets = [
         name: "StableFlow.ai",
         description: "",
         url: "https://demo.stableflow.ai",
-        icons: [],
-      },
+        icons: []
+      }
     }
   })
 ];
@@ -51,7 +55,7 @@ const Content = () => {
   const setWallets = useWalletsStore((state) => state.set);
   const { publicKey, disconnect, connect, wallet } = useWallet();
   const { setVisible } = useWalletModal();
-
+  const setBalancesStore = useBalancesStore((state) => state.set);
   useEffect(() => {
     if (!mounted) return;
     const solanaWallet = new SolanaWallet();
@@ -71,12 +75,15 @@ const Content = () => {
           },
           disconnect: () => {
             disconnect();
+            setBalancesStore({
+              solBalances: {}
+            });
             setWallets({
               sol: {
                 account: null,
                 wallet: null,
-                connect: () => { },
-                disconnect: () => { }
+                connect: () => {},
+                disconnect: () => {}
               }
             });
           }

@@ -2,11 +2,9 @@ import { formatAddress } from "@/utils/format/address";
 import useCopy from "@/hooks/use-copy";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import metamask from "@/assets/metamask.png";
-import useBalancesStore from "@/stores/use-balances";
 
 export default function Address({ type = "evm" }: { type: WalletType }) {
   const wallets = useWalletsStore();
-  const balancesStore = useBalancesStore();
   const { onCopy } = useCopy();
   const wallet = wallets[type || "evm"];
   return (
@@ -34,9 +32,6 @@ export default function Address({ type = "evm" }: { type: WalletType }) {
             onClick={(ev: any) => {
               ev.stopPropagation();
               wallet.disconnect();
-              balancesStore.set({
-                [`${type}Balances`]: {}
-              });
             }}
           />
         </div>
