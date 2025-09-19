@@ -66,6 +66,7 @@ function Content() {
   const { data: walletClient } = useWalletClient();
   const [mounted, setMounted] = useState(false);
   const setWallets = useWalletsStore((state) => state.set);
+
   const { run: debouncedDisconnect } = useDebounceFn(
     async () => {
       if (!publicClient || !mounted) return;
@@ -76,6 +77,13 @@ function Content() {
         : null;
 
       const wallet = new RainbowWallet(provider, signer);
+
+      if (!account.address) {
+        setBalancesStore({
+          evmBalances: {}
+        });
+        clearTimeout(window.updateEvmBalancesTimer);
+      }
 
       setWallets({
         evm: {
