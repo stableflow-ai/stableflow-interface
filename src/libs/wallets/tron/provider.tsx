@@ -104,41 +104,6 @@ export default function TronProvider({
         }
       });
     });
-
-    const handleTronLinkMessage = (event: MessageEvent) => {
-      if (event.data && event.data.message) {
-        const { action, data } = event.data.message;
-
-        if (action === "setAccount") {
-          setWallets({
-            tron: {
-              account: data.address,
-              wallet: walletRef.current,
-              ...params
-            }
-          });
-        } else if (action === "disconnect") {
-          setWallets({
-            tron: {
-              account: null,
-              wallet: null,
-              ...params,
-              walletIcon: null
-            }
-          });
-        }
-      }
-    };
-
-    window.addEventListener("message", handleTronLinkMessage);
-
-    return () => {
-      window.removeEventListener("message", handleTronLinkMessage);
-
-      if (adapter) {
-        adapter.removeAllListeners();
-      }
-    };
   }, [adapter]);
 
   return (
