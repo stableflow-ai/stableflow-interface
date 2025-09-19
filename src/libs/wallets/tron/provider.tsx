@@ -95,7 +95,12 @@ export default function TronProvider({
     });
 
     adapter.on("accountsChanged", (accounts: any) => {
-      const newAccount = accounts && accounts.length > 0 ? accounts[0] : null;
+      const newAccount = accounts
+        ? Array.isArray(accounts)
+          ? accounts[0]
+          : accounts
+        : null;
+
       setWallets({
         tron: {
           account: newAccount,
