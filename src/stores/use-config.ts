@@ -10,13 +10,13 @@ interface ConfigState {
 export const useConfigStore = create(
   persist<ConfigState>(
     (set) => ({
-      slippage: 1,
+      slippage: 0.05,
       tronWalletAdapter: null,
       set: (params) => set(() => ({ ...params }))
     }),
     {
       name: "_config",
-      version: 0.1,
+      version: 0.11,
       storage: createJSONStorage(() => localStorage)
     }
   )
