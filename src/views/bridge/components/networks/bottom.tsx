@@ -20,16 +20,16 @@ export default function Bottom({ token }: { token: any }) {
   const bridgeStore = useBridgeStore();
   const balancesStore = useBalancesStore();
 
+  const mergedBalance =
+    balancesStore[`${token.chainType}Balances` as keyof BalancesState]?.[
+      token?.contractAddress
+    ];
+
   const balance = useMemo(() => {
-    if (!token?.chainType) return "0";
-    const _balance =
-      balancesStore[`${token.chainType}Balances` as keyof BalancesState][
-      token.contractAddress
-      ];
-    if (!_balance) return "0";
-    if (_balance === "-") return "0";
-    return _balance;
-  }, [token?.contractAddress]);
+    if (!mergedBalance) return "0";
+    if (mergedBalance === "-") return "0";
+    return mergedBalance;
+  }, [token?.contractAddress, mergedBalance]);
 
   useEffect(() => {
     if (balance === "0") return;
@@ -55,13 +55,13 @@ export default function Bottom({ token }: { token: any }) {
     let _amountString = _amount + "";
     _amountString = _amountString.replace(/[^\d]/g, "");
     const _amountStringLength = _amountString.length || 0;
-    if (_amountStringLength >= (10 + offset)) {
+    if (_amountStringLength >= 10 + offset) {
       return "text-[10px]";
     }
-    if (_amountStringLength >= (8 + offset)) {
+    if (_amountStringLength >= 8 + offset) {
       return "text-[12px]";
     }
-    if (_amountStringLength >= (7 + offset)) {
+    if (_amountStringLength >= 7 + offset) {
       return "text-[14px]";
     }
     return "text-[16px]";
@@ -69,7 +69,15 @@ export default function Bottom({ token }: { token: any }) {
 
   return (
     <div className="h-[70px] px-[20px] pt-[24px] border-t border-[#EBF0F8] flex justify-between relative">
-      <div className={clsx("shrink-0 w-[100px] whitespace-nowrap overflow-hidden text-ellipsis pr-[18px]", getAmountNumberFontSize(formatNumber(bridgeStore.amount, 2, true, { isShort: false }), 0))}>
+      <div
+        className={clsx(
+          "shrink-0 w-[100px] whitespace-nowrap overflow-hidden text-ellipsis pr-[18px]",
+          getAmountNumberFontSize(
+            formatNumber(bridgeStore.amount, 2, true, { isShort: false }),
+            0
+          )
+        )}
+      >
         {!!bridgeStore.amount ? (
           // <Amount amount={bridgeStore.amount} />
           formatNumber(bridgeStore.amount, 2, true, { isShort: false })
@@ -94,13 +102,17 @@ export default function Bottom({ token }: { token: any }) {
           <div
             className={clsx(
               "text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis",
-              getAmountNumberFontSize(formatNumber(
-                bridgeStore.quoteData.quote.amountOutFormatted,
-                2,
-                true,
-                { isShort: false }
-              ), 0)
-            )}>
+              getAmountNumberFontSize(
+                formatNumber(
+                  bridgeStore.quoteData.quote.amountOutFormatted,
+                  2,
+                  true,
+                  { isShort: false }
+                ),
+                0
+              )
+            )}
+          >
             +
             {/* <Amount
                 amount={bridgeStore.quoteData.quote.amountOutFormatted}
