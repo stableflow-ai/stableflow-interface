@@ -54,8 +54,10 @@ export default function useBridge() {
       !walletStore.toToken ||
       !walletStore.fromToken ||
       !fromWalletAddress ||
-      !(bridgeStore.recipientAddress || toWalletAddress)
+      !(bridgeStore.recipientAddress || toWalletAddress) ||
+      Number(bridgeStore.amount) < 1
     ) {
+      bridgeStore.set({ quoteData: null });
       return;
     }
 
@@ -65,17 +67,6 @@ export default function useBridge() {
       const _amount = Big(bridgeStore.amount)
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
-
-      console.log(
-        "%cQuote refund address: %s",
-        "background:#F5BABB;color:#fff;",
-        fromWalletAddress
-      );
-      console.log(
-        "%cQuote recipient address: %s",
-        "background:#DEE791;color:#fff;",
-        bridgeStore.recipientAddress || toWalletAddress || ""
-      );
 
       const quoteRes = await oneClickService.quote({
         dry: dry,
@@ -87,10 +78,12 @@ export default function useBridge() {
         refundType: "ORIGIN_CHAIN",
         recipient: bridgeStore.recipientAddress || toWalletAddress || ""
       });
-      bridgeStore.set({ quoteData: quoteRes.data });
+
+      bridgeStore.set({ quoteData: quoteRes.data, quoting: false });
       return quoteRes.data;
     } catch (error: any) {
       bridgeStore.set({
+        quoting: false,
         quoteData: {
           errMsg:
             error?.response?.data?.message &&
@@ -99,8 +92,6 @@ export default function useBridge() {
               : "Failed to get quote, please try again later"
         }
       });
-    } finally {
-      bridgeStore.set({ quoting: false });
     }
   };
 
@@ -214,17 +205,6 @@ export default function useBridge() {
   }, [walletStore.fromToken, bridgeStore.amount, balancesStore]);
 
   useEffect(() => {
-    if (
-      !walletStore.fromToken ||
-      !walletStore.toToken ||
-      !bridgeStore.amount ||
-      (!addressValidation?.isValid && bridgeStore.recipientAddress) ||
-      Number(bridgeStore.amount) < 1
-    ) {
-      bridgeStore.set({ quoteData: null });
-      return;
-    }
-
     debouncedQuote(true);
   }, [
     walletStore.fromToken,

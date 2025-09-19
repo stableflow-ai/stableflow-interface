@@ -41,11 +41,13 @@ export default class RainbowWallet {
         return balance.toString();
       }
 
-      const contract = new ethers.Contract(token, erc20Abi, this.provider);
+      const contract = new ethers.Contract(token, erc20Abi, this.signer);
 
       const balance = await contract.balanceOf(account);
+
       return balance.toString();
     } catch (err) {
+      console.error("Error getting token balance:", err);
       return "0";
     }
   }
