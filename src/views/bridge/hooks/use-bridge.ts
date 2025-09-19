@@ -92,7 +92,11 @@ export default function useBridge() {
     } catch (error: any) {
       bridgeStore.set({
         quoteData: {
-          errMsg: error?.response?.data?.message || "Please try again"
+          errMsg:
+            error?.response?.data?.message &&
+            error?.response?.data?.message !== "Internal server error"
+              ? error?.response?.data?.message
+              : "Failed to get quote, please try again later"
         }
       });
     } finally {
@@ -186,7 +190,7 @@ export default function useBridge() {
           ]?.[walletStore.fromToken.contractAddress] || 0;
 
         if (Big(value).gt(balance)) {
-          return `Insufficient balance.`;
+          return `Insufficient balance`;
         }
       } catch (error) {
         console.error("Error checking balance:", error);
@@ -226,6 +230,7 @@ export default function useBridge() {
       (!addressValidation?.isValid && bridgeStore.recipientAddress) ||
       Number(bridgeStore.amount) < 1
     ) {
+      bridgeStore.set({ quoteData: null });
       return;
     }
 
