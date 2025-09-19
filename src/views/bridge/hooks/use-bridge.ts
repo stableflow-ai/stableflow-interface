@@ -254,22 +254,25 @@ export default function useBridge() {
       ) {
         return "Please select from chain";
       }
-      if (walletStore.fromToken?.chainType === "evm") {
-        setErrorChain(
-          walletStore.fromToken?.chainId !== wallets.evm?.chainId
-            ? walletStore.fromToken.chainId
-            : 0
-        );
+      if (
+        walletStore.fromToken?.chainType === "evm" &&
+        walletStore.fromToken?.chainId !== wallets.evm?.chainId
+      ) {
+        setErrorChain(walletStore.fromToken.chainId);
+      } else {
+        setErrorChain(0);
       }
       if (amountError) {
         return amountError;
       }
-      if (Object.values(BridgeDefaultWallets).includes(fromWalletAddress || "")) {
+      if (
+        Object.values(BridgeDefaultWallets).includes(fromWalletAddress || "")
+      ) {
         return "Refund wallet not connected";
-      };
+      }
       if (Object.values(BridgeDefaultWallets).includes(toWalletAddress || "")) {
         return "Recipient wallet not connected";
-      };
+      }
       if (!addressValidation.isValid) {
         return addressValidation.error;
       }
