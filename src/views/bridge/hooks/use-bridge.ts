@@ -202,7 +202,7 @@ export default function useBridge() {
   };
 
   const { run: debouncedQuote } = useDebounceFn(quote, {
-    wait: 500
+    wait: 1000
   });
 
   // Re-validate amount when token or chain changes
