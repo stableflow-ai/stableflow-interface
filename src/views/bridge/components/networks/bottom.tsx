@@ -195,7 +195,13 @@ const Progress = ({
       <div className="absolute left-[0px] bottom-[-20px] w-full flex items-center text-[#9FA7BA] text-[10px]">
         {[25, 50, 75, 100].map((item) => (
           <div key={item} className="w-1/4 text-right">
-            <span className="button" onClick={() => onProgressChange(item)}>
+            <span
+              className="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onProgressChange(item);
+              }}
+            >
               {item}%
             </span>
           </div>
