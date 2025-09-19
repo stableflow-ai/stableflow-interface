@@ -167,8 +167,8 @@ export default function useBridge() {
       return "Please enter a valid number";
     }
 
-    if (numValue <= 0) {
-      return "Amount must be greater than 0";
+    if (numValue < 1) {
+      return "Amount is too low, at least 1";
     }
 
     // Check for too many decimal places (max 6 for most tokens)
@@ -223,7 +223,8 @@ export default function useBridge() {
       !walletStore.fromToken ||
       !walletStore.toToken ||
       !bridgeStore.amount ||
-      (!addressValidation?.isValid && bridgeStore.recipientAddress)
+      (!addressValidation?.isValid && bridgeStore.recipientAddress) ||
+      Number(bridgeStore.amount) < 1
     ) {
       return;
     }
