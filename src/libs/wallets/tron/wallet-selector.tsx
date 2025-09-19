@@ -39,9 +39,8 @@ export default function AptosWalletSelector({
       open={open}
       onClose={onClose}
       className="flex items-center justify-center"
-      innerClassName="bg-white rounded-[16px] w-[400px] max-w-[90vw] max-h-[80vh] overflow-hidden"
     >
-      <div className="p-[24px]">
+      <div className="p-[24px] bg-white rounded-b-[0px] md:rounded-b-[16px] rounded-t-[16px] w-full md:w-[400px] max-w-[unset] md:max-w-[90vw] max-h-[80vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between mb-[20px]">
           <h2 className="text-[20px] font-[600] text-[#1A1A1A]">

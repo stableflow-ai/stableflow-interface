@@ -67,17 +67,14 @@ export const ModalContent = (props: ModalProps) => {
       {props.open && (
         <div
           className={clsx(
-            "fixed inset-0 bg-black/50 flex z-[200]",
+            "fixed inset-0 bg-black/50 flex z-[200] w-full h-full left-0 top-0",
             (!isMobile || isForceNormal) && "items-center justify-center",
             className
           )}
           style={style}
           onClick={handleBackdropClick}
         >
-          <div
-            className={`rounded-lg relative ${innerClassName}`}
-            style={innerStyle}
-          >
+          <AnimatePresence mode="wait">
             {isMobile && !isForceNormal ? (
               <motion.div
                 animate={{
@@ -110,12 +107,12 @@ export const ModalContent = (props: ModalProps) => {
                 exit={{
                   opacity: 0
                 }}
-                className="w-full h-full"
+                className="w-full h-full flex justify-center items-center"
               >
                 {children}
               </motion.div>
             )}
-          </div>
+          </AnimatePresence>
         </div>
       )}
     </AnimatePresence>
