@@ -48,13 +48,15 @@ export default function useEvmBalances(auto = false) {
         });
       });
 
-      balancesStore.set({
-        evmBalances: {
-          ..._balances,
-          usdcBalance: usdcBalance.toString(),
-          usdtBalance: usdtBalance.toString()
-        }
-      });
+      if (wallet?.account) {
+        balancesStore.set({
+          evmBalances: {
+            ..._balances,
+            usdcBalance: usdcBalance.toString(),
+            usdtBalance: usdtBalance.toString()
+          }
+        });
+      }
 
       setLoading(false);
     } catch (error) {
