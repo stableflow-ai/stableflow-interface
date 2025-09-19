@@ -89,6 +89,7 @@ export default function useEvmBalances(auto = false) {
   useEffect(() => {
     if (!wallet?.account) {
       clearTimeout(window.updateEvmBalancesTimer);
+      initRef.current = false;
       return;
     }
     if (!initRef.current) {
