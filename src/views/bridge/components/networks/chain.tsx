@@ -3,6 +3,8 @@ import useWalletStore from "@/stores/use-wallet";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { formatNumber } from "@/utils/format/number";
 import { useMemo } from "react";
+import useTokenBalance from "@/hooks/use-token-balance";
+import Loading from "@/components/loading/icon";
 
 export default function Chain({ token, isTo }: any) {
   const walletStore = useWalletStore();
@@ -48,6 +50,7 @@ export default function Chain({ token, isTo }: any) {
 
 const WithChain = ({ token, isTo, openWallet }: any) => {
   const balancesStore = useBalancesStore();
+  const { loading } = useTokenBalance(token, true);
 
   const key = `${token.chainType}Balances` as keyof BalancesState;
   const balance = useMemo(() => {
@@ -75,7 +78,7 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
         />
       </div>
       <div className="text-[#9FA7BA] text-[12px]">
-        {balance}
+        {loading ? <Loading size={12} /> : balance}
       </div>
     </div>
   );
