@@ -100,10 +100,15 @@ const Content = () => {
     connect2SolanaWallets();
   }, [publicKey, mounted]);
 
-  useEffect(() => {
-    if (wallet) {
-      wallet.adapter.connect();
+  const { run: connectDelay } = useDebounceFn(() => {
+    if (!wallet) {
+      return;
     }
+    connect();
+  }, { wait: 500 });
+
+  useEffect(() => {
+    connectDelay();
   }, [wallet]);
 
   useEffect(() => {
