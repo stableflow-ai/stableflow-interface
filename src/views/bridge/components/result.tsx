@@ -18,6 +18,8 @@ export default function Result() {
   const [fees, setFees] = useState<any>();
 
   const { run: calculateFees } = useDebounceFn(() => {
+    const slippage = Big(configStore.slippage).toFixed(2) + "%";
+
     if (
       !bridgeStore.amount
       || !bridgeStore.quoteData?.quote?.amountOutFormatted
@@ -28,8 +30,8 @@ export default function Result() {
       setFees({
         netFee: 0,
         bridgeFee: 0,
-        destinationGasFee: 0,
-        slippageFee: 0,
+        gasFee: 0,
+        slippage,
       });
       return;
     }
@@ -37,13 +39,13 @@ export default function Result() {
     const bridgeFee = BridgeFee.reduce((acc, item) => {
       return acc.plus(Big(bridgeStore.amount).times(Big(item.fee).div(10000)));
     }, Big(0));
-    const slippageFee = Big(netFee).minus(bridgeFee);
-    const destinationGasFee = 0;
+
+    const gasFee = Big(netFee).minus(bridgeFee);
     setFees({
       netFee: netFee,
       bridgeFee: bridgeFee,
-      destinationGasFee: destinationGasFee,
-      slippageFee: slippageFee,
+      gasFee,
+      slippage,
     });
   }, { wait: 500 });
 
@@ -124,11 +126,11 @@ export default function Result() {
               <FeeItem label="Bridge fee" precision={6} loading={bridgeStore.quoting}>
                 {fees?.bridgeFee}
               </FeeItem>
-              <FeeItem label="Destination gas fee" precision={6} loading={bridgeStore.quoting}>
-                {fees?.destinationGasFee}
+              <FeeItem label="Gas fee" precision={6} loading={bridgeStore.quoting}>
+                {fees?.gasFee}
               </FeeItem>
-              <FeeItem label="Swap Slippage" precision={6} loading={bridgeStore.quoting}>
-                {fees?.slippageFee}
+              <FeeItem label="Swap Slippage" precision={2} loading={bridgeStore.quoting} isFormat={false}>
+                {fees?.slippage}
               </FeeItem>
             </motion.div>
           )
@@ -139,7 +141,7 @@ export default function Result() {
 }
 
 const FeeItem = (props: any) => {
-  const { label, children, precision = 2, loading } = props;
+  const { label, children, precision = 2, loading, isFormat = true } = props;
 
   return (
     <div className="w-full flex items-center justify-between gap-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]">
@@ -149,9 +151,14 @@ const FeeItem = (props: any) => {
           loading ? (
             <Loading size={10} />
           ) : (
-            Big(children || 0).lte(0)
-              ? "-"
-              : formatNumber(children, precision, true, { prefix: "$", isZeroPrecision: true })
+            (isFormat
+              ? (
+                Big(children || 0).lte(0)
+                  ? "-"
+                  : formatNumber(children, precision, true, { prefix: "$", isZeroPrecision: true })
+              )
+              : children
+            )
           )
         }
       </div>
