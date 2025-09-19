@@ -54,7 +54,7 @@ export const usdtChains = {
     ...chains.tron
   },
   ton: {
-    assetId: "nep141:tron-d28a265909efecdcee7c5028585214ea0b96f015.omft.near",
+    assetId: "nep245:v2_1.omni.hot.tg:1117_3tsdfyziyc7EJbP2aULWSKU4toBaAcN4FdTgfm5W1mC4ouR",
     contractAddress: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
     ...chains.ton
   }

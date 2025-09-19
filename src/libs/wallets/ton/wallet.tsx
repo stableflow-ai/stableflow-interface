@@ -1,12 +1,16 @@
-import { Address, beginCell, toNano, fromNano } from '@ton/ton';
+import { Address, beginCell, toNano, TonClient } from '@ton/ton';
+import type { TupleItem } from '@ton/ton';
 import { TonConnectUI } from '@tonconnect/ui-react';
 
-// FIXME
 export default class TonWallet {
-  private tonConnectUI: TonConnectUI | null = null;
+  private tonConnectUI: TonConnectUI;
+  private tonClient: TonClient;
+  private account: string;
 
-  constructor(tonConnectUI?: TonConnectUI) {
-    this.tonConnectUI = tonConnectUI || null;
+  constructor(options: { tonConnectUI: TonConnectUI; tonClient: TonClient; account: string; }) {
+    this.tonConnectUI = options.tonConnectUI;
+    this.tonClient = options.tonClient;
+    this.account = options.account;
   }
 
   // Check if the token is native TON
@@ -15,12 +19,33 @@ export default class TonWallet {
     return lowerAsset === "ton";
   }
 
+  async getSenderJettonWallet(masterAddress: string) {
+    try {
+      const jettonMasterAddress = Address.parse(masterAddress);
+      const owner = Address.parse(this.account);
+
+      const ownerCell = beginCell().storeAddress(owner).endCell();
+      const stack: TupleItem[] = [{ type: 'slice', cell: ownerCell }];
+
+      const response = await this.tonClient.runMethod(jettonMasterAddress, "get_wallet_address", stack);
+
+      const jettonWalletCell = response.stack.readCell();
+      const jettonWalletAddress = jettonWalletCell.beginParse().loadAddress();
+
+      return jettonWalletAddress;
+    } catch (error) {
+      console.error("get sender jetton wallet error: %o", error);
+      throw error;
+    }
+  }
+
   async transfer(data: {
     originAsset: string;
     depositAddress: string;
     amount: string;
+    memo?: string;
   }) {
-    const { originAsset, depositAddress, amount } = data;
+    const { originAsset, depositAddress, amount, memo } = data;
 
     if (!this.tonConnectUI) {
       throw new Error('TON Connect UI not initialized');
@@ -42,33 +67,45 @@ export default class TonWallet {
         const result = await this.tonConnectUI.sendTransaction(transaction);
         return result.boc;
       }
-      // Build USDT transfer message
-      const transferMessage = beginCell()
-        .storeUint(0xf8a7ea5, 32) // transfer op
+
+      const senderJettonWallet = await this.getSenderJettonWallet(originAsset);
+
+      // Create forward payload with memo if provided
+      let forwardPayload = beginCell().endCell(); // empty payload reference
+      if (memo) {
+        forwardPayload = beginCell()
+          .storeUint(0, 32) // op code for comment
+          .storeStringTail(memo) // memo text
+          .endCell();
+      }
+
+      const body = beginCell()
+        .storeUint(0xf8a7ea5, 32) // Jetton transfer op code
         .storeUint(0, 64) // query_id
-        .storeUint(toNano(amount), 64) // amount
+        .storeCoins(BigInt(amount)) // Jetton amount (VarUInteger 16)
         .storeAddress(Address.parse(depositAddress)) // destination
-        .storeAddress(Address.parse(depositAddress)) // response_destination
-        .storeBit(false) // custom_payload
-        .storeCoins(0) // forward_ton_amount
-        .storeBit(false) // forward_payload in this slice, not separate cell
+        .storeAddress(Address.parse(this.account)) // response_destination
+        .storeUint(0, 1) // custom_payload:(Maybe ^Cell)
+        .storeCoins(0) // forward_ton_amount (VarUInteger 16) - if >0, will send notification message
+        .storeBit(1) // forward_payload:(Either Cell ^Cell) - as a reference
+        .storeRef(forwardPayload)
         .endCell();
 
       const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 360,
         messages: [
           {
-            address: originAsset,
-            amount: toNano('0.1').toString(), // For gas fees
-            payload: transferMessage.toBoc().toString('base64'),
-          }
+            address: senderJettonWallet.toString(), // sender jetton wallet
+            amount: toNano("0.05").toString(), // for commission fees, excess will be returned
+            payload: body.toBoc().toString("base64"), // payload with jetton transfer body
+          },
         ],
-        validUntil: Math.floor(Date.now() / 1000) + 600,
       };
 
       const result = await this.tonConnectUI.sendTransaction(transaction);
       return result.boc;
     } catch (error) {
-      console.error('TON transfer error:', error);
+      console.log('TON transfer error:', error);
       throw error;
     }
   }
@@ -76,40 +113,17 @@ export default class TonWallet {
   async getBalance(token: string, account: string) {
     try {
       if (this.isNativeToken(token)) {
-        // Get native TON balance
-        const response = await fetch(`https://toncenter.com/api/v2/getAddressBalance?address=${account}`);
-        const data = await response.json();
-
-        if (data.ok) {
-          // Convert nanoTON to TON
-          return fromNano(data.result);
-        }
-        return '0';
+        const parsedAddress = Address.parse(account);
+        const accountState = await this.tonClient.getBalance(parsedAddress);
+        return accountState.toString();
       }
-      const response = await fetch(`https://toncenter.com/api/v2/runGetMethod`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          address: token,
-          method: 'get_wallet_data',
-          stack: [
-            ['tvm.Slice', Address.parse(account).toRawString()]
-          ]
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.ok && data.result && data.result.stack) {
-        const balance = data.result.stack[0][1];
-        // USDT has 6 decimal places
-        return (BigInt(balance) / BigInt(1000000)).toString();
-      }
-      return '0';
+      const tokenJettonWallet = await this.getSenderJettonWallet(token);
+      console.log("tokenJettonWallet: %o", tokenJettonWallet.toString());
+      const response = await this.tonClient.runMethod(tokenJettonWallet, "get_wallet_data", []);
+      const balance = response.stack.readBigNumber();
+      return balance.toString();
     } catch (error) {
-      console.error('TON getBalance error:', error);
+      console.log('TON getBalance error:', error);
       return '0';
     }
   }

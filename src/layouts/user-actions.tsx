@@ -28,7 +28,8 @@ export default function UserActions() {
         {!walletsStore.evm.account &&
         !walletsStore.sol.account &&
         !walletsStore.near.account &&
-        !walletsStore.tron.account ? (
+        !walletsStore.tron.account &&
+        !walletsStore.ton.account ? (
           <button
             onClick={() => {
               walletStore.set({ showWallet: true });

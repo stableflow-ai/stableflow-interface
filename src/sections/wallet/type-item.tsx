@@ -1,7 +1,7 @@
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
-import { usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
+import { usdtSol, usdtNear, usdtTron, usdtTon } from "@/config/tokens/usdt";
 import { usdcSol, usdcNear } from "@/config/tokens/usdc";
 import { useMemo } from "react";
 import Address from "./address";
@@ -26,6 +26,9 @@ export default function TypeItem({ type = "evm" }: { type: WalletType }) {
       return walletStore.selectedToken === "USDT" ? usdtNear : usdcNear;
     if (type === "tron" && walletStore.selectedToken === "USDT")
       return usdtTron;
+    if (type === "ton" && walletStore.selectedToken === "USDT") {
+      return usdtTon;
+    }
   }, [type, walletStore.selectedToken]);
 
   return (

@@ -3,6 +3,7 @@ import { TonConnectUIProvider, useTonAddress, useTonWallet, useTonConnectUI } fr
 import { useEffect, useState } from "react";
 import TonWallet from "./wallet";
 import { useDebounceFn } from "ahooks";
+import { TonClient } from "@ton/ton";
 
 export default function TonProvider({
   children
@@ -26,12 +27,20 @@ const WalletProvider = (props: any) => {
   const wallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
   const userFriendlyAddress = useTonAddress();
+  const tonClient = new TonClient({
+    // endpoint: "https://rpc.ankr.com/premium-http/ton_api_v2/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a",
+    endpoint: "https://toncenter.com/api/v2/jsonRPC",
+  });
 
   const [mounted, setMounted] = useState(false);
 
   const { run: debouncedSetWallets } = useDebounceFn(() => {
     if (!mounted) return;
-    const tonWallet = new TonWallet(tonConnectUI);
+    const tonWallet = new TonWallet({
+      tonConnectUI,
+      tonClient,
+      account: userFriendlyAddress,
+    });
     setWallets({
       ton: {
         account: userFriendlyAddress || null,
@@ -58,7 +67,7 @@ const WalletProvider = (props: any) => {
 
   useEffect(() => {
     debouncedSetWallets();
-  }, [mounted, userFriendlyAddress, wallet, tonConnectUI]);
+  }, [mounted, userFriendlyAddress, wallet, tonConnectUI, tonClient]);
 
   useEffect(() => {
     setMounted(true);
