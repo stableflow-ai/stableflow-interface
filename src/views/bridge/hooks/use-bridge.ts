@@ -160,7 +160,7 @@ export default function useBridge() {
   }, [bridgeStore.recipientAddress, walletStore.toToken]);
 
   // Amount validation and handler
-  const validateAmount = async (value: string): Promise<string> => {
+  const validateAmount = (value: string): string => {
     if (!value.trim()) {
       return "Amount is required";
     }
@@ -205,20 +205,11 @@ export default function useBridge() {
     wait: 500
   });
 
-  const { run: debouncedValidateAmount } = useDebounceFn(
-    async (value: string) => {
-      const error = await validateAmount(value);
-      setAmountError(error);
-    },
-    {
-      wait: 300
-    }
-  );
-
   // Re-validate amount when token or chain changes
   useEffect(() => {
     if (bridgeStore.amount && walletStore.fromToken) {
-      debouncedValidateAmount(bridgeStore.amount);
+      const error = validateAmount(bridgeStore.amount);
+      setAmountError(error);
     }
   }, [walletStore.fromToken, bridgeStore.amount, balancesStore]);
 
