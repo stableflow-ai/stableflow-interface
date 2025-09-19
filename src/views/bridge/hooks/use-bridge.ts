@@ -87,12 +87,14 @@ export default function useBridge() {
         refundType: "ORIGIN_CHAIN",
         recipient: bridgeStore.recipientAddress || toWalletAddress || ""
       });
-
       bridgeStore.set({ quoteData: quoteRes.data });
       return quoteRes.data;
-    } catch (error) {
-      console.error(error);
-      bridgeStore.set({ quoteData: null });
+    } catch (error: any) {
+      bridgeStore.set({
+        quoteData: {
+          errMsg: error?.response?.data?.message || "Please try again"
+        }
+      });
     } finally {
       bridgeStore.set({ quoting: false });
     }
@@ -248,6 +250,10 @@ export default function useBridge() {
       if (!bridgeStore.amount) {
         return "Please enter amount";
       }
+      if (bridgeStore.quoteData?.errMsg) {
+        return bridgeStore.quoteData.errMsg;
+      }
+
       if (
         walletStore.fromToken.chainType === "evm" &&
         walletStore.fromToken.chainId !== walletStore.fromToken.chainId
@@ -288,6 +294,7 @@ export default function useBridge() {
     walletStore.fromToken,
     bridgeStore.amount,
     walletStore.toToken,
+    bridgeStore.quoteData,
     fromWalletAddress,
     toWalletAddress,
     wallets.evm?.chainId
