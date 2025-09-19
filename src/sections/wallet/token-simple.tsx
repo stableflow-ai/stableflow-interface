@@ -4,7 +4,7 @@ import useTokenBalance from "@/hooks/use-token-balance";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 
 export default function TokenSimple({ token }: any) {
-  const { loading, balance } = useTokenBalance(token, true);
+  const { loading } = useTokenBalance(token, true);
   const balancesStore = useBalancesStore();
 
   return (
@@ -20,7 +20,7 @@ export default function TokenSimple({ token }: any) {
           amount={
             balancesStore[`${token.chainType}Balances` as keyof BalancesState]?.[
               token.contractAddress
-            ] || balance
+            ]
           }
         />
       )}

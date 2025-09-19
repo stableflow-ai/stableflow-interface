@@ -28,6 +28,7 @@ import RainbowWallet from "./wallet";
 import "@rainbow-me/rainbowkit/styles.css";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
+import useBalancesStore from "@/stores/use-balances";
 
 const config = getDefaultConfig({
   appName: "StableFlow.ai",
@@ -59,7 +60,7 @@ export default function RainbowProvider({
 function Content() {
   const { disconnect } = useDisconnect();
   const account = useAccount();
-
+  const setBalancesStore = useBalancesStore((state) => state.set);
   const { openConnectModal } = useConnectModal();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
@@ -86,6 +87,9 @@ function Content() {
           },
           disconnect: () => {
             disconnect?.();
+            setBalancesStore({
+              evmBalances: {}
+            });
             setWallets({
               evm: {
                 account: null,

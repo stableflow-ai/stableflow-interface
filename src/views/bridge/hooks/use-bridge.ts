@@ -24,6 +24,7 @@ export default function useBridge() {
   const bridgeStore = useBridgeStore();
   const { getBalance } = useTokenBalance(walletStore.fromToken, false);
   const balancesStore = useBalancesStore();
+  const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
 
   const [fromWalletAddress, toWalletAddress] = useMemo(() => {
@@ -32,8 +33,10 @@ export default function useBridge() {
     if (!_fromChainType || !_toChainType) return [];
     const _fromWallet = wallets[_fromChainType];
     const _toWallet = wallets[_toChainType];
-    const _fromWalletAddress = _fromWallet?.account || BridgeDefaultWallets[_fromChainType];
-    const _toWalletAddress = _toWallet?.account || BridgeDefaultWallets[_toChainType];
+    const _fromWalletAddress =
+      _fromWallet?.account || BridgeDefaultWallets[_fromChainType];
+    const _toWalletAddress =
+      _toWallet?.account || BridgeDefaultWallets[_toChainType];
     return [_fromWalletAddress, _toWalletAddress];
   }, [wallets, walletStore]);
 
@@ -63,8 +66,16 @@ export default function useBridge() {
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
-      console.log("%cQuote refund address: %s", "background:#F5BABB;color:#fff;", fromWalletAddress);
-      console.log("%cQuote recipient address: %s", "background:#DEE791;color:#fff;", bridgeStore.recipientAddress || toWalletAddress || "");
+      console.log(
+        "%cQuote refund address: %s",
+        "background:#F5BABB;color:#fff;",
+        fromWalletAddress
+      );
+      console.log(
+        "%cQuote recipient address: %s",
+        "background:#DEE791;color:#fff;",
+        bridgeStore.recipientAddress || toWalletAddress || ""
+      );
 
       const quoteRes = await oneClickService.quote({
         dry: dry,
@@ -76,12 +87,14 @@ export default function useBridge() {
         refundType: "ORIGIN_CHAIN",
         recipient: bridgeStore.recipientAddress || toWalletAddress || ""
       });
-
       bridgeStore.set({ quoteData: quoteRes.data });
       return quoteRes.data;
-    } catch (error) {
-      console.error(error);
-      bridgeStore.set({ quoteData: null });
+    } catch (error: any) {
+      bridgeStore.set({
+        quoteData: {
+          errMsg: error?.response?.data?.message || "Please try again"
+        }
+      });
     } finally {
       bridgeStore.set({ quoting: false });
     }
@@ -154,8 +167,8 @@ export default function useBridge() {
       return "Please enter a valid number";
     }
 
-    if (numValue <= 0) {
-      return "Amount must be greater than 0";
+    if (numValue < 1) {
+      return "Amount is too low, at least 1";
     }
 
     // Check for too many decimal places (max 6 for most tokens)
@@ -169,7 +182,7 @@ export default function useBridge() {
       try {
         const balance =
           balancesStore[
-          `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
+            `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
           ]?.[walletStore.fromToken.contractAddress] || 0;
 
         if (Big(value).gt(balance)) {
@@ -210,7 +223,8 @@ export default function useBridge() {
       !walletStore.fromToken ||
       !walletStore.toToken ||
       !bridgeStore.amount ||
-      (!addressValidation?.isValid && bridgeStore.recipientAddress)
+      (!addressValidation?.isValid && bridgeStore.recipientAddress) ||
+      Number(bridgeStore.amount) < 1
     ) {
       return;
     }
@@ -237,15 +251,38 @@ export default function useBridge() {
       if (!bridgeStore.amount) {
         return "Please enter amount";
       }
+      if (bridgeStore.quoteData?.errMsg) {
+        return bridgeStore.quoteData.errMsg;
+      }
+
+      if (
+        walletStore.fromToken.chainType === "evm" &&
+        walletStore.fromToken.chainId !== walletStore.fromToken.chainId
+      ) {
+        return "Please select from chain";
+      }
+      if (
+        walletStore.fromToken?.chainType === "evm" &&
+        walletStore.fromToken?.chainId !== wallets.evm?.chainId
+      ) {
+        setErrorChain(walletStore.fromToken.chainId);
+      } else {
+        setErrorChain(0);
+      }
       if (amountError) {
         return amountError;
+      }
+      if (
+        Object.values(BridgeDefaultWallets).includes(fromWalletAddress || "")
+      ) {
+        return "Refund wallet not connected";
+      }
+      if (Object.values(BridgeDefaultWallets).includes(toWalletAddress || "")) {
+        return "Recipient wallet not connected";
       }
       if (!addressValidation.isValid) {
         return addressValidation.error;
       }
-      if (Object.values(BridgeDefaultWallets).includes(fromWalletAddress || "") || Object.values(BridgeDefaultWallets).includes(toWalletAddress || "")) {
-        return "Wallet not connected";
-      };
 
       return "";
     };
@@ -258,13 +295,16 @@ export default function useBridge() {
     walletStore.fromToken,
     bridgeStore.amount,
     walletStore.toToken,
+    bridgeStore.quoteData,
     fromWalletAddress,
-    toWalletAddress
+    toWalletAddress,
+    wallets.evm?.chainId
   ]);
 
   return {
     quote,
     transfer,
+    errorChain,
     addressValidation
   };
 }

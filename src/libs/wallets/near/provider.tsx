@@ -15,6 +15,7 @@ import useWalletsStore from "@/stores/use-wallets";
 
 import "@near-wallet-selector/modal-ui/styles.css";
 import NearWallet from "./wallet";
+import useBalancesStore from "@/stores/use-balances";
 
 interface NEARContextType {
   selector: WalletSelector | null;
@@ -43,7 +44,7 @@ export default function NEARProvider({
     explorerUrl: "https://nearblocks.io"
   };
   const walletsStore = useWalletsStore();
-
+  const setBalancesStore = useBalancesStore((state) => state.set);
   useEffect(() => {
     const init = async () => {
       try {
@@ -68,6 +69,9 @@ export default function NEARProvider({
           disconnect: async () => {
             const wallet = await _selector.wallet();
             await wallet.signOut();
+            setBalancesStore({
+              nearBalances: {}
+            });
             walletsStore.set({
               near: {
                 account: null,

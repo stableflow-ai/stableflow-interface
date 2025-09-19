@@ -1,7 +1,9 @@
 import useWalletsStore from "@/stores/use-wallets";
-import { TronLinkAdapter } from "@tronweb3/tronwallet-adapters";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import TronWallet from "./wallet";
+import WalletSelector, { wallets } from "./wallet-selector";
+import { useConfigStore } from "@/stores/use-config";
+import useBalancesStore from "@/stores/use-balances";
 
 export default function TronProvider({
   children
@@ -9,19 +11,42 @@ export default function TronProvider({
   children: React.ReactNode;
 }) {
   const setWallets = useWalletsStore((state) => state.set);
-  const adapterRef = useRef<TronLinkAdapter | null>(null);
+  const [adapter, setAdapter] = useState<any>(null);
+  const [showWalletSelector, setShowWalletSelector] = useState<boolean>(false);
+  const configStore = useConfigStore();
+  const setBalancesStore = useBalancesStore((state) => state.set);
   const walletRef = useRef<TronWallet | null>(null);
 
   useEffect(() => {
-    const adapter = new TronLinkAdapter();
-    adapterRef.current = adapter;
+    if (configStore.tronWalletAdapter) {
+      setAdapter(
+        wallets.find((wallet) => wallet.name === configStore.tronWalletAdapter)
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!adapter) {
+      setWallets({
+        tron: {
+          connect: () => {
+            setShowWalletSelector(true);
+          }
+        }
+      });
+      return;
+    }
+
     walletRef.current = new TronWallet();
+
+    configStore.set({
+      tronWalletAdapter: adapter.name
+    });
 
     const params = {
       connect: async () => {
         try {
-          console.log("Tron wallet connect", adapter);
-          await adapter.connect();
+          setShowWalletSelector(true);
         } catch (error) {
           console.error("Tron wallet connect failed:", error);
         }
@@ -44,7 +69,7 @@ export default function TronProvider({
       }
     });
 
-    adapter.on("connect", (address) => {
+    adapter.on("connect", (address: any) => {
       setWallets({
         tron: {
           account: address,
@@ -64,10 +89,18 @@ export default function TronProvider({
           walletIcon: null
         }
       });
+      setBalancesStore({
+        tronBalances: {}
+      });
     });
 
-    adapter.on("accountsChanged", (accounts) => {
-      const newAccount = accounts && accounts.length > 0 ? accounts[0] : null;
+    adapter.on("accountsChanged", (accounts: any) => {
+      const newAccount = accounts
+        ? Array.isArray(accounts)
+          ? accounts[0]
+          : accounts
+        : null;
+
       setWallets({
         tron: {
           account: newAccount,
@@ -76,42 +109,16 @@ export default function TronProvider({
         }
       });
     });
+  }, [adapter]);
 
-    const handleTronLinkMessage = (event: MessageEvent) => {
-      if (event.data && event.data.message) {
-        const { action, data } = event.data.message;
-
-        if (action === "setAccount") {
-          setWallets({
-            tron: {
-              account: data.address,
-              wallet: walletRef.current,
-              ...params
-            }
-          });
-        } else if (action === "disconnect") {
-          setWallets({
-            tron: {
-              account: null,
-              wallet: null,
-              ...params,
-              walletIcon: null
-            }
-          });
-        }
-      }
-    };
-
-    window.addEventListener("message", handleTronLinkMessage);
-
-    return () => {
-      window.removeEventListener("message", handleTronLinkMessage);
-
-      if (adapterRef.current) {
-        adapterRef.current.removeAllListeners();
-      }
-    };
-  }, []);
-
-  return children;
+  return (
+    <>
+      {children}
+      <WalletSelector
+        open={showWalletSelector}
+        onClose={() => setShowWalletSelector(false)}
+        onWalletSelect={(wallet) => setAdapter(wallet)}
+      />
+    </>
+  );
 }

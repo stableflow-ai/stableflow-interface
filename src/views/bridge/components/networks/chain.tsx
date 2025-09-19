@@ -3,6 +3,8 @@ import useWalletStore from "@/stores/use-wallet";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { formatNumber } from "@/utils/format/number";
 import { useMemo } from "react";
+import useTokenBalance from "@/hooks/use-token-balance";
+import Loading from "@/components/loading/icon";
 
 export default function Chain({ token, isTo }: any) {
   const walletStore = useWalletStore();
@@ -48,6 +50,7 @@ export default function Chain({ token, isTo }: any) {
 
 const WithChain = ({ token, isTo, openWallet }: any) => {
   const balancesStore = useBalancesStore();
+  const { loading } = useTokenBalance(token, true);
 
   const key = `${token.chainType}Balances` as keyof BalancesState;
   const balance = useMemo(() => {
@@ -68,23 +71,14 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
       />
       <div className="text-[14px] flex items-center gap-[8px] mt-[6px]">
         <div className="text-[#444C59]">{token.chainName}</div>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="10"
-          height="5"
-          viewBox="0 0 10 5"
-          fill="none"
-        >
-          <path
-            d="M1 1L5.13793 4L9 1"
-            stroke="#B3BBCE"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <img
+          src="/icon-arrow-down.svg"
+          className="w-[10px] h-[5px] shrink-0 object-center object-contain"
+          alt=""
+        />
       </div>
       <div className="text-[#9FA7BA] text-[12px]">
-        {balance}
+        {loading ? <Loading size={12} /> : balance}
       </div>
     </div>
   );
