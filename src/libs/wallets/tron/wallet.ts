@@ -7,13 +7,13 @@ export default class TronWallet {
 
   async waitForTronWeb() {
     return new Promise((resolve, reject) => {
-      if (this.tronWeb && this.tronWeb.ready) {
+      if (this.tronWeb) {
         resolve(this.tronWeb);
         return;
       }
 
       const checkTronWeb = () => {
-        if ((window as any).tronWeb && (window as any).tronWeb.ready) {
+        if ((window as any).tronWeb) {
           this.tronWeb = (window as any).tronWeb;
           resolve(this.tronWeb);
         } else {
