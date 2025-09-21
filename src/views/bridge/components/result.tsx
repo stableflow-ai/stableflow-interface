@@ -1,5 +1,5 @@
 import useBridgeStore from "@/stores/use-bridge";
-import useWalletStore from "@/stores/use-wallet";
+// import useWalletStore from "@/stores/use-wallet";
 import nearIntentsLogo from "@/assets/near-intents-logo.png";
 import { formatNumber } from "@/utils/format/number";
 import { AnimatePresence, motion } from "framer-motion";
@@ -12,7 +12,7 @@ import { useConfigStore } from "@/stores/use-config";
 
 export default function Result() {
   const bridgeStore = useBridgeStore();
-  const walletStore = useWalletStore();
+  // const walletStore = useWalletStore();
   const configStore = useConfigStore();
 
   const [fees, setFees] = useState<any>();
@@ -84,20 +84,21 @@ export default function Result() {
             <div className="text-[12px] text-[#444C59]">~{bridgeStore.quoteData?.quote?.timeEstimate || "-"}s</div>
           </div>
           <div className="px-[14px] items-center flex gap-[6px] border-l border-[#B3BBCE]">
-            {walletStore.fromToken?.icon && (
+            {/* {walletStore.fromToken?.icon && (
               <img
                 className="w-[14px] h-[14px]"
                 src={walletStore.fromToken?.icon}
               />
-            )}
-            <div className="text-[12px] text-[#444C59]">
-              ~
+            )} */}
+            <div className="text-[12px] text-[#444C59]">Fee:</div>
+            <div className="text-[12px] text-[#4DCF5E]">
               {bridgeStore.quoteData?.quote?.amountOutFormatted
-                ? formatNumber(
-                  bridgeStore.quoteData?.quote?.amountOutFormatted,
+                ? `~${formatNumber(
+                  fees?.netFee,
                   2,
-                  true
-                )
+                  true,
+                  { prefix: "$", isZeroPrecision: true }
+                )}`
                 : "-"}
             </div>
           </div>
