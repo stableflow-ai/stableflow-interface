@@ -20,6 +20,7 @@ import useIsMobile from "@/hooks/use-is-mobile";
 import { useDebounceFn } from "ahooks";
 import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 import { OKXSolanaProvider } from "@okxconnect/solana-provider";
+import { PublicKey } from "@solana/web3.js";
 
 export const adapters = [
   new PhantomWalletAdapter(),
@@ -59,13 +60,13 @@ export default function SolanaProvider({
 const Content = () => {
   const [mounted, setMounted] = useState(false);
   const setWallets = useWalletsStore((state) => state.set);
-  const { publicKey, disconnect, connect, wallet } = useWallet();
+  const { publicKey, disconnect, connect, wallet, signTransaction } = useWallet();
   const { setVisible } = useWalletModal();
   const setBalancesStore = useBalancesStore((state) => state.set);
 
   const { run: connect2SolanaWallets } = useDebounceFn(() => {
     if (!mounted) return;
-    const solanaWallet = new SolanaWallet();
+    const solanaWallet = new SolanaWallet({ publicKey, signTransaction });
     setWallets({
       sol: {
         account: publicKey?.toString() || null,
@@ -142,7 +143,7 @@ const MobileContent = () => {
     // const isConnected = okxUniversalProvider.connected();
     const provider = new OKXSolanaProvider(okxUniversalProvider);
     const account = provider.getAccount()?.address || null;
-    const solanaWallet = new SolanaWallet();
+    const solanaWallet = new SolanaWallet({ publicKey: account ? new PublicKey(account) : null, signTransaction: provider.signTransaction });
 
     setWallets({
       sol: {

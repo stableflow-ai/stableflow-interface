@@ -16,24 +16,27 @@ import {
 
 export default class SolanaWallet {
   connection: any;
-  constructor() {
+  private publicKey: PublicKey | null;
+  private signTransaction: any;
+
+  constructor(options: { publicKey: PublicKey | null; signTransaction: any }) {
     // https://api.mainnet-beta.solana.com
     // https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170
     this.connection = new Connection(
       "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
       "confirmed"
     );
+    this.publicKey = options.publicKey;
+    this.signTransaction = options.signTransaction;
   }
 
   // Transfer SOL
   async transferSOL(to: string, amount: string) {
-    const solana = (window as any).solana;
-
-    if (!solana) {
+    if (!this.publicKey) {
       throw new Error("Wallet not connected");
     }
 
-    const fromPubkey = solana._publicKey;
+    const fromPubkey = this.publicKey;
     const toPubkey = new PublicKey(to);
     const lamports = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
 
@@ -49,7 +52,7 @@ export default class SolanaWallet {
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = fromPubkey;
 
-    const signedTransaction = await solana.signTransaction(transaction);
+    const signedTransaction = await this.signTransaction(transaction);
     const signature = await this.connection.sendRawTransaction(
       signedTransaction.serialize()
     );
@@ -60,12 +63,11 @@ export default class SolanaWallet {
 
   // Transfer SPL token
   async transferToken(tokenMint: string, to: string, amount: string) {
-    const solana = (window as any).solana;
-    if (!solana) {
+    if (!this.publicKey) {
       throw new Error("Wallet not connected");
     }
 
-    const fromPubkey = solana._publicKey;
+    const fromPubkey = this.publicKey;
     const toPubkey = new PublicKey(to);
     const mint = new PublicKey(tokenMint);
 
@@ -106,7 +108,7 @@ export default class SolanaWallet {
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = fromPubkey;
 
-    const signedTransaction = await solana.signTransaction(transaction);
+    const signedTransaction = await this.signTransaction(transaction);
     const signature = await this.connection.sendRawTransaction(
       signedTransaction.serialize()
     );
