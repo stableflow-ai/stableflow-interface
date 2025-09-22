@@ -157,16 +157,26 @@ export class OKXTronWallet {
   }
 
   async transferToken(contractAddress: string, to: string, amount: string) {
-    // Get contract instance
-    const contract = await this.tronWeb.contract().at(contractAddress);
+    // Set the default address for TronWeb
+    this.tronWeb.setAddress(this.account);
 
-    // Build transfer transaction
-    const transaction = await contract.transfer(to, amount).send({
-      feeLimit: 100_000_000
-    });
+    // Build TRC20 transfer transaction using transactionBuilder
+    const transaction = await this.tronWeb.transactionBuilder.triggerSmartContract(
+      contractAddress,
+      'transfer',
+      {
+        feeLimit: 100_000_000,
+        callValue: 0
+      },
+      [
+        { type: 'address', value: to },
+        { type: 'uint256', value: amount }
+      ],
+      this.account
+    );
 
     // Sign and send transaction using the provided signAndSendTransaction method
-    const result = await this.signAndSendTransaction(transaction, "tron:mainnet");
+    const result = await this.signAndSendTransaction(transaction.transaction, "tron:mainnet");
 
     return result;
   }
