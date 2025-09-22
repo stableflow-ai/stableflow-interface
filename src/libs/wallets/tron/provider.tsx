@@ -1,15 +1,36 @@
 import useWalletsStore from "@/stores/use-wallets";
 import { useEffect, useRef, useState } from "react";
-import TronWallet from "./wallet";
+import TronWallet, { OKXTronWallet } from "./wallet";
 import WalletSelector, { wallets } from "./wallet-selector";
 import { useConfigStore } from "@/stores/use-config";
 import useBalancesStore from "@/stores/use-balances";
+import { OKXTronProvider } from "@okxconnect/universal-provider";
+import useIsMobile from "@/hooks/use-is-mobile";
+import { TronWeb } from "tronweb";
+import { useWatchOKXConnect } from "../okxconnect";
+
+const tronWeb = new TronWeb({
+  fullHost: "https://api.trongrid.io",
+  headers: {},
+  privateKey: "",
+});
 
 export default function TronProvider({
   children
 }: {
   children: React.ReactNode;
 }) {
+  const isMobile = useIsMobile();
+
+  return (
+    <>
+      {children}
+      {isMobile ? <MobileWallet /> : <Content />}
+    </>
+  );
+}
+
+const Content = () => {
   const setWallets = useWalletsStore((state) => state.set);
   const [adapter, setAdapter] = useState<any>(null);
   const [showWalletSelector, setShowWalletSelector] = useState<boolean>(false);
@@ -112,13 +133,46 @@ export default function TronProvider({
   }, [adapter]);
 
   return (
-    <>
-      {children}
-      <WalletSelector
-        open={showWalletSelector}
-        onClose={() => setShowWalletSelector(false)}
-        onWalletSelect={(wallet) => setAdapter(wallet)}
-      />
-    </>
+    <WalletSelector
+      open={showWalletSelector}
+      onClose={() => setShowWalletSelector(false)}
+      onWalletSelect={(wallet) => setAdapter(wallet)}
+    />
   );
-}
+};
+
+const MobileWallet = () => {
+  const setWallets = useWalletsStore((state) => state.set);
+
+  useWatchOKXConnect((okxConnect: any) => {
+    const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
+    const provider = new OKXTronProvider(okxUniversalProvider);
+
+    // @ts-ignore
+    const account = provider.getAccount()?.address || null;
+    console.log("tron provider: %o", provider);
+    console.log("tron account: %o", account);
+    const tronWallet = new OKXTronWallet({
+      account: account,
+      signTransaction: (transaction: any) => {
+        return provider.signTransaction(transaction, "tron:mainnet");
+      },
+      signAndSendTransaction: (transaction: any) => {
+        return provider.signAndSendTransaction(transaction, "tron:mainnet");
+      },
+      tronWeb: tronWeb,
+    });
+
+    setWallets({
+      tron: {
+        account,
+        wallet: tronWallet,
+        walletIcon: icon,
+        connect,
+        disconnect,
+      }
+    });
+  });
+
+  return null;
+};

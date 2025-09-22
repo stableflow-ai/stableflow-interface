@@ -110,3 +110,101 @@ export default class TronWallet {
     return await this.getBalance(token, account);
   }
 }
+
+export class OKXTronWallet {
+  private account: string; // Currently connected account address
+  private signAndSendTransaction: any;
+  private tronWeb: any;
+
+  constructor(options: any) {
+    this.signAndSendTransaction = options.signAndSendTransaction;
+    this.account = options.account;
+    this.tronWeb = options.tronWeb;
+  }
+
+  // Get currently connected account address
+  getAccount(): string {
+    return this.account;
+  }
+
+  async transfer(data: {
+    originAsset: string;
+    depositAddress: string;
+    amount: string;
+  }) {
+    const { originAsset, depositAddress, amount } = data;
+
+    if (originAsset === "TRX" || originAsset === "trx") {
+      return this.transferTRX(depositAddress, amount);
+    }
+
+    // Transfer TRC20 token (USDT, USDC, etc.)
+    return await this.transferToken(originAsset, depositAddress, amount);
+  }
+
+  async transferTRX(to: string, amount: string) {
+    // Build TRX transfer transaction
+    const transaction = await this.tronWeb.transactionBuilder.sendTrx(
+      to,
+      this.tronWeb.toSun(amount),
+      this.account
+    );
+
+    // Sign and send transaction using the provided signAndSendTransaction method
+    const result = await this.signAndSendTransaction(transaction, "tron:mainnet");
+
+    return result;
+  }
+
+  async transferToken(contractAddress: string, to: string, amount: string) {
+    // Get contract instance
+    const contract = await this.tronWeb.contract().at(contractAddress);
+
+    // Build transfer transaction
+    const transaction = await contract.transfer(to, amount).send({
+      feeLimit: 100_000_000
+    });
+
+    // Sign and send transaction using the provided signAndSendTransaction method
+    const result = await this.signAndSendTransaction(transaction, "tron:mainnet");
+
+    return result;
+  }
+
+  async getBalance(token: string, account: string) {
+    if (token === "TRX" || token === "trx") {
+      return await this.getTRXBalance(account);
+    }
+
+    return await this.getTokenBalance(token, account);
+  }
+
+  async getTRXBalance(account: string) {
+    // Get TRX balance using tronWeb
+    const balance = await this.tronWeb.trx.getBalance(account);
+    return balance.toString();
+  }
+
+  async getTokenBalance(contractAddress: string, account: string) {
+    try {
+      // Set the default address for TronWeb
+      this.tronWeb.setAddress(account);
+
+      // Get contract instance
+      const contract = await this.tronWeb.contract().at(contractAddress);
+
+      // Call balanceOf method to get token balance
+      const balance = await contract.balanceOf(account).call();
+
+      // Return balance as string
+      return balance.toString();
+    } catch (error) {
+      console.log("Error getting token balance:", error);
+      return "0";
+    }
+  }
+
+  async balanceOf(token: string, account: string) {
+    return await this.getBalance(token, account);
+  }
+}

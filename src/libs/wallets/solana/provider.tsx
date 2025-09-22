@@ -18,9 +18,9 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import useBalancesStore from "@/stores/use-balances";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useDebounceFn } from "ahooks";
-import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 import { OKXSolanaProvider } from "@okxconnect/solana-provider";
 import { PublicKey, Transaction } from "@solana/web3.js";
+import { useWatchOKXConnect } from "../okxconnect";
 
 export const adapters = [
   new PhantomWalletAdapter(),
@@ -120,28 +120,9 @@ const Content = () => {
 
 const MobileContent = () => {
   const setWallets = useWalletsStore((state) => state.set);
-  const [updated, setUpdated] = useState(1);
 
-  const [okxUniversalProvider, setOKXUniversalProvider] = useState<OKXUniversalProvider | null>(null);
-
-  const initOKXUniversalProvider = async () => {
-    const _okxUniversalProvider = await OKXUniversalProvider.init({
-      dappMetaData: {
-        name: "StableFlow.ai",
-        icon: "/logo.svg"
-      },
-    });
-    setOKXUniversalProvider(_okxUniversalProvider);
-  };
-
-  useEffect(() => {
-    initOKXUniversalProvider();
-  }, []);
-
-  const { run: connect2OKX } = useDebounceFn(() => {
-    if (!okxUniversalProvider) return;
-
-    // const isConnected = okxUniversalProvider.connected();
+  useWatchOKXConnect((okxConnect: any) => {
+    const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
     const provider = new OKXSolanaProvider(okxUniversalProvider);
     const account = provider.getAccount()?.address || null;
     const solanaWallet = new SolanaWallet({
@@ -155,48 +136,12 @@ const MobileContent = () => {
       sol: {
         account,
         wallet: solanaWallet,
-        walletIcon: "https://web3.okx.com/cdn/assets/imgs/254/2056DB8D2D22F68E.png",
-        connect: async () => {
-          const session = await okxUniversalProvider.connect({
-            namespaces: {
-              solana: {
-                chains: ["solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"],
-              }
-            },
-            sessionConfig: {
-              // do not specify redirect url, it maybe open the current URL in the different browser
-              // redirect: "https://next-rainbowkit-demo.vercel.app"
-            }
-          });
-          console.log("connected session: %o", session);
-          setUpdated((prev) => prev + 1);
-        },
-        disconnect: () => {
-          okxUniversalProvider.disconnect();
-          setUpdated((prev) => prev + 1);
-        }
+        walletIcon: icon,
+        connect: connect,
+        disconnect: disconnect,
       }
     });
-  }, { wait: 500 });
-
-  useEffect(() => {
-    connect2OKX();
-
-    const handleSessionUpdate = (session: any) => {
-      console.log("session updated: %o", session);
-    };
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        connect2OKX();
-      }
-    };
-    okxUniversalProvider?.on("session_update", handleSessionUpdate);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      okxUniversalProvider?.off("session_update", handleSessionUpdate);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [okxUniversalProvider, updated]);
+  });
 
   return null;
 };

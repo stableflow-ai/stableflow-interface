@@ -104,6 +104,9 @@ importers:
       tailwindcss:
         specifier: ^4.1.13
         version: 4.1.13
+      tronweb:
+        specifier: ^6.0.4
+        version: 6.0.4(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       viem:
         specifier: ^2.37.5
         version: 2.37.5(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)(zod@3.22.4)

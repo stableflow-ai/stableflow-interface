@@ -42,6 +42,7 @@
     "react-toastify": "^11.0.5",
     "swiper": "^12.0.1",
     "tailwindcss": "^4.1.13",
+    "tronweb": "^6.0.4",
     "viem": "^2.37.5",
     "wagmi": "^2.16.9",
     "zustand": "^5.0.8"
