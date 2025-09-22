@@ -21,11 +21,11 @@ export default function Assets() {
           asset={usdt}
           active={walletStore.selectedToken === "USDT"}
           onClick={() => {
-            walletStore.set({
-              fromToken: null,
-              toToken: null,
-              selectedToken: "USDT"
-            });
+            // walletStore.set({
+            //   fromToken: null,
+            //   toToken: null,
+            //   selectedToken: "USDT"
+            // });
           }}
         />
         <AssetItem
