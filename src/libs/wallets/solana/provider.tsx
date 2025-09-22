@@ -120,6 +120,7 @@ const Content = () => {
 
 const MobileContent = () => {
   const setWallets = useWalletsStore((state) => state.set);
+  const [updated, setUpdated] = useState(1);
 
   const [okxUniversalProvider, setOKXUniversalProvider] = useState<OKXUniversalProvider | null>(null);
 
@@ -168,17 +169,11 @@ const MobileContent = () => {
             }
           });
           console.log("connected session: %o", session);
+          setUpdated((prev) => prev + 1);
         },
         disconnect: () => {
           okxUniversalProvider.disconnect();
-          setWallets({
-            sol: {
-              account: null,
-              wallet: null,
-              connect: () => { },
-              disconnect: () => { }
-            }
-          });
+          setUpdated((prev) => prev + 1);
         }
       }
     });
@@ -190,25 +185,18 @@ const MobileContent = () => {
     const handleSessionUpdate = (session: any) => {
       console.log("session updated: %o", session);
     };
-    okxUniversalProvider?.on("session_update", handleSessionUpdate);
-    return () => {
-      okxUniversalProvider?.off("session_update", handleSessionUpdate);
-    };
-  }, [okxUniversalProvider]);
-
-  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         connect2OKX();
       }
     };
-
+    okxUniversalProvider?.on("session_update", handleSessionUpdate);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
     return () => {
+      okxUniversalProvider?.off("session_update", handleSessionUpdate);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [okxUniversalProvider, updated]);
 
   return null;
 };
