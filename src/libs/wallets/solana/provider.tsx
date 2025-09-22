@@ -150,7 +150,6 @@ const MobileContent = () => {
         wallet: solanaWallet,
         walletIcon: "https://web3.okx.com/cdn/assets/imgs/254/2056DB8D2D22F68E.png",
         connect: async () => {
-          debugger
           const session = await okxUniversalProvider.connect({
             namespaces: {
               solana: {

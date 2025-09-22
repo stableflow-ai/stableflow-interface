@@ -124,10 +124,10 @@ export default function Result() {
               <FeeItem label="Net fee" loading={bridgeStore.quoting}>
                 {fees?.netFee}
               </FeeItem>
-              <FeeItem label="Bridge fee" precision={6} loading={bridgeStore.quoting}>
+              <FeeItem label="Bridge fee" precision={2} loading={bridgeStore.quoting}>
                 {fees?.bridgeFee}
               </FeeItem>
-              <FeeItem label="Gas fee" precision={6} loading={bridgeStore.quoting}>
+              <FeeItem label="Gas fee" precision={2} loading={bridgeStore.quoting}>
                 {fees?.gasFee}
               </FeeItem>
               <FeeItem label="Swap Slippage" precision={2} loading={bridgeStore.quoting} isFormat={false}>
