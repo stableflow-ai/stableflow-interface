@@ -20,7 +20,7 @@ import useIsMobile from "@/hooks/use-is-mobile";
 import { useDebounceFn } from "ahooks";
 import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 import { OKXSolanaProvider } from "@okxconnect/solana-provider";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
 
 export const adapters = [
   new PhantomWalletAdapter(),
@@ -126,8 +126,8 @@ const MobileContent = () => {
   const initOKXUniversalProvider = async () => {
     const _okxUniversalProvider = await OKXUniversalProvider.init({
       dappMetaData: {
-        name: "application name",
-        icon: "application icon url"
+        name: "StableFlow.ai",
+        icon: "/logo.svg"
       },
     });
     setOKXUniversalProvider(_okxUniversalProvider);
@@ -143,7 +143,12 @@ const MobileContent = () => {
     // const isConnected = okxUniversalProvider.connected();
     const provider = new OKXSolanaProvider(okxUniversalProvider);
     const account = provider.getAccount()?.address || null;
-    const solanaWallet = new SolanaWallet({ publicKey: account ? new PublicKey(account) : null, signTransaction: provider.signTransaction });
+    const solanaWallet = new SolanaWallet({
+      publicKey: account ? new PublicKey(account) : null,
+      signTransaction: (transaction: Transaction) => {
+        return provider.signTransaction(transaction, "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp");
+      },
+    });
 
     setWallets({
       sol: {
@@ -181,6 +186,14 @@ const MobileContent = () => {
 
   useEffect(() => {
     connect2OKX();
+
+    const handleSessionUpdate = (session: any) => {
+      console.log("session updated: %o", session);
+    };
+    okxUniversalProvider?.on("session_update", handleSessionUpdate);
+    return () => {
+      okxUniversalProvider?.off("session_update", handleSessionUpdate);
+    };
   }, [okxUniversalProvider]);
 
   useEffect(() => {
