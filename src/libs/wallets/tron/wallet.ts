@@ -160,17 +160,12 @@ export class OKXTronWallet {
     // Set the default address for TronWeb
     this.tronWeb.setAddress(this.account);
 
-    // Load TRC20 contract
-    const contract = await this.tronWeb.contract().at(contractAddress);
-
-    // Build transfer transaction
-    const transaction = await contract.transfer(
-      to,
-      amount
-    ).build();
+    const functionSelector = 'transfer(address,uint256)';
+    const parameter = [{ type: 'address', value: to }, { type: 'uint256', value: amount }];
+    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(contractAddress, functionSelector, {}, parameter);
 
     // Sign and send transaction using the provided signAndSendTransaction method
-    const result = await this.signAndSendTransaction(transaction);
+    const result = await this.signAndSendTransaction(tx.transaction);
 
     return result;
   }
