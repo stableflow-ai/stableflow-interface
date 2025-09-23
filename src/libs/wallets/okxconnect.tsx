@@ -13,8 +13,8 @@ const OKXConnectProvider = (props: any) => {
   const initOKXUniversalProvider = async () => {
     const _okxUniversalProvider = await OKXUniversalProvider.init({
       dappMetaData: {
-        name: "application name",
-        icon: "application icon url"
+        name: "StableFlow.ai",
+        icon: "https://demo.stableflow.ai/logo.svg"
       },
     });
     setOKXUniversalProvider(_okxUniversalProvider);
