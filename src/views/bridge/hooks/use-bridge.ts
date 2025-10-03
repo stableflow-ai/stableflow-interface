@@ -16,7 +16,9 @@ import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { BridgeDefaultWallets } from "../config";
 
-export default function useBridge() {
+export default function useBridge(props?: any) {
+  const { liquidityError } = props ?? {};
+
   const wallets = useWalletsStore();
   const historyStore = useHistoryStore();
   const configStore = useConfigStore();
@@ -26,6 +28,7 @@ export default function useBridge() {
   const balancesStore = useBalancesStore();
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
+  const [liquidityErrorMssage, setLiquidityErrorMessage] = useState<boolean>();
 
   const [fromWalletAddress, toWalletAddress] = useMemo(() => {
     const _fromChainType: WalletType = walletStore.fromToken?.chainType;
@@ -63,6 +66,7 @@ export default function useBridge() {
 
     try {
       bridgeStore.set({ quoting: true });
+      setLiquidityErrorMessage(liquidityError);
 
       const _amount = Big(bridgeStore.amount)
         .times(10 ** walletStore.fromToken.decimals)
@@ -80,6 +84,7 @@ export default function useBridge() {
       });
 
       bridgeStore.set({ quoteData: quoteRes.data, quoting: false });
+      setLiquidityErrorMessage(false);
       return quoteRes.data;
     } catch (error: any) {
       bridgeStore.set({
@@ -96,6 +101,7 @@ export default function useBridge() {
               : "Failed to get quote, please try again later"
         }
       });
+      setLiquidityErrorMessage(false);
     }
   };
 
@@ -235,7 +241,9 @@ export default function useBridge() {
       if (bridgeStore.quoteData?.errMsg) {
         return bridgeStore.quoteData.errMsg;
       }
-
+      if (liquidityErrorMssage) {
+        return "Amount exceeds max";
+      }
       if (
         walletStore.fromToken.chainType === "evm" &&
         walletStore.fromToken.chainId !== walletStore.fromToken.chainId
@@ -279,7 +287,8 @@ export default function useBridge() {
     bridgeStore.quoteData,
     fromWalletAddress,
     toWalletAddress,
-    wallets.evm?.chainId
+    wallets.evm?.chainId,
+    liquidityErrorMssage
   ]);
 
   return {
