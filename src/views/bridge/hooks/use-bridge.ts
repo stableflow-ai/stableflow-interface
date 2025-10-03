@@ -87,8 +87,12 @@ export default function useBridge() {
         quoteData: {
           errMsg:
             error?.response?.data?.message &&
-            error?.response?.data?.message !== "Internal server error"
-              ? error?.response?.data?.message
+              error?.response?.data?.message !== "Internal server error"
+              ? (
+                error?.response?.data?.message === "Failed to get quote"
+                  ? "Amount exceeds max"
+                  : error?.response?.data?.message
+              )
               : "Failed to get quote, please try again later"
         }
       });
@@ -121,7 +125,8 @@ export default function useBridge() {
         fromAddress: wallet.account,
         toAddress: _quote.quoteRequest.recipient,
         time: Date.now(),
-        txHash: hash
+        txHash: hash,
+        timeEstimate: _quote.quote.timeEstimate,
       });
 
       historyStore.updateStatus(_quote.quote.depositAddress, "PENDING_DEPOSIT");
@@ -177,7 +182,7 @@ export default function useBridge() {
       try {
         const balance =
           balancesStore[
-            `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
+          `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
           ]?.[walletStore.fromToken.contractAddress] || 0;
 
         if (Big(value).gt(balance)) {
