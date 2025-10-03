@@ -7,9 +7,11 @@ import SupportedNetworks from "./components/supported-networks";
 import MainTitle from "@/components/main-title";
 import PendingTransfer from "./components/pending";
 import HistoryDrawer from "../history/drawer";
+import { useLiquidityQuote } from "@/stores/use-liquidity-quote";
 
 export default function Bridge() {
-  const { transfer, addressValidation, errorChain } = useBridge();
+  const liquidity = useLiquidityQuote();
+  const { transfer, addressValidation, errorChain } = useBridge(liquidity);
   return (
     <div className="w-full min-h-[100dvh] flex flex-col items-center">
       <div className="md:w-[488px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0">
