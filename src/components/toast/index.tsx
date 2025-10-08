@@ -5,7 +5,7 @@ export default function Toast({ type, title, text, closeToast }: any) {
   return (
     <div
       className={clsx(
-        "rounded-[12px] px-[12px] py-[8px] flex gap-[10px] w-[288px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)] items-center md:w-[288px] max-md:w-[calc(100vw-32px)]"
+        "px-[12px] py-[8px] flex gap-[10px] w-[288px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)] items-center md:w-[288px] max-md:w-[calc(100vw-32px)]"
       )}
     >
       {type === "success" && (
