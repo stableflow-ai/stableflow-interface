@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "swiper/css";
+@import "react-toastify/dist/ReactToastify.css";
 
 #root {
   width: 100%;
@@ -55,23 +56,28 @@ div::-webkit-scrollbar {
   height: 6px;
   /**/
 }
+
 body::-webkit-scrollbar-track,
 div::-webkit-scrollbar-track {
   background: transparent;
   border-radius: 6px;
 }
+
 body::-webkit-scrollbar-thumb,
 div::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.1);
   border-radius: 6px;
 }
+
 body::-webkit-scrollbar-thumb:hover,
 div::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
 }
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -93,4 +99,19 @@ div::-webkit-scrollbar-thumb:hover {
 
 .drawer-open {
   overflow: hidden;
+}
+
+:root {
+  --toastify-toast-right: 0px;
+  --toastify-toast-top: 50px;
+}
+
+.Toastify__toast-container--top-right .stableflow-toast-top-right.Toastify__toast {
+  padding: 0px 0px 0px 22px;
+}
+
+@media screen and (max-width: 768px) {
+  .Toastify__toast-container--top-right .stableflow-toast-top-right.Toastify__toast {
+    padding: 0px var(--toastify-toast-padding) 0px var(--toastify-toast-padding);
+  }
 }

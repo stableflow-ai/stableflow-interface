@@ -2,8 +2,8 @@ import axios, { type AxiosInstance } from "axios";
 
 export const BridgeFee = [
   {
-    recipient: "recipient.near",
-    fee: 0, // 100=1%
+    recipient: "reffer.near",
+    fee: 1, // 100=1% 1=0.01%
   },
 ];
 

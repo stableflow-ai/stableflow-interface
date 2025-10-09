@@ -3,6 +3,7 @@ import clsx from "clsx";
 import dayjs from "dayjs";
 import { useHistoryStore } from "@/stores/use-history";
 import { formatNumber } from "@/utils/format/number";
+import { useMemo } from "react";
 
 export default function Pending(props: any) {
   const { className, isTitle = true, contentClassName } = props;
@@ -36,6 +37,16 @@ export default function Pending(props: any) {
 }
 
 const PendingItem = ({ className, data }: any) => {
+  const duration = useMemo(() => {
+    if (data.timeEstimate <= 60) {
+      return `${data.timeEstimate} sec${data.timeEstimate > 1 ? "s" : ""}`;
+    }
+    if (data.timeEstimate <= 3600) {
+      return `${Math.floor(data.timeEstimate / 60)} min${data.timeEstimate / 60 > 1 ? "s" : ""}`;
+    }
+    return `${Math.floor(data.timeEstimate / 3600)} hour${data.timeEstimate / 3600 > 1 ? "s" : ""}`;
+  }, [data.timeEstimate]);
+
   return (
     <div className={clsx("w-full md:w-[300px] bg-[#EDF0F7] rounded-[12px]", className)}>
       <div className="rounded-[12px] bg-white border border-[#EDF0F7] p-[12px]">
@@ -53,6 +64,9 @@ const PendingItem = ({ className, data }: any) => {
               {data.fromToken.symbol}
             </span>
           </span>
+        </div>
+        <div className="mt-[10px] text-[12px] font-[400] text-[#999]">
+          Estimated ~{duration} due to settlement/queue.
         </div>
         <div className="mt-[10px] flex items-center justify-between">
           <ChainAndAddress data={data.fromToken} address={data.fromAddress} />
