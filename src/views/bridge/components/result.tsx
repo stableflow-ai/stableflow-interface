@@ -19,6 +19,9 @@ export default function Result() {
 
   const { run: calculateFees } = useDebounceFn(() => {
     const slippage = Big(configStore.slippage).toFixed(2) + "%";
+    const bridgeFee = BridgeFee.reduce((acc, item) => {
+      return acc.plus(Big(item.fee).div(100));
+    }, Big(0)).toFixed(2) + "%";
 
     if (
       !bridgeStore.amount
@@ -29,21 +32,23 @@ export default function Result() {
     ) {
       setFees({
         netFee: 0,
-        bridgeFee: 0,
+        bridgeFee,
+        bridgeFeeValue: 0,
         gasFee: 0,
         slippage,
       });
       return;
     }
     const netFee = Big(bridgeStore.amount).minus(bridgeStore.quoteData?.quote?.amountOutFormatted);
-    const bridgeFee = BridgeFee.reduce((acc, item) => {
+    const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
       return acc.plus(Big(bridgeStore.amount).times(Big(item.fee).div(10000)));
     }, Big(0));
 
-    const gasFee = Big(netFee).minus(bridgeFee);
+    const gasFee = Big(netFee).minus(bridgeFeeValue);
     setFees({
       netFee: netFee,
-      bridgeFee: bridgeFee,
+      bridgeFee,
+      bridgeFeeValue,
       gasFee,
       slippage,
     });
@@ -124,8 +129,12 @@ export default function Result() {
               <FeeItem label="Net fee" loading={bridgeStore.quoting}>
                 {fees?.netFee}
               </FeeItem>
-              <FeeItem label="Bridge fee" precision={2} loading={bridgeStore.quoting}>
-                {fees?.bridgeFee}
+              <FeeItem
+                label={`Bridge fee(${fees?.bridgeFee})`}
+                precision={2}
+                loading={bridgeStore.quoting}
+              >
+                {fees?.bridgeFeeValue}
               </FeeItem>
               <FeeItem label="Gas fee" precision={2} loading={bridgeStore.quoting}>
                 {fees?.gasFee}
