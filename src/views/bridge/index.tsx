@@ -18,7 +18,7 @@ export default function Bridge() {
         <MainTitle className="!hidden md:!flex" />
         <PendingTransfer className="block md:hidden" />
         <div className="text-[16px] text-center mb-[30px] w-full hidden md:block">
-          Stablecoins, any chain, one move.
+          Stablecoins to any chain, with one click.
         </div>
         <Assets />
         <Networks addressValidation={addressValidation} />
