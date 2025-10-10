@@ -85,11 +85,10 @@ export default function Result() {
       >
         <div className="text-[12px] text-[#70788A] shrink-0">Result</div>
         <div className="flex items-center justify-end flex-1">
-          <div className="flex items-center gap-[3px] pr-[10px]">
-            <span className="text-[12px] text-[#0E3616]/50">Powered by</span>
-            <img src={nearIntentsLogo} className="w-[53px] h-[14px]" />
+          <div className="flex items-center justify-center w-[69px] h-[20px] rounded-[6px] bg-[#EDF0F7] mr-[14px]">
+            <img src={nearIntentsLogo} className="w-[62px] h-[16px]" />
           </div>
-          <div className="px-[14px] items-center flex gap-[6px] border-l border-[#B3BBCE]">
+          <div className="px-[14px] items-center flex gap-[6px] border-l border-[#EBF0F8]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="14"
@@ -105,7 +104,7 @@ export default function Result() {
             </svg>
             <div className="text-[12px] text-[#444C59]">~{duration}</div>
           </div>
-          <div className="px-[14px] items-center flex gap-[6px] border-l border-[#B3BBCE]">
+          <div className="px-[14px] items-center flex gap-[6px] border-l border-[#EBF0F8]">
             {/* {walletStore.fromToken?.icon && (
               <img
                 className="w-[14px] h-[14px]"
