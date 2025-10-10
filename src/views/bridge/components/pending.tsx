@@ -10,8 +10,24 @@ import { Swiper, SwiperSlide } from "swiper/react";
 const PendingTransfer = (props: any) => {
   const { className } = props;
 
-  const { history, status, latestHistories, closeLatestHistory } = useHistoryStore();
+  const {
+    history,
+    status,
+    latestHistories,
+    closeLatestHistory,
+  } = useHistoryStore();
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (
+      !latestHistories
+      || !latestHistories.length
+      || ["PENDING_DEPOSIT", "PROCESSING"].includes(status[latestHistories[0]])
+    ) {
+      return;
+    }
+    closeLatestHistory();
+  }, []);
 
   if (!latestHistories || !latestHistories.length) return null;
 
@@ -82,7 +98,7 @@ const PendingItem = (props: any) => {
     };
     calcProgress();
 
-    timer = setInterval(calcProgress, 1000);
+    timer = setInterval(calcProgress, 2000);
 
     return () => {
       clearInterval(timer);
@@ -200,7 +216,7 @@ const PendingItem = (props: any) => {
             }}
             transition={{
               ease: "linear",
-              duration: 1,
+              duration: 2,
             }}
           />
         </div>
