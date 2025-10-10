@@ -16,10 +16,10 @@ export default function Bridge() {
     <div className="w-full min-h-[100dvh] flex flex-col items-center">
       <div className="md:w-[488px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0">
         <MainTitle className="!hidden md:!flex" />
-        <PendingTransfer className="block md:hidden" />
-        <div className="text-[16px] text-center mb-[30px] w-full hidden md:block">
+        <div className="text-[16px] text-center w-full hidden md:block">
           Stablecoins to any chain, with one click.
         </div>
+        <PendingTransfer className="block" />
         <Assets />
         <Networks addressValidation={addressValidation} />
         <Result />
