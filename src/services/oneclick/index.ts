@@ -3,7 +3,8 @@ import axios, { type AxiosInstance } from "axios";
 export const BridgeFee = [
   {
     recipient: "reffer.near",
-    fee: 1, // 100=1% 1=0.01%
+    // No bridge fee will be charged temporarily
+    fee: 0, // 100=1% 1=0.01%
   },
 ];
 

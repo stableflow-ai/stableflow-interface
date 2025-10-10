@@ -4,11 +4,14 @@ import nearIntentsLogo from "@/assets/near-intents-logo.png";
 import { formatNumber } from "@/utils/format/number";
 import { AnimatePresence, motion } from "framer-motion";
 import Big from "big.js";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BridgeFee } from "@/services/oneclick";
 import Loading from "@/components/loading/icon";
 import { useDebounceFn } from "ahooks";
 import { useConfigStore } from "@/stores/use-config";
+import clsx from "clsx";
+
+const LargeTransactionTip = "Large transactions can take a bit longer to process — usually no more than 3-5 minutes.";
 
 export default function Result() {
   const bridgeStore = useBridgeStore();
@@ -19,9 +22,10 @@ export default function Result() {
 
   const { run: calculateFees } = useDebounceFn(() => {
     const slippage = Big(configStore.slippage).toFixed(2) + "%";
-    const bridgeFee = BridgeFee.reduce((acc, item) => {
-      return acc.plus(Big(item.fee).div(100));
-    }, Big(0)).toFixed(2) + "%";
+    // No bridge fee will be charged temporarily
+    // const bridgeFee = BridgeFee.reduce((acc, item) => {
+    //   return acc.plus(Big(item.fee).div(100));
+    // }, Big(0)).toFixed(2) + "%";
 
     if (
       !bridgeStore.amount
@@ -32,7 +36,7 @@ export default function Result() {
     ) {
       setFees({
         netFee: 0,
-        bridgeFee,
+        bridgeFee: "0.01%",
         bridgeFeeValue: 0,
         gasFee: 0,
         slippage,
@@ -47,8 +51,8 @@ export default function Result() {
     const gasFee = Big(netFee).minus(bridgeFeeValue);
     setFees({
       netFee: netFee,
-      bridgeFee,
-      bridgeFeeValue,
+      bridgeFee: "0.01%",
+      bridgeFeeValue: Big(bridgeStore.amount).times(Big(1).div(10000)),
       gasFee,
       slippage,
     });
@@ -57,6 +61,19 @@ export default function Result() {
   useEffect(() => {
     calculateFees();
   }, [bridgeStore, configStore.slippage]);
+
+  const duration = useMemo(() => {
+    if (!bridgeStore.quoteData?.quote?.timeEstimate) {
+      return "-";
+    }
+    if (Big(bridgeStore.quoteData.quote.timeEstimate).lte(60)) {
+      return `${bridgeStore.quoteData?.quote?.timeEstimate} s`;
+    }
+    if (Big(bridgeStore.quoteData.quote.timeEstimate).lte(3600)) {
+      return `${Big(bridgeStore.quoteData.quote.timeEstimate).div(60).toFixed(2)} min`;
+    }
+    return `${Big(bridgeStore.quoteData.quote.timeEstimate).div(3600).toFixed(2)} hour`;
+  }, [bridgeStore.quoteData]);
 
   return (
     <>
@@ -86,7 +103,7 @@ export default function Result() {
                 fill="#B3BBCE"
               />
             </svg>
-            <div className="text-[12px] text-[#444C59]">~{bridgeStore.quoteData?.quote?.timeEstimate || "-"}s</div>
+            <div className="text-[12px] text-[#444C59]">~{duration}</div>
           </div>
           <div className="px-[14px] items-center flex gap-[6px] border-l border-[#B3BBCE]">
             {/* {walletStore.fromToken?.icon && (
@@ -121,6 +138,7 @@ export default function Result() {
         {
           bridgeStore.showFee && (
             <motion.div
+              key="fee-detail"
               className="w-full flex flex-col items-stretch gap-[8px] px-[10px] overflow-hidden"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
@@ -130,18 +148,36 @@ export default function Result() {
                 {fees?.netFee}
               </FeeItem>
               <FeeItem
-                label={`Bridge fee(${fees?.bridgeFee})`}
+                label={(
+                  <>
+                    Bridge fee<span className="line-through [text-decoration-color:#F00]">({fees?.bridgeFee})</span>
+                  </>
+                )}
                 precision={2}
                 loading={bridgeStore.quoting}
+                isDelete
               >
                 {fees?.bridgeFeeValue}
               </FeeItem>
               <FeeItem label="Gas fee" precision={2} loading={bridgeStore.quoting}>
                 {fees?.gasFee}
               </FeeItem>
-              <FeeItem label="Swap Slippage" precision={2} loading={bridgeStore.quoting} isFormat={false}>
+              {/* <FeeItem label="Swap Slippage" precision={2} loading={bridgeStore.quoting} isFormat={false}>
                 {fees?.slippage}
-              </FeeItem>
+              </FeeItem> */}
+            </motion.div>
+          )
+        }
+        {
+          Big(bridgeStore.amount || 0).gte(100000) && (
+            <motion.div
+              key="duration"
+              className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+            >
+              {LargeTransactionTip}
             </motion.div>
           )
         }
@@ -151,12 +187,12 @@ export default function Result() {
 }
 
 const FeeItem = (props: any) => {
-  const { label, children, precision = 2, loading, isFormat = true } = props;
+  const { label, children, precision = 2, loading, isFormat = true, isDelete } = props;
 
   return (
     <div className="w-full flex items-center justify-between gap-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]">
       <div className="">{label}</div>
-      <div className="text-black">
+      <div className={clsx("text-black", isDelete && "line-through [text-decoration-color:#F00]")}>
         {
           loading ? (
             <Loading size={10} />
