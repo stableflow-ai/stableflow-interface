@@ -83,6 +83,17 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
           alt="sol"
           className="w-[26px] h-[26px]"
         />
+        <button
+          className="text-[14px] font-[500] underline button"
+          onClick={() => {
+            window.open(
+              `${data.fromToken.blockExplorerUrl}/${data.txHash}`,
+              "_blank"
+            );
+          }}
+        >
+          Tx
+        </button>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="5"
@@ -103,6 +114,21 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
           className="w-[26px] h-[26px]"
         />
         {
+          !!data.toChainTxHash && (
+            <button
+              className="text-[14px] font-[500] underline button"
+              onClick={() => {
+                window.open(
+                  `${data.toToken.blockExplorerUrl}/${data.toChainTxHash}`,
+                  "_blank"
+                );
+              }}
+            >
+              Tx
+            </button>
+          )
+        }
+        {
           isMobile ? (
             <div className="flex flex-col items-end gap-[0px] leading-[100%]">
               <div className="text-[10px] font-[500] text-[#444C59]">
@@ -117,17 +143,6 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
                 >
                   {isSuccess ? "Success" : "Failed"}
                 </div>
-                <button
-                  className="text-[14px] font-[500] underline button"
-                  onClick={() => {
-                    window.open(
-                      `${data.fromToken.blockExplorerUrl}/${data.txHash}`,
-                      "_blank"
-                    );
-                  }}
-                >
-                  Tx
-                </button>
               </div>
             </div>
           ) : (
@@ -135,20 +150,9 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
               <div className="text-[14px] font-[500]">
                 {dayjs(data.time).format("MMM D, YYYY h:mm A")}
               </div>
-              <button
-                className="text-[14px] font-[500] underline ml-[10px] button"
-                onClick={() => {
-                  window.open(
-                    `${data.fromToken.blockExplorerUrl}/${data.txHash}`,
-                    "_blank"
-                  );
-                }}
-              >
-                Tx
-              </button>
               <div
                 className={clsx(
-                  "text-[14px] font-[500px] ml-[20px] w-[60px]",
+                  "text-[14px] font-[500px] w-[60px]",
                   isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
                 )}
               >

@@ -14,6 +14,9 @@ export default function useUpdateTxns() {
         depositAddress: address
       });
       historyStore.updateStatus(address, result.data.status);
+      historyStore.updateHistory(address, {
+        toChainTxHash: result.data.swapDetails?.destinationChainTxHashes?.[0]?.hash,
+      });
     }
 
     window.updateTxnTimer = setTimeout(() => {

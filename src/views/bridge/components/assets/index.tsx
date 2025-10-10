@@ -9,7 +9,7 @@ export default function Assets() {
   const walletStore = useWalletStore();
 
   return (
-    <div className="w-full px-[10px] md:px-0">
+    <div className="w-full px-[10px] md:px-0 md:mt-[20px]">
       <div className="flex items-center justify-between">
         <span className="text-[16px] font-[500] text-[#0E3616]">
           Bridge Asset
