@@ -6,7 +6,7 @@ import {
 } from "@/utils/address-validation";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import Big from "big.js";
-import { useDebounceFn } from "ahooks";
+import { useDebounceFn, useRequest } from "ahooks";
 import { useHistoryStore } from "@/stores/use-history";
 import { useConfigStore } from "@/stores/use-config";
 import useWalletStore from "@/stores/use-wallet";
@@ -15,6 +15,7 @@ import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { BridgeDefaultWallets } from "../config";
+import axios from "axios";
 
 export default function useBridge(props?: any) {
   const { liquidityError } = props ?? {};
@@ -105,6 +106,16 @@ export default function useBridge(props?: any) {
     }
   };
 
+  const { runAsync: report } = useRequest(async (params: any) => {
+    try {
+      await axios.post("https://api.db3.app/api/stableflow/trade", params);
+    } catch (error) {
+      console.log("report failed: %o", error);
+    }
+  }, {
+    manual: true,
+  });
+
   const transfer = async () => {
     if (!walletStore.fromToken) return;
     try {
@@ -133,6 +144,11 @@ export default function useBridge(props?: any) {
         time: Date.now(),
         txHash: hash,
         timeEstimate: _quote.quote.timeEstimate,
+      });
+      report({
+        address: wallet.account,
+        receive_address: _quote.quoteRequest.recipient,
+        deposit_address: _quote.quote.depositAddress,
       });
 
       historyStore.updateStatus(_quote.quote.depositAddress, "PENDING_DEPOSIT");
