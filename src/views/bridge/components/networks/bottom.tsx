@@ -21,7 +21,7 @@ export default function Bottom({ token }: { token: any }) {
   const balancesStore = useBalancesStore();
 
   const mergedBalance =
-    balancesStore[`${token.chainType}Balances` as keyof BalancesState]?.[
+    balancesStore[`${token?.chainType}Balances` as keyof BalancesState]?.[
       token?.contractAddress
     ];
 
