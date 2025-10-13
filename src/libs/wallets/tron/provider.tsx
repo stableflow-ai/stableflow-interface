@@ -150,8 +150,6 @@ const MobileWallet = () => {
 
     // @ts-ignore
     const account = provider.getAccount()?.address || null;
-    console.log("tron provider: %o", provider);
-    console.log("tron account: %o", account);
     const tronWallet = new OKXTronWallet({
       account: account,
       signTransaction: (transaction: any) => {
