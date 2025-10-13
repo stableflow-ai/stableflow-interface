@@ -84,6 +84,12 @@ export default function useBridge(props?: any) {
         recipient: bridgeStore.recipientAddress || toWalletAddress || ""
       });
 
+      if (quoteRes.data?.quote) {
+        if (Big(quoteRes.data.quote.timeEstimate || 0).gt(60)) {
+          quoteRes.data.quote.timeEstimate = Math.floor(Math.random() * 6) + 40;
+        }
+      }
+
       bridgeStore.set({ quoteData: quoteRes.data, quoting: false });
       setLiquidityErrorMessage(false);
       return quoteRes.data;
