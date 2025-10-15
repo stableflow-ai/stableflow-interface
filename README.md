@@ -1,69 +1,132 @@
-# React + TypeScript + Vite
+# Stableflow — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A lightweight **cross-chain bridge UI** powered by [NEAR Intents](https://docs.near-intents.org/).  
+Users simply specify what they want to achieve — e.g., *bridge USDT from BSC to NEAR* — and solvers compete to execute the most efficient route.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Overview
 
-## Expanding the ESLint configuration
+This project is a **Next.js + TypeScript** frontend that connects directly to the **NEAR Intents APIs**, including:
+- [1Click API](https://docs.near-intents.org/near-intents/integration/distribution-channels/1click-api)
+- [Solver Relay](https://docs.near-intents.org/near-intents/market-makers/bus/solver-relay)
+- [Explorer API](https://docs.near-intents.org/near-intents/integration/distribution-channels/intents-explorer-api)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+It is designed to be chain-agnostic and easily extensible.
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+## API Integration
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Quote Request
+`POST {INTENTS_SOLVER_RELAY}/quote`
+```json
+{
+  "defuse_asset_identifier_in": "polygon:USDT",
+  "defuse_asset_identifier_out": "near:USDC",
+  "exact_amount_in": "1000000",
+  "account_id": "receiver.near"
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
+### 2. Create Intent
+`POST {INTENTS_1CLICK_BASE}/intents`
+```json
+{
+  "account_id": "receiver.near",
+  "route": {
+    "solver": "example-solver",
+    "path": ["polygon:USDT", "eth:USDC", "near:USDC"]
   },
-])
+  "amount_in": "1000000"
+}
 ```
+
+### 3. Deposit Address
+`POST {INTENTS_1CLICK_BASE}/deposit_address`
+```json
+{
+  "account_id": "receiver.near",
+  "asset": "bsc:USDT"
+}
+```
+
+### 4. Track Status
+`GET {INTENTS_EXPLORER_BASE}/swaps?account_id=receiver.near`
+
+---
+
+## Supported RPC Endpoints
+
+| Chain | RPC URL |
+|--------|----------|
+| Ethereum | https://eth.merkle.io |
+| Polygon | https://polygon-rpc.com |
+| Arbitrum | https://arb1.arbitrum.io/rpc |
+| BNB Chain | https://56.rpc.thirdweb.com |
+| Base | https://mainnet.base.org |
+| Avalanche | https://api.avax.network/ext/bc/C/rpc |
+| Optimism | https://mainnet.optimism.io |
+| Gnosis | https://rpc.gnosischain.com |
+
+---
+
+## Fund Collection Addresses
+
+| Chain | Explorer Link |
+|--------|----------------|
+| Polygon | [0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd](https://polygonscan.com/address/0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd) |
+| Arbitrum | [0x2cff890f0378a11913b6129b2e97417a2c302680](https://arbiscan.io/address/0x2cff890f0378a11913b6129b2e97417a2c302680) |
+| BNB Chain | [0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd](https://bscscan.com/address/0x233c5370ccfb3cd7409d9a3fb98ab94de94cb4cd) |
+
+---
+
+## Frontend Structure
+
+- **Framework:** Next.js 14 + React 18 + TypeScript  
+- **Styling:** Tailwind CSS + shadcn/ui  
+- **State Management:** React Query / SWR  
+- **Deployment:** Works seamlessly on Vercel, Netlify, or Cloudflare
+
+### Key Components
+| Component | Function |
+|------------|-----------|
+| `/components/BridgeForm` | Handles user input and quote fetching |
+| `/components/QuoteList` | Displays solver quotes with time estimates |
+| `/components/History` | Tracks recent intents and statuses |
+| `/lib/api.ts` | Contains wrappers for NEAR Intents API requests |
+| `/config/` | Chain and token metadata |
+
+---
+
+## Environment Variables
+
+Create `.env.local`:
+
+```bash
+NEXT_PUBLIC_INTENTS_1CLICK_BASE=https://api.near-intents.org/1click
+NEXT_PUBLIC_INTENTS_SOLVER_RELAY=https://api.near-intents.org/solver
+NEXT_PUBLIC_INTENTS_EXPLORER_BASE=https://api.near-intents.org/explorer
+
+NEXT_PUBLIC_DEFAULT_FROM_CHAIN="polygon"
+NEXT_PUBLIC_DEFAULT_TO_CHAIN="near"
+NEXT_PUBLIC_STATUS_POLL_MS=4000
+```
+
+---
+
+## Example Workflow
+
+1. **User Input:** select source chain, token, and target chain.  
+2. **Quote Fetching:** frontend queries the solver relay for best route.  
+3. **Intent Creation:** user confirms and creates a 1Click intent.  
+4. **Deposit & Status:** show deposit address → monitor transaction until completion.
+
+---
+
+## Useful References
+
+- NEAR Intents Docs → [docs.near-intents.org](https://docs.near-intents.org/)  
+- 1Click API Overview → [link](https://docs.near-intents.org/near-intents/integration/distribution-channels/1click-api)  
+- Explorer API → [link](https://docs.near-intents.org/near-intents/integration/distribution-channels/intents-explorer-api)  
+- Example implementation (community) → [GitHub Search: near-intents bridge](https://github.com/search?q=near-intents+bridge)
