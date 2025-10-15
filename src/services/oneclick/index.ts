@@ -42,6 +42,7 @@ class OneClickService {
       deadline: new Date(Date.now() + this.offsetTime).toISOString(),
       quoteWaitingTimeMs: 3000,
       appFees: BridgeFee,
+      referral: "stableflow",
       ...params
     });
   }
