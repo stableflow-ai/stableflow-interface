@@ -32,7 +32,7 @@ export default function Result() {
       || !bridgeStore.quoteData?.quote?.amountOutFormatted
       || Big(bridgeStore.amount).lte(0)
       || Big(bridgeStore.quoteData?.quote?.amountOutFormatted).lte(0)
-      || bridgeStore.quoting
+      // || bridgeStore.quoting
     ) {
       setFees({
         netFee: 0,

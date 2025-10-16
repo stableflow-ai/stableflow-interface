@@ -109,6 +109,22 @@ export default class TronWallet {
   async balanceOf(token: string, account: string) {
     return await this.getBalance(token, account);
   }
+
+  async checkTransactionStatus(txHash: string) {
+    await this.waitForTronWeb();
+
+    try {
+      const txInfo = await this.tronWeb.trx.getTransactionInfo(txHash);
+
+      if (txInfo && txInfo.receipt) {
+        return txInfo.receipt.result === "SUCCESS";
+      }
+
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
 }
 
 export class OKXTronWallet {
@@ -205,5 +221,19 @@ export class OKXTronWallet {
 
   async balanceOf(token: string, account: string) {
     return await this.getBalance(token, account);
+  }
+
+  async checkTransactionStatus(txHash: string) {
+    try {
+      const txInfo = await this.tronWeb.trx.getTransactionInfo(txHash);
+
+      if (txInfo && txInfo.receipt) {
+        return txInfo.receipt.result === "SUCCESS";
+      }
+
+      return false;
+    } catch (error) {
+      return false;
+    }
   }
 }
