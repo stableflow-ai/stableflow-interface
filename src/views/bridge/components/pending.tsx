@@ -52,7 +52,7 @@ const PendingTransfer = (props: any) => {
         }}
       >
         {
-          latestHistories.slice(0, 1).map((pending, index) => (
+          latestHistories.slice(0, 1).map((pending, index) => !!history[pending] ? (
             <SwiperSlide key={index} style={{ width: "100%" }}>
               <PendingItem
                 className=""
@@ -63,7 +63,7 @@ const PendingTransfer = (props: any) => {
                 isLastSlide={index === latestHistories.length - 1}
               />
             </SwiperSlide>
-          ))
+          ) : null)
         }
       </Swiper>
     </div>
@@ -76,6 +76,7 @@ const PendingItem = (props: any) => {
   const { className, data, status, close } = props;
 
   const isPending = ["PENDING_DEPOSIT", "PROCESSING"].includes(status);
+  const isSuccess = ["SUCCESS"].includes(status);
   const MaxPendingProgress = 90;
   const [progress, setProgress] = useState(0);
 
@@ -187,9 +188,14 @@ const PendingItem = (props: any) => {
             </div>
           </div>
         </div>
-        <div className={clsx("text-[14px] font-[400] leading-[100%] flex items-center gap-[5px] justify-end", isPending ? "text-[#6284F5]" : "text-[#2EA97C]")}>
+        <div
+          className={clsx(
+            "text-[14px] font-[400] leading-[100%] flex items-center gap-[5px] justify-end",
+            isPending ? "text-[#6284F5]" : (isSuccess ? "text-[#2EA97C]" : "text-[#FF6A19]")
+          )}
+        >
           {
-            !isPending && (
+            (!isPending && isSuccess) && (
               <svg
                 className="w-[14px] h-[10px] shrink-0"
                 width="14"
@@ -203,14 +209,17 @@ const PendingItem = (props: any) => {
             )
           }
           <div className="">
-            {isPending ? "Pending" : "Complete"}
+            {isPending ? "Pending" : (isSuccess ? "Complete" : "Failed")}
           </div>
         </div>
       </div>
       <div className="w-full h-[3px] absolute bottom-[1px] left-0 px-[12px]">
         <div className="w-full h-full overflow-hidden rounded-[2px]">
           <motion.div
-            className="w-full h-full bg-[#56DEAD] rounded-[2px] ml-[-100%]"
+            className={clsx(
+              "w-full h-full rounded-[2px] ml-[-100%]",
+              (isSuccess || isPending) ? "bg-[#2EA97C]" : "bg-[#FF6A19]"
+            )}
             animate={{
               x: `${progress}%`,
             }}

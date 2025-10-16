@@ -16,6 +16,7 @@ import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { BridgeDefaultWallets } from "../config";
 import axios from "axios";
+import { formatNumber } from "@/utils/format/number";
 
 export default function useBridge(props?: any) {
   const { liquidityError } = props ?? {};
@@ -94,18 +95,32 @@ export default function useBridge(props?: any) {
       setLiquidityErrorMessage(false);
       return quoteRes.data;
     } catch (error: any) {
+      const getQuoteErrorMessage = () => {
+        if (
+          error?.response?.data?.message &&
+          error?.response?.data?.message !== "Internal server error"
+        ) {
+          // quote failed, maybe out of liquidity
+          if (error?.response?.data?.message === "Failed to get quote") {
+            return "Amount exceeds max";
+          }
+          // Amount is too low for bridge
+          if (error?.response?.data?.message?.includes("Amount is too low for bridge, try at least")) {
+            const match = error.response.data.message.match(/try at least\s+(\d+(?:\.\d+)?)/i);
+            let minimumAmount = match ? match[1] : Big(1).times(10 ** walletStore.fromToken.decimals).toFixed(0);
+            minimumAmount = Big(minimumAmount).div(10 ** walletStore.fromToken.decimals);
+            return `Amount is too low, at least ${formatNumber(minimumAmount, walletStore.fromToken.decimals, true)}`;
+          }
+          return error?.response?.data?.message;
+        }
+        // Unknown error
+        return "Failed to get quote, please try again later";
+      };
+
       bridgeStore.set({
         quoting: false,
         quoteData: {
-          errMsg:
-            error?.response?.data?.message &&
-              error?.response?.data?.message !== "Internal server error"
-              ? (
-                error?.response?.data?.message === "Failed to get quote"
-                  ? "Amount exceeds max"
-                  : error?.response?.data?.message
-              )
-              : "Failed to get quote, please try again later"
+          errMsg: getQuoteErrorMessage(),
         }
       });
       setLiquidityErrorMessage(false);

@@ -13,7 +13,16 @@ export default function useUpdateTxns() {
       const result = await oneClickService.getStatus({
         depositAddress: address
       });
-      historyStore.updateStatus(address, result.data.status);
+      let status = result.data.status;
+      if (status === "PENDING_DEPOSIT") {
+        if (result.data.quoteResponse?.quote?.deadline) {
+          const isTimeout = Date.now() > new Date(result.data.quoteResponse?.quote?.deadline).getTime();
+          if (isTimeout) {
+            status = "FAILED";
+          }
+        }
+      }
+      historyStore.updateStatus(address, status);
       historyStore.updateHistory(address, {
         toChainTxHash: result.data.swapDetails?.destinationChainTxHashes?.[0]?.hash,
       });
@@ -24,6 +33,7 @@ export default function useUpdateTxns() {
     }, 5000);
   };
   useEffect(() => {
+    historyStore.updateStatus("87CA8xAjKNmMkrj2irCtCALMtf4v7FrbSiK96rQjj3sB", "FAILED");
     updateTxns();
 
     // const sumbit = async () => {
