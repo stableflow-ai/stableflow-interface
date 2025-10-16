@@ -33,7 +33,6 @@ export default function useUpdateTxns() {
     }, 5000);
   };
   useEffect(() => {
-    historyStore.updateStatus("87CA8xAjKNmMkrj2irCtCALMtf4v7FrbSiK96rQjj3sB", "FAILED");
     updateTxns();
 
     // const sumbit = async () => {
