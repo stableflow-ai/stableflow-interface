@@ -13,7 +13,16 @@ export default function useUpdateTxns() {
       const result = await oneClickService.getStatus({
         depositAddress: address
       });
-      historyStore.updateStatus(address, result.data.status);
+      let status = result.data.status;
+      if (status === "PENDING_DEPOSIT") {
+        if (result.data.quoteResponse?.quote?.deadline) {
+          const isTimeout = Date.now() > new Date(result.data.quoteResponse?.quote?.deadline).getTime();
+          if (isTimeout) {
+            status = "FAILED";
+          }
+        }
+      }
+      historyStore.updateStatus(address, status);
       historyStore.updateHistory(address, {
         toChainTxHash: result.data.swapDetails?.destinationChainTxHashes?.[0]?.hash,
       });

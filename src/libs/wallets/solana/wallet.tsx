@@ -174,4 +174,42 @@ export default class SolanaWallet {
   async balanceOf(token: string, account: string) {
     return await this.getBalance(token, account);
   }
+
+  async checkTransactionStatus(signature: string) {
+    const maxAttempts = 30;
+    const interval = 4000;
+    let timer: any;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const tx = await this.connection.getTransaction(signature, {
+          commitment: "finalized",
+          encoding: "json",
+          maxSupportedTransactionVersion: 0,
+        });
+
+        if (tx) {
+          if (tx.meta.err === null) {
+            return true;
+          } else {
+            return false;
+          }
+        } else {
+          console.log(`polling attempt ${attempt}/${maxAttempts}: transaction not confirmed...`);
+        }
+      } catch (error: any) {
+        console.log("checkTransactionStatus failed:", error.message);
+      }
+
+      await new Promise((resolve) => {
+        timer = setTimeout(() => {
+          clearTimeout(timer);
+          resolve(true);
+        }, interval);
+      });
+    }
+
+    console.log("checkTransactionStatus failed: timeout");
+    return false;
+  }
 }

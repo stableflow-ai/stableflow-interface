@@ -30,14 +30,14 @@ export default function CompleteTransfers(props: any) {
     <div className={clsx("mt-[12px] rounded-[12px] px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]", className)}>
       <div className="text-[16px] font-[500] text-[#444C59]">History transfers</div>
       <div className={clsx("mt-[14px] w-full overflow-x-auto", contentClassName)}>
-        {historyStore.completeStatus.slice((page - 1) * pageSize, page * pageSize).map((item) => (
+        {historyStore.completeStatus.slice((page - 1) * pageSize, page * pageSize).map((item) => !!historyStore.history[item] ? (
           <CompleteTransferItem
             key={item}
             data={historyStore.history[item]}
             status={historyStore.status[item]}
             isMobile={isMobile}
           />
-        ))}
+        ) : null)}
       </div>
       {historyStore.completeStatus.length === 0 && (
         <div className="text-[14px] font-[300] h-[200px] flex items-center justify-center opacity-50 text-center">

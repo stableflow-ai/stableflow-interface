@@ -110,4 +110,34 @@ export default class NearWallet {
   async balanceOf(token: string, account: string) {
     return await this.getBalance(token, account);
   }
+
+  async checkTransactionStatus(txHash: string) {
+    const wallet = await this.selector.wallet();
+    const accounts = await wallet.getAccounts();
+    const accountId = accounts[0]?.accountId;
+
+    try {
+      const response = await fetch(this.rpcUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "dontcare",
+          method: "EXPERIMENTAL_tx_status",
+          params: {
+            tx_hash: txHash,
+            sender_account_id: accountId,
+            wait_until: "EXECUTED" // wait_until: "NONE" | "EXECUTED_OPTIMISTIC" | "EXECUTED"
+          }
+        })
+      });
+      const txStatus = await response.json();
+      console.log("fetch rpc success: %o", txStatus);
+      console.log("fetch rpc status success: %o", typeof txStatus.result?.status?.SuccessValue !== "undefined");
+    } catch (error) {
+      console.log("fetch rpc failed: %o", error);
+    }
+  }
 }
