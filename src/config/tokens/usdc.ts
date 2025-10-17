@@ -65,12 +65,14 @@ export const usdcChains = {
 
 export const usdcSol = {
   ...usdc,
-  ...usdcChains.sol
+  ...usdcChains.sol,
+  chains: [usdcChains.sol],
 };
 
 export const usdcNear = {
   ...usdc,
-  ...usdcChains.near
+  ...usdcChains.near,
+  chains: [usdcChains.near],
 };
 
 export const usdcEvm = {

@@ -57,12 +57,14 @@ export const usdtChains = {
 
 export const usdtSol = {
   ...usdt,
-  ...usdtChains.sol
+  ...usdtChains.sol,
+  chains: [usdtChains.sol],
 };
 
 export const usdtNear = {
   ...usdt,
-  ...usdtChains.near
+  ...usdtChains.near,
+  chains: [usdtChains.near],
 };
 
 export const usdtEvm = {
@@ -72,5 +74,6 @@ export const usdtEvm = {
 
 export const usdtTron = {
   ...usdt,
-  ...usdtChains.tron
+  ...usdtChains.tron,
+  chains: [usdtChains.tron],
 };
