@@ -27,7 +27,6 @@ export default function Chart({ data, loading, timePeriod, selectedPeriod, onPer
     const maxVolume = Math.max(...volumes);
     const maxTransactions = Math.max(...transactions);
 
-    // 使用绝对高度计算，基于实际数值
     return data.map((item, index) => ({
       ...item,
       volumePercent: maxVolume > 0 
@@ -205,7 +204,7 @@ export default function Chart({ data, loading, timePeriod, selectedPeriod, onPer
             </div>
             
             {/* Grid lines */}
-            <div className="absolute left-[60px] top-0 w-full h-full">
+            <div className="absolute left-[60px] top-0 w-[calc(100%_-_60px)] h-full">
               <div className="absolute top-0 left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
               <div className="absolute top-[25%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
               <div className="absolute top-[50%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
@@ -258,7 +257,7 @@ export default function Chart({ data, loading, timePeriod, selectedPeriod, onPer
             </div>
             
             {/* Grid lines */}
-            <div className="absolute left-[60px] top-0 w-full h-full">
+            <div className="absolute left-[60px] top-0 w-[calc(100%_-_60px)] h-full">
               <div className="absolute top-0 left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
               <div className="absolute top-[25%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
               <div className="absolute top-[50%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>

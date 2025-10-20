@@ -68,7 +68,6 @@ export default function useOverviewData(
     }
   };
 
-  // 只在token变化时获取概览数据
   useEffect(() => {
     const fetchDashboard = async () => {
       setLoading(true);
@@ -84,7 +83,6 @@ export default function useOverviewData(
     fetchDashboard();
   }, [selectedToken]);
 
-  // 在token或时间周期变化时获取图表数据
   useEffect(() => {
     fetchChartData(selectedToken, timePeriod);
   }, [selectedToken, timePeriod]);
