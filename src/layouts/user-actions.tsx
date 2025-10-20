@@ -19,6 +19,10 @@ export default function UserActions() {
     return pathname.pathname === "/history";
   }, [pathname]);
 
+  const isOverview = useMemo(() => {
+    return pathname.pathname === "/overview";
+  }, [pathname]);
+
   return (
     <div className="w-full absolute z-[9] pl-[6px] md:pl-0 pr-[10px] top-[14px] flex justify-between items-center gap-[10px]">
       <div className="shrink-0">
@@ -39,7 +43,7 @@ export default function UserActions() {
           </button>
         ) : (
           <div className="flex items-center gap-[14px]">
-            {!isHistory && (
+            {!isHistory && !isOverview && (
               <HistoryButton
                 onClick={() => {
                   if (isMobile) {
@@ -47,6 +51,13 @@ export default function UserActions() {
                     return;
                   }
                   navigate("/history");
+                }}
+              />
+            )}
+            {!isHistory && !isOverview && (
+              <OverviewButton
+                onClick={() => {
+                  navigate("/overview");
                 }}
               />
             )}
@@ -104,6 +115,54 @@ const HistoryButton = ({ onClick }: any) => {
             <span className="text-[#444C59]">History</span>
           </>
         )}
+      </button>
+    </>
+  );
+};
+
+const OverviewButton = ({ onClick }: any) => {
+  return (
+    <>
+      <button
+        onClick={onClick}
+        className="flex md:hidden button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-[#444C59]"
+        >
+          <path d="M3 3v18h18"/>
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+        </svg>
+      </button>
+      <button
+        onClick={onClick}
+        className="hidden md:flex button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-[#444C59]"
+        >
+          <path d="M3 3v18h18"/>
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+        </svg>
+        <span className="text-[#444C59]">Overview</span>
       </button>
     </>
   );
