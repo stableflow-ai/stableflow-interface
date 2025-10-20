@@ -4,6 +4,7 @@ import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
 import type { SankeyNode, SankeyLink } from 'd3-sankey';
 import { usdtChains } from '@/config/tokens/usdt';
 import MultiSelect from '@/components/multi-select';
+import Loading from '@/components/loading/icon';
 import Big from 'big.js';
 import { formatNumber } from '@/utils/format/number';
 
@@ -203,14 +204,6 @@ const Sankey = (props: any) => {
 
     console.log("links: %o", links);
 
-    // Calculate link width scale
-    const allValues = links.map(d => d.value);
-    const minValue = Math.min(...allValues);
-    const maxValue = Math.max(...allValues);
-    const widthScale = d3.scaleLinear()
-      .domain([minValue, maxValue])
-      .range([3, 12]); // Min width 1px, max width 12px
-
     // Draw links
     const link = svg.append("g")
       .selectAll("path")
@@ -224,8 +217,8 @@ const Sankey = (props: any) => {
       })
       .attr("stroke-opacity", 0.6)
       .attr("stroke-width", (d: any) => {
-        // Use scale to calculate width, ensuring width reflects value
-        return Math.max(1, widthScale(d.value));
+        // Use sankey-computed width; enforce minimum 2px for better hit area
+        return Math.max(2, d.width || 2);
       });
 
     // Draw nodes
@@ -235,13 +228,18 @@ const Sankey = (props: any) => {
       .join("rect")
       .attr("x", (d: any) => d.x0!)
       .attr("y", (d: any) => d.y0!)
-      .attr("height", (d: any) => d.y1! - d.y0!)
+      .attr("height", (d: any) => {
+        const nodeHeight = (d.y1! - d.y0!);
+        return Math.max(3, nodeHeight); // minimum visible height
+      })
       .attr("width", (d: any) => d.x1! - d.x0!)
       .attr("fill", (d: any) => `url(#gradient-${d.id})`)
-      .attr("stroke", (d: any) => d.color)
-      .attr("stroke-width", 1)
-      .attr("rx", 4)
-      .attr("ry", 4);
+      .attr("stroke", "none")
+      .attr("stroke-width", 0)
+      .attr("rx", 0)
+      .attr("ry", 0);
+    // Smoothen hover visual transition
+    d3.select(svgRef.current).selectAll('rect').style('transition', 'fill 150ms ease, opacity 150ms ease');
 
     // Add node labels
     svg.append("g")
@@ -268,9 +266,14 @@ const Sankey = (props: any) => {
     // Add hover effects
     node
       .on("mouseover", function (event, d: any) {
+        // Keep node without stroke on hover and darken fill clearly
+        const darker = d3.color(d.color);
+        const darkerHex = darker ? (darker.darker(1).formatHex ? darker.darker(1).formatHex() : `${d.color}`) : `${d.color}`;
         d3.select(this)
-          .attr("stroke", "#2B3337")
-          .attr("stroke-width", 2);
+          .attr("stroke", "none")
+          .attr("stroke-width", 0)
+          .attr("fill", darkerHex)
+          .style("opacity", 1);
 
         // Highlight related connections
         link
@@ -347,9 +350,12 @@ const Sankey = (props: any) => {
           .style("top", (event.pageY - 10) + "px");
       })
       .on("mouseout", function (_, d: any) {
+        // Ensure node remains without stroke after hover and restore gradient fill
         d3.select(this)
-          .attr("stroke", d.color)
-          .attr("stroke-width", 1);
+          .attr("stroke", "none")
+          .attr("stroke-width", 0)
+          .attr("fill", `url(#gradient-${d.id})`)
+          .style("opacity", 1);
 
         // Restore all connections
         link.attr("stroke-opacity", 0.6);
@@ -362,7 +368,7 @@ const Sankey = (props: any) => {
       .on("mouseover", function (event, d: any) {
         // Highlight link
         d3.select(this)
-          .attr("stroke-width", widthScale(d.value) + 2)
+          .attr("stroke-width", Math.max(2, (d.width || 2)) + 2)
           .attr("stroke-opacity", 1);
 
         // Get source and target node information
@@ -397,7 +403,7 @@ const Sankey = (props: any) => {
       .on("mouseout", function (_, d: any) {
         // Restore link style
         d3.select(this)
-          .attr("stroke-width", widthScale(d.value))
+          .attr("stroke-width", Math.max(2, d.width || 2))
           .attr("stroke-opacity", 0.6);
 
         // Hide tooltip
@@ -412,6 +418,50 @@ const Sankey = (props: any) => {
     name: chain.chainName,
     color: chain.primaryColor
   }));
+
+  // Loading UI similar to Chart component
+  if (loading) {
+    return (
+      <div className="w-full">
+        <div className="flex items-center justify-between mb-[12px]">
+          <div className="text-[16px] font-[500] text-[#0E3616]">
+            Analytics Flow
+          </div>
+          <div className="flex items-center gap-[16px]">
+            {/* Left Chains Selector */}
+            <MultiSelect
+              options={availableChains}
+              selectedValues={selectedLeftChains}
+              onChange={setSelectedLeftChains}
+              label="From"
+              placeholder="Select source chains"
+              className="min-w-[160px]"
+              minSelections={1}
+            />
+            
+            {/* Right Chains Selector */}
+            <MultiSelect
+              options={availableChains}
+              selectedValues={selectedRightChains}
+              onChange={setSelectedRightChains}
+              label="To"
+              placeholder="Select target chains"
+              className="min-w-[160px]"
+              minSelections={1}
+            />
+          </div>
+        </div>
+        <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
+          <div className="flex items-center justify-center h-[260px]">
+            <div className="flex flex-col items-center gap-[8px]">
+              <Loading size={24} />
+              <span className="text-[12px] text-[#9FA7BA]">Loading flow data...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
