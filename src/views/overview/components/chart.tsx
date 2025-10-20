@@ -2,6 +2,7 @@ import { useMemo, useEffect, useRef } from "react";
 import * as d3 from "d3";
 import dayjs from "@/libs/dayjs";
 import Loading from "@/components/loading/icon";
+import { formatNumber } from "@/utils/format/number";
 
 interface ChartData {
   stat_time: number;
@@ -27,7 +28,7 @@ const VolumeChart = ({ data }: { data: ChartData[] }) => {
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
-    
+
     // Remove existing tooltip
     d3.selectAll(".volume-tooltip").remove();
 
@@ -85,21 +86,21 @@ const VolumeChart = ({ data }: { data: ChartData[] }) => {
       .attr("height", d => height - yScale(d.volume))
       .attr("fill", "#6284F5")
       .attr("rx", 2)
-      .on("mouseover", function(_, d) {
+      .on("mouseover", function (_, d) {
         tooltip
           .style("visibility", "visible")
           .html(`
             <div><strong>Date:</strong> ${d.date.format('YYYY-MM-DD')}</div>
-            <div><strong>Volume:</strong> ${d3.format(".2s")(d.volume)}</div>
-            <div><strong>Users:</strong> ${d.users}</div>
+            <div><strong>Volume:</strong> ${d3.format(".2f")(d.volume)}</div>
+            <div><strong>Users:</strong> ${formatNumber(d.users, 0, true)}</div>
           `);
       })
-      .on("mousemove", function(event) {
+      .on("mousemove", function (event) {
         tooltip
           .style("top", (event.pageY - 10) + "px")
           .style("left", (event.pageX + 10) + "px");
       })
-      .on("mouseout", function() {
+      .on("mouseout", function () {
         tooltip.style("visibility", "hidden");
       });
 
@@ -128,14 +129,14 @@ const VolumeChart = ({ data }: { data: ChartData[] }) => {
 
   useEffect(() => {
     drawChart();
-    
+
     // Add resize listener
     const handleResize = () => {
       drawChart();
     };
-    
+
     window.addEventListener('resize', handleResize);
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
     };
@@ -153,7 +154,7 @@ const TransactionsChart = ({ data }: { data: ChartData[] }) => {
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
-    
+
     // Remove existing tooltip
     d3.selectAll(".transactions-tooltip").remove();
 
@@ -210,21 +211,21 @@ const TransactionsChart = ({ data }: { data: ChartData[] }) => {
       .attr("height", d => height - yScale(d.transactions))
       .attr("fill", "#56DEAD")
       .attr("rx", 2)
-      .on("mouseover", function(_, d) {
+      .on("mouseover", function (_, d) {
         tooltip
           .style("visibility", "visible")
           .html(`
             <div><strong>Date:</strong> ${d.date.format('YYYY-MM-DD')}</div>
-            <div><strong>Transactions:</strong> ${d.transactions}</div>
-            <div><strong>Users:</strong> ${d.users}</div>
+            <div><strong>Transactions:</strong> ${d3.format(".2s")(d.transactions)}</div>
+            <div><strong>Users:</strong> ${formatNumber(d.users, 0, true)}</div>
           `);
       })
-      .on("mousemove", function(event) {
+      .on("mousemove", function (event) {
         tooltip
           .style("top", (event.pageY - 10) + "px")
           .style("left", (event.pageX + 10) + "px");
       })
-      .on("mouseout", function() {
+      .on("mouseout", function () {
         tooltip.style("visibility", "hidden");
       });
 
@@ -252,14 +253,14 @@ const TransactionsChart = ({ data }: { data: ChartData[] }) => {
 
   useEffect(() => {
     drawChart();
-    
+
     // Add resize listener
     const handleResize = () => {
       drawChart();
     };
-    
+
     window.addEventListener('resize', handleResize);
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
     };
