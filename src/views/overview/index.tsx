@@ -23,7 +23,7 @@ export default function Overview() {
 
   return (
     <div className="w-full min-h-[100dvh] flex flex-col items-center mb-[100px]">
-      <div className="md:w-[680px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0 relative">
+      <div className="md:w-[1100px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0 relative">
         <BackButton
           className="absolute translate-y-[10px]"
         />
@@ -50,7 +50,6 @@ export default function Overview() {
           <Chart
             data={chartData}
             loading={chartLoading}
-            timePeriod={timePeriod}
             selectedPeriod={timePeriod}
             onPeriodChange={setTimePeriod}
           />

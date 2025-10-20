@@ -1,5 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef } from "react";
+import * as d3 from "d3";
+import dayjs from "@/libs/dayjs";
 import Loading from "@/components/loading/icon";
+import { formatNumber } from "@/utils/format/number";
 
 interface ChartData {
   stat_time: number;
@@ -12,43 +15,266 @@ interface ChartData {
 interface ChartProps {
   data: ChartData[] | null;
   loading: boolean;
-  timePeriod: "day" | "week" | "month";
   selectedPeriod: "day" | "week" | "month";
   onPeriodChange: (period: "day" | "week" | "month") => void;
 }
 
-export default function Chart({ data, loading, timePeriod, selectedPeriod, onPeriodChange }: ChartProps) {
+// Volume Chart Component
+const VolumeChart = ({ data }: { data: ChartData[] }) => {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const drawChart = () => {
+    if (!data || data.length === 0) return;
+
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+
+    // Remove existing tooltip
+    d3.selectAll(".volume-tooltip").remove();
+
+    const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+    const containerWidth = svgRef.current?.parentElement?.clientWidth || 400;
+    const width = containerWidth - margin.left - margin.right;
+    const height = 140 - margin.top - margin.bottom;
+
+    const g = svg
+      .attr("width", containerWidth)
+      .attr("height", 140)
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Process data
+    const processedData = data.map(d => ({
+      ...d,
+      volume: parseFloat(d.volume),
+      date: dayjs.unix(d.stat_time).utc()
+    }));
+
+    // Set up scales
+    const xScale = d3.scaleBand()
+      .domain(processedData.map(d => d.date.format('YYYY/MM/DD')))
+      .range([0, width])
+      .padding(0.1);
+
+    const yScale = d3.scaleLinear()
+      .domain([0, d3.max(processedData, d => d.volume) || 0])
+      .range([height, 0]);
+
+    // Create tooltip
+    const tooltip = d3.select("body")
+      .append("div")
+      .attr("class", "volume-tooltip")
+      .style("position", "absolute")
+      .style("visibility", "hidden")
+      .style("background", "rgba(0, 0, 0, 0.8)")
+      .style("color", "white")
+      .style("padding", "8px 12px")
+      .style("border-radius", "6px")
+      .style("font-size", "12px")
+      .style("z-index", "1000")
+      .style("pointer-events", "none");
+
+    // Draw bars
+    g.selectAll(".bar")
+      .data(processedData)
+      .enter()
+      .append("rect")
+      .attr("class", "bar")
+      .attr("x", d => xScale(d.date.format('YYYY/MM/DD')) || 0)
+      .attr("y", d => yScale(d.volume))
+      .attr("width", xScale.bandwidth())
+      .attr("height", d => height - yScale(d.volume))
+      .attr("fill", "#6284F5")
+      .attr("rx", 2)
+      .on("mouseover", function (_, d) {
+        tooltip
+          .style("visibility", "visible")
+          .html(`
+            <div><strong>Date:</strong> ${d.date.format('YYYY-MM-DD')}</div>
+            <div><strong>Volume:</strong> ${d3.format(".2f")(d.volume)}</div>
+            <div><strong>Users:</strong> ${formatNumber(d.users, 0, true)}</div>
+          `);
+      })
+      .on("mousemove", function (event) {
+        tooltip
+          .style("top", (event.pageY - 10) + "px")
+          .style("left", (event.pageX + 10) + "px");
+      })
+      .on("mouseout", function () {
+        tooltip.style("visibility", "hidden");
+      });
+
+    // Add X axis
+    g.append("g")
+      .attr("transform", `translate(0,${height})`)
+      .call(d3.axisBottom(xScale))
+      .selectAll("text")
+      .style("font-size", "10px")
+      .style("fill", "#9FA7BA");
+
+    // Add Y axis
+    g.append("g")
+      .call(d3.axisLeft(yScale)
+        .tickFormat(d3.format(".0s"))
+        .ticks(5)
+      )
+      .selectAll("text")
+      .style("font-size", "10px")
+      .style("fill", "#9FA7BA");
+
+    // Remove axis lines
+    g.selectAll(".domain").remove();
+    g.selectAll(".tick line").remove();
+  };
+
+  useEffect(() => {
+    drawChart();
+
+    // Add resize listener
+    const handleResize = () => {
+      drawChart();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [data]);
+
+  return <svg ref={svgRef} className="w-full h-full" />;
+};
+
+// Transactions Chart Component
+const TransactionsChart = ({ data }: { data: ChartData[] }) => {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  const drawChart = () => {
+    if (!data || data.length === 0) return;
+
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+
+    // Remove existing tooltip
+    d3.selectAll(".transactions-tooltip").remove();
+
+    const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+    const containerWidth = svgRef.current?.parentElement?.clientWidth || 400;
+    const width = containerWidth - margin.left - margin.right;
+    const height = 140 - margin.top - margin.bottom;
+
+    const g = svg
+      .attr("width", containerWidth)
+      .attr("height", 140)
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Process data
+    const processedData = data.map(d => ({
+      ...d,
+      date: dayjs.unix(d.stat_time).utc()
+    }));
+
+    // Set up scales
+    const xScale = d3.scaleBand()
+      .domain(processedData.map(d => d.date.format('YYYY/MM/DD')))
+      .range([0, width])
+      .padding(0.1);
+
+    const yScale = d3.scaleLinear()
+      .domain([0, d3.max(processedData, d => d.transactions) || 0])
+      .range([height, 0]);
+
+    // Create tooltip
+    const tooltip = d3.select("body")
+      .append("div")
+      .attr("class", "transactions-tooltip")
+      .style("position", "absolute")
+      .style("visibility", "hidden")
+      .style("background", "rgba(0, 0, 0, 0.8)")
+      .style("color", "white")
+      .style("padding", "8px 12px")
+      .style("border-radius", "6px")
+      .style("font-size", "12px")
+      .style("z-index", "1000")
+      .style("pointer-events", "none");
+
+    // Draw bars
+    g.selectAll(".bar")
+      .data(processedData)
+      .enter()
+      .append("rect")
+      .attr("class", "bar")
+      .attr("x", d => xScale(d.date.format('YYYY/MM/DD')) || 0)
+      .attr("y", d => yScale(d.transactions))
+      .attr("width", xScale.bandwidth())
+      .attr("height", d => height - yScale(d.transactions))
+      .attr("fill", "#56DEAD")
+      .attr("rx", 2)
+      .on("mouseover", function (_, d) {
+        tooltip
+          .style("visibility", "visible")
+          .html(`
+            <div><strong>Date:</strong> ${d.date.format('YYYY-MM-DD')}</div>
+            <div><strong>Transactions:</strong> ${d3.format(".2s")(d.transactions)}</div>
+            <div><strong>Users:</strong> ${formatNumber(d.users, 0, true)}</div>
+          `);
+      })
+      .on("mousemove", function (event) {
+        tooltip
+          .style("top", (event.pageY - 10) + "px")
+          .style("left", (event.pageX + 10) + "px");
+      })
+      .on("mouseout", function () {
+        tooltip.style("visibility", "hidden");
+      });
+
+    // Add X axis
+    g.append("g")
+      .attr("transform", `translate(0,${height})`)
+      .call(d3.axisBottom(xScale))
+      .selectAll("text")
+      .style("font-size", "10px")
+      .style("fill", "#9FA7BA");
+
+    // Add Y axis
+    g.append("g")
+      .call(d3.axisLeft(yScale)
+        .ticks(5)
+      )
+      .selectAll("text")
+      .style("font-size", "10px")
+      .style("fill", "#9FA7BA");
+
+    // Remove axis lines
+    g.selectAll(".domain").remove();
+    g.selectAll(".tick line").remove();
+  };
+
+  useEffect(() => {
+    drawChart();
+
+    // Add resize listener
+    const handleResize = () => {
+      drawChart();
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [data]);
+
+  return <svg ref={svgRef} className="w-full h-full" />;
+};
+
+export default function Chart({ data, loading, selectedPeriod, onPeriodChange }: ChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return null;
 
-    const volumes = data.map(d => parseFloat(d.volume));
-    const transactions = data.map(d => d.transactions);
-    
-    const maxVolume = Math.max(...volumes);
-    const maxTransactions = Math.max(...transactions);
-
-    return data.map((item, index) => ({
-      ...item,
-      volumePercent: maxVolume > 0 
-        ? Math.max((parseFloat(item.volume) / maxVolume) * 100, 5) 
-        : 5,
-      transactionsPercent: maxTransactions > 0 
-        ? Math.max((item.transactions / maxTransactions) * 100, 5) 
-        : 5,
-      date: new Date(item.stat_time * 1000),
-      index
-    }));
+    return data;
   }, [data]);
-
-  const formatDate = (date: Date, period: string) => {
-    if (period === "day") {
-      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    } else if (period === "week") {
-      return `Week ${Math.ceil(date.getDate() / 7)}`;
-    } else {
-      return date.toLocaleDateString("en-US", { month: "short" });
-    }
-  };
 
   const periods = [
     { value: "day", label: "30 Days", description: "D" },
@@ -59,28 +285,11 @@ export default function Chart({ data, loading, timePeriod, selectedPeriod, onPer
   if (loading) {
     return (
       <div className="w-full">
-        <div className="flex items-center justify-between mb-[12px]">
-          <div className="text-[16px] font-[500] text-[#0E3616]">
-            Analytics Chart
-          </div>
-          <div className="bg-white rounded-[8px] border border-[#F2F2F2] p-[4px]">
-            <div className="flex">
-              {periods.map((period) => (
-                <button
-                  key={period.value}
-                  onClick={() => onPeriodChange(period.value)}
-                  className={`px-[12px] py-[6px] rounded-[6px] text-[12px] font-[500] transition-all duration-300 ${
-                    selectedPeriod === period.value
-                      ? "bg-[#6284F5] text-white shadow-[0_2px_4px_0_rgba(98,132,245,0.30)]"
-                      : "text-[#9FA7BA] hover:text-[#2B3337] hover:bg-[#FAFBFF]"
-                  }`}
-                >
-                  {period.description}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <Header
+          periods={periods}
+          onPeriodChange={onPeriodChange}
+          selectedPeriod={selectedPeriod}
+        />
         <div className="flex flex-col gap-[16px]">
           <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
             <div className="flex items-center gap-[6px] mb-[16px]">
@@ -124,11 +333,10 @@ export default function Chart({ data, loading, timePeriod, selectedPeriod, onPer
                 <button
                   key={period.value}
                   onClick={() => onPeriodChange(period.value)}
-                  className={`px-[12px] py-[6px] rounded-[6px] text-[12px] font-[500] transition-all duration-300 ${
-                    selectedPeriod === period.value
-                      ? "bg-[#6284F5] text-white shadow-[0_2px_4px_0_rgba(98,132,245,0.30)]"
-                      : "text-[#9FA7BA] hover:text-[#2B3337] hover:bg-[#FAFBFF]"
-                  }`}
+                  className={`px-[12px] py-[6px] rounded-[6px] text-[12px] font-[500] transition-all duration-300 ${selectedPeriod === period.value
+                    ? "bg-[#6284F5] text-white shadow-[0_2px_4px_0_rgba(98,132,245,0.30)]"
+                    : "text-[#9FA7BA] hover:text-[#2B3337] hover:bg-[#FAFBFF]"
+                    }`}
                 >
                   {period.description}
                 </button>
@@ -162,29 +370,12 @@ export default function Chart({ data, loading, timePeriod, selectedPeriod, onPer
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-[12px]">
-        <div className="text-[16px] font-[500] text-[#0E3616]">
-          Analytics Chart
-        </div>
-        <div className="bg-white rounded-[8px] border border-[#F2F2F2] p-[4px]">
-          <div className="flex">
-            {periods.map((period) => (
-              <button
-                key={period.value}
-                onClick={() => onPeriodChange(period.value)}
-                className={`px-[12px] py-[6px] rounded-[6px] text-[12px] font-[500] transition-all duration-300 ${
-                  selectedPeriod === period.value
-                    ? "bg-[#6284F5] text-white shadow-[0_2px_4px_0_rgba(98,132,245,0.30)]"
-                    : "text-[#9FA7BA] hover:text-[#2B3337] hover:bg-[#FAFBFF]"
-                }`}
-              >
-                {period.description}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      
+      <Header
+        periods={periods}
+        onPeriodChange={onPeriodChange}
+        selectedPeriod={selectedPeriod}
+      />
+
       <div className="flex flex-col gap-[16px]">
         {/* Volume Chart */}
         <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
@@ -192,50 +383,8 @@ export default function Chart({ data, loading, timePeriod, selectedPeriod, onPer
             <div className="w-[12px] h-[12px] bg-[#6284F5] rounded-[2px]"></div>
             <span className="text-[14px] font-[500] text-[#2B3337]">Volume</span>
           </div>
-          
-          <div className="flex items-end justify-between h-[140px] gap-[2px] relative">
-            {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-[#9FA7BA] pr-[8px]">
-              <span>${Math.max(...chartData.map(d => parseFloat(d.volume))).toLocaleString()}</span>
-              <span>${Math.round(Math.max(...chartData.map(d => parseFloat(d.volume))) * 0.75).toLocaleString()}</span>
-              <span>${Math.round(Math.max(...chartData.map(d => parseFloat(d.volume))) * 0.5).toLocaleString()}</span>
-              <span>${Math.round(Math.max(...chartData.map(d => parseFloat(d.volume))) * 0.25).toLocaleString()}</span>
-              <span>${Math.min(...chartData.map(d => parseFloat(d.volume))).toLocaleString()}</span>
-            </div>
-            
-            {/* Grid lines */}
-            <div className="absolute left-[60px] top-0 w-[calc(100%_-_60px)] h-full">
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-              <div className="absolute top-[25%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-              <div className="absolute top-[50%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-              <div className="absolute top-[75%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-              <div className="absolute bottom-0 left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-            </div>
-            
-            {/* Chart bars */}
-            <div className="flex items-end justify-between w-full ml-[60px] gap-[2px]">
-              {chartData.map((item, index) => (
-                <div key={`${item.stat_time}-${index}`} className="flex-1 flex flex-col items-center relative group">
-                  <div
-                    className="w-full bg-[#6284F5] rounded-t-[2px] transition-all duration-500 ease-out hover:opacity-80 cursor-pointer relative"
-                    style={{ 
-                      height: `${item.volumePercent}%`,
-                      minHeight: '12px',
-                      animationDelay: `${index * 50}ms`
-                    }}
-                  />
-                  
-                  {/* Value tooltip on hover */}
-                  <div className="absolute -top-[30px] left-1/2 transform -translate-x-1/2 bg-[#2B3337] text-white text-[10px] px-[6px] py-[2px] rounded-[4px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                    ${parseFloat(item.volume).toLocaleString()}
-                  </div>
-                  
-                  <div className="text-[10px] text-[#9FA7BA] mt-[6px] text-center">
-                    {formatDate(item.date, timePeriod)}
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="h-[140px]">
+            <VolumeChart data={chartData} />
           </div>
         </div>
 
@@ -245,54 +394,39 @@ export default function Chart({ data, loading, timePeriod, selectedPeriod, onPer
             <div className="w-[12px] h-[12px] bg-[#56DEAD] rounded-[2px]"></div>
             <span className="text-[14px] font-[500] text-[#2B3337]">Transactions</span>
           </div>
-          
-          <div className="flex items-end justify-between h-[140px] gap-[2px] relative">
-            {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-[#9FA7BA] pr-[8px]">
-              <span>{Math.max(...chartData.map(d => d.transactions))}</span>
-              <span>{Math.round(Math.max(...chartData.map(d => d.transactions)) * 0.75)}</span>
-              <span>{Math.round(Math.max(...chartData.map(d => d.transactions)) * 0.5)}</span>
-              <span>{Math.round(Math.max(...chartData.map(d => d.transactions)) * 0.25)}</span>
-              <span>{Math.min(...chartData.map(d => d.transactions))}</span>
-            </div>
-            
-            {/* Grid lines */}
-            <div className="absolute left-[60px] top-0 w-[calc(100%_-_60px)] h-full">
-              <div className="absolute top-0 left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-              <div className="absolute top-[25%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-              <div className="absolute top-[50%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-              <div className="absolute top-[75%] left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-              <div className="absolute bottom-0 left-0 w-full h-[1px] bg-[#F2F2F2]"></div>
-            </div>
-            
-            {/* Chart bars */}
-            <div className="flex items-end justify-between w-full ml-[60px] gap-[2px]">
-              {chartData.map((item, index) => (
-                <div key={`${item.stat_time}-${index}`} className="flex-1 flex flex-col items-center relative group">
-                  <div
-                    className="w-full bg-[#56DEAD] rounded-t-[2px] transition-all duration-500 ease-out hover:opacity-80 cursor-pointer relative"
-                    style={{ 
-                      height: `${item.transactionsPercent}%`,
-                      minHeight: '12px',
-                      animationDelay: `${index * 50}ms`
-                    }}
-                  />
-                  
-                  {/* Value tooltip on hover */}
-                  <div className="absolute -top-[30px] left-1/2 transform -translate-x-1/2 bg-[#2B3337] text-white text-[10px] px-[6px] py-[2px] rounded-[4px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                    {item.transactions}
-                  </div>
-                  
-                  <div className="text-[10px] text-[#9FA7BA] mt-[6px] text-center">
-                    {formatDate(item.date, timePeriod)}
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="h-[140px]">
+            <TransactionsChart data={chartData} />
           </div>
         </div>
       </div>
-
     </div>
   );
 }
+
+const Header = (props: any) => {
+  const { periods, onPeriodChange, selectedPeriod } = props;
+
+  return (
+    <div className="flex items-center justify-between mb-[12px]">
+      <div className="text-[16px] font-[500] text-[#0E3616]">
+        Analytics Chart
+      </div>
+      <div className="bg-white rounded-[8px] border border-[#F2F2F2] p-[4px]">
+        <div className="flex">
+          {periods.map((period: any) => (
+            <button
+              key={period.value}
+              onClick={() => onPeriodChange(period.value)}
+              className={`px-[12px] py-[6px] rounded-[6px] text-[12px] font-[500] transition-all duration-300 ${selectedPeriod === period.value
+                ? "bg-[#6284F5] text-white shadow-[0_2px_4px_0_rgba(98,132,245,0.30)]"
+                : "text-[#9FA7BA] hover:text-[#2B3337] hover:bg-[#FAFBFF]"
+                }`}
+            >
+              {period.description}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
