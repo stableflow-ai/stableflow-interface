@@ -50,7 +50,6 @@ export default function Overview() {
           <Chart
             data={chartData}
             loading={chartLoading}
-            timePeriod={timePeriod}
             selectedPeriod={timePeriod}
             onPeriodChange={setTimePeriod}
           />

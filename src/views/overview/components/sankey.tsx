@@ -26,8 +26,8 @@ const Sankey = (props: any) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 600 });
-  const [selectedLeftChains, setSelectedLeftChains] = useState<string[]>(['eth', 'arb', 'pol', 'bsc', 'avax']);
-  const [selectedRightChains, setSelectedRightChains] = useState<string[]>(['eth', 'arb', 'pol', 'bsc', 'avax']);
+  const [selectedLeftChains, setSelectedLeftChains] = useState<string[]>(['eth', 'arb', 'pol', 'bsc', 'op']);
+  const [selectedRightChains, setSelectedRightChains] = useState<string[]>(['eth', 'arb', 'pol', 'bsc', 'op']);
 
   // Function to update dimensions based on container size
   const updateDimensions = () => {
@@ -201,8 +201,6 @@ const Sankey = (props: any) => {
       .style("opacity", 0)
       .style("z-index", "1000")
       .style("box-shadow", "0 4px 12px rgba(0, 0, 0, 0.3)");
-
-    console.log("links: %o", links);
 
     // Draw links
     const link = svg.append("g")
