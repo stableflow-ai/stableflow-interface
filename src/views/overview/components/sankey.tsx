@@ -4,6 +4,8 @@ import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
 import type { SankeyNode, SankeyLink } from 'd3-sankey';
 import { usdtChains } from '@/config/tokens/usdt';
 import MultiSelect from '@/components/multi-select';
+import Big from 'big.js';
+import { formatNumber } from '@/utils/format/number';
 
 interface CustomSankeyNode extends SankeyNode<any, any> {
   id: string;
@@ -17,7 +19,9 @@ interface CustomSankeyLink extends SankeyLink<any, any> {
   value: number;
 }
 
-const Sankey = () => {
+const Sankey = (props: any) => {
+  const { data, loading } = props;
+
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 600 });
@@ -72,7 +76,7 @@ const Sankey = () => {
       key,
       ...usdtChains[key as keyof typeof usdtChains]
     }));
-    
+
     // Check if we have at least one chain on each side
     if (leftChains.length === 0 || rightChains.length === 0) {
       // Show empty state message
@@ -86,18 +90,15 @@ const Sankey = () => {
         .text("Please select at least one chain on each side");
       return;
     }
-    
+
     // Define link data - connect all left chains to all right chains
     const links: CustomSankeyLink[] = [];
-    leftChains.forEach(leftChain => {
-      rightChains.forEach(rightChain => {
+    leftChains.forEach((leftChain) => {
+      rightChains.forEach((rightChain) => {
         // Only connect different chains
         if (leftChain.key !== rightChain.key) {
-          links.push({
-            source: `${leftChain.key}-src`,
-            target: `${rightChain.key}-tgt`,
-            value: Math.floor(Math.random() * 50) + 10 // Random flow value between 10-60
-          });
+          const _link = data?.links?.find((item: any) => item.source === `${leftChain.key}-src` && item.target === `${rightChain.key}-tgt`);
+          _link && links.push(_link);
         }
       });
     });
@@ -125,7 +126,7 @@ const Sankey = () => {
 
     // Define node data - only include nodes that have connections
     const nodes: CustomSankeyNode[] = [];
-    
+
     // Add source nodes that have outgoing connections
     leftChains.forEach(chain => {
       const hasOutgoing = links.some(link => link.source === `${chain.key}-src`);
@@ -199,6 +200,8 @@ const Sankey = () => {
       .style("opacity", 0)
       .style("z-index", "1000")
       .style("box-shadow", "0 4px 12px rgba(0, 0, 0, 0.3)");
+
+    console.log("links: %o", links);
 
     // Calculate link width scale
     const allValues = links.map(d => d.value);
@@ -278,8 +281,16 @@ const Sankey = () => {
         // Calculate total inflow and outflow
         const outgoingLinks = sankeyLinks.filter((l: any) => l.source.id === d.id);
         const incomingLinks = sankeyLinks.filter((l: any) => l.target.id === d.id);
-        const totalOut = outgoingLinks.reduce((sum: number, l: any) => sum + l.value, 0);
-        const totalIn = incomingLinks.reduce((sum: number, l: any) => sum + l.value, 0);
+        let totalOut = Big(0);
+        let totalIn = Big(0);
+        outgoingLinks.forEach((item) => {
+          totalOut = totalOut.plus(item.value);
+        });
+        incomingLinks.forEach((item) => {
+          totalIn = totalIn.plus(item.value);
+        });
+        // const totalOut = outgoingLinks.reduce((sum: number, l: any) => Big(sum).plus(l.value), Big(0));
+        // const totalIn = incomingLinks.reduce((sum: number, l: any) => Big(sum).plus(l.value), Big(0));
 
         // For left side nodes, inflow should be the same as the corresponding right side node's inflow
         // For right side nodes, outflow should be the same as the corresponding left side node's outflow
@@ -290,7 +301,10 @@ const Sankey = () => {
           // Left side: find corresponding right side node
           const rightSideId = d.id.replace('-src', '-tgt');
           const rightSideIncomingLinks = sankeyLinks.filter((l: any) => l.target.id === rightSideId);
-          const rightSideInflow = rightSideIncomingLinks.reduce((sum: number, l: any) => sum + l.value, 0);
+          let rightSideInflow = Big(0)
+          rightSideIncomingLinks.forEach((item) => {
+            rightSideInflow = Big(rightSideInflow).plus(item.value);
+          });
 
           displayInflow = rightSideInflow; // Left side inflow = right side inflow
           displayOutflow = totalOut; // Left side outflow = its own outflow
@@ -298,7 +312,10 @@ const Sankey = () => {
           // Right side: find corresponding left side node
           const leftSideId = d.id.replace('-tgt', '-src');
           const leftSideOutgoingLinks = sankeyLinks.filter((l: any) => l.source.id === leftSideId);
-          const leftSideOutflow = leftSideOutgoingLinks.reduce((sum: number, l: any) => sum + l.value, 0);
+          let leftSideOutflow = Big(0);
+          leftSideOutgoingLinks.forEach((item) => {
+            leftSideOutflow = Big(leftSideOutflow).plus(item.value);
+          });
 
           displayInflow = totalIn; // Right side inflow = its own inflow
           displayOutflow = leftSideOutflow; // Right side outflow = left side outflow
@@ -308,15 +325,15 @@ const Sankey = () => {
         tooltip
           .style("opacity", 1)
           .html(`
-            <div style="text-align: center;">
+            <div style="text-align: left;">
               <div style="font-weight: 600; margin-bottom: 6px; color: #fff;">
                 ${d.name}
               </div>
               <div style="color: #ccc; font-size: 11px; margin-bottom: 2px;">
-                Inflow: ${displayInflow} units
+                Inflow: ${formatNumber(displayInflow, 2, true, { prefix: "$", isShort: true, isShortUppercase: true, })}
               </div>
               <div style="color: #ccc; font-size: 11px;">
-                Outflow: ${displayOutflow} units
+                Outflow: ${formatNumber(displayOutflow, 2, true, { prefix: "$", isShort: true, isShortUppercase: true, })}
               </div>
             </div>
           `)
@@ -356,12 +373,15 @@ const Sankey = () => {
         tooltip
           .style("opacity", 1)
           .html(`
-            <div style="text-align: center;">
+            <div style="text-align: left;">
               <div style="font-weight: 600; margin-bottom: 4px; color: #fff;">
                 ${sourceNode?.name} → ${targetNode?.name}
               </div>
               <div style="color: #ccc; font-size: 11px;">
-                Flow: ${d.value} units
+                Flow: ${formatNumber(d.value, 2, true, { prefix: "$", isShort: true, isShortUppercase: true, })}
+              </div>
+               <div style="color: #ccc; font-size: 11px;">
+                Transactions: ${formatNumber(d.transactions, 2, true, { isShort: true, isShortUppercase: true, })}
               </div>
             </div>
           `)
@@ -384,7 +404,7 @@ const Sankey = () => {
         tooltip.style("opacity", 0);
       });
 
-  }, [dimensions, selectedLeftChains, selectedRightChains]);
+  }, [dimensions, selectedLeftChains, selectedRightChains, data]);
 
   // Get available chains for selection
   const availableChains = Object.entries(usdtChains).map(([key, chain]) => ({
@@ -410,7 +430,7 @@ const Sankey = () => {
             className="min-w-[160px]"
             minSelections={1}
           />
-          
+
           {/* Right Chains Selector */}
           <MultiSelect
             options={availableChains}
@@ -425,8 +445,8 @@ const Sankey = () => {
       </div>
       <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
         <div ref={containerRef} className="w-full">
-          <svg 
-            ref={svgRef} 
+          <svg
+            ref={svgRef}
             className="w-full h-auto"
             viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
             preserveAspectRatio="xMidYMid meet"

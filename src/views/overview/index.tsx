@@ -12,7 +12,14 @@ export default function Overview() {
   const [selectedToken, setSelectedToken] = useState<"USDT" | "USDC" | "USD1">("USDT");
   const [timePeriod, setTimePeriod] = useState<"day" | "week" | "month">("day");
 
-  const { dashboardData, chartData, loading, chartLoading } = useOverviewData(selectedToken, timePeriod);
+  const {
+    dashboardData,
+    chartData,
+    loading,
+    chartLoading,
+    chainLoading,
+    chainData,
+  } = useOverviewData(selectedToken, timePeriod);
 
   return (
     <div className="w-full min-h-[100dvh] flex flex-col items-center mb-[100px]">
@@ -52,6 +59,8 @@ export default function Overview() {
         {/* Sankey Diagram */}
         <div className="px-[10px] md:px-0 mb-[20px]">
           <Sankey
+            data={chainData}
+            loading={chainLoading}
           />
         </div>
 
