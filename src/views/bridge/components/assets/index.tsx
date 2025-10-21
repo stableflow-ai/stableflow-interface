@@ -31,7 +31,7 @@ export default function Assets() {
         <AssetItem
           asset={usdc}
           active={walletStore.selectedToken === "USDC"}
-          disabled={false}
+          disabled={true}
           onClick={() => {
             walletStore.set({
               fromToken: usdc,
@@ -77,7 +77,12 @@ const AssetItem = ({
           : "border-dashed border-[#B3BBCE] border",
         disabled ? "cursor-not-allowed" : "cursor-pointer"
       )}
-      onClick={onClick}
+      onClick={() => {
+        if (disabled) {
+          return;
+        }
+        onClick?.();
+      }}
     >
       <img
         src={asset.icon}
