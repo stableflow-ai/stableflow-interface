@@ -1,23 +1,33 @@
-export const chainTypes: Record<string, { value: string, name: string, color: string }> = {
+export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
   near: {
     value: "near",
     name: "Near",
     color: "#56DEAD",
+    bg: "linear-gradient(90deg, rgba(1, 237, 151, 0.20) 0%, rgba(1, 237, 151, 0.00) 50%)",
   },
   sol: {
     value: "sol",
     name: "Solana",
     color: "#987FF3",
+    bg: "linear-gradient(90deg, rgba(248, 108, 255, 0.20) 0%, rgba(248, 108, 255, 0.00) 50%)",
   },
   evm: {
     value: "evm",
     name: "EVM",
     color: "#C4CAE1",
+    bg: "linear-gradient(90deg, rgba(185, 215, 255, 0.20) 0%, rgba(185, 215, 255, 0.00) 50%)",
   },
   tron: {
     value: "tron",
     name: "Tron",
     color: "#F66273",
+    bg: "linear-gradient(90deg, rgba(210, 31, 16, 0.20) 0%, rgba(210, 31, 16, 0.00) 50%)",
+  },
+  aptos: {
+    value: "aptos",
+    name: "Aptos",
+    color: "#000000",
+    bg: "linear-gradient(90deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.00) 50%)",
   },
 };
 
@@ -106,7 +116,14 @@ const chains = {
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
     blockExplorerUrl: "https://tronscan.org/tx",
-  }
+  },
+  aptos: {
+    chainName: "Aptos",
+    chainIcon: "/chains/aptos.png",
+    chainIconGray: "/chains/aptos-gray.png",
+    chainType: chainTypes.aptos.value,
+    blockExplorerUrl: "https://aptoscan.com/transaction",
+  },
 };
 
 export default chains;

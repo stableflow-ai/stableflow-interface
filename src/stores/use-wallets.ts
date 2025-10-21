@@ -1,6 +1,6 @@
 import { create } from "zustand/index";
 
-export type WalletType = "near" | "sol" | "evm" | "tron";
+export type WalletType = "near" | "sol" | "evm" | "tron" | "aptos";
 
 interface WalletsState {
   near: {
@@ -32,6 +32,13 @@ interface WalletsState {
     disconnect: () => void;
     walletIcon: string | null;
   };
+  aptos: {
+    account: string | null;
+    wallet: any;
+    connect: () => void;
+    disconnect: () => void;
+    walletIcon: string | null;
+  };
   set: (params: any) => void;
 }
 
@@ -39,30 +46,37 @@ const useWalletsStore = create<WalletsState>((set) => ({
   near: {
     account: null,
     wallet: null,
-    connect: () => {},
-    disconnect: () => {},
+    connect: () => { },
+    disconnect: () => { },
     walletIcon: null
   },
   sol: {
     account: null,
     wallet: null,
-    connect: () => {},
-    disconnect: () => {},
+    connect: () => { },
+    disconnect: () => { },
     walletIcon: null
   },
   evm: {
     account: null,
     wallet: null,
     chainId: null,
-    connect: () => {},
-    disconnect: () => {},
+    connect: () => { },
+    disconnect: () => { },
     walletIcon: null
   },
   tron: {
     account: null,
     wallet: null,
-    connect: () => {},
-    disconnect: () => {},
+    connect: () => { },
+    disconnect: () => { },
+    walletIcon: null
+  },
+  aptos: {
+    account: null,
+    wallet: null,
+    connect: () => { },
+    disconnect: () => { },
     walletIcon: null
   },
   set: (params) => set(() => ({ ...params }))
