@@ -49,8 +49,9 @@ export default defineConfig({
         manualChunks: (id) => {
           // Split node_modules packages into separate chunks
           if (id.includes('node_modules')) {
-            // Keep related libraries together to avoid circular dependencies
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            // Keep React and React-dependent libraries together
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') ||
+                id.includes('ahooks') || id.includes('zustand') || id.includes('@tanstack')) {
               return 'react-vendor';
             }
             // Keep wallet and blockchain libraries together
@@ -64,12 +65,12 @@ export default defineConfig({
             }
             // UI libraries
             if (id.includes('framer-motion') || id.includes('swiper') || 
-                id.includes('react-toastify') || id.includes('@tanstack')) {
+                id.includes('react-toastify')) {
               return 'ui-vendor';
             }
-            // Utility libraries
+            // Pure utility libraries (no React dependencies)
             if (id.includes('axios') || id.includes('dayjs') || id.includes('big.js') || 
-                id.includes('clsx') || id.includes('zustand') || id.includes('ahooks')) {
+                id.includes('clsx')) {
               return 'utils-vendor';
             }
             // Other third-party libraries
