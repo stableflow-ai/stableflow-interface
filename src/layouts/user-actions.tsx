@@ -67,10 +67,6 @@ export default function UserActions() {
               onClick={() => {
                 walletStore.set({ showWallet: true });
               }}
-              evmConnected={!!walletsStore.evm.account}
-              solConnected={!!walletsStore.sol.account}
-              nearConnected={!!walletsStore.near.account}
-              tronConnected={!!walletsStore.tron.account}
             />
           </div>
         )}
@@ -172,10 +168,6 @@ const OverviewButton = ({ onClick }: any) => {
 
 const ChainsButton = ({
   onClick,
-  evmConnected,
-  solConnected,
-  nearConnected,
-  tronConnected
 }: any) => {
   const walletsStore = useWalletsStore();
 
@@ -185,7 +177,7 @@ const ChainsButton = ({
       className="p-[6px] flex justify-center items-center button rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
     >
       {
-        Object.entries(stablecoinWithChains).map(([chain, tokens], index) => {
+        Object.entries(stablecoinWithChains).map(([chain, _tokens], index) => {
           return (
             <ChainIcon
               chain={chain}

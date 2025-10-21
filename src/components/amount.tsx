@@ -1,7 +1,6 @@
 import clsx from "clsx";
 import { useMemo } from "react";
 import { formatNumber } from "@/utils/format/number";
-import Big from "big.js";
 
 export default function Amount({
   amount,
