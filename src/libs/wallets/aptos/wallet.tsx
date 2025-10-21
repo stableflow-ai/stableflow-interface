@@ -1,13 +1,13 @@
 import { Aptos, AptosConfig, Network, parseTypeTag, TypeTagAddress, TypeTagU64, type EntryFunctionABI } from "@aptos-labs/ts-sdk";
-import type { AccountInfo, AptosSignAndSubmitTransactionOutput, InputTransactionData } from "@aptos-labs/wallet-adapter-react";
 
 export default class AptosWallet {
   connection: any;
-  private account: AccountInfo | null;
+  private account: string | null;
   private aptos: Aptos;
-  private signAndSubmitTransaction: (transaction: InputTransactionData) => Promise<AptosSignAndSubmitTransactionOutput>;
+  private signAndSubmitTransaction: any;
+  private isMobile: boolean;
 
-  constructor(options: { account: AccountInfo | null; signAndSubmitTransaction: (transaction: InputTransactionData) => Promise<AptosSignAndSubmitTransactionOutput> }) {
+  constructor(options: { account: string | null; signAndSubmitTransaction: any; isMobile?: boolean; }) {
     const config = new AptosConfig({
       network: Network.MAINNET,
     });
@@ -16,6 +16,7 @@ export default class AptosWallet {
     this.aptos = aptos;
     this.signAndSubmitTransaction = options.signAndSubmitTransaction;
     this.account = options.account;
+    this.isMobile = options.isMobile || false;
   }
 
   // Transfer APT
@@ -28,22 +29,35 @@ export default class AptosWallet {
       // Convert amount to octas (1 APT = 10^8 octas)
       const amountInOctas = Math.floor(parseFloat(amount) * 100000000);
 
-      // Sign and submit transaction
-      const result = await this.signAndSubmitTransaction({
-        data: {
-          function: "0x1::coin::transfer",
-          typeArguments: ["0x1::aptos_coin::AptosCoin"],
-          functionArguments: [to, amountInOctas.toString()],
-        },
-      });
+      let result: any;
+      if (this.isMobile) {
+        const transaction = await this.aptos.transaction.build.simple({
+          sender: this.account,
+          data: {
+            function: "0x1::coin::transfer",
+            typeArguments: ["0x1::aptos_coin::AptosCoin"],
+            functionArguments: [to, amountInOctas.toString()],
+          },
+        });
+        result = await this.signAndSubmitTransaction(transaction);
+      } else {
+        // Sign and submit transaction
+        result = await this.signAndSubmitTransaction({
+          data: {
+            function: "0x1::coin::transfer",
+            typeArguments: ["0x1::aptos_coin::AptosCoin"],
+            functionArguments: [to, amountInOctas.toString()],
+          },
+        });
+      }
 
-      const executedTransaction = await this.aptos.waitForTransaction({ transactionHash: result.hash });
+      const executedTransaction = await this.aptos.waitForTransaction({ transactionHash: typeof result === "string" ? result : result.hash });
       if (executedTransaction.success !== true) {
         console.log("Transfer APT token failed: %o", executedTransaction);
         throw new Error("Transfer token failed");
       }
 
-      return result.hash;
+      return typeof result === "string" ? result : result.hash;
     } catch (error) {
       console.log("Transfer APT failed:", error);
       throw error;
@@ -57,22 +71,36 @@ export default class AptosWallet {
     }
 
     try {
-      const result = await this.signAndSubmitTransaction({
-        data: {
-          function: "0x1::primary_fungible_store::transfer",
-          typeArguments: ["0x1::fungible_asset::Metadata"],
-          functionArguments: [contractAddress, to, amount],
-          abi: faTransferAbi,
-        },
-      });
+      let result: any;
+      if (this.isMobile) {
+        const transaction = await this.aptos.transaction.build.simple({
+          sender: this.account,
+          data: {
+            function: "0x1::primary_fungible_store::transfer",
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+            functionArguments: [contractAddress, to, amount],
+            abi: faTransferAbi,
+          },
+        });
+        result = await this.signAndSubmitTransaction(transaction);
+      } else {
+        result = await this.signAndSubmitTransaction({
+          data: {
+            function: "0x1::primary_fungible_store::transfer",
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+            functionArguments: [contractAddress, to, amount],
+            abi: faTransferAbi,
+          },
+        });
+      }
 
-      const executedTransaction = await this.aptos.waitForTransaction({ transactionHash: result.hash });
+      const executedTransaction = await this.aptos.waitForTransaction({ transactionHash: typeof result === "string" ? result : result.hash });
       if (executedTransaction.success !== true) {
         console.log("Transfer token failed: %o", executedTransaction);
         throw new Error("Transfer token failed");
       }
 
-      return result.hash;
+      return typeof result === "string" ? result : result.hash;
     } catch (error) {
       console.log("Transfer token failed:", error);
       throw error;
