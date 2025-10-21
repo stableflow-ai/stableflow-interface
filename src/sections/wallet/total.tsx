@@ -15,12 +15,12 @@ export default function Total() {
 
   const [
     total,
-    balanceSummaries,
-    balanceSummariesList,
-    balanceSummariesListWithBalance,
+    _balanceSummaries,
+    _balanceSummariesList,
+    _balanceSummariesListWithBalance,
     balanceSummariesListWithBalanceFinal,
-    hasBalance,
-    hasBalanceCount,
+    _hasBalance,
+    _hasBalanceCount,
     gridTemplateColumns
   ] = useMemo(() => {
     const _balanceSummaries: any = {};

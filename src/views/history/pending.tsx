@@ -20,7 +20,7 @@ export default function Pending(props: any) {
         )
       }
       <div className={clsx("mt-[14px] grid grid-cols-1 md:grid-cols-2 gap-[18px]", contentClassName)}>
-        {historyStore.pendingStatus.map((item, index) => (
+        {historyStore.pendingStatus.map((item) => (
           <PendingItem
             key={item}
             data={historyStore.history[item]}
