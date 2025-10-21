@@ -9,9 +9,6 @@ import { Network } from "@aptos-labs/ts-sdk";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import Modal from "@/components/modal";
 
-export const adapters = [
-];
-
 export default function AptosProvider({
   children
 }: {
@@ -87,7 +84,7 @@ const Content = () => {
         disconnect: () => {
           disconnect();
           setBalancesStore({
-            solBalances: {}
+            aptosBalances: {}
           });
           setWallets({
             aptos: {
@@ -157,40 +154,42 @@ const Content = () => {
 
         {/* Wallet List */}
         <div className="space-y-[8px] max-h-[400px] overflow-y-auto">
-          {wallets.map((_wallet) => (
-            <button
-              key={_wallet.name}
-              onClick={() => onConnect(_wallet.name)}
-              disabled={isConnecting === _wallet.name}
-              className="button w-full flex items-center gap-[16px] p-[16px] rounded-[12px] hover:bg-[#F8F9FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {/* Wallet Icon */}
-              <div className="w-[40px] h-[40px] rounded-[8px] bg-[#F5F5F5] flex items-center justify-center flex-shrink-0">
-                {_wallet.icon ? (
-                  <img
-                    src={_wallet.icon}
-                    alt={_wallet.name}
-                    className="w-[24px] h-[24px]"
-                  />
-                ) : (
-                  <div className="w-[24px] h-[24px] rounded-full bg-[#E5E5E5]" />
-                )}
-              </div>
-
-              {/* Wallet Info */}
-              <div className="flex-1 text-left">
-                <div className="text-[16px] font-[500] text-[#1A1A1A] mb-[2px]">
-                  {_wallet.name}
+          {wallets
+            .filter((_wallet) => !["Continue with Apple", "Continue with Google"].includes(_wallet.name))
+            .map((_wallet) => (
+              <button
+                key={_wallet.name}
+                onClick={() => onConnect(_wallet.name)}
+                disabled={isConnecting === _wallet.name}
+                className="button w-full flex items-center gap-[16px] p-[16px] rounded-[12px] hover:bg-[#F8F9FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {/* Wallet Icon */}
+                <div className="w-[40px] h-[40px] rounded-[8px] bg-[#F5F5F5] flex items-center justify-center flex-shrink-0">
+                  {_wallet.icon ? (
+                    <img
+                      src={_wallet.icon}
+                      alt={_wallet.name}
+                      className="w-[24px] h-[24px]"
+                    />
+                  ) : (
+                    <div className="w-[24px] h-[24px] rounded-full bg-[#E5E5E5]" />
+                  )}
                 </div>
-                <div className="text-[14px] text-[#666666]">{_wallet.name}</div>
-              </div>
 
-              {/* Loading State */}
-              {isConnecting === _wallet.name && (
-                <div className="w-[20px] h-[20px] border-2 border-[#6284F5] border-t-transparent rounded-full animate-spin" />
-              )}
-            </button>
-          ))}
+                {/* Wallet Info */}
+                <div className="flex-1 text-left">
+                  <div className="text-[16px] font-[500] text-[#1A1A1A] mb-[2px]">
+                    {_wallet.name}
+                  </div>
+                  <div className="text-[14px] text-[#666666]">{_wallet.name}</div>
+                </div>
+
+                {/* Loading State */}
+                {isConnecting === _wallet.name && (
+                  <div className="w-[20px] h-[20px] border-2 border-[#6284F5] border-t-transparent rounded-full animate-spin" />
+                )}
+              </button>
+            ))}
         </div>
 
         {/* Footer */}
