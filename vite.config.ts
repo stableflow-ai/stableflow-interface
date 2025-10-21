@@ -39,7 +39,9 @@ export default defineConfig({
         "process.browser": "true"
       }
     },
-    include: ["buffer", "process"]
+    include: ["buffer", "process"],
+    // Force pre-bundling of problematic dependencies
+    force: true
   },
   build: {
     rollupOptions: {
@@ -47,21 +49,18 @@ export default defineConfig({
         manualChunks: (id) => {
           // Split node_modules packages into separate chunks
           if (id.includes('node_modules')) {
-            // React related libraries
+            // Keep related libraries together to avoid circular dependencies
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
               return 'react-vendor';
             }
-            // Wallet related libraries
+            // Keep wallet and blockchain libraries together
             if (id.includes('@rainbow-me') || id.includes('@solana/wallet') || 
                 id.includes('@aptos-labs/wallet') || id.includes('@near-wallet') || 
-                id.includes('@tronweb3')) {
-              return 'wallet-vendor';
-            }
-            // Blockchain SDKs
-            if (id.includes('@solana/web3') || id.includes('@solana/spl-token') || 
-                id.includes('@aptos-labs/ts-sdk') || id.includes('ethers') || 
-                id.includes('viem') || id.includes('wagmi') || id.includes('tronweb')) {
-              return 'blockchain-vendor';
+                id.includes('@tronweb3') || id.includes('@solana/web3') || 
+                id.includes('@solana/spl-token') || id.includes('@aptos-labs/ts-sdk') || 
+                id.includes('ethers') || id.includes('viem') || id.includes('wagmi') || 
+                id.includes('tronweb')) {
+              return 'wallet-blockchain-vendor';
             }
             // UI libraries
             if (id.includes('framer-motion') || id.includes('swiper') || 
