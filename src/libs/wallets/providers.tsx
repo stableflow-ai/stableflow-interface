@@ -1,11 +1,29 @@
-import React from "react";
-import RainbowProvider from "./rainbow/provider";
-import SolanaProvider from "./solana/provider";
-import NEARProvider from "./near/provider";
-import TronProvider from "./tron/provider";
-import AptosProvider from "./aptos/provider";
-
+import React, { Suspense, lazy } from "react";
 import OKXConnectProvider from "./okxconnect";
+
+// Dynamic import wallet providers
+const RainbowProvider = lazy(() => import("./rainbow/provider"));
+const SolanaProvider = lazy(() => import("./solana/provider"));
+const NEARProvider = lazy(() => import("./near/provider"));
+const TronProvider = lazy(() => import("./tron/provider"));
+const AptosProvider = lazy(() => import("./aptos/provider"));
+
+// Loading component
+const WalletProviderLoader = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={null}>
+    <RainbowProvider>
+      <SolanaProvider>
+        <NEARProvider>
+          <TronProvider>
+            <AptosProvider>
+              {children}
+            </AptosProvider>
+          </TronProvider>
+        </NEARProvider>
+      </SolanaProvider>
+    </RainbowProvider>
+  </Suspense>
+);
 
 export default function WalletsProvider({
   children
@@ -14,17 +32,9 @@ export default function WalletsProvider({
 }) {
   return (
     <OKXConnectProvider>
-      <RainbowProvider>
-        <SolanaProvider>
-          <NEARProvider>
-            <TronProvider>
-              <AptosProvider>
-                {children}
-              </AptosProvider>
-            </TronProvider>
-          </NEARProvider>
-        </SolanaProvider>
-      </RainbowProvider>
+      <WalletProviderLoader>
+        {children}
+      </WalletProviderLoader>
     </OKXConnectProvider>
   );
 }
