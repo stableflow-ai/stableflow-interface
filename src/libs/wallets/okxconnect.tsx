@@ -34,7 +34,12 @@ const OKXConnectProvider = (props: any) => {
           chains: [
             "tron:mainnet",
           ],
-        }
+        },
+        aptos: {
+          chains: [
+            "aptos:mainnet",
+          ],
+        },
       },
       sessionConfig: {
         // do not specify redirect url, it maybe open the current URL in the different browser

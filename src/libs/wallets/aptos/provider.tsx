@@ -8,6 +8,8 @@ import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
 import { Network } from "@aptos-labs/ts-sdk";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import Modal from "@/components/modal";
+import { useWatchOKXConnect } from "../okxconnect";
+import { OKXAptosProvider } from "@okxconnect/aptos-provider";
 
 export default function AptosProvider({
   children
@@ -24,7 +26,7 @@ export default function AptosProvider({
         console.log("error", error);
       }}
     >
-      {children} {isMobile ? <Content /> : <Content />}
+      {children} {isMobile ? <MobileContent /> : <Content />}
     </AptosWalletAdapterProvider>
   );
 }
@@ -66,7 +68,7 @@ const Content = () => {
   const { run: connect2AptosWallets } = useDebounceFn(() => {
     if (!mounted) return;
     const aptosWallet = new AptosWallet({
-      account,
+      account: account?.address.toString() || null,
       signAndSubmitTransaction,
     });
     setWallets({
@@ -203,30 +205,31 @@ const Content = () => {
   );
 };
 
-// const MobileContent = () => {
-//   const setWallets = useWalletsStore((state) => state.set);
+const MobileContent = () => {
+  const setWallets = useWalletsStore((state) => state.set);
 
-//   useWatchOKXConnect((okxConnect: any) => {
-//     const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
-//     const provider = new OKXSolanaProvider(okxUniversalProvider);
-//     const account = provider.getAccount()?.address || null;
-//     const solanaWallet = new SolanaWallet({
-//       publicKey: account ? new PublicKey(account) : null,
-//       signTransaction: (transaction: Transaction) => {
-//         return provider.signTransaction(transaction, "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp");
-//       },
-//     });
+  useWatchOKXConnect((okxConnect: any) => {
+    const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
+    const provider = new OKXAptosProvider(okxUniversalProvider);
+    const account = provider.getAccount("aptos:mainnet")?.address || null;
+    const aptosWallet = new AptosWallet({
+      isMobile: true,
+      account: account,
+      signAndSubmitTransaction: ((transaction: any) => {
+        return provider.signAndSubmitTransaction(transaction, "aptos:mainnet");
+      }) as any,
+    });
 
-//     setWallets({
-//       aptos: {
-//         account,
-//         wallet: solanaWallet,
-//         walletIcon: icon,
-//         connect: connect,
-//         disconnect: disconnect,
-//       }
-//     });
-//   });
+    setWallets({
+      aptos: {
+        account,
+        wallet: aptosWallet,
+        walletIcon: icon,
+        connect: connect,
+        disconnect: disconnect,
+      }
+    });
+  });
 
-//   return null;
-// };
+  return null;
+};
