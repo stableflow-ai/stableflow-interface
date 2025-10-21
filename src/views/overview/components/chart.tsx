@@ -4,6 +4,48 @@ import dayjs from "@/libs/dayjs";
 import Loading from "@/components/loading/icon";
 import { formatNumber } from "@/utils/format/number";
 
+// Helper function to format x-axis labels based on selected period
+const formatXAxisLabel = (date: dayjs.Dayjs, selectedPeriod: "day" | "week" | "month"): string => {
+  switch (selectedPeriod) {
+    case "day":
+      return date.format('MM/DD');
+    case "week":
+      const startDate = date;
+      const endDate = date.add(6, 'days');
+      return `${startDate.format('MM/DD')} - ${endDate.format('MM/DD')}`;
+    case "month":
+      return date.format('MMM');
+    default:
+      return date.format('MM/DD');
+  }
+};
+
+// Helper function to format tooltip dates based on selected period
+const formatTooltipDate = (date: dayjs.Dayjs, selectedPeriod: "day" | "week" | "month"): string => {
+  switch (selectedPeriod) {
+    case "day":
+      return date.format('YYYY-MM-DD');
+    case "week":
+      const startDate = date;
+      const endDate = date.add(6, 'days');
+      return `${startDate.format('YYYY-MM-DD')} - ${endDate.format('YYYY-MM-DD')}`;
+    case "month":
+      return date.format('YYYY-MM');
+    default:
+      return date.format('YYYY-MM-DD');
+  }
+};
+
+// Helper function to get tooltip date label based on selected period
+const getTooltipDateLabel = (selectedPeriod: "day" | "week" | "month"): string => {
+  switch (selectedPeriod) {
+    case "month":
+      return "Month";
+    default:
+      return "Date";
+  }
+};
+
 interface ChartData {
   stat_time: number;
   symbol: string;
@@ -20,7 +62,7 @@ interface ChartProps {
 }
 
 // Volume Chart Component
-const VolumeChart = ({ data }: { data: ChartData[] }) => {
+const VolumeChart = ({ data, selectedPeriod }: { data: ChartData[], selectedPeriod: "day" | "week" | "month" }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   const drawChart = () => {
@@ -52,7 +94,7 @@ const VolumeChart = ({ data }: { data: ChartData[] }) => {
 
     // Set up scales
     const xScale = d3.scaleBand()
-      .domain(processedData.map(d => d.date.format('YYYY/MM/DD')))
+      .domain(processedData.map(d => formatXAxisLabel(d.date, selectedPeriod)))
       .range([0, width])
       .padding(0.1);
 
@@ -80,7 +122,7 @@ const VolumeChart = ({ data }: { data: ChartData[] }) => {
       .enter()
       .append("rect")
       .attr("class", "bar")
-      .attr("x", d => xScale(d.date.format('YYYY/MM/DD')) || 0)
+      .attr("x", d => xScale(formatXAxisLabel(d.date, selectedPeriod)) || 0)
       .attr("y", d => yScale(d.volume))
       .attr("width", xScale.bandwidth())
       .attr("height", d => height - yScale(d.volume))
@@ -90,8 +132,8 @@ const VolumeChart = ({ data }: { data: ChartData[] }) => {
         tooltip
           .style("visibility", "visible")
           .html(`
-            <div><strong>Date:</strong> ${d.date.format('YYYY-MM-DD')}</div>
-            <div><strong>Volume:</strong> ${d3.format(".2f")(d.volume)}</div>
+            <div><strong>${getTooltipDateLabel(selectedPeriod)}:</strong> ${formatTooltipDate(d.date, selectedPeriod)}</div>
+            <div><strong>Volume:</strong> ${formatNumber(d.volume, 2, true, { prefix: "$" })}</div>
             <div><strong>Users:</strong> ${formatNumber(d.users, 0, true)}</div>
           `);
       })
@@ -140,13 +182,13 @@ const VolumeChart = ({ data }: { data: ChartData[] }) => {
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [data]);
+  }, [data, selectedPeriod]);
 
   return <svg ref={svgRef} className="w-full h-full" />;
 };
 
 // Transactions Chart Component
-const TransactionsChart = ({ data }: { data: ChartData[] }) => {
+const TransactionsChart = ({ data, selectedPeriod }: { data: ChartData[], selectedPeriod: "day" | "week" | "month" }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   const drawChart = () => {
@@ -177,7 +219,7 @@ const TransactionsChart = ({ data }: { data: ChartData[] }) => {
 
     // Set up scales
     const xScale = d3.scaleBand()
-      .domain(processedData.map(d => d.date.format('YYYY/MM/DD')))
+      .domain(processedData.map(d => formatXAxisLabel(d.date, selectedPeriod)))
       .range([0, width])
       .padding(0.1);
 
@@ -205,7 +247,7 @@ const TransactionsChart = ({ data }: { data: ChartData[] }) => {
       .enter()
       .append("rect")
       .attr("class", "bar")
-      .attr("x", d => xScale(d.date.format('YYYY/MM/DD')) || 0)
+      .attr("x", d => xScale(formatXAxisLabel(d.date, selectedPeriod)) || 0)
       .attr("y", d => yScale(d.transactions))
       .attr("width", xScale.bandwidth())
       .attr("height", d => height - yScale(d.transactions))
@@ -215,7 +257,7 @@ const TransactionsChart = ({ data }: { data: ChartData[] }) => {
         tooltip
           .style("visibility", "visible")
           .html(`
-            <div><strong>Date:</strong> ${d.date.format('YYYY-MM-DD')}</div>
+            <div><strong>${getTooltipDateLabel(selectedPeriod)}:</strong> ${formatTooltipDate(d.date, selectedPeriod)}</div>
             <div><strong>Transactions:</strong> ${d3.format(".2s")(d.transactions)}</div>
             <div><strong>Users:</strong> ${formatNumber(d.users, 0, true)}</div>
           `);
@@ -264,7 +306,7 @@ const TransactionsChart = ({ data }: { data: ChartData[] }) => {
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [data]);
+  }, [data, selectedPeriod]);
 
   return <svg ref={svgRef} className="w-full h-full" />;
 };
@@ -274,12 +316,12 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
     if (!data || data.length === 0) return null;
 
     return data;
-  }, [data]);
+  }, [data, selectedPeriod]);
 
   const periods = [
     { value: "day", label: "30 Days", description: "D" },
-    { value: "week", label: "15 Weeks", description: "M" },
-    { value: "month", label: "12 Months", description: "Y" },
+    { value: "week", label: "15 Weeks", description: "W" },
+    { value: "month", label: "12 Months", description: "M" },
   ] as const;
 
   if (loading) {
@@ -290,7 +332,7 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
           onPeriodChange={onPeriodChange}
           selectedPeriod={selectedPeriod}
         />
-        <div className="flex flex-col gap-[16px]">
+        <div className="grid grid-cols-2 gap-[16px]">
           <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
             <div className="flex items-center gap-[6px] mb-[16px]">
               <div className="w-[12px] h-[12px] bg-[#6284F5] rounded-[2px]"></div>
@@ -323,28 +365,12 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
   if (!chartData || chartData.length === 0) {
     return (
       <div className="w-full">
-        <div className="flex items-center justify-between mb-[12px]">
-          <div className="text-[16px] font-[500] text-[#0E3616]">
-            Analytics Chart
-          </div>
-          <div className="bg-white rounded-[8px] border border-[#F2F2F2] p-[4px]">
-            <div className="flex">
-              {periods.map((period) => (
-                <button
-                  key={period.value}
-                  onClick={() => onPeriodChange(period.value)}
-                  className={`px-[12px] py-[6px] rounded-[6px] text-[12px] font-[500] transition-all duration-300 ${selectedPeriod === period.value
-                    ? "bg-[#6284F5] text-white shadow-[0_2px_4px_0_rgba(98,132,245,0.30)]"
-                    : "text-[#9FA7BA] hover:text-[#2B3337] hover:bg-[#FAFBFF]"
-                    }`}
-                >
-                  {period.description}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col gap-[16px]">
+        <Header
+          periods={periods}
+          onPeriodChange={onPeriodChange}
+          selectedPeriod={selectedPeriod}
+        />
+        <div className="grid grid-cols-2 gap-[16px]">
           <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
             <div className="flex items-center gap-[6px] mb-[16px]">
               <div className="w-[12px] h-[12px] bg-[#6284F5] rounded-[2px]"></div>
@@ -376,7 +402,7 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
         selectedPeriod={selectedPeriod}
       />
 
-      <div className="flex flex-col gap-[16px]">
+      <div className="grid grid-cols-2 gap-[16px]">
         {/* Volume Chart */}
         <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
           <div className="flex items-center gap-[6px] mb-[16px]">
@@ -384,7 +410,7 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
             <span className="text-[14px] font-[500] text-[#2B3337]">Volume</span>
           </div>
           <div className="h-[140px]">
-            <VolumeChart data={chartData} />
+            <VolumeChart data={chartData} selectedPeriod={selectedPeriod} />
           </div>
         </div>
 
@@ -395,7 +421,7 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
             <span className="text-[14px] font-[500] text-[#2B3337]">Transactions</span>
           </div>
           <div className="h-[140px]">
-            <TransactionsChart data={chartData} />
+            <TransactionsChart data={chartData} selectedPeriod={selectedPeriod} />
           </div>
         </div>
       </div>
