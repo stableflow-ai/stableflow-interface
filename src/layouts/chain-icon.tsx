@@ -3,6 +3,7 @@ import ethSmallIcon from "@/assets/eth-small.png";
 import solSmallIcon from "@/assets/sol-small.png";
 import nearSmallIcon from "@/assets/near-small.png";
 import tronSmallIcon from "@/assets/tron-small.png";
+import aptosSmallIcon from "@/assets/aptos-small.png";
 
 const CHAINS = {
   evm: {
@@ -20,6 +21,10 @@ const CHAINS = {
   tron: {
     color: "#D21F10",
     icon: <img src={tronSmallIcon} alt="tron" />
+  },
+  aptos: {
+    color: "#000000",
+    icon: <img src={aptosSmallIcon} alt="aptos" className="w-[16px] h-[16px] object-center object-contain" />
   }
 };
 
