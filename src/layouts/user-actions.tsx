@@ -1,11 +1,13 @@
 import useWalletStore from "@/stores/use-wallet";
 import ChainIcon from "./chain-icon";
-import useWalletsStore from "@/stores/use-wallets";
+import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useHistoryStore } from "@/stores/use-history";
 import { useMemo } from "react";
 import MainTitle from "@/components/main-title";
 import useIsMobile from "@/hooks/use-is-mobile";
+import { stablecoinWithChains } from "@/config/tokens";
+import clsx from "clsx";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -30,9 +32,9 @@ export default function UserActions() {
       </div>
       <div className="shrink-0">
         {!walletsStore.evm.account &&
-        !walletsStore.sol.account &&
-        !walletsStore.near.account &&
-        !walletsStore.tron.account ? (
+          !walletsStore.sol.account &&
+          !walletsStore.near.account &&
+          !walletsStore.tron.account ? (
           <button
             onClick={() => {
               walletStore.set({ showWallet: true });
@@ -175,15 +177,24 @@ const ChainsButton = ({
   nearConnected,
   tronConnected
 }: any) => {
+  const walletsStore = useWalletsStore();
+
   return (
     <button
       onClick={onClick}
       className="p-[6px] flex justify-center items-center button rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
     >
-      <ChainIcon chain="evm" connected={evmConnected} />
-      <ChainIcon chain="sol" connected={solConnected} className="ml-[-8px]" />
-      <ChainIcon chain="near" connected={nearConnected} className="ml-[-8px]" />
-      <ChainIcon chain="tron" connected={tronConnected} className="ml-[-8px]" />
+      {
+        Object.entries(stablecoinWithChains).map(([chain, tokens], index) => {
+          return (
+            <ChainIcon
+              chain={chain}
+              connected={!!walletsStore?.[chain as WalletType]?.account}
+              className={clsx(index > 0 && "ml-[-8px]")}
+            />
+          );
+        })
+      }
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="10"
