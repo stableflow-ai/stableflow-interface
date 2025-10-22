@@ -61,6 +61,7 @@ export default function UserActions() {
                 onClick={() => {
                   navigate("/overview");
                 }}
+                hidden={true}
               />
             )}
             <ChainsButton
@@ -118,7 +119,10 @@ const HistoryButton = ({ onClick }: any) => {
   );
 };
 
-const OverviewButton = ({ onClick }: any) => {
+const OverviewButton = ({ onClick, hidden }: any) => {
+  if (hidden) {
+    return null;
+  }
   return (
     <>
       <button
