@@ -25,7 +25,7 @@ export default function Overview() {
     <div className="w-full min-h-[100dvh] flex flex-col items-center mb-[100px]">
       <div className="md:w-[1100px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0 relative">
         <BackButton
-          className="absolute translate-y-[10px]"
+          className="absolute translate-x-[10px] translate-y-[-5px] md:translate-y-[10px] md:translate-x-[0px]"
         />
         <MainTitle className="!hidden md:!flex" />
         <div className="text-[16px] text-center w-full hidden md:block mb-[30px]">

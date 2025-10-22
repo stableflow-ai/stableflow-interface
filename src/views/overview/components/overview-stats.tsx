@@ -1,4 +1,5 @@
 import Loading from "@/components/loading/icon";
+import { formatNumber } from "@/utils/format/number";
 
 interface DashboardData {
   symbol: string;
@@ -13,16 +14,6 @@ interface OverviewStatsProps {
 }
 
 export default function OverviewStats({ data, loading }: OverviewStatsProps) {
-  const formatVolume = (volume: string) => {
-    const num = parseFloat(volume);
-    if (num >= 1000000) {
-      return `$${(num / 1000000).toFixed(1)}M`;
-    } else if (num >= 1000) {
-      return `$${(num / 1000).toFixed(1)}K`;
-    }
-    return `$${num.toFixed(2)}`;
-  };
-
   const stats = [
     // {
     //   label: "Total Users",
@@ -31,12 +22,12 @@ export default function OverviewStats({ data, loading }: OverviewStatsProps) {
     // },
     {
       label: "Total Volume", 
-      value: data ? formatVolume(data.volume) : "$0",
+      value: formatNumber(data?.volume, 2, true, { isShort: true, isShortUppercase: true, prefix: "$" }),
       icon: "💰"
     },
     {
       label: "Total Transactions",
-      value: data?.transactions || 0,
+      value: formatNumber(data?.transactions, 2, true, { isShort: true, isShortUppercase: true }),
       icon: "📊"
     }
   ];
@@ -46,7 +37,7 @@ export default function OverviewStats({ data, loading }: OverviewStatsProps) {
       <div className="text-[16px] font-[500] text-[#0E3616] mb-[12px]">
         Overview Statistics
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-[12px]">
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-[12px]">
         {stats.map((stat, index) => (
           <div
             key={index}
