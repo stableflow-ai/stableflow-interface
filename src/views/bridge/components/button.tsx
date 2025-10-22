@@ -11,10 +11,11 @@ export default function BridgeButton({
 }) {
   const bridgeStore = useBridgeStore();
   const { switchChain } = useSwitchChain();
+  const loading = !bridgeStore.errorTips && (bridgeStore.quoting || bridgeStore.transferring);
   return (
     <Button
-      disabled={!!bridgeStore.errorTips}
-      loading={!bridgeStore.errorTips && (bridgeStore.quoting || bridgeStore.transferring)}
+      disabled={!!bridgeStore.errorTips || loading}
+      loading={loading}
       className="w-full h-[50px] mt-[10px] rounded-[25px] bg-[#6284F5] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-white text-[16px]"
       onClick={() => {
         if (!!bridgeStore.errorTips) return;

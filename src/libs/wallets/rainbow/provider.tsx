@@ -15,11 +15,14 @@ import {
   useDisconnect,
   usePublicClient,
   useWalletClient,
-  cookieToInitialState
+  cookieToInitialState,
+  createConfig,
+  http
 } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   RainbowKitProvider,
+  connectorsForWallets,
   getDefaultConfig,
   useConnectModal
 } from "@rainbow-me/rainbowkit";
@@ -29,11 +32,52 @@ import "@rainbow-me/rainbowkit/styles.css";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
+import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet } from "@rainbow-me/rainbowkit/wallets";
+import { createClient } from "viem";
 
+const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
+export const metadata = {
+  name: "StableFlow.ai",
+  description: "Stablecoins to any chain, with one click.",
+  // origin must match your domain & subdomain
+  url: "https://app.stableflow.ai",
+  icons: ["/logo.svg"]
+};
 const config = getDefaultConfig({
-  appName: "StableFlow.ai",
-  projectId: import.meta.env.VITE_RAINBOW_PROJECT_ID,
-  chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis]
+  appName: metadata.name,
+  appDescription: metadata.description,
+  appUrl: metadata.url,
+  appIcon: metadata.icons[0],
+  projectId,
+  chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis],
+});
+const connectors: any = connectorsForWallets(
+  [
+    {
+      groupName: "Recommended",
+      wallets: [
+        okxWallet,
+        metaMaskWallet,
+        coinbaseWallet,
+        bitgetWallet,
+        binanceWallet,
+      ],
+    },
+  ],
+  {
+    appName: metadata.name,
+    projectId,
+  }
+);
+const wagmiConfig = createConfig({
+  ...config,
+  connectors,
+  client: ({ chain }) => {
+    return createClient({
+      chain,
+      transport: http()
+    })
+  }
 });
 
 const queryClient = new QueryClient();
@@ -43,10 +87,10 @@ export default function RainbowProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const initialState = cookieToInitialState(config);
+  const initialState = cookieToInitialState(wagmiConfig);
 
   return (
-    <WagmiProvider config={config} initialState={initialState}>
+    <WagmiProvider config={wagmiConfig} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider modalSize="compact" locale="en-US">
           {children}
