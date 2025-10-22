@@ -32,8 +32,9 @@ const Sankey = (props: any) => {
   const updateDimensions = () => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.offsetWidth;
+      const containerHeight = containerRef.current.offsetHeight;
       const newWidth = Math.max(600, containerWidth); // Use full container width, minimum 600px
-      const newHeight = Math.max(300, newWidth * 0.4); // Height proportional to width
+      const newHeight = Math.max(300, containerHeight); // Use full container height, minimum 300px
       setDimensions({ width: newWidth, height: newHeight });
     }
   };
@@ -424,13 +425,13 @@ const Sankey = (props: any) => {
         </div>
       </div>
       <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
-        <div className="flex gap-[20px]" style={{ height: `${dimensions.height}px` }}>
+        <div className="flex gap-[20px]">
           {/* Left Chains - From */}
           <div className="flex-shrink-0 w-[140px] flex flex-col">
             <div className="text-[12px] font-[500] text-[#2B3337] mb-[12px] text-center">
               From
             </div>
-            <div className="flex-1 overflow-y-auto space-y-[8px] pr-[4px]">
+            <div className="flex-1 space-y-[8px] pr-[4px]">
               {availableChains.map((chain) => {
                 const isSelected = selectedLeftChains.includes(chain.key);
                 return (
@@ -497,7 +498,7 @@ const Sankey = (props: any) => {
             <div className="text-[12px] font-[500] text-[#2B3337] mb-[12px] text-center">
               To
             </div>
-            <div className="flex-1 overflow-y-auto space-y-[8px] pl-[4px]">
+            <div className="flex-1 space-y-[8px] pl-[4px]">
               {availableChains.map((chain) => {
                 const isSelected = selectedRightChains.includes(chain.key);
                 return (

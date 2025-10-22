@@ -24,11 +24,11 @@ export default function OverviewStats({ data, loading }: OverviewStatsProps) {
   };
 
   const stats = [
-    {
-      label: "Total Users",
-      value: data?.users || 0,
-      icon: "👥"
-    },
+    // {
+    //   label: "Total Users",
+    //   value: data?.users || 0,
+    //   icon: "👥"
+    // },
     {
       label: "Total Volume", 
       value: data ? formatVolume(data.volume) : "$0",
@@ -46,7 +46,7 @@ export default function OverviewStats({ data, loading }: OverviewStatsProps) {
       <div className="text-[16px] font-[500] text-[#0E3616] mb-[12px]">
         Overview Statistics
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[12px]">
         {stats.map((stat, index) => (
           <div
             key={index}
