@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import dayjs from "@/libs/dayjs";
 import Loading from "@/components/loading/icon";
 import { formatNumber } from "@/utils/format/number";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 // Helper function to format x-axis labels based on selected period
 const formatXAxisLabel = (date: dayjs.Dayjs, selectedPeriod: "day" | "week" | "month"): string => {
@@ -62,7 +63,7 @@ interface ChartProps {
 }
 
 // Volume Chart Component
-const VolumeChart = ({ data, selectedPeriod }: { data: ChartData[], selectedPeriod: "day" | "week" | "month" }) => {
+const VolumeChart = ({ data, selectedPeriod, isMobile }: { data: ChartData[], selectedPeriod: "day" | "week" | "month", isMobile: boolean }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   const drawChart = () => {
@@ -77,11 +78,11 @@ const VolumeChart = ({ data, selectedPeriod }: { data: ChartData[], selectedPeri
     const margin = { top: 20, right: 20, bottom: 40, left: 50 };
     const containerWidth = svgRef.current?.parentElement?.clientWidth || 400;
     const width = containerWidth - margin.left - margin.right;
-    const height = 140 - margin.top - margin.bottom;
+    const height = 240 - margin.top - margin.bottom;
 
     const g = svg
       .attr("width", containerWidth)
-      .attr("height", 140)
+      .attr("height", 240)
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -98,8 +99,9 @@ const VolumeChart = ({ data, selectedPeriod }: { data: ChartData[], selectedPeri
       .range([0, width])
       .padding(0.1);
 
+    const maxVolume = d3.max(processedData, d => d.volume) || 0;
     const yScale = d3.scaleLinear()
-      .domain([0, d3.max(processedData, d => d.volume) || 0])
+      .domain([0, Math.max(maxVolume, maxVolume * 0.1)])
       .range([height, 0]);
 
     // Create tooltip
@@ -152,7 +154,11 @@ const VolumeChart = ({ data, selectedPeriod }: { data: ChartData[], selectedPeri
       .call(d3.axisBottom(xScale))
       .selectAll("text")
       .style("font-size", "10px")
-      .style("fill", "#9FA7BA");
+      .style("fill", "#9FA7BA")
+      .style("text-anchor", isMobile && selectedPeriod === "day" ? "end" : "middle")
+      .attr("transform", isMobile && selectedPeriod === "day" ? "rotate(-45)" : null)
+      .attr("dx", isMobile && selectedPeriod === "day" ? "-0.5em" : "0")
+      .attr("dy", isMobile && selectedPeriod === "day" ? "0.5em" : "0");
 
     // Add Y axis
     g.append("g")
@@ -182,13 +188,13 @@ const VolumeChart = ({ data, selectedPeriod }: { data: ChartData[], selectedPeri
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [data, selectedPeriod]);
+  }, [data, selectedPeriod, isMobile]);
 
   return <svg ref={svgRef} className="w-full h-full" />;
 };
 
 // Transactions Chart Component
-const TransactionsChart = ({ data, selectedPeriod }: { data: ChartData[], selectedPeriod: "day" | "week" | "month" }) => {
+const TransactionsChart = ({ data, selectedPeriod, isMobile }: { data: ChartData[], selectedPeriod: "day" | "week" | "month", isMobile: boolean }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   const drawChart = () => {
@@ -203,11 +209,11 @@ const TransactionsChart = ({ data, selectedPeriod }: { data: ChartData[], select
     const margin = { top: 20, right: 20, bottom: 40, left: 50 };
     const containerWidth = svgRef.current?.parentElement?.clientWidth || 400;
     const width = containerWidth - margin.left - margin.right;
-    const height = 140 - margin.top - margin.bottom;
+    const height = 240 - margin.top - margin.bottom;
 
     const g = svg
       .attr("width", containerWidth)
-      .attr("height", 140)
+      .attr("height", 240)
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -223,8 +229,9 @@ const TransactionsChart = ({ data, selectedPeriod }: { data: ChartData[], select
       .range([0, width])
       .padding(0.1);
 
+    const maxTransactions = d3.max(processedData, d => d.transactions) || 0;
     const yScale = d3.scaleLinear()
-      .domain([0, d3.max(processedData, d => d.transactions) || 0])
+      .domain([0, Math.max(maxTransactions, maxTransactions * 0.1)])
       .range([height, 0]);
 
     // Create tooltip
@@ -277,7 +284,11 @@ const TransactionsChart = ({ data, selectedPeriod }: { data: ChartData[], select
       .call(d3.axisBottom(xScale))
       .selectAll("text")
       .style("font-size", "10px")
-      .style("fill", "#9FA7BA");
+      .style("fill", "#9FA7BA")
+      .style("text-anchor", isMobile && selectedPeriod === "day" ? "end" : "middle")
+      .attr("transform", isMobile && selectedPeriod === "day" ? "rotate(-45)" : null)
+      .attr("dx", isMobile && selectedPeriod === "day" ? "-0.5em" : "0")
+      .attr("dy", isMobile && selectedPeriod === "day" ? "0.5em" : "0");
 
     // Add Y axis
     g.append("g")
@@ -306,17 +317,19 @@ const TransactionsChart = ({ data, selectedPeriod }: { data: ChartData[], select
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [data, selectedPeriod]);
+  }, [data, selectedPeriod, isMobile]);
 
   return <svg ref={svgRef} className="w-full h-full" />;
 };
 
 export default function Chart({ data, loading, selectedPeriod, onPeriodChange }: ChartProps) {
+  const isMobile = useIsMobile();
+
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return null;
 
     return data;
-  }, [data, selectedPeriod]);
+  }, [data, selectedPeriod, isMobile]);
 
   const periods = [
     { value: "day", label: "30 Days", description: "D" },
@@ -332,25 +345,25 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
           onPeriodChange={onPeriodChange}
           selectedPeriod={selectedPeriod}
         />
-        <div className="grid grid-cols-2 gap-[16px]">
-          <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+          <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] pb-0">
             <div className="flex items-center gap-[6px] mb-[16px]">
               <div className="w-[12px] h-[12px] bg-[#6284F5] rounded-[2px]"></div>
               <span className="text-[14px] font-[500] text-[#2B3337]">Volume</span>
             </div>
-            <div className="flex items-center justify-center h-[140px]">
+            <div className="flex items-center justify-center h-[240px]">
               <div className="flex flex-col items-center gap-[8px]">
                 <Loading size={24} />
                 <span className="text-[12px] text-[#9FA7BA]">Loading volume data...</span>
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
+          <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] pb-0">
             <div className="flex items-center gap-[6px] mb-[16px]">
               <div className="w-[12px] h-[12px] bg-[#56DEAD] rounded-[2px]"></div>
               <span className="text-[14px] font-[500] text-[#2B3337]">Transactions</span>
             </div>
-            <div className="flex items-center justify-center h-[140px]">
+            <div className="flex items-center justify-center h-[240px]">
               <div className="flex flex-col items-center gap-[8px]">
                 <Loading size={24} />
                 <span className="text-[12px] text-[#9FA7BA]">Loading transaction data...</span>
@@ -370,22 +383,22 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
           onPeriodChange={onPeriodChange}
           selectedPeriod={selectedPeriod}
         />
-        <div className="grid grid-cols-2 gap-[16px]">
-          <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+          <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] pb-0">
             <div className="flex items-center gap-[6px] mb-[16px]">
               <div className="w-[12px] h-[12px] bg-[#6284F5] rounded-[2px]"></div>
               <span className="text-[14px] font-[500] text-[#2B3337]">Volume</span>
             </div>
-            <div className="flex items-center justify-center h-[120px] text-[#9FA7BA] text-[14px]">
+            <div className="flex items-center justify-center h-[220px] text-[#9FA7BA] text-[14px]">
               📊 No volume data available
             </div>
           </div>
-          <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
+          <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] pb-0">
             <div className="flex items-center gap-[6px] mb-[16px]">
               <div className="w-[12px] h-[12px] bg-[#56DEAD] rounded-[2px]"></div>
               <span className="text-[14px] font-[500] text-[#2B3337]">Transactions</span>
             </div>
-            <div className="flex items-center justify-center h-[120px] text-[#9FA7BA] text-[14px]">
+            <div className="flex items-center justify-center h-[220px] text-[#9FA7BA] text-[14px]">
               📈 No transaction data available
             </div>
           </div>
@@ -402,26 +415,26 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
         selectedPeriod={selectedPeriod}
       />
 
-      <div className="grid grid-cols-2 gap-[16px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
         {/* Volume Chart */}
-        <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
+        <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] pb-0">
           <div className="flex items-center gap-[6px] mb-[16px]">
             <div className="w-[12px] h-[12px] bg-[#6284F5] rounded-[2px]"></div>
             <span className="text-[14px] font-[500] text-[#2B3337]">Volume</span>
           </div>
-          <div className="h-[140px]">
-            <VolumeChart data={chartData} selectedPeriod={selectedPeriod} />
+          <div className="h-[240px]">
+            <VolumeChart data={chartData} selectedPeriod={selectedPeriod} isMobile={isMobile} />
           </div>
         </div>
 
         {/* Transactions Chart */}
-        <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
+        <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] pb-0">
           <div className="flex items-center gap-[6px] mb-[16px]">
             <div className="w-[12px] h-[12px] bg-[#56DEAD] rounded-[2px]"></div>
             <span className="text-[14px] font-[500] text-[#2B3337]">Transactions</span>
           </div>
-          <div className="h-[140px]">
-            <TransactionsChart data={chartData} selectedPeriod={selectedPeriod} />
+          <div className="h-[240px]">
+            <TransactionsChart data={chartData} selectedPeriod={selectedPeriod} isMobile={isMobile} />
           </div>
         </div>
       </div>

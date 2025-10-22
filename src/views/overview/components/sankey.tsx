@@ -6,6 +6,8 @@ import { usdtChains } from '@/config/tokens/usdt';
 import Loading from '@/components/loading/icon';
 import Big from 'big.js';
 import { formatNumber } from '@/utils/format/number';
+import useIsMobile from '@/hooks/use-is-mobile';
+import MultiSelect from '@/components/multi-select';
 
 interface CustomSankeyNode extends SankeyNode<any, any> {
   id: string;
@@ -27,13 +29,15 @@ const Sankey = (props: any) => {
   const [dimensions, setDimensions] = useState({ width: 1200, height: 600 });
   const [selectedLeftChains, setSelectedLeftChains] = useState<string[]>(['eth', 'arb', 'pol', 'bsc', 'op']);
   const [selectedRightChains, setSelectedRightChains] = useState<string[]>(['eth', 'arb', 'pol', 'bsc', 'op']);
+  const isMobile = useIsMobile();
 
   // Function to update dimensions based on container size
   const updateDimensions = () => {
     if (containerRef.current) {
       const containerWidth = containerRef.current.offsetWidth;
+      const containerHeight = containerRef.current.offsetHeight;
       const newWidth = Math.max(600, containerWidth); // Use full container width, minimum 600px
-      const newHeight = Math.max(300, newWidth * 0.4); // Height proportional to width
+      const newHeight = Math.max(300, containerHeight); // Use full container height, minimum 300px
       setDimensions({ width: newWidth, height: newHeight });
     }
   };
@@ -424,118 +428,169 @@ const Sankey = (props: any) => {
         </div>
       </div>
       <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]">
-        <div className="flex gap-[20px]" style={{ height: `${dimensions.height}px` }}>
-          {/* Left Chains - From */}
-          <div className="flex-shrink-0 w-[140px] flex flex-col">
-            <div className="text-[12px] font-[500] text-[#2B3337] mb-[12px] text-center">
-              From
+        {isMobile ? (
+          // Mobile layout with MultiSelect components
+          <div className="space-y-[16px]">
+            {/* Mobile Chain Selectors */}
+            <div className="flex gap-[12px]">
+              <div className="flex-1">
+                <MultiSelect
+                  options={availableChains}
+                  selectedValues={selectedLeftChains}
+                  onChange={setSelectedLeftChains}
+                  label="From"
+                  minSelections={1}
+                />
+              </div>
+              <div className="flex-1">
+                <MultiSelect
+                  options={availableChains}
+                  selectedValues={selectedRightChains}
+                  onChange={setSelectedRightChains}
+                  label="To"
+                  minSelections={1}
+                />
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto space-y-[8px] pr-[4px]">
-              {availableChains.map((chain) => {
-                const isSelected = selectedLeftChains.includes(chain.key);
-                return (
-                  <div
-                    key={chain.key}
-                    onClick={() => {
-                      if (isSelected && selectedLeftChains.length > 1) {
-                        setSelectedLeftChains(selectedLeftChains.filter(key => key !== chain.key));
-                      } else if (!isSelected) {
-                        setSelectedLeftChains([...selectedLeftChains, chain.key]);
-                      }
-                    }}
-                    className={`
-                      flex items-center gap-[8px] p-[8px] rounded-[6px] cursor-pointer transition-all duration-150
-                      ${isSelected
-                        ? 'bg-[#6284F5] text-white'
-                        : 'bg-[#F8F9FA] text-[#2B3337] hover:bg-[#E8F0FE]'
-                      }
-                    `}
-                  >
+            
+            {/* Chart Area - Full Width */}
+            <div className="w-full">
+              <div ref={containerRef} className="w-full h-full">
+                {
+                  loading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="flex flex-col items-center gap-[8px]">
+                        <Loading size={24} />
+                        <span className="text-[12px] text-[#9FA7BA]">Loading flow data...</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <svg
+                      ref={svgRef}
+                      className="w-full h-full"
+                      viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+                      preserveAspectRatio="xMidYMid meet"
+                    ></svg>
+                  )
+                }
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Desktop layout with side selectors
+          <div className="flex gap-[20px]">
+            {/* Left Chains - From */}
+            <div className="flex-shrink-0 w-[140px] flex flex-col">
+              <div className="text-[12px] font-[500] text-[#2B3337] mb-[12px] text-center">
+                From
+              </div>
+              <div className="flex-1 space-y-[8px] pr-[4px]">
+                {availableChains.map((chain) => {
+                  const isSelected = selectedLeftChains.includes(chain.key);
+                  return (
                     <div
-                      className="w-[8px] h-[8px] rounded-full flex-shrink-0"
-                      style={{ backgroundColor: chain.color }}
-                    />
-                    <div className="flex-1">
-                      <div className="text-[12px] font-[500]">{chain.name}</div>
+                      key={chain.key}
+                      onClick={() => {
+                        if (isSelected && selectedLeftChains.length > 1) {
+                          setSelectedLeftChains(selectedLeftChains.filter(key => key !== chain.key));
+                        } else if (!isSelected) {
+                          setSelectedLeftChains([...selectedLeftChains, chain.key]);
+                        }
+                      }}
+                      className={`
+                        flex items-center gap-[8px] p-[8px] rounded-[6px] cursor-pointer transition-all duration-150
+                        ${isSelected
+                          ? 'bg-[#6284F5] text-white'
+                          : 'bg-[#F8F9FA] text-[#2B3337] hover:bg-[#E8F0FE]'
+                        }
+                      `}
+                    >
+                      <div
+                        className="w-[8px] h-[8px] rounded-full flex-shrink-0"
+                        style={{ backgroundColor: chain.color }}
+                      />
+                      <div className="flex-1">
+                        <div className="text-[12px] font-[500]">{chain.name}</div>
+                      </div>
+                      {isSelected && (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
                     </div>
-                    {isSelected && (
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Chart Area */}
-          <div className="flex-1">
-            <div ref={containerRef} className="w-full h-full">
-              {
-                loading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="flex flex-col items-center gap-[8px]">
-                      <Loading size={24} />
-                      <span className="text-[12px] text-[#9FA7BA]">Loading flow data...</span>
+            {/* Chart Area */}
+            <div className="flex-1">
+              <div ref={containerRef} className="w-full h-full">
+                {
+                  loading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="flex flex-col items-center gap-[8px]">
+                        <Loading size={24} />
+                        <span className="text-[12px] text-[#9FA7BA]">Loading flow data...</span>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <svg
-                    ref={svgRef}
-                    className="w-full h-full"
-                    viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-                    preserveAspectRatio="xMidYMid meet"
-                  ></svg>
-                )
-              }
+                  ) : (
+                    <svg
+                      ref={svgRef}
+                      className="w-full h-full"
+                      viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+                      preserveAspectRatio="xMidYMid meet"
+                    ></svg>
+                  )
+                }
+              </div>
             </div>
-          </div>
 
-          {/* Right Chains - To */}
-          <div className="flex-shrink-0 w-[140px] flex flex-col">
-            <div className="text-[12px] font-[500] text-[#2B3337] mb-[12px] text-center">
-              To
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-[8px] pl-[4px]">
-              {availableChains.map((chain) => {
-                const isSelected = selectedRightChains.includes(chain.key);
-                return (
-                  <div
-                    key={chain.key}
-                    onClick={() => {
-                      if (isSelected && selectedRightChains.length > 1) {
-                        setSelectedRightChains(selectedRightChains.filter(key => key !== chain.key));
-                      } else if (!isSelected) {
-                        setSelectedRightChains([...selectedRightChains, chain.key]);
-                      }
-                    }}
-                    className={`
-                      flex items-center gap-[8px] p-[8px] rounded-[6px] cursor-pointer transition-all duration-150
-                      ${isSelected
-                        ? 'bg-[#6284F5] text-white'
-                        : 'bg-[#F8F9FA] text-[#2B3337] hover:bg-[#E8F0FE]'
-                      }
-                    `}
-                  >
+            {/* Right Chains - To */}
+            <div className="flex-shrink-0 w-[140px] flex flex-col">
+              <div className="text-[12px] font-[500] text-[#2B3337] mb-[12px] text-center">
+                To
+              </div>
+              <div className="flex-1 space-y-[8px] pl-[4px]">
+                {availableChains.map((chain) => {
+                  const isSelected = selectedRightChains.includes(chain.key);
+                  return (
                     <div
-                      className="w-[8px] h-[8px] rounded-full flex-shrink-0"
-                      style={{ backgroundColor: chain.color }}
-                    />
-                    <div className="flex-1">
-                      <div className="text-[12px] font-[500]">{chain.name}</div>
+                      key={chain.key}
+                      onClick={() => {
+                        if (isSelected && selectedRightChains.length > 1) {
+                          setSelectedRightChains(selectedRightChains.filter(key => key !== chain.key));
+                        } else if (!isSelected) {
+                          setSelectedRightChains([...selectedRightChains, chain.key]);
+                        }
+                      }}
+                      className={`
+                        flex items-center gap-[8px] p-[8px] rounded-[6px] cursor-pointer transition-all duration-150
+                        ${isSelected
+                          ? 'bg-[#6284F5] text-white'
+                          : 'bg-[#F8F9FA] text-[#2B3337] hover:bg-[#E8F0FE]'
+                        }
+                      `}
+                    >
+                      <div
+                        className="w-[8px] h-[8px] rounded-full flex-shrink-0"
+                        style={{ backgroundColor: chain.color }}
+                      />
+                      <div className="flex-1">
+                        <div className="text-[12px] font-[500]">{chain.name}</div>
+                      </div>
+                      {isSelected && (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
                     </div>
-                    {isSelected && (
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

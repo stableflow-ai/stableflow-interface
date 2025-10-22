@@ -44,7 +44,7 @@ export default function UserActions() {
             Connect
           </button>
         ) : (
-          <div className="flex items-center gap-[14px]">
+          <div className="flex items-center gap-[7px]">
             {!isHistory && !isOverview && (
               <HistoryButton
                 onClick={() => {
@@ -81,7 +81,7 @@ const HistoryButton = ({ onClick }: any) => {
     <>
       <button
         onClick={onClick}
-        className="flex md:hidden relative button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+        className="flex md:hidden relative button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
       >
         <img
           src="/icon-records.svg"
@@ -94,7 +94,7 @@ const HistoryButton = ({ onClick }: any) => {
       </button>
       <button
         onClick={onClick}
-        className="hidden md:flex button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+        className="hidden md:flex button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
       >
         {pendingNumber > 0 ? (
           <>
@@ -123,7 +123,7 @@ const OverviewButton = ({ onClick }: any) => {
     <>
       <button
         onClick={onClick}
-        className="flex md:hidden button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+        className="flex md:hidden button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -143,7 +143,7 @@ const OverviewButton = ({ onClick }: any) => {
       </button>
       <button
         onClick={onClick}
-        className="hidden md:flex button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+        className="hidden md:flex button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
