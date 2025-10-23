@@ -8,12 +8,13 @@ import MainTitle from "@/components/main-title";
 import PendingTransfer from "./components/pending";
 import HistoryDrawer from "../history/drawer";
 import { useLiquidityQuote } from "@/stores/use-liquidity-quote";
+import Trusted from "./components/trusted";
 
 export default function Bridge() {
   const liquidity = useLiquidityQuote();
   const { transfer, addressValidation, errorChain } = useBridge(liquidity);
   return (
-    <div className="w-full min-h-[100dvh] flex flex-col items-center">
+    <div className="w-full h-[100dvh] pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
       <div className="md:w-[488px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0">
         <MainTitle className="!hidden md:!flex" />
         <div className="text-[16px] text-center w-full hidden md:block">
@@ -28,6 +29,7 @@ export default function Bridge() {
         </div>
       </div>
       <SupportedNetworks />
+      <Trusted />
       <HistoryDrawer />
     </div>
   );
