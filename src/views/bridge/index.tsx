@@ -8,7 +8,9 @@ import MainTitle from "@/components/main-title";
 import PendingTransfer from "./components/pending";
 import HistoryDrawer from "../history/drawer";
 import { useLiquidityQuote } from "@/stores/use-liquidity-quote";
-import Trusted from "./components/trusted";
+import { lazy, Suspense } from 'react';
+
+const Trusted = lazy(() => import("./components/trusted"));
 
 export default function Bridge() {
   const liquidity = useLiquidityQuote();
@@ -29,7 +31,9 @@ export default function Bridge() {
         </div>
       </div>
       <SupportedNetworks />
-      <Trusted />
+      <Suspense fallback={null}>
+        <Trusted />
+      </Suspense>
       <HistoryDrawer />
     </div>
   );
