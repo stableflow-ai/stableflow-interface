@@ -11,6 +11,7 @@ const Result = lazy(() => import("./components/result"));
 const BridgeButton = lazy(() => import("./components/button"));
 const SupportedNetworks = lazy(() => import("./components/supported-networks"));
 const HistoryDrawer = lazy(() => import("../history/drawer"));
+const Trusted = lazy(() => import("./components/trusted"));
 
 // Loading component
 const LoadingSpinner = () => null;
@@ -18,9 +19,9 @@ const LoadingSpinner = () => null;
 export default function Bridge() {
   const liquidity = useLiquidityQuote();
   const { transfer, addressValidation, errorChain } = useBridge(liquidity);
-  
+
   return (
-    <div className="w-full min-h-dvh flex flex-col items-center">
+    <div className="w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
       <div className="md:w-[488px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0">
         <MainTitle className="hidden! md:flex!" />
         <div className="text-[16px] text-center w-full hidden md:block">
@@ -44,6 +45,9 @@ export default function Bridge() {
       </div>
       <Suspense fallback={<LoadingSpinner />}>
         <SupportedNetworks />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Trusted />
       </Suspense>
       <Suspense fallback={null}>
         <HistoryDrawer />
