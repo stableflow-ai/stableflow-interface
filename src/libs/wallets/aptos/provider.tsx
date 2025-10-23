@@ -26,6 +26,16 @@ export default function AptosProvider({
       onError={(error) => {
         console.log("error", error);
       }}
+      optInWallets={[
+        "OKX Wallet",
+        "Petra",
+        "Nightly",
+        "Pontem Wallet",
+        "Backpack",
+        "MSafe",
+        "Bitget Wallet",
+        "Gate Wallet",
+      ]}
     >
       {children} {isMobile ? <MobileContent /> : <Content />}
     </AptosWalletAdapterProvider>
@@ -42,7 +52,12 @@ const Content = () => {
     signAndSubmitTransaction,
     wallet,
     wallets,
+    notDetectedWallets,
   } = useWallet();
+
+  console.log("wallets: %o", wallets);
+  console.log("notDetectedWallets: %o", notDetectedWallets);
+
   const setBalancesStore = useBalancesStore((state) => state.set);
 
   // Wallet selector
@@ -119,7 +134,8 @@ const Content = () => {
       onClose={onClose}
       onConnect={onConnect}
       isConnecting={isConnecting}
-      wallets={wallets?.filter((_wallet) => !["Continue with Apple", "Continue with Google"].includes(_wallet.name))}
+      wallets={[...wallets, ...notDetectedWallets]}
+      readyState={{ key: "readyState", value: "Installed" }}
       title="Select Aptos Wallet"
     />
   );

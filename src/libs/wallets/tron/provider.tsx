@@ -155,6 +155,7 @@ const Content = () => {
       onConnect={onConnect}
       isConnecting={isConnecting}
       wallets={wallets}
+      readyState={{ key: "_readyState", value: "Found" }}
       title="Select Tron Wallet"
     />
   );
