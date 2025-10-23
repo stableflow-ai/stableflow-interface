@@ -55,9 +55,6 @@ const Content = () => {
     notDetectedWallets,
   } = useWallet();
 
-  console.log("wallets: %o", wallets);
-  console.log("notDetectedWallets: %o", notDetectedWallets);
-
   const setBalancesStore = useBalancesStore((state) => state.set);
 
   // Wallet selector
