@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import oneClickService from "@/services/oneclick";
+import { ServiceMap } from "@/services";
 import {
   validateAddress,
   type AddressValidationResult
@@ -17,6 +17,9 @@ import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { BridgeDefaultWallets } from "../config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
+import { Service } from "@/services";
+
+const TRANSFER_MIN_AMOUNT = 1;
 
 export default function useBridge(props?: any) {
   const { liquidityError } = props ?? {};
@@ -54,33 +57,19 @@ export default function useBridge(props?: any) {
   // Amount state
   const [amountError, setAmountError] = useState<string>("");
 
-  const quote = async (dry: boolean) => {
-    if (
-      !walletStore.toToken ||
-      !walletStore.fromToken ||
-      !fromWalletAddress ||
-      !(bridgeStore.recipientAddress || toWalletAddress) ||
-      Number(bridgeStore.amount) < 1
-    ) {
-      bridgeStore.set({ quoteData: null });
-      return;
-    }
-
+  const quoteOneclick = async (params: any) => {
     try {
       bridgeStore.set({ quoting: true });
+      bridgeStore.setQuoting(Service.OneClick, true);
       setLiquidityErrorMessage(liquidityError);
 
-      const _amount = Big(bridgeStore.amount)
-        .times(10 ** walletStore.fromToken.decimals)
-        .toFixed(0);
-
-      const quoteRes = await oneClickService.quote({
-        dry: dry,
+      const quoteRes = await ServiceMap[Service.OneClick].quote({
+        dry: params.dry,
         slippageTolerance: configStore.slippage * 100,
         originAsset: walletStore.fromToken.assetId,
         destinationAsset: walletStore.toToken.assetId,
-        amount: _amount,
-        refundTo: fromWalletAddress,
+        amount: params.parsedAmount,
+        refundTo: fromWalletAddress || "",
         refundType: "ORIGIN_CHAIN",
         recipient: bridgeStore.recipientAddress || toWalletAddress || ""
       });
@@ -92,6 +81,8 @@ export default function useBridge(props?: any) {
       }
 
       bridgeStore.set({ quoteData: quoteRes.data, quoting: false });
+      bridgeStore.setQuoting(Service.OneClick, false);
+      bridgeStore.setQuoteData(Service.OneClick, quoteRes.data);
       setLiquidityErrorMessage(false);
       return quoteRes.data;
     } catch (error: any) {
@@ -117,13 +108,88 @@ export default function useBridge(props?: any) {
         return "Failed to get quote, please try again later";
       };
 
+      const _quoteData = {
+        errMsg: getQuoteErrorMessage(),
+      };
       bridgeStore.set({
         quoting: false,
-        quoteData: {
-          errMsg: getQuoteErrorMessage(),
-        }
+        quoteData: _quoteData,
       });
+      bridgeStore.setQuoting(Service.OneClick, false);
+      bridgeStore.setQuoteData(Service.OneClick, _quoteData);
       setLiquidityErrorMessage(false);
+      return _quoteData;
+    }
+  };
+
+  const quoteUsdt0 = async (params: any) => {
+    try {
+      bridgeStore.setQuoting(Service.Usdt0, true);
+
+      // ServiceMap[Service.OneClick]
+
+      bridgeStore.setQuoting(Service.Usdt0, false);
+      // bridgeStore.setQuoteData(Service.Usdt0, quoteRes.data);
+      return {};
+    } catch (error: any) {
+      const _quoteData = {
+        errMsg: error.message,
+      };
+      bridgeStore.setQuoting(Service.Usdt0, false);
+      bridgeStore.setQuoteData(Service.Usdt0, _quoteData);
+      setLiquidityErrorMessage(false);
+      return _quoteData;
+    }
+  };
+
+  const quote = async (params: { dry: boolean; }) => {
+    console.log("------- ⬇️ quote ⬇️ -------");
+    console.log("walletStore.fromToken: %o", walletStore.fromToken);
+    console.log("walletStore.toToken: %o", walletStore.toToken);
+    console.log("fromWalletAddress: %o", fromWalletAddress);
+    console.log("custom recipient address: %o", bridgeStore.recipientAddress);
+    console.log("default recipient address: %o", toWalletAddress);
+    console.log("final recipient address: %o", bridgeStore.recipientAddress || toWalletAddress || "");
+    console.log("------- ⬆️ quote ⬆️ -------");
+
+    if (
+      !walletStore.toToken ||
+      !walletStore.fromToken ||
+      !fromWalletAddress ||
+      !(bridgeStore.recipientAddress || toWalletAddress) ||
+      Big(bridgeStore.amount).lt(TRANSFER_MIN_AMOUNT)
+    ) {
+      bridgeStore.set({ quoteData: null, quoteDataMap: new Map() });
+      return;
+    }
+
+    const parsedAmount = Big(bridgeStore.amount)
+      .times(10 ** walletStore.fromToken.decimals)
+      .toFixed(0);
+
+    const quoteServices: any = [];
+    for (const service of Object.values(Service)) {
+      if (walletStore.fromToken.services.includes(service) && walletStore.toToken.services.includes(service)) {
+        switch (service) {
+          case Service.OneClick:
+            quoteServices.push({ service: [Service.OneClick], quote: quoteOneclick });
+            break;
+          case Service.Usdt0:
+            quoteServices.push({ service: [Service.Usdt0], quote: quoteUsdt0 });
+            break;
+          default:
+            break;
+        }
+      }
+    }
+
+    for (const quoteService of quoteServices) {
+      quoteService.quote({
+        ...params,
+        parsedAmount,
+      }).then((quoteRes: any) => {
+        console.log("%c%s quoteRes: %o", "background:#f00;color:#fff;", quoteService.service, quoteRes);
+      });
     }
   };
 
@@ -141,7 +207,7 @@ export default function useBridge(props?: any) {
     if (!walletStore.fromToken) return;
     try {
       bridgeStore.set({ transferring: true });
-      const _quote = await quote(false);
+      const _quote: any = await quote({ dry: false });
 
       // @ts-ignore
       const wallet = wallets[walletStore.fromToken.chainType];
@@ -210,7 +276,7 @@ export default function useBridge(props?: any) {
       return "Please enter a valid number";
     }
 
-    if (numValue < 1) {
+    if (Big(numValue).lt(TRANSFER_MIN_AMOUNT)) {
       return "Amount is too low, at least 1";
     }
 
@@ -240,7 +306,7 @@ export default function useBridge(props?: any) {
     return "";
   };
 
-  const { run: debouncedQuote } = useDebounceFn(quote, {
+  const { run: debouncedQuote, cancel: cancelQuote } = useDebounceFn(quote, {
     wait: 1000
   });
 
@@ -253,11 +319,13 @@ export default function useBridge(props?: any) {
   }, [walletStore.fromToken, bridgeStore.amount, balancesStore]);
 
   useEffect(() => {
-    debouncedQuote(true);
+    cancelQuote();
+    debouncedQuote({ dry: true });
   }, [
     walletStore.fromToken,
     walletStore.toToken,
     bridgeStore.amount,
+    bridgeStore.recipientAddress,
     amountError,
     addressValidation,
     fromWalletAddress,

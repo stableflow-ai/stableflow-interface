@@ -1,3 +1,5 @@
+import { Service } from "@/services";
+
 export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
   near: {
     value: "near",
@@ -38,6 +40,7 @@ const chains = {
     chainIconGray: "/chains/near-gray.png",
     chainType: chainTypes.near.value,
     blockExplorerUrl: "https://nearblocks.io/txns",
+    services: [Service.OneClick],
   },
   sol: {
     chainName: "Solana",
@@ -45,6 +48,7 @@ const chains = {
     chainIconGray: "/chains/solana-gray.png",
     chainType: chainTypes.sol.value,
     blockExplorerUrl: "https://solscan.io/tx",
+    services: [Service.OneClick, Service.Usdt0],
   },
   eth: {
     chainName: "Ethereum",
@@ -53,6 +57,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 1,
     blockExplorerUrl: "https://etherscan.io/tx",
+    services: [Service.OneClick, Service.Usdt0],
   },
   arb: {
     chainName: "Arbitrum",
@@ -61,6 +66,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 42161,
     blockExplorerUrl: "https://arbiscan.io/tx",
+    services: [Service.OneClick, Service.Usdt0],
   },
   bsc: {
     chainName: "BNB Chain",
@@ -69,6 +75,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 56,
     blockExplorerUrl: "https://bscscan.com/tx",
+    services: [Service.OneClick],
   },
   avax: {
     chainName: "Avalanche",
@@ -77,6 +84,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 43114,
     blockExplorerUrl: "https://snowtrace.io/tx",
+    services: [Service.OneClick],
   },
   base: {
     chainName: "Base",
@@ -85,6 +93,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 8453,
     blockExplorerUrl: "https://basescan.org/tx",
+    services: [Service.OneClick],
   },
   pol: {
     chainName: "Polygon",
@@ -93,6 +102,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 137,
     blockExplorerUrl: "https://polygonscan.com/tx",
+    services: [Service.OneClick, Service.Usdt0],
   },
   gnosis: {
     chainName: "Gnosis",
@@ -101,6 +111,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 100,
     blockExplorerUrl: "https://gnosisscan.io/tx",
+    services: [Service.OneClick],
   },
   op: {
     chainName: "Optimism",
@@ -109,6 +120,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 10,
     blockExplorerUrl: "https://optimistic.etherscan.io/tx",
+    services: [Service.OneClick, Service.Usdt0],
   },
   tron: {
     chainName: "Tron",
@@ -116,6 +128,7 @@ const chains = {
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
     blockExplorerUrl: "https://tronscan.org/tx",
+    services: [Service.OneClick, Service.Usdt0],
   },
   aptos: {
     chainName: "Aptos",
@@ -123,6 +136,7 @@ const chains = {
     chainIconGray: "/chains/aptos-gray.png",
     chainType: chainTypes.aptos.value,
     blockExplorerUrl: "https://aptoscan.com/transaction",
+    services: [Service.OneClick],
   },
 };
 
