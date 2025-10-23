@@ -8,6 +8,7 @@ const WalletSelector = (props: any) => {
     title,
     isConnecting,
     onConnect,
+    readyState,
   } = props;
 
   return (
@@ -50,7 +51,13 @@ const WalletSelector = (props: any) => {
             .map((_wallet: any) => (
               <button
                 key={_wallet.name}
-                onClick={() => onConnect(_wallet)}
+                onClick={() => {
+                  if (readyState && _wallet[readyState.key] !== readyState.value) {
+                    window.open(_wallet.url, "_blank");
+                    return;
+                  }
+                  onConnect(_wallet);
+                }}
                 disabled={isConnecting === _wallet.name}
                 className="button w-full flex items-center gap-[16px] p-[16px] rounded-[12px] hover:bg-[#F8F9FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -74,6 +81,15 @@ const WalletSelector = (props: any) => {
                   </div>
                   <div className="text-[14px] text-[#666666]">{_wallet.name}</div>
                 </div>
+
+                {/* Installed Badge */}
+                {
+                  (readyState && _wallet[readyState.key] === readyState.value) && (
+                    <div className="uppercase text-[12px] p-[2px_6px] text-[#26d962] bg-[rgba(38,217,98,0.20)] rounded-[4px]">
+                      Detected
+                    </div>
+                  )
+                }
 
                 {/* Loading State */}
                 {isConnecting === _wallet.name && (
