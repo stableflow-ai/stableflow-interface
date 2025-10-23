@@ -7,7 +7,7 @@ const SupportedNetworks = (props: any) => {
   const networks = Object.values(usdtChains);
 
   return (
-    <div className="w-full shrink-0 mt-auto pt-[50px]">
+    <div className="w-full shrink-0 mt-auto pt-[100px]">
       <div className="text-[16px] md:text-[24px] font-[500] text-center text-[#9FA7BA] md:text-[#444C59]">
         Supported Networks
       </div>
