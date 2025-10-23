@@ -1,7 +1,7 @@
 export default function Hero() {
   return (
     <div className="w-full">
-      <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] md:p-[30px] mt-[20px]">
+      <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] md:p-[30px] mt-[40px]">
         <h1 className="text-[24px] md:text-[32px] font-[700] text-[#0E3616] text-center mb-[20px] leading-[1.3]">
           The Liquidity Layer for Moving Stablecoins at Scale
         </h1>
