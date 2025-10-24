@@ -13,7 +13,7 @@ const CardList = [
     description: "One-click stablecoin transfer from any chain to Arbitrum via StableFlow. StableFlow Everywhere. Arbitrum Everywhere",
   },
   {
-    img: "/bridge/trusted/avatar-arb.png",
+    img: "/bridge/trusted/avatar-polygon.png",
     name: "Kendall",
     title: "proximity",
     description: "StableFlow has the best execution on USDT between Solana, Ethereum, and Tron by about $5k on a 1M swap",
