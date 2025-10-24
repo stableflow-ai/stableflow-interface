@@ -51,7 +51,7 @@ export default function NEARProvider({
       try {
         const _selector = await setupWalletSelector({
           network: nearNetwork.networkId as "testnet" | "mainnet",
-          debug: true,
+          debug: false,
           modules: [
             setupMyNearWallet(),
             setupHotWallet() as unknown as any,

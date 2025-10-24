@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@near-wallet-selector/core": "^9.5.1",
-    "@near-wallet-selector/hot-wallet": "^10.0.0",
-    "@near-wallet-selector/intear-wallet": "^10.0.0",
+    "@near-wallet-selector/hot-wallet": "^9.5.1",
+    "@near-wallet-selector/intear-wallet": "^9.5.1",
     "@near-wallet-selector/meteor-wallet": "^9.5.1",
     "@near-wallet-selector/modal-ui": "^9.5.1",
     "@near-wallet-selector/my-near-wallet": "^9.5.1",
@@ -52,6 +52,7 @@
     "@eslint/js": "^9.33.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.4",
     "@vitejs/plugin-react-swc": "^4.0.0",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
