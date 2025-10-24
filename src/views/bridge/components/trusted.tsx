@@ -15,7 +15,11 @@ const CardList = [
   {
     img: "/bridge/trusted/avatar-polygon.png",
     name: "Polygon",
-    description: "StableFlow has the best execution on USDT between Solana, Ethereum, and Tron by about $5k on a 1M swap",
+    description: (
+      <div className="">
+        Bridging stablecoins is now effortless. Transfer up to 1M+ from any chain to Polygon. <br />Now with <a className="text-[#6284F5]" href="https://x.com/0xStableFlow" target="_blank" rel="noreferrer noopener nofollow">@0xStableFlow</a>.
+      </div>
+    ),
   },
 ];
 
