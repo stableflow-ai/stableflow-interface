@@ -1,4 +1,4 @@
-export const LAYERZERO_CONTRACT_ABI = [
+export const OFT_ABI = [
   {
     inputs: [],
     name: "approvalRequired",

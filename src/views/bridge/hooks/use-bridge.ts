@@ -68,7 +68,7 @@ export default function useBridge(props?: any) {
         slippageTolerance: configStore.slippage * 100,
         originAsset: walletStore.fromToken.assetId,
         destinationAsset: walletStore.toToken.assetId,
-        amount: params.parsedAmount,
+        amount: params.amountWei,
         refundTo: fromWalletAddress || "",
         refundType: "ORIGIN_CHAIN",
         recipient: bridgeStore.recipientAddress || toWalletAddress || ""
@@ -126,7 +126,14 @@ export default function useBridge(props?: any) {
     try {
       bridgeStore.setQuoting(Service.Usdt0, true);
 
-      // ServiceMap[Service.OneClick]
+      const quoteRes = await ServiceMap[Service.Usdt0].quote({
+        slippageTolerance: configStore.slippage * 100,
+        originChain: walletStore.fromToken.chainName,
+        destinationChain: walletStore.toToken.chainName,
+        amountWei: params.amountWei,
+        refundTo: fromWalletAddress || "",
+        recipient: bridgeStore.recipientAddress || toWalletAddress || ""
+      });
 
       bridgeStore.setQuoting(Service.Usdt0, false);
       // bridgeStore.setQuoteData(Service.Usdt0, quoteRes.data);
@@ -144,6 +151,7 @@ export default function useBridge(props?: any) {
 
   const quote = async (params: { dry: boolean; }) => {
     console.log("------- ⬇️ quote ⬇️ -------");
+    console.log("configStore.slippage: %o", configStore.slippage);
     console.log("walletStore.fromToken: %o", walletStore.fromToken);
     console.log("walletStore.toToken: %o", walletStore.toToken);
     console.log("fromWalletAddress: %o", fromWalletAddress);
@@ -163,7 +171,7 @@ export default function useBridge(props?: any) {
       return;
     }
 
-    const parsedAmount = Big(bridgeStore.amount)
+    const amountWei = Big(bridgeStore.amount)
       .times(10 ** walletStore.fromToken.decimals)
       .toFixed(0);
 
@@ -186,7 +194,7 @@ export default function useBridge(props?: any) {
     for (const quoteService of quoteServices) {
       quoteService.quote({
         ...params,
-        parsedAmount,
+        amountWei,
       }).then((quoteRes: any) => {
         console.log("%c%s quoteRes: %o", "background:#f00;color:#fff;", quoteService.service, quoteRes);
       });
