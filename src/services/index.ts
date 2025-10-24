@@ -1,5 +1,5 @@
 import oneClickService from "./oneclick";
-import * as usdt0Service from "./usdt0";
+import usdt0Service from "./usdt0";
 
 export const Service = {
   OneClick: "oneclick",
