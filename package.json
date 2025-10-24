@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@near-wallet-selector/core": "^9.5.1",
-    "@near-wallet-selector/here-wallet": "^9.5.1",
+    "@near-wallet-selector/hot-wallet": "^10.0.0",
+    "@near-wallet-selector/intear-wallet": "^10.0.0",
     "@near-wallet-selector/meteor-wallet": "^9.5.1",
     "@near-wallet-selector/modal-ui": "^9.5.1",
     "@near-wallet-selector/my-near-wallet": "^9.5.1",
