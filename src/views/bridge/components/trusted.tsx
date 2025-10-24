@@ -14,8 +14,7 @@ const CardList = [
   },
   {
     img: "/bridge/trusted/avatar-polygon.png",
-    name: "Kendall",
-    title: "proximity",
+    name: "Polygon",
     description: "StableFlow has the best execution on USDT between Solana, Ethereum, and Tron by about $5k on a 1M swap",
   },
 ];
