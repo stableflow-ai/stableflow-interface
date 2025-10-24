@@ -6,11 +6,13 @@ const CardList = [
     img: "/bridge/trusted/avatar-near.png",
     name: "NEAR Protocol",
     description: "This is the end of inefficient, high-cost stablecoin trading — and the start of a new era of capital efficiency.",
+    link: "https://x.com/NEARProtocol/status/1976316826431705412",
   },
   {
     img: "/bridge/trusted/avatar-arb.png",
     name: "Arbitrum",
     description: "One-click stablecoin transfer from any chain to Arbitrum via StableFlow. StableFlow Everywhere. Arbitrum Everywhere",
+    link: "https://x.com/arbitrum/status/1978135970282168509",
   },
   {
     img: "/bridge/trusted/avatar-polygon.png",
@@ -20,6 +22,7 @@ const CardList = [
         Bridging stablecoins is now effortless. Transfer up to 1M+ from any chain to Polygon. <br />Now with <a className="text-[#6284F5]" href="https://x.com/0xStableFlow" target="_blank" rel="noreferrer noopener nofollow">@0xStableFlow</a>.
       </div>
     ),
+    link: "https://x.com/0xPolygon/status/1981359965198573920",
   },
 ];
 
@@ -108,10 +111,15 @@ const Trusted = () => {
 export default Trusted;
 
 const Card = (props: any) => {
-  const { children, img, name, title } = props;
+  const { children, img, name, title, link } = props;
 
   return (
-    <div className="relative w-[350px] shrink-0 h-[192px] p-[35px_12px_20px_18px] flex flex-col justify-between rounded-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] font-[SpaceGrotesk] text-[16px] font-[400] leading-[120%] text-black">
+    <a
+      href={link}
+      className="relative w-[350px] shrink-0 h-[192px] p-[35px_12px_20px_18px] flex flex-col justify-between rounded-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] font-[SpaceGrotesk] text-[16px] font-[400] leading-[120%] text-black"
+      rel="noreferrer noopener nofollow"
+      target="_blank"
+    >
       <div className="absolute z-0 left-[11px] top-[10px] text-[90px] text-[#D7E1F1] leading-[100%]">
         “
       </div>
@@ -137,6 +145,6 @@ const Card = (props: any) => {
           }
         </div>
       </div>
-    </div>
+    </a>
   );
 };
