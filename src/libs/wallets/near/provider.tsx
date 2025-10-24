@@ -9,8 +9,9 @@ import {
   type WalletSelectorModal
 } from "@near-wallet-selector/modal-ui";
 import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
-import { setupHereWallet } from "@near-wallet-selector/here-wallet";
+import { setupIntearWallet } from "@near-wallet-selector/intear-wallet";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
+import { setupHotWallet } from "@near-wallet-selector/hot-wallet";
 import useWalletsStore from "@/stores/use-wallets";
 
 import "@near-wallet-selector/modal-ui/styles.css";
@@ -51,7 +52,12 @@ export default function NEARProvider({
         const _selector = await setupWalletSelector({
           network: nearNetwork.networkId as "testnet" | "mainnet",
           debug: true,
-          modules: [setupMyNearWallet(), setupHereWallet(), setupMeteorWallet()]
+          modules: [
+            setupMyNearWallet(),
+            setupHotWallet() as unknown as any,
+            setupMeteorWallet(),
+            setupIntearWallet()
+          ]
         });
 
         const _modal = setupModal(_selector, {
