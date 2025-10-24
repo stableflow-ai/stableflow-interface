@@ -1,19 +1,18 @@
-import Big from "big.js";
+import { zeroPadValue } from "ethers";
 import { USDT0_CONFIG } from "./config";
-import { Contract } from "ethers";
 import { OFT_ABI } from "./contract";
 
 class Usdt0Service {
   public async quote(params: any) {
     const {
-      slippageTolerance,
+      wallet,
       originChain,
       destinationChain,
       amountWei,
-      refundTo,
       recipient,
-      signer,
     } = params;
+
+    console.log("wallet: %o", wallet);
 
     const result = {
       needApprove: true,
@@ -23,31 +22,48 @@ class Usdt0Service {
     };
 
     const originLayerzero = USDT0_CONFIG[originChain];
-    const minAmountWei = Big(amountWei).times(1 - slippageTolerance / 100).toFixed(0);
+    const destinationLayerzero = USDT0_CONFIG[destinationChain];
 
-    const oftContract = new Contract(originLayerzero.oft, OFT_ABI, signer);
+    const oftContract = wallet.getContract({
+      contractAddress: originLayerzero.oft,
+      abi: OFT_ABI,
+    });
 
-    // get msgFee
-    const sendParams = [
-      // dstEid
-      originLayerzero.eid,
-      // to
+    console.log("oftContract: %o", oftContract);
+
+    const sendParam = {
+      dstEid: destinationLayerzero.eid,
+      to: zeroPadValue(recipient, 32),
+      amountLD: amountWei,
+      minAmountLD: 0,
+      extraOptions: "0x",
+      composeMsg: "0x",
+      oftCmd: "0x"
+    };
+
+    const oftData = await oftContract.quoteOFT.staticCall(sendParam);
+    console.log("oftData: %o", oftData);
+    const [, , oftReceipt] = oftData;
+    sendParam.minAmountLD = oftReceipt[1];
+    console.log("sendParam: %o", sendParam);
+    const payInLzToken = false;
+    const msgFee = await oftContract.quoteSend.staticCall(sendParam, payInLzToken);
+
+    console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+
+    const gasLimit = await oftContract.send.estimateGas(
+      sendParam,
+      {
+        nativeFee: msgFee[0],
+        lzTokenFee: msgFee[1],
+      },
       recipient,
-      // amountLD
-      amountWei,
-      // minAmountLD
-      minAmountWei,
-      // extraOptions
-      "0x",
-      // composeMsg
-      "0x",
-      // oftCmd
-      "0x"
-    ];
+      { value: msgFee[0] }
+    );
 
-    // const [,, oftReceipt] = await oftContract.callStatic.quoteOFT(sendParams);
-    // sendParams[3] = oftReceipt[1];
-    // const msgFee = await oftContract.callStatic.quoteSend(sendParams, false);
+    console.log("%cGasLimit: %o", "background:blue;color:white;", gasLimit);
+
+    return result;
   }
 }
 

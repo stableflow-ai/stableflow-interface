@@ -123,20 +123,25 @@ export default function useBridge(props?: any) {
   };
 
   const quoteUsdt0 = async (params: any) => {
+    // @ts-ignore
+    const wallet = wallets[walletStore.fromToken.chainType];
+
     try {
       bridgeStore.setQuoting(Service.Usdt0, true);
 
       const quoteRes = await ServiceMap[Service.Usdt0].quote({
-        slippageTolerance: configStore.slippage * 100,
+        slippageTolerance: configStore.slippage,
         originChain: walletStore.fromToken.chainName,
         destinationChain: walletStore.toToken.chainName,
         amountWei: params.amountWei,
         refundTo: fromWalletAddress || "",
-        recipient: bridgeStore.recipientAddress || toWalletAddress || ""
+        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
+        wallet: wallet.wallet,
       });
 
       bridgeStore.setQuoting(Service.Usdt0, false);
       // bridgeStore.setQuoteData(Service.Usdt0, quoteRes.data);
+      console.log("usdt0 quoteRes: %o", quoteRes);
       return {};
     } catch (error: any) {
       const _quoteData = {
@@ -180,10 +185,16 @@ export default function useBridge(props?: any) {
       if (walletStore.fromToken.services.includes(service) && walletStore.toToken.services.includes(service)) {
         switch (service) {
           case Service.OneClick:
-            quoteServices.push({ service: [Service.OneClick], quote: quoteOneclick });
+            quoteServices.push({
+              service: [Service.OneClick],
+              quote: quoteOneclick
+            });
             break;
           case Service.Usdt0:
-            quoteServices.push({ service: [Service.Usdt0], quote: quoteUsdt0 });
+            quoteServices.push({
+              service: [Service.Usdt0],
+              quote: quoteUsdt0,
+            });
             break;
           default:
             break;
