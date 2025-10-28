@@ -12,8 +12,8 @@ export default function NavigationMenu() {
     },
     {
       label: "Developer",
-      path: "https://docs.dapdap.net/apps/stableflow/developer-docs", // 稍后替换为实际的外部链接
-      isExternal: true
+      path: "/developer", // 稍后替换为实际的外部链接
+      isExternal: false
     },
     {
       label: "Learn",
