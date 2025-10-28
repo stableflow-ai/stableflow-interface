@@ -43,11 +43,11 @@ export default function Bridge() {
           </Suspense>
         </div>
       </div>
-      <Suspense fallback={<LoadingSpinner />}>
-        <SupportedNetworks />
-      </Suspense>
       <Suspense fallback={null}>
         <Trusted />
+      </Suspense>
+      <Suspense fallback={<LoadingSpinner />}>
+        <SupportedNetworks />
       </Suspense>
       <Suspense fallback={null}>
         <HistoryDrawer />

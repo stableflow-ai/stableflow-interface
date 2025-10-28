@@ -4,6 +4,7 @@ import Hero from "./components/hero";
 import HowItWorks from "./components/how-it-works";
 import BuiltFor from "./components/built-for";
 import Future from "./components/future";
+import WhoUses from "./components/who-uses";
 
 export default function LearnMore() {
   return (
@@ -28,8 +29,12 @@ export default function LearnMore() {
           <BuiltFor />
         </div>
 
-        <div className="px-[10px] md:px-0">
+        <div className="px-[10px] md:px-0 mb-[40px]">
           <Future />
+        </div>
+
+        <div className="px-[10px] md:px-0">
+          <WhoUses />
         </div>
       </div>
     </div>

@@ -37,7 +37,6 @@ export default function Future() {
             className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px]"
           >
             <div className="flex items-center gap-[12px] mb-[12px]">
-              <span className="text-[32px]">{item.icon}</span>
               <h3 className="text-[16px] font-[700] text-[#2B3337]">
                 {item.title}
               </h3>
