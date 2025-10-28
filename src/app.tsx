@@ -11,6 +11,7 @@ import { lazy } from "react";
 import ErrorPage from "./views/error";
 
 const History = lazy(() => import("./views/history"));
+const Apply = lazy(() => import("./views/apply"));
 
 const router = createBrowserRouter([
   {
@@ -25,6 +26,10 @@ const router = createBrowserRouter([
       {
         path: "history",
         element: <History />
+      },
+      {
+        path: "apply",
+        element: <Apply />
       }
     ]
   },
