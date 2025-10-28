@@ -72,12 +72,6 @@ function App() {
           rel="noopener noreferrer nofollow"
           className="w-[26px] h-[26px] bg-[url('/logo-x.svg')] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
         />
-        <a
-          href="/learn-more"
-          className="h-[26px] px-[12px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] flex items-center justify-center cursor-pointer hover:bg-[#0E3616] hover:text-white transition-all duration-300 text-[12px] font-[500] text-[#2B3337]"
-        >
-          Learn More
-        </a>
       </div>
     </WalletsProvider>
   );
