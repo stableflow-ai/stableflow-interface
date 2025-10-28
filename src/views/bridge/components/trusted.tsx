@@ -19,7 +19,7 @@ const CardList = [
     name: "Polygon",
     description: (
       <div className="">
-        Bridging stablecoins is now effortless. Transfer up to 1M+ from any chain to Polygon. <br />Now with <a className="text-[#6284F5]" href="https://x.com/0xStableFlow" target="_blank" rel="noreferrer noopener nofollow">@0xStableFlow</a>.
+        Bridging stablecoins is now effortless. Transfer up to 1M+ from any chain to Polygon. <br />Now with <span className="text-[#6284F5] cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); window.open("https://x.com/0xStableFlow", "_blank"); }}>@0xStableFlow</span>.
       </div>
     ),
     link: "https://x.com/0xPolygon/status/1981359965198573920",

@@ -2,7 +2,7 @@ export default function WhoUses() {
   return (
     <div className="w-full">
       <h2 className="text-[20px] md:text-[24px] font-[700] text-[#0E3616] mb-[12px]">
-        Who Uses StableFlow
+        Are you a partner or developer?
       </h2>
 
       <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] md:p-[30px]">
