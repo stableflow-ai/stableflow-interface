@@ -7,6 +7,7 @@ import { chainTypes } from "@/config/chains";
 import { formatNumber } from "@/utils/format/number";
 import Popover from "@/components/popover";
 import clsx from "clsx";
+import { stablecoinWithChains } from "@/config/tokens";
 
 export default function Total() {
   const walletStore = useWalletStore();
@@ -14,12 +15,12 @@ export default function Total() {
 
   const [
     total,
-    balanceSummaries,
-    balanceSummariesList,
-    balanceSummariesListWithBalance,
+    _balanceSummaries,
+    _balanceSummariesList,
+    _balanceSummariesListWithBalance,
     balanceSummariesListWithBalanceFinal,
-    hasBalance,
-    hasBalanceCount,
+    _hasBalance,
+    _hasBalanceCount,
     gridTemplateColumns
   ] = useMemo(() => {
     const _balanceSummaries: any = {};
@@ -28,6 +29,7 @@ export default function Total() {
       if (!key.includes("Balances")) return;
       const chainType = key.split("Balances")[0];
       const currentChain = chainTypes[chainType];
+      const currentTokenWithChains = stablecoinWithChains[chainType][walletStore.selectedToken];
       _balanceSummaries[chainType] = {
         balance: Big(0),
         balanceString: "0.00",
@@ -38,6 +40,9 @@ export default function Total() {
       Object.entries(value).forEach(([address, value]) => {
         if (value === "-") return;
         if (address.includes("Balance")) return;
+        if (!currentTokenWithChains?.chains?.some((chain: any) => chain.contractAddress === address)) {
+          return;
+        }
         _total = _total.plus(Big(value as string));
         _balanceSummaries[chainType].balance = Big(_balanceSummaries[chainType].balance).plus(Big(value as string));
       });

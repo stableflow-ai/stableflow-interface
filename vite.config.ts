@@ -39,7 +39,9 @@ export default defineConfig({
         "process.browser": "true"
       }
     },
-    include: ["buffer", "process"]
+    include: ["buffer", "process"],
+    // Force pre-bundling of problematic dependencies
+    force: true
   },
   server: {
     host: "0.0.0.0",

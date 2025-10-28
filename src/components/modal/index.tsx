@@ -38,8 +38,6 @@ export const ModalContent = (props: ModalProps) => {
     style,
     className,
     isForceNormal,
-    innerStyle,
-    innerClassName,
     isMaskClose = true
   } = props;
 

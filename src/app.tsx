@@ -9,8 +9,10 @@ import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy } from "react";
 import ErrorPage from "./views/error";
+import Developer from "./views/developer";
 
 const History = lazy(() => import("./views/history"));
+const LearnMore = lazy(() => import("./views/learn-more"));
 const Apply = lazy(() => import("./views/apply"));
 
 const router = createBrowserRouter([
@@ -30,6 +32,15 @@ const router = createBrowserRouter([
       {
         path: "apply",
         element: <Apply />
+      },
+      {
+        path: "learn-more",
+        element: <LearnMore />
+      }
+      ,
+      {
+        path: "developer",
+        element: <Developer />
       }
     ]
   },

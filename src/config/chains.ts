@@ -1,23 +1,33 @@
-export const chainTypes: Record<string, { value: string, name: string, color: string }> = {
+export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
   near: {
     value: "near",
     name: "Near",
     color: "#56DEAD",
+    bg: "linear-gradient(90deg, rgba(1, 237, 151, 0.20) 0%, rgba(1, 237, 151, 0.00) 50%)",
   },
   sol: {
     value: "sol",
     name: "Solana",
     color: "#987FF3",
+    bg: "linear-gradient(90deg, rgba(248, 108, 255, 0.20) 0%, rgba(248, 108, 255, 0.00) 50%)",
   },
   evm: {
     value: "evm",
     name: "EVM",
     color: "#C4CAE1",
+    bg: "linear-gradient(90deg, rgba(185, 215, 255, 0.20) 0%, rgba(185, 215, 255, 0.00) 50%)",
   },
   tron: {
     value: "tron",
     name: "Tron",
     color: "#F66273",
+    bg: "linear-gradient(90deg, rgba(210, 31, 16, 0.20) 0%, rgba(210, 31, 16, 0.00) 50%)",
+  },
+  aptos: {
+    value: "aptos",
+    name: "Aptos",
+    color: "#000000",
+    bg: "linear-gradient(90deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.00) 50%)",
   },
 };
 
@@ -28,6 +38,7 @@ const chains = {
     chainIconGray: "/chains/near-gray.png",
     chainType: chainTypes.near.value,
     blockExplorerUrl: "https://nearblocks.io/txns",
+    primaryColor: "#76EA9E",
   },
   sol: {
     chainName: "Solana",
@@ -35,6 +46,7 @@ const chains = {
     chainIconGray: "/chains/solana-gray.png",
     chainType: chainTypes.sol.value,
     blockExplorerUrl: "https://solscan.io/tx",
+    primaryColor: "#B93EF0",
   },
   eth: {
     chainName: "Ethereum",
@@ -43,6 +55,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 1,
     blockExplorerUrl: "https://etherscan.io/tx",
+    primaryColor: "#7083ee",
   },
   arb: {
     chainName: "Arbitrum",
@@ -51,6 +64,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 42161,
     blockExplorerUrl: "https://arbiscan.io/tx",
+    primaryColor: "#4763A7",
   },
   bsc: {
     chainName: "BNB Chain",
@@ -59,6 +73,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 56,
     blockExplorerUrl: "https://bscscan.com/tx",
+    primaryColor: "#F1C144",
   },
   avax: {
     chainName: "Avalanche",
@@ -67,6 +82,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 43114,
     blockExplorerUrl: "https://snowtrace.io/tx",
+    primaryColor: "#9D2620",
   },
   base: {
     chainName: "Base",
@@ -75,6 +91,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 8453,
     blockExplorerUrl: "https://basescan.org/tx",
+    primaryColor: "#3137F6",
   },
   pol: {
     chainName: "Polygon",
@@ -83,6 +100,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 137,
     blockExplorerUrl: "https://polygonscan.com/tx",
+    primaryColor: "#5A2AD1",
   },
   gnosis: {
     chainName: "Gnosis",
@@ -91,6 +109,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 100,
     blockExplorerUrl: "https://gnosisscan.io/tx",
+    primaryColor: "#285230",
   },
   op: {
     chainName: "Optimism",
@@ -99,6 +118,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 10,
     blockExplorerUrl: "https://optimistic.etherscan.io/tx",
+    primaryColor: "#B5271D",
   },
   tron: {
     chainName: "Tron",
@@ -106,7 +126,16 @@ const chains = {
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
     blockExplorerUrl: "https://tronscan.org/tx",
-  }
+    primaryColor: "#BC3221",
+  },
+  aptos: {
+    chainName: "Aptos",
+    chainIcon: "/chains/aptos.png",
+    chainIconGray: "/chains/aptos-gray.png",
+    chainType: chainTypes.aptos.value,
+    blockExplorerUrl: "https://aptoscan.com/transaction",
+    primaryColor: "#000000",
+  },
 };
 
 export default chains;

@@ -38,6 +38,12 @@ export const usdtChains = {
     contractAddress: "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7",
     ...chains.avax
   },
+  // disabled gnosis temporarily, 22/Oct/2025
+  // gnosis: {
+  //   assetId: "nep141:gnosis-0x4ecaba5870353805a9f068101a40e0f32ed605c6.omft.near",
+  //   contractAddress: "0x4ecaba5870353805a9f068101a40e0f32ed605c6",
+  //   ...chains.gnosis
+  // },
   near: {
     assetId: "nep141:usdt.tether-token.near",
     contractAddress: "usdt.tether-token.near",
@@ -52,17 +58,24 @@ export const usdtChains = {
     assetId: "nep141:tron-d28a265909efecdcee7c5028585214ea0b96f015.omft.near",
     contractAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
     ...chains.tron
-  }
+  },
+  aptos: {
+    assetId: "nep141:aptos-88cb7619440a914fe6400149a12b443c3ac21d59.omft.near",
+    contractAddress: "0x357b0b74bc833e95a115ad22604854d6b0fca151cecd94111770e5d6ffc9dc2b",
+    ...chains.aptos
+  },
 };
 
 export const usdtSol = {
   ...usdt,
-  ...usdtChains.sol
+  ...usdtChains.sol,
+  chains: [usdtChains.sol],
 };
 
 export const usdtNear = {
   ...usdt,
-  ...usdtChains.near
+  ...usdtChains.near,
+  chains: [usdtChains.near],
 };
 
 export const usdtEvm = {
@@ -72,5 +85,12 @@ export const usdtEvm = {
 
 export const usdtTron = {
   ...usdt,
-  ...usdtChains.tron
+  ...usdtChains.tron,
+  chains: [usdtChains.tron],
+};
+
+export const usdtAptos = {
+  ...usdt,
+  ...usdtChains.aptos,
+  chains: [usdtChains.aptos],
 };

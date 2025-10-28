@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useRequest } from "ahooks";
 
 interface DashboardData {
   symbol: string;
@@ -36,7 +37,7 @@ export default function useOverviewData(
       const response = await axios.get<ApiResponse<DashboardData>>(
         `https://api.db3.app/api/stableflow/dashboard?symbol=${token}`
       );
-      
+
       if (response.data.code === 200) {
         setDashboardData(response.data.data);
       } else {
@@ -54,7 +55,7 @@ export default function useOverviewData(
       const response = await axios.get<ApiResponse<ChartData[]>>(
         `https://api.db3.app/api/stableflow/dashboard/${period}?symbol=${token}`
       );
-      
+
       if (response.data.code === 200) {
         setChartData(response.data.data);
       } else {
@@ -68,12 +69,11 @@ export default function useOverviewData(
     }
   };
 
-  // 只在token变化时获取概览数据
   useEffect(() => {
     const fetchDashboard = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         await fetchDashboardData(selectedToken);
       } finally {
@@ -84,16 +84,46 @@ export default function useOverviewData(
     fetchDashboard();
   }, [selectedToken]);
 
-  // 在token或时间周期变化时获取图表数据
   useEffect(() => {
     fetchChartData(selectedToken, timePeriod);
   }, [selectedToken, timePeriod]);
+
+  const { runAsync: getChainData, loading: chainLoading, data: chainData } = useRequest(async () => {
+    try {
+      const res = await axios.get(`https://api.db3.app/api/stableflow/dashboard/chain?symbol=${selectedToken}`);
+      if (res.status !== 200 || res.data?.code !== 200) {
+        console.log("get /stableflow/dashboard/chain failed: %o", res);
+        return;
+      }
+      const _list = res.data.data || [];
+      const _links: any = [];
+      _list.forEach((item: any) => {
+        _links.push({
+          ...item,
+          source: `${item.from_chain}-src`,
+          target: `${item.to_chain}-tgt`,
+          value: item.volume,
+        });
+      });
+
+      return {
+        links: _links,
+      };
+    } catch (error) {
+      console.log("get /stableflow/dashboard/chain failed: %o", error);
+    }
+  }, {
+    refreshDeps: [selectedToken],
+  });
 
   return {
     dashboardData,
     chartData,
     loading,
     chartLoading,
-    error
+    error,
+    getChainData,
+    chainLoading,
+    chainData,
   };
 }

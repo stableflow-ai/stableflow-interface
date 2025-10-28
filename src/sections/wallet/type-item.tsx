@@ -1,31 +1,20 @@
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
-import { usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
-import { usdcSol, usdcNear } from "@/config/tokens/usdc";
-import { useMemo } from "react";
 import Address from "./address";
 
 const LABEL = {
   evm: "EVM-based",
   sol: "Solana",
   near: "Near",
-  tron: "Tron"
+  tron: "Tron",
+  aptos: "Aptos",
 };
 
-export default function TypeItem({ type = "evm" }: { type: WalletType }) {
+export default function TypeItem({ type = "evm", token }: { type: WalletType; token: any; }) {
   const wallets = useWalletsStore();
   const wallet = wallets[type || "evm"];
   const walletStore = useWalletStore();
-  const token = useMemo(() => {
-    if (type === "evm") return null;
-    if (type === "sol")
-      return walletStore.selectedToken === "USDT" ? usdtSol : usdcSol;
-    if (type === "near")
-      return walletStore.selectedToken === "USDT" ? usdtNear : usdcNear;
-    if (type === "tron" && walletStore.selectedToken === "USDT")
-      return usdtTron;
-  }, [type, walletStore.selectedToken]);
 
   return (
     <div

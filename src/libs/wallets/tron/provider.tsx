@@ -1,19 +1,22 @@
 import useWalletsStore from "@/stores/use-wallets";
 import { useEffect, useRef, useState } from "react";
 import TronWallet, { OKXTronWallet } from "./wallet";
-import WalletSelector, { wallets } from "./wallet-selector";
+import WalletSelector from "../components/wallet-selector";
 import { useConfigStore } from "@/stores/use-config";
 import useBalancesStore from "@/stores/use-balances";
 import { OKXTronProvider } from "@okxconnect/universal-provider";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { TronWeb } from "tronweb";
 import { useWatchOKXConnect } from "../okxconnect";
+import { OkxWalletAdapter, TronLinkAdapter } from "@tronweb3/tronwallet-adapters";
+import { useWalletSelector } from "../hooks/use-wallet-selector";
 
 const tronWeb = new TronWeb({
   fullHost: "https://api.trongrid.io",
   headers: {},
   privateKey: "",
 });
+const wallets = [new TronLinkAdapter(), new OkxWalletAdapter()];
 
 export default function TronProvider({
   children
@@ -33,10 +36,23 @@ export default function TronProvider({
 const Content = () => {
   const setWallets = useWalletsStore((state) => state.set);
   const [adapter, setAdapter] = useState<any>(null);
-  const [showWalletSelector, setShowWalletSelector] = useState<boolean>(false);
   const configStore = useConfigStore();
   const setBalancesStore = useBalancesStore((state) => state.set);
   const walletRef = useRef<TronWallet | null>(null);
+
+  // Wallet selector
+  const {
+    open,
+    onClose,
+    onOpen,
+    onConnect,
+    isConnecting,
+  } = useWalletSelector({
+    connect: async (wallet: any) => {
+      await wallet.connect(wallet);
+      setAdapter(wallet);
+    },
+  });
 
   useEffect(() => {
     if (configStore.tronWalletAdapter) {
@@ -51,7 +67,7 @@ const Content = () => {
       setWallets({
         tron: {
           connect: () => {
-            setShowWalletSelector(true);
+            onOpen();
           }
         }
       });
@@ -67,7 +83,7 @@ const Content = () => {
     const params = {
       connect: async () => {
         try {
-          setShowWalletSelector(true);
+          onOpen();
         } catch (error) {
           console.error("Tron wallet connect failed:", error);
         }
@@ -134,9 +150,13 @@ const Content = () => {
 
   return (
     <WalletSelector
-      open={showWalletSelector}
-      onClose={() => setShowWalletSelector(false)}
-      onWalletSelect={(wallet) => setAdapter(wallet)}
+      open={open}
+      onClose={onClose}
+      onConnect={onConnect}
+      isConnecting={isConnecting}
+      wallets={wallets}
+      readyState={{ key: "_readyState", value: "Found" }}
+      title="Select Tron Wallet"
     />
   );
 };

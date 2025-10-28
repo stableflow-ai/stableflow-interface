@@ -21,11 +21,11 @@ export default function Assets() {
           asset={usdt}
           active={walletStore.selectedToken === "USDT"}
           onClick={() => {
-            // walletStore.set({
-            //   fromToken: null,
-            //   toToken: null,
-            //   selectedToken: "USDT"
-            // });
+            walletStore.set({
+              fromToken: usdt,
+              toToken: null,
+              selectedToken: "USDT"
+            });
           }}
         />
         <AssetItem
@@ -33,11 +33,11 @@ export default function Assets() {
           active={walletStore.selectedToken === "USDC"}
           disabled={true}
           onClick={() => {
-            // walletStore.set({
-            //   fromToken: null,
-            //   toToken: null,
-            //   selectedToken: "USDC"
-            // });
+            walletStore.set({
+              fromToken: usdc,
+              toToken: null,
+              selectedToken: "USDC"
+            });
           }}
         />
         <AssetItem
@@ -77,7 +77,12 @@ const AssetItem = ({
           : "border-dashed border-[#B3BBCE] border",
         disabled ? "cursor-not-allowed" : "cursor-pointer"
       )}
-      onClick={onClick}
+      onClick={() => {
+        if (disabled) {
+          return;
+        }
+        onClick?.();
+      }}
     >
       <img
         src={asset.icon}
