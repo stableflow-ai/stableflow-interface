@@ -8,6 +8,7 @@ import MainTitle from "@/components/main-title";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
+import NavigationMenu from "@/components/navigation-menu";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -27,8 +28,13 @@ export default function UserActions() {
 
   return (
     <div className="w-full absolute z-[9] pl-[6px] md:pl-0 pr-[10px] top-[14px] flex justify-between items-center gap-[10px]">
-      <div className="shrink-0">
-        <MainTitle className="!flex md:!hidden !w-[unset]" />
+      <div className="flex items-center gap-[32px] md:gap-[48px]">
+        <div className="shrink-0">
+          <MainTitle className="!flex md:!hidden !w-[unset]" />
+        </div>
+        <div className="hidden md:flex">
+          <NavigationMenu />
+        </div>
       </div>
       <div className="shrink-0">
         {!walletsStore.evm.account &&
