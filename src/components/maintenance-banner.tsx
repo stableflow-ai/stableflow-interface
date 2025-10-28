@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 export default function MaintenanceBanner() {
-  const TEST_MODE = true;
+  const TEST_MODE = false;
   
   const [isVisible, setIsVisible] = useState(false);
 
