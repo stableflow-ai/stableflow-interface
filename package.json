@@ -41,6 +41,7 @@
     "dayjs": "^1.11.18",
     "ethers": "^6.15.0",
     "framer-motion": "^12.23.12",
+    "highlight.js": "^11.11.1",
     "marked": "^16.4.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

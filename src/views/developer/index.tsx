@@ -1,5 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { marked } from "marked";
+import hljs from "highlight.js";
+import "highlight.js/styles/github-dark.min.css";
 import BackButton from "@/components/back-button";
 import MainTitle from "@/components/main-title";
 // Import markdown file as raw string via Vite's ?raw modifier
@@ -53,7 +55,15 @@ renderer.link = ({ href, text }: { href: string; text: string }) => {
 
 // Handle code blocks
 renderer.code = ({ text, lang }: { text: string; lang?: string }) => {
-  return `<pre class="md-code"><code class="language-${lang || ''}">${text}</code></pre>`;
+  let highlighted = text;
+  try {
+    if (lang && hljs.getLanguage(lang)) {
+      highlighted = hljs.highlight(text, { language: lang }).value;
+    } else {
+      highlighted = hljs.highlightAuto(text).value;
+    }
+  } catch {}
+  return `<pre class="md-code"><code class="hljs language-${lang || ''}">${highlighted}</code></pre>`;
 };
 
 // Handle inline code

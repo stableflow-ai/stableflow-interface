@@ -11,8 +11,7 @@ export default function WhoUses() {
         </p>
 
         <a
-          href="https://docs.dapdap.net/apps/stableflow/developer-docs"
-          target="_blank"
+          href="/developer"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center h-[44px] px-[24px] bg-[#0E3616] text-white rounded-[8px] font-[600] text-[14px] hover:bg-[#1a5028] transition-all duration-300 shadow-[0_2px_8px_0_rgba(14,54,22,0.20)]"
         >
