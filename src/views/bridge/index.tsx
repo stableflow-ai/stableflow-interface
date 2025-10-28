@@ -30,10 +30,10 @@ export default function Bridge() {
           <BridgeButton onClick={transfer} errorChain={errorChain} />
         </div>
       </div>
-      <SupportedNetworks />
       <Suspense fallback={null}>
         <Trusted />
       </Suspense>
+      <SupportedNetworks />
       <HistoryDrawer />
     </div>
   );
