@@ -26,6 +26,10 @@ export default function UserActions() {
     return pathname.pathname === "/overview";
   }, [pathname]);
 
+  const hideActions = useMemo(() => {
+    return pathname.pathname === "/developer" || pathname.pathname === "/learn-more";
+  }, [pathname]);
+
   return (
     <div className="w-full absolute z-[9] pl-[6px] md:pl-0 pr-[10px] top-[14px] flex justify-between items-center gap-[10px]">
       <div className="flex items-center gap-[32px] md:gap-[48px]">
@@ -36,48 +40,50 @@ export default function UserActions() {
           <NavigationMenu />
         </div>
       </div>
-      <div className="shrink-0">
-        {!walletsStore.evm.account &&
-          !walletsStore.sol.account &&
-          !walletsStore.near.account &&
-          !walletsStore.tron.account ? (
-          <button
-            onClick={() => {
-              walletStore.set({ showWallet: true });
-            }}
-            className="button px-[15px] md:px-[20px] py-[6px] md:py-[8px] bg-[#6284F5] rounded-[18px] text-[16px] text-white"
-          >
-            Connect
-          </button>
-        ) : (
-          <div className="flex items-center gap-[7px]">
-            {!isHistory && !isOverview && (
-              <HistoryButton
-                onClick={() => {
-                  if (isMobile) {
-                    historyStore.setOpenDrawer(!historyStore.openDrawer);
-                    return;
-                  }
-                  navigate("/history");
-                }}
-              />
-            )}
-            {!isHistory && !isOverview && (
-              <OverviewButton
-                onClick={() => {
-                  navigate("/overview");
-                }}
-                hidden={true}
-              />
-            )}
-            <ChainsButton
+      {!hideActions && (
+        <div className="shrink-0">
+          {!walletsStore.evm.account &&
+            !walletsStore.sol.account &&
+            !walletsStore.near.account &&
+            !walletsStore.tron.account ? (
+            <button
               onClick={() => {
                 walletStore.set({ showWallet: true });
               }}
-            />
-          </div>
-        )}
-      </div>
+              className="button px-[15px] md:px-[20px] py-[6px] md:py-[8px] bg-[#6284F5] rounded-[18px] text-[16px] text-white"
+            >
+              Connect
+            </button>
+          ) : (
+            <div className="flex items-center gap-[7px]">
+              {!isHistory && !isOverview && (
+                <HistoryButton
+                  onClick={() => {
+                    if (isMobile) {
+                      historyStore.setOpenDrawer(!historyStore.openDrawer);
+                      return;
+                    }
+                    navigate("/history");
+                  }}
+                />
+              )}
+              {!isHistory && !isOverview && (
+                <OverviewButton
+                  onClick={() => {
+                    navigate("/overview");
+                  }}
+                  hidden={true}
+                />
+              )}
+              <ChainsButton
+                onClick={() => {
+                  walletStore.set({ showWallet: true });
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
