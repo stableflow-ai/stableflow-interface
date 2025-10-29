@@ -111,6 +111,79 @@ export default class NearWallet {
     return await this.getBalance(token, account);
   }
 
+  /**
+   * Get native NEAR balance
+   * @param account Account ID
+   * @returns NEAR balance in yoctoNEAR (smallest unit)
+   */
+  async getNearBalance(account: string): Promise<string> {
+    try {
+      const response = await fetch(this.rpcUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "dontcare",
+          method: "query",
+          params: {
+            request_type: "view_account",
+            finality: "final",
+            account_id: account
+          }
+        })
+      });
+      const result = await response.json();
+      return result.result?.amount || "0";
+    } catch (error) {
+      console.error("Failed to get NEAR balance:", error);
+      return "0";
+    }
+  }
+
+  /**
+   * Estimate gas limit for transfer transaction
+   * @param data Transfer data
+   * @returns Gas limit estimate
+   */
+  async estimateGas(data: {
+    originAsset: string;
+    depositAddress: string;
+    amount: string;
+  }): Promise<{
+    gasLimit: bigint;
+  }> {
+    const { originAsset, depositAddress } = data;
+
+    // Check if storage deposit is needed
+    const checkStorage = await this.query(
+      originAsset,
+      "storage_balance_of",
+      {
+        account_id: depositAddress
+      }
+    );
+
+    let gasLimit: bigint;
+
+    if (!checkStorage?.available) {
+      // Storage deposit: 15000000000000 gas
+      // ft_transfer: 30000000000000 gas
+      gasLimit = BigInt("15000000000000") + BigInt("30000000000000");
+    } else {
+      // Only ft_transfer needed: 30000000000000 gas
+      gasLimit = BigInt("30000000000000");
+    }
+
+    // Increase by 20% to provide buffer
+    gasLimit = (gasLimit * 120n) / 100n;
+
+    return {
+      gasLimit
+    };
+  }
+
   async checkTransactionStatus(txHash: string) {
     const wallet = await this.selector.wallet();
     const accounts = await wallet.getAccounts();

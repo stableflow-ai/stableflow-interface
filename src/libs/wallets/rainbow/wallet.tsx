@@ -55,4 +55,48 @@ export default class RainbowWallet {
   async balanceOf(token: string, account: string) {
     return await this.getBalance(token, account);
   }
+
+  /**
+   * Estimate gas limit for transfer transaction
+   * @param data Transfer data
+   * @returns Gas limit estimate
+   */
+  async estimateGas(data: {
+    originAsset: string;
+    depositAddress: string;
+    amount: string;
+  }): Promise<{
+    gasLimit: bigint;
+  }> {
+    const { originAsset, depositAddress, amount } = data;
+
+    if (!this.signer) {
+      throw new Error("Signer not available");
+    }
+
+    const fromAddress = await this.signer.getAddress();
+
+    let gasLimit: bigint;
+
+    if (originAsset === "eth") {
+      // Estimate gas for ETH transfer
+      const tx = {
+        from: fromAddress,
+        to: depositAddress,
+        value: ethers.parseEther(amount)
+      };
+      gasLimit = await this.provider.estimateGas(tx);
+    } else {
+      // Estimate gas for ERC20 token transfer
+      const contract = new ethers.Contract(originAsset, erc20Abi, this.signer);
+      gasLimit = await contract.transfer.estimateGas(depositAddress, amount);
+    }
+
+    // Increase gas limit by 20% to provide buffer
+    gasLimit = (gasLimit * 120n) / 100n;
+
+    return {
+      gasLimit
+    };
+  }
 }
