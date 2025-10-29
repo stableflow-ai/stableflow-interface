@@ -14,10 +14,10 @@ class Usdt0Service {
 
     console.log("wallet: %o", wallet);
 
-    const result = {
+    const result: any = {
       needApprove: true,
-      quote: void 0,
-      quoteRequest: params,
+      sendParam: void 0,
+      quoteParam: params,
       fees: void 0,
     };
 
@@ -29,7 +29,70 @@ class Usdt0Service {
       abi: OFT_ABI,
     });
 
-    console.log("oftContract: %o", oftContract);
+    // 1. check if need approve
+    result.needApprove = await oftContract.approvalRequired();
+    console.log("%cApprovalRequired: %o", "background:blue;color:white;", result.needApprove);
+
+    // 2. quote send
+    const sendParam = {
+      dstEid: destinationLayerzero.eid,
+      to: zeroPadValue(recipient, 32),
+      amountLD: amountWei,
+      minAmountLD: 0,
+      extraOptions: "0x",
+      composeMsg: "0x",
+      oftCmd: "0x"
+    };
+
+    const oftData = await oftContract.quoteOFT.staticCall(sendParam);
+    const [, , oftReceipt] = oftData;
+    sendParam.minAmountLD = oftReceipt[1];
+    result.sendParam = sendParam;
+
+    const payInLzToken = false;
+    const msgFee = await oftContract.quoteSend.staticCall(sendParam, payInLzToken);
+
+    console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+
+    // 3. estimate gas
+    const gasLimit = await oftContract.send.estimateGas(
+      sendParam,
+      {
+        nativeFee: msgFee[0],
+        lzTokenFee: msgFee[1],
+      },
+      recipient,
+      { value: msgFee[0] }
+    );
+    const feeData = await wallet.provider.getFeeData();
+    const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
+    const estimateGas = BigInt(gasLimit) * BigInt(gasPrice);
+
+    result.fees = {
+      estimateGas: BigInt(estimateGas) * BigInt(120) / BigInt(100),
+      nativeFee: msgFee[0],
+      lzTokenFee: msgFee[1],
+    };
+
+    return result;
+  }
+
+  public async send(params: any) {
+    const {
+      wallet,
+      originChain,
+      destinationChain,
+      amountWei,
+      recipient,
+    } = params;
+
+    const originLayerzero = USDT0_CONFIG[originChain];
+    const destinationLayerzero = USDT0_CONFIG[destinationChain];
+
+    const oftContract = wallet.getContract({
+      contractAddress: originLayerzero.oft,
+      abi: OFT_ABI,
+    });
 
     const sendParam = {
       dstEid: destinationLayerzero.eid,
@@ -42,16 +105,14 @@ class Usdt0Service {
     };
 
     const oftData = await oftContract.quoteOFT.staticCall(sendParam);
-    console.log("oftData: %o", oftData);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1];
-    console.log("sendParam: %o", sendParam);
     const payInLzToken = false;
     const msgFee = await oftContract.quoteSend.staticCall(sendParam, payInLzToken);
 
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
-    const gasLimit = await oftContract.send.estimateGas(
+    const tx = await oftContract.send(
       sendParam,
       {
         nativeFee: msgFee[0],
@@ -61,9 +122,9 @@ class Usdt0Service {
       { value: msgFee[0] }
     );
 
-    console.log("%cGasLimit: %o", "background:blue;color:white;", gasLimit);
-
-    return result;
+    const txReceipt = await tx.wait();
+    console.log("txReceipt: %o", txReceipt);
+    return txReceipt;
   }
 }
 
