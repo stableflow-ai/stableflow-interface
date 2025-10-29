@@ -8,6 +8,7 @@ import MainTitle from "@/components/main-title";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
+import NavigationMenu from "@/components/navigation-menu";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -21,45 +22,68 @@ export default function UserActions() {
     return pathname.pathname === "/history";
   }, [pathname]);
 
+  const isOverview = useMemo(() => {
+    return pathname.pathname === "/overview";
+  }, [pathname]);
+
+  const hideActions = useMemo(() => {
+    return pathname.pathname === "/developer" || pathname.pathname === "/learn-more";
+  }, [pathname]);
+
   return (
     <div className="w-full absolute z-[9] pl-[6px] md:pl-0 pr-[10px] top-[14px] flex justify-between items-center gap-[10px]">
-      <div className="shrink-0">
-        <MainTitle className="!flex md:!hidden !w-[unset]" />
+      <div className="flex items-center gap-[32px] md:gap-[48px]">
+        <div className="shrink-0">
+          <MainTitle className="!flex md:!hidden !w-[unset]" />
+        </div>
+        <div className="hidden md:flex">
+          <NavigationMenu />
+        </div>
       </div>
-      <div className="shrink-0">
-        {!walletsStore.evm.account &&
-          !walletsStore.sol.account &&
-          !walletsStore.near.account &&
-          !walletsStore.tron.account ? (
-          <button
-            onClick={() => {
-              walletStore.set({ showWallet: true });
-            }}
-            className="button px-[15px] md:px-[20px] py-[6px] md:py-[8px] bg-[#6284F5] rounded-[18px] text-[16px] text-white"
-          >
-            Connect
-          </button>
-        ) : (
-          <div className="flex items-center gap-[14px]">
-            {!isHistory && (
-              <HistoryButton
-                onClick={() => {
-                  if (isMobile) {
-                    historyStore.setOpenDrawer(!historyStore.openDrawer);
-                    return;
-                  }
-                  navigate("/history");
-                }}
-              />
-            )}
-            <ChainsButton
+      {!hideActions && (
+        <div className="shrink-0">
+          {!walletsStore.evm.account &&
+            !walletsStore.sol.account &&
+            !walletsStore.near.account &&
+            !walletsStore.tron.account ? (
+            <button
               onClick={() => {
                 walletStore.set({ showWallet: true });
               }}
-            />
-          </div>
-        )}
-      </div>
+              className="button px-[15px] md:px-[20px] py-[6px] md:py-[8px] bg-[#6284F5] rounded-[18px] text-[16px] text-white"
+            >
+              Connect
+            </button>
+          ) : (
+            <div className="flex items-center gap-[7px]">
+              {!isHistory && !isOverview && (
+                <HistoryButton
+                  onClick={() => {
+                    if (isMobile) {
+                      historyStore.setOpenDrawer(!historyStore.openDrawer);
+                      return;
+                    }
+                    navigate("/history");
+                  }}
+                />
+              )}
+              {!isHistory && !isOverview && (
+                <OverviewButton
+                  onClick={() => {
+                    navigate("/overview");
+                  }}
+                  hidden={true}
+                />
+              )}
+              <ChainsButton
+                onClick={() => {
+                  walletStore.set({ showWallet: true });
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -70,7 +94,7 @@ const HistoryButton = ({ onClick }: any) => {
     <>
       <button
         onClick={onClick}
-        className="flex md:hidden relative button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+        className="flex md:hidden relative button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
       >
         <img
           src="/icon-records.svg"
@@ -83,7 +107,7 @@ const HistoryButton = ({ onClick }: any) => {
       </button>
       <button
         onClick={onClick}
-        className="hidden md:flex button px-[15px] md:px-[18px] h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+        className="hidden md:flex button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
       >
         {pendingNumber > 0 ? (
           <>
@@ -102,6 +126,57 @@ const HistoryButton = ({ onClick }: any) => {
             <span className="text-[#444C59]">History</span>
           </>
         )}
+      </button>
+    </>
+  );
+};
+
+const OverviewButton = ({ onClick, hidden }: any) => {
+  if (hidden) {
+    return null;
+  }
+  return (
+    <>
+      <button
+        onClick={onClick}
+        className="flex md:hidden button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-[#444C59]"
+        >
+          <path d="M3 3v18h18"/>
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+        </svg>
+      </button>
+      <button
+        onClick={onClick}
+        className="hidden md:flex button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-[#444C59]"
+        >
+          <path d="M3 3v18h18"/>
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+        </svg>
+        <span className="text-[#444C59]">Overview</span>
       </button>
     </>
   );

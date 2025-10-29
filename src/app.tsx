@@ -9,8 +9,11 @@ import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy } from "react";
 import ErrorPage from "./views/error";
+import Developer from "./views/developer";
 
 const History = lazy(() => import("./views/history"));
+const LearnMore = lazy(() => import("./views/learn-more"));
+const Apply = lazy(() => import("./views/apply"));
 
 const router = createBrowserRouter([
   {
@@ -25,6 +28,19 @@ const router = createBrowserRouter([
       {
         path: "history",
         element: <History />
+      },
+      {
+        path: "apply",
+        element: <Apply />
+      },
+      {
+        path: "learn-more",
+        element: <LearnMore />
+      }
+      ,
+      {
+        path: "developer",
+        element: <Developer />
       }
     ]
   },
@@ -50,12 +66,12 @@ function App() {
         closeButton={false}
       />
       <div className="fixed z-[11] bottom-[10px] left-[15px] flex items-center gap-[8px]">
-        <a
+        {/* <a
           href="https://www.dapdap.net"
           target="_blank"
           rel="noopener noreferrer nofollow"
           className="w-[73px] h-[26px] bg-[url('/logo-dapdap.svg')] bg-no-repeat bg-center bg-[length:55px_15px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
-        />
+        /> */}
         <a
           href="https://x.com/0xStableFlow"
           target="_blank"

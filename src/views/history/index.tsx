@@ -1,4 +1,4 @@
-import BackButton from "./back-button";
+import BackButton from "@/components/back-button";
 import Pending from "./pending";
 import CompleteTransfers from "./complete-transfers";
 

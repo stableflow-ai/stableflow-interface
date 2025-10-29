@@ -2,6 +2,9 @@ import { Outlet } from "react-router-dom";
 import Wallet from "@/sections/wallet";
 import UserActions from "./user-actions";
 import useUpdateTxns from "@/hooks/use-update-txns";
+import MaintenanceBanner from "@/components/maintenance-banner";
+import ZendeskWidget from "@/components/zendesk-widget";
+// import SupportButton from "@/components/support-button";
 // import { AuroraBackground } from "./bg";
 
 export default function Layout() {
@@ -22,12 +25,18 @@ export default function Layout() {
       </div>
       {/* <AuroraBackground /> */}
 
+      {/* Maintenance Banner */}
+      <MaintenanceBanner />
+
       {/* Content Layer */}
       <div className="relative z-10 w-full h-full overflow-y-auto">
         <UserActions />
         <Outlet />
         <Wallet />
       </div>
+
+      {/* Zendesk Customer Support Widget */}
+      <ZendeskWidget />
     </div>
   );
 }

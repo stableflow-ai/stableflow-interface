@@ -38,6 +38,12 @@ export const usdtChains = {
     contractAddress: "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7",
     ...chains.avax
   },
+  // disabled gnosis temporarily, 22/Oct/2025
+  // gnosis: {
+  //   assetId: "nep141:gnosis-0x4ecaba5870353805a9f068101a40e0f32ed605c6.omft.near",
+  //   contractAddress: "0x4ecaba5870353805a9f068101a40e0f32ed605c6",
+  //   ...chains.gnosis
+  // },
   near: {
     assetId: "nep141:usdt.tether-token.near",
     contractAddress: "usdt.tether-token.near",

@@ -40,6 +40,7 @@ const chains = {
     chainIconGray: "/chains/near-gray.png",
     chainType: chainTypes.near.value,
     blockExplorerUrl: "https://nearblocks.io/txns",
+    primaryColor: "#76EA9E",
     services: [Service.OneClick],
   },
   sol: {
@@ -48,6 +49,7 @@ const chains = {
     chainIconGray: "/chains/solana-gray.png",
     chainType: chainTypes.sol.value,
     blockExplorerUrl: "https://solscan.io/tx",
+    primaryColor: "#B93EF0",
     services: [Service.OneClick, Service.Usdt0],
   },
   eth: {
@@ -57,6 +59,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 1,
     blockExplorerUrl: "https://etherscan.io/tx",
+    primaryColor: "#7083ee",
     services: [Service.OneClick, Service.Usdt0],
   },
   arb: {
@@ -66,6 +69,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 42161,
     blockExplorerUrl: "https://arbiscan.io/tx",
+    primaryColor: "#4763A7",
     services: [Service.OneClick, Service.Usdt0],
   },
   bsc: {
@@ -75,6 +79,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 56,
     blockExplorerUrl: "https://bscscan.com/tx",
+    primaryColor: "#F1C144",
     services: [Service.OneClick],
   },
   avax: {
@@ -84,6 +89,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 43114,
     blockExplorerUrl: "https://snowtrace.io/tx",
+    primaryColor: "#9D2620",
     services: [Service.OneClick],
   },
   base: {
@@ -93,6 +99,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 8453,
     blockExplorerUrl: "https://basescan.org/tx",
+    primaryColor: "#3137F6",
     services: [Service.OneClick],
   },
   pol: {
@@ -102,6 +109,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 137,
     blockExplorerUrl: "https://polygonscan.com/tx",
+    primaryColor: "#5A2AD1",
     services: [Service.OneClick, Service.Usdt0],
   },
   gnosis: {
@@ -111,6 +119,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 100,
     blockExplorerUrl: "https://gnosisscan.io/tx",
+    primaryColor: "#285230",
     services: [Service.OneClick],
   },
   op: {
@@ -120,6 +129,7 @@ const chains = {
     chainType: chainTypes.evm.value,
     chainId: 10,
     blockExplorerUrl: "https://optimistic.etherscan.io/tx",
+    primaryColor: "#B5271D",
     services: [Service.OneClick, Service.Usdt0],
   },
   tron: {
@@ -128,6 +138,7 @@ const chains = {
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
     blockExplorerUrl: "https://tronscan.org/tx",
+    primaryColor: "#BC3221",
     services: [Service.OneClick, Service.Usdt0],
   },
   aptos: {
@@ -136,6 +147,7 @@ const chains = {
     chainIconGray: "/chains/aptos-gray.png",
     chainType: chainTypes.aptos.value,
     blockExplorerUrl: "https://aptoscan.com/transaction",
+    primaryColor: "#000000",
     services: [Service.OneClick],
   },
 };
