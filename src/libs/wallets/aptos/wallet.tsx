@@ -165,6 +165,45 @@ export default class AptosWallet {
     return await this.getBalance(token, account);
   }
 
+  /**
+   * Estimate gas limit for transfer transaction
+   * @param data Transfer data
+   * @returns Gas limit estimate
+   */
+  async estimateGas(data: {
+    originAsset: string;
+    depositAddress: string;
+    amount: string;
+  }): Promise<{
+    gasLimit: bigint;
+  }> {
+    if (!this.account) {
+      throw new Error("Wallet not connected");
+    }
+
+    const { originAsset } = data;
+
+    // Aptos has a maximum gas unit price and gas limit
+    // Typical transfer: ~1000-5000 gas units
+    // For simplicity, we'll estimate based on transaction type
+    let gasLimit: bigint;
+
+    if (originAsset === "APT" || originAsset === "apt") {
+      // APT transfer typically uses ~1000-2000 gas units
+      gasLimit = 2000n;
+    } else {
+      // Fungible Asset transfer may use more gas (~3000-5000)
+      gasLimit = 5000n;
+    }
+
+    // Increase by 20% to provide buffer
+    gasLimit = (gasLimit * 120n) / 100n;
+
+    return {
+      gasLimit
+    };
+  }
+
   async checkTransactionStatus(signature: string) {
     try {
       // Get transaction by hash

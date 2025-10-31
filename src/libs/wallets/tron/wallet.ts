@@ -110,6 +110,41 @@ export default class TronWallet {
     return await this.getBalance(token, account);
   }
 
+  /**
+   * Estimate gas limit for transfer transaction
+   * @param data Transfer data
+   * @returns Gas limit estimate (bandwidth or energy)
+   */
+  async estimateGas(data: {
+    originAsset: string;
+    depositAddress: string;
+    amount: string;
+  }): Promise<{
+    gasLimit: bigint;
+  }> {
+    const { originAsset } = data;
+
+    // Tron uses bandwidth for TRX transfers and energy for smart contract calls
+    // TRX transfer: ~268 bandwidth
+    // TRC20 transfer: ~30000 energy (estimated)
+    let gasLimit: bigint;
+
+    if (originAsset === "TRX" || originAsset === "trx") {
+      // TRX transfer uses bandwidth (typically 268)
+      gasLimit = 268n;
+    } else {
+      // TRC20 token transfer uses energy (typically 30000-35000)
+      gasLimit = 30000n;
+    }
+
+    // Increase by 20% to provide buffer
+    gasLimit = (gasLimit * 120n) / 100n;
+
+    return {
+      gasLimit
+    };
+  }
+
   async checkTransactionStatus(txHash: string) {
     await this.waitForTronWeb();
 
@@ -221,6 +256,41 @@ export class OKXTronWallet {
 
   async balanceOf(token: string, account: string) {
     return await this.getBalance(token, account);
+  }
+
+  /**
+   * Estimate gas limit for transfer transaction
+   * @param data Transfer data
+   * @returns Gas limit estimate (bandwidth or energy)
+   */
+  async estimateGas(data: {
+    originAsset: string;
+    depositAddress: string;
+    amount: string;
+  }): Promise<{
+    gasLimit: bigint;
+  }> {
+    const { originAsset } = data;
+
+    // Tron uses bandwidth for TRX transfers and energy for smart contract calls
+    // TRX transfer: ~268 bandwidth
+    // TRC20 transfer: ~30000 energy (estimated)
+    let gasLimit: bigint;
+
+    if (originAsset === "TRX" || originAsset === "trx") {
+      // TRX transfer uses bandwidth (typically 268)
+      gasLimit = 268n;
+    } else {
+      // TRC20 token transfer uses energy (typically 30000-35000)
+      gasLimit = 30000n;
+    }
+
+    // Increase by 20% to provide buffer
+    gasLimit = (gasLimit * 120n) / 100n;
+
+    return {
+      gasLimit
+    };
   }
 
   async checkTransactionStatus(txHash: string) {
