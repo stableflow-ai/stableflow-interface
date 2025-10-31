@@ -64,6 +64,11 @@ export const usdtChains = {
     contractAddress: "0x357b0b74bc833e95a115ad22604854d6b0fca151cecd94111770e5d6ffc9dc2b",
     ...chains.aptos
   },
+  bera: {
+    assetId: "nep141:bera-0x779ded0c9e1022225f8e0630b35a9b54be713736.omft.near",
+    contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    ...chains.bera
+  },
 };
 
 export const usdtSol = {
