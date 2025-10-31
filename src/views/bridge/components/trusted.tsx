@@ -18,11 +18,23 @@ const CardList = [
     img: "/bridge/trusted/avatar-polygon.png",
     name: "Polygon",
     description: (
-      <div className="">
+      <div className="line-clamp-4">
         Bridging stablecoins is now effortless. Transfer up to 1M+ from any chain to Polygon. <br />Now with <span className="text-[#6284F5] cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); window.open("https://x.com/0xStableFlow", "_blank"); }}>@0xStableFlow</span>.
       </div>
     ),
     link: "https://x.com/0xPolygon/status/1981359965198573920",
+  },
+  {
+    img: "/bridge/trusted/avatar-aptos.png",
+    name: "Aptos",
+    description: (
+      <div className="line-clamp-4">
+        Built as a means to move stablecoins at scale, <span className="text-[#6284F5] cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); window.open("https://x.com/0xStableFlow", "_blank"); }}>@0xStableFlow</span> has enabled support for Aptos, the chain built to move what matters.
+        Fast. Cheap. Secure. Effortless.
+        Money Moves Better on Aptos.
+      </div>
+    ),
+    link: "https://x.com/Aptos/status/1983919379856421334",
   },
 ];
 
