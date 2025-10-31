@@ -1,4 +1,4 @@
-import { useHistoryStore } from "@/stores/use-history";
+import { isPendingStatus, useHistoryStore } from "@/stores/use-history";
 import oneClickService from "@/services/oneclick";
 import { useEffect } from "react";
 
@@ -14,7 +14,7 @@ export default function useUpdateTxns() {
         depositAddress: address
       });
       let status = result.data.status;
-      if (status === "PENDING_DEPOSIT") {
+      if (isPendingStatus(status)) {
         if (result.data.quoteResponse?.quote?.deadline) {
           const isTimeout = Date.now() > new Date(result.data.quoteResponse?.quote?.deadline).getTime();
           if (isTimeout) {

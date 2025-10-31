@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
 
-export default function BackButton({ className }: { className: string }) {
+export default function BackButton({ className, onClick, text }: { className: string; onClick?: () => void; text?: string }) {
   const navigate = useNavigate();
   return (
     <button
@@ -10,7 +10,11 @@ export default function BackButton({ className }: { className: string }) {
         className
       )}
       onClick={() => {
-        navigate("/");
+        if (onClick) {
+          onClick();
+          return;
+        }
+        navigate(-1);
       }}
     >
       <svg
@@ -27,7 +31,9 @@ export default function BackButton({ className }: { className: string }) {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="text-[14px] text-[#444C59] hidden md:block">Back</span>
+      <span className="text-[14px] text-[#444C59] hidden md:block">
+        {text || "Back"}
+      </span>
     </button>
   );
 }

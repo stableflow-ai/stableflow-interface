@@ -4,8 +4,9 @@ import { formatNumber } from "@/utils/format/number";
 import clsx from "clsx";
 import useIsMobile from "@/hooks/use-is-mobile";
 import Pagination from "@/components/pagination";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Big from "big.js";
+import { useNavigate } from "react-router-dom";
 
 export default function CompleteTransfers(props: any) {
   const { className, contentClassName } = props;
@@ -58,23 +59,47 @@ export default function CompleteTransfers(props: any) {
 }
 
 const CompleteTransferItem = ({ data, status, isMobile }: any) => {
+  const navigate = useNavigate();
   const isSuccess = status === "SUCCESS";
+  const formatStatus = useMemo(() => {
+    if (status === "SUCCESS") return "Success";
+    if (status === "REFUNDED") return "Refunded";
+    if (status === "FAILED") return "Failed";
+    return "Pending";
+  }, [status]);
+
+  const handleClick = () => {
+    if (data.isScan && data.scanChainName && data.despoitAddress) {
+      navigate(`/scan/${data.scanChainName}/${data.despoitAddress}`);
+    }
+  };
 
   return (
-    <div className="flex items-center justify-between border-b border-[#EBF0F8] py-[10px] gap-[10px]">
+    <div 
+      className={clsx(
+        "flex items-center justify-between border-b border-[#EBF0F8] py-[10px] gap-[10px] relative",
+        data.isScan && "cursor-pointer hover:bg-[#F5F7FA] transition-colors"
+      )}
+      onClick={data.isScan ? handleClick : undefined}
+    >
       <div className="flex items-center gap-[10px] shrink-0">
         <img
           src={data.fromToken.icon}
           alt="usdt"
           className="w-[28px] h-[28px]"
         />
-        <span>
+        <span className="flex items-center gap-[6px]">
           <span className="text-[16px] font-bold">
             {formatNumber(data.amount, 2, true)}
           </span>{" "}
           <span className="text-[12px] font-[500]">
             {data.fromToken.symbol}
           </span>
+          {data.isScan && (
+            <div className="px-[6px] py-[2px] bg-[#7083ee] text-white text-[10px] font-medium rounded-[4px]">
+              SCAN
+            </div>
+          )}
         </span>
       </div>
       <div className="flex items-center gap-[10px] shrink-0">
@@ -85,7 +110,8 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
         />
         <button
           className="text-[14px] font-[500] underline button"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             window.open(
               `${data.fromToken.blockExplorerUrl}/${data.txHash}`,
               "_blank"
@@ -117,7 +143,8 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
           !!data.toChainTxHash && (
             <button
               className="text-[14px] font-[500] underline button"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 window.open(
                   `${data.toToken.blockExplorerUrl}/${data.toChainTxHash}`,
                   "_blank"
@@ -141,7 +168,7 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
                     isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
                   )}
                 >
-                  {isSuccess ? "Success" : "Failed"}
+                  {formatStatus}
                 </div>
               </div>
             </div>
@@ -156,7 +183,7 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
                   isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
                 )}
               >
-                {isSuccess ? "Success" : "Failed"}
+                {formatStatus}
               </div>
             </>
           )

@@ -31,6 +31,10 @@ export function validateAddress(
       return validateSolanaAddress(trimmedAddress);
     case "evm":
       return validateEthereumAddress(trimmedAddress);
+    case "tron":
+      return validateTronAddress(trimmedAddress);
+    case "aptos":
+      return validateAptosAddress(trimmedAddress);
     default:
       return {
         isValid: false,
@@ -126,6 +130,42 @@ function validateEthereumAddress(address: string): AddressValidationResult {
     return {
       isValid: false,
       error: "Invalid Ethereum address"
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates a Tron address
+ * Tron addresses are base58 encoded and typically 34 characters long, starting with T
+ */
+function validateTronAddress(address: string): AddressValidationResult {
+  // Tron address pattern: starts with T, base58 encoded, 34 characters
+  const tronPattern = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+
+  if (!tronPattern.test(address)) {
+    return {
+      isValid: false,
+      error: "Invalid Tron address"
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates an Aptos address
+ * Aptos addresses are hex encoded and 32 bytes (64 hex characters)
+ */
+function validateAptosAddress(address: string): AddressValidationResult {
+  // Aptos address pattern: 0x followed by 64 hexadecimal characters
+  const aptosPattern = /^0x[a-fA-F0-9]{64}$/;
+
+  if (!aptosPattern.test(address)) {
+    return {
+      isValid: false,
+      error: "Invalid Aptos address"
     };
   }
 

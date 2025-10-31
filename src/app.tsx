@@ -14,6 +14,8 @@ import Developer from "./views/developer";
 const History = lazy(() => import("./views/history"));
 const LearnMore = lazy(() => import("./views/learn-more"));
 const Apply = lazy(() => import("./views/apply"));
+const Scan = lazy(() => import("./views/scan"));
+const ScanPayment = lazy(() => import("./views/scan/payment"));
 
 const router = createBrowserRouter([
   {
@@ -41,6 +43,14 @@ const router = createBrowserRouter([
       {
         path: "developer",
         element: <Developer />
+      },
+      {
+        path: "scan",
+        element: <Scan />
+      },
+      {
+        path: "scan/:chainName/:depositAddress",
+        element: <ScanPayment />
       }
     ]
   },

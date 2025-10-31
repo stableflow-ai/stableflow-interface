@@ -31,7 +31,19 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
   },
 };
 
-const chains = {
+export type ChainName = "near" | "sol" | "eth" | "arb" | "bsc" | "avax" | "base" | "pol" | "gnosis" | "op" | "tron" | "aptos";
+
+export interface ChainInfo {
+  chainName: string;
+  chainIcon: string;
+  chainIconGray: string;
+  chainType: string;
+  chainId?: number;
+  blockExplorerUrl: string;
+  primaryColor: string;
+}
+
+const chains: Record<ChainName, ChainInfo> = {
   near: {
     chainName: "Near",
     chainIcon: "/chains/near.png",

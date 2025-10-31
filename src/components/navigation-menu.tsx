@@ -11,6 +11,11 @@ export default function NavigationMenu() {
       isExternal: false
     },
     {
+      label: "Scan",
+      path: "/scan",
+      isExternal: false
+    },
+    {
       label: "Developer",
       path: "/developer", // 稍后替换为实际的外部链接
       isExternal: false

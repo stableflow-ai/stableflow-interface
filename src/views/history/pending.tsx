@@ -3,7 +3,9 @@ import clsx from "clsx";
 import dayjs from "dayjs";
 import { useHistoryStore } from "@/stores/use-history";
 import { formatNumber } from "@/utils/format/number";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import useToast from "@/hooks/use-toast";
 
 export default function Pending(props: any) {
   const { className, isTitle = true, contentClassName } = props;
@@ -37,6 +39,11 @@ export default function Pending(props: any) {
 }
 
 const PendingItem = ({ className, data }: any) => {
+  const navigate = useNavigate();
+  const historyStore = useHistoryStore();
+  const toast = useToast();
+  const [isCancelling, setIsCancelling] = useState(false);
+
   const duration = useMemo(() => {
     if (data.timeEstimate <= 60) {
       return `${data.timeEstimate} sec${data.timeEstimate > 1 ? "s" : ""}`;
@@ -47,9 +54,57 @@ const PendingItem = ({ className, data }: any) => {
     return `${Math.floor(data.timeEstimate / 3600)} hour${data.timeEstimate / 3600 > 1 ? "s" : ""}`;
   }, [data.timeEstimate]);
 
+  const handleClick = () => {
+    if (data.isScan && data.scanChainName && data.despoitAddress) {
+      navigate(`/scan/${data.scanChainName}/${data.despoitAddress}`);
+    }
+  };
+
+  const handleCancel = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!data.despoitAddress || isCancelling) return;
+
+    setIsCancelling(true);
+    try {
+      // Remove the scan record completely from history
+      historyStore.removeHistory(data.despoitAddress);
+      toast.success({
+        title: "Transfer cancelled"
+      });
+    } catch (error) {
+      console.error("Failed to cancel transfer:", error);
+      toast.fail({
+        title: "Failed to cancel transfer"
+      });
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   return (
-    <div className={clsx("w-full md:w-[300px] bg-[#EDF0F7] rounded-[12px]", className)}>
-      <div className="rounded-[12px] bg-white border border-[#EDF0F7] p-[12px]">
+    <div 
+      className={clsx(
+        "w-full md:w-[300px] bg-[#EDF0F7] rounded-[12px]",
+        data.isScan && "cursor-pointer hover:bg-[#E0E5F0] transition-colors",
+        className
+      )}
+      onClick={data.isScan ? handleClick : undefined}
+    >
+      <div className="rounded-[12px] bg-white border border-[#EDF0F7] p-[12px] relative">
+        {data.isScan && (
+          <div className="absolute top-[8px] right-[8px] flex items-center gap-[8px]">
+            <div className="px-[6px] py-[2px] bg-[#7083ee] text-white text-[10px] font-medium rounded-[4px]">
+              SCAN
+            </div>
+            <button
+              onClick={handleCancel}
+              disabled={isCancelling}
+              className="hidden button px-[12px] h-[24px] rounded-[6px] bg-[#E5E7EB] text-[#9FA7BA] text-[10px] font-medium hover:bg-[#D1D5DB] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCancelling ? "Cancelling..." : "Cancel"}
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-[10px]">
           <img
             src={data.fromToken.icon}

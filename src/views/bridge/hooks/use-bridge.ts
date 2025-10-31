@@ -14,7 +14,7 @@ import useBridgeStore from "@/stores/use-bridge";
 import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
-import { BridgeDefaultWallets } from "../config";
+import { BridgeDefaultWallets } from "@/config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
 

@@ -13,12 +13,18 @@ interface HistoryState {
   updateStatus: (address: string, status: any) => void;
   closeLatestHistory: (address?: string) => void;
   updateHistory: (address?: string, item?: any) => void;
+  removeHistory: (address: string) => void;
 }
+
+export const isPendingStatus = (status: any) => {
+  return !["SUCCESS", "REFUNDED", "FAILED"].includes(status);
+};
 
 export const useHistoryStore = create(
   persist<HistoryState>(
     (set, get) => ({
       history: {},
+      // KNOWN_DEPOSIT_TX PENDING_DEPOSIT INCOMPLETE_DEPOSIT PROCESSING SUCCESS REFUNDED FAILED
       status: {},
       pendingStatus: [],
       completeStatus: [],
@@ -38,7 +44,7 @@ export const useHistoryStore = create(
         const _index = _pendingStatus.indexOf(address);
         _status[address] = status;
 
-        if (status === "PENDING_DEPOSIT" || status === "PROCESSING") {
+        if (isPendingStatus(status)) {
           if (_index === -1) _pendingStatus.unshift(address);
         } else {
           if (_index !== -1) {
@@ -78,6 +84,38 @@ export const useHistoryStore = create(
           _history[address][key] = item[key];
         }
         set({ history: _history });
+      },
+      removeHistory: (address: string) => {
+        if (!address) return;
+        const _history = get().history;
+        const _status = get().status;
+        const _pendingStatus = get().pendingStatus;
+        const _completeStatus = get().completeStatus;
+        
+        // Remove from history
+        delete _history[address];
+        
+        // Remove from status
+        delete _status[address];
+        
+        // Remove from pendingStatus
+        const pendingIndex = _pendingStatus.indexOf(address);
+        if (pendingIndex !== -1) {
+          _pendingStatus.splice(pendingIndex, 1);
+        }
+        
+        // Remove from completeStatus
+        const completeIndex = _completeStatus.indexOf(address);
+        if (completeIndex !== -1) {
+          _completeStatus.splice(completeIndex, 1);
+        }
+        
+        set({
+          history: _history,
+          status: _status,
+          pendingStatus: _pendingStatus,
+          completeStatus: _completeStatus
+        });
       }
     }),
     {

@@ -1,4 +1,4 @@
-import { useHistoryStore } from "@/stores/use-history";
+import { isPendingStatus, useHistoryStore } from "@/stores/use-history";
 import { formatAddress } from "@/utils/format/address";
 import { formatNumber } from "@/utils/format/number";
 import Big from "big.js";
@@ -22,7 +22,7 @@ const PendingTransfer = (props: any) => {
     if (
       !latestHistories
       || !latestHistories.length
-      || ["PENDING_DEPOSIT", "PROCESSING"].includes(status[latestHistories[0]])
+      || isPendingStatus(status[latestHistories[0]])
     ) {
       return;
     }
@@ -75,7 +75,7 @@ export default PendingTransfer;
 const PendingItem = (props: any) => {
   const { className, data, status, close } = props;
 
-  const isPending = ["PENDING_DEPOSIT", "PROCESSING"].includes(status);
+  const isPending = isPendingStatus(status);
   const isSuccess = ["SUCCESS"].includes(status);
   const MaxPendingProgress = 90;
   const [progress, setProgress] = useState(0);

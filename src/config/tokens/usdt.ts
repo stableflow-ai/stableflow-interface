@@ -6,7 +6,7 @@ export const usdt = {
   icon: "/usdt.png"
 };
 
-export const usdtChains = {
+export const usdtChains: Record<string, any> = {
   eth: {
     assetId: "nep141:eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near",
     contractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
