@@ -45,7 +45,8 @@ const chainNames: Record<string, string> = {
   avax: "Avalanche",
   near: "Near",
   sol: "Solana",
-  tron: "Tron"
+  tron: "Tron",
+  aptos: "Aptos",
 };
 
 const chainColors: Record<string, string> = {
@@ -57,7 +58,8 @@ const chainColors: Record<string, string> = {
   avax: "#E84142",
   near: "#00C4B3",
   sol: "#9945FF",
-  tron: "#FF060A"
+  tron: "#FF060A",
+  aptos: "#000000",
 };
 
 export default function Transfers({ selectedToken }: TransfersProps) {

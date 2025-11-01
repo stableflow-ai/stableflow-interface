@@ -75,14 +75,15 @@ const VolumeChart = ({ data, selectedPeriod, isMobile }: { data: ChartData[], se
     // Remove existing tooltip
     d3.selectAll(".volume-tooltip").remove();
 
-    const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+    // Increase bottom margin when day view to accommodate rotated labels
+    const margin = { top: 20, right: 20, bottom: selectedPeriod === "day" ? 60 : 40, left: 50 };
     const containerWidth = svgRef.current?.parentElement?.clientWidth || 400;
     const width = containerWidth - margin.left - margin.right;
     const height = 240 - margin.top - margin.bottom;
 
     const g = svg
       .attr("width", containerWidth)
-      .attr("height", 240)
+      .attr("height", selectedPeriod === "day" ? 260 : 240)
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -149,16 +150,17 @@ const VolumeChart = ({ data, selectedPeriod, isMobile }: { data: ChartData[], se
       });
 
     // Add X axis
+    const shouldRotate = selectedPeriod === "day";
     g.append("g")
       .attr("transform", `translate(0,${height})`)
       .call(d3.axisBottom(xScale))
       .selectAll("text")
       .style("font-size", "10px")
       .style("fill", "#9FA7BA")
-      .style("text-anchor", isMobile && selectedPeriod === "day" ? "end" : "middle")
-      .attr("transform", isMobile && selectedPeriod === "day" ? "rotate(-45)" : null)
-      .attr("dx", isMobile && selectedPeriod === "day" ? "-0.5em" : "0")
-      .attr("dy", isMobile && selectedPeriod === "day" ? "0.5em" : "0");
+      .style("text-anchor", shouldRotate ? "end" : "middle")
+      .attr("transform", shouldRotate ? "rotate(-45)" : null)
+      .attr("dx", shouldRotate ? "-0.5em" : "0")
+      .attr("dy", shouldRotate ? "0.71em" : "0");
 
     // Add Y axis
     g.append("g")
@@ -206,14 +208,15 @@ const TransactionsChart = ({ data, selectedPeriod, isMobile }: { data: ChartData
     // Remove existing tooltip
     d3.selectAll(".transactions-tooltip").remove();
 
-    const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+    // Increase bottom margin when day view to accommodate rotated labels
+    const margin = { top: 20, right: 20, bottom: selectedPeriod === "day" ? 60 : 40, left: 50 };
     const containerWidth = svgRef.current?.parentElement?.clientWidth || 400;
     const width = containerWidth - margin.left - margin.right;
     const height = 240 - margin.top - margin.bottom;
 
     const g = svg
       .attr("width", containerWidth)
-      .attr("height", 240)
+      .attr("height", selectedPeriod === "day" ? 260 : 240)
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
@@ -279,16 +282,17 @@ const TransactionsChart = ({ data, selectedPeriod, isMobile }: { data: ChartData
       });
 
     // Add X axis
+    const shouldRotate = selectedPeriod === "day";
     g.append("g")
       .attr("transform", `translate(0,${height})`)
       .call(d3.axisBottom(xScale))
       .selectAll("text")
       .style("font-size", "10px")
       .style("fill", "#9FA7BA")
-      .style("text-anchor", isMobile && selectedPeriod === "day" ? "end" : "middle")
-      .attr("transform", isMobile && selectedPeriod === "day" ? "rotate(-45)" : null)
-      .attr("dx", isMobile && selectedPeriod === "day" ? "-0.5em" : "0")
-      .attr("dy", isMobile && selectedPeriod === "day" ? "0.5em" : "0");
+      .style("text-anchor", shouldRotate ? "end" : "middle")
+      .attr("transform", shouldRotate ? "rotate(-45)" : null)
+      .attr("dx", shouldRotate ? "-0.5em" : "0")
+      .attr("dy", shouldRotate ? "0.71em" : "0");
 
     // Add Y axis
     g.append("g")
@@ -422,7 +426,7 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
             <div className="w-[12px] h-[12px] bg-[#6284F5] rounded-[2px]"></div>
             <span className="text-[14px] font-[500] text-[#2B3337]">Volume</span>
           </div>
-          <div className="h-[240px]">
+          <div className={selectedPeriod === "day" ? "h-[260px]" : "h-[240px]"}>
             <VolumeChart data={chartData} selectedPeriod={selectedPeriod} isMobile={isMobile} />
           </div>
         </div>
@@ -433,7 +437,7 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
             <div className="w-[12px] h-[12px] bg-[#56DEAD] rounded-[2px]"></div>
             <span className="text-[14px] font-[500] text-[#2B3337]">Transactions</span>
           </div>
-          <div className="h-[240px]">
+          <div className={selectedPeriod === "day" ? "h-[260px]" : "h-[240px]"}>
             <TransactionsChart data={chartData} selectedPeriod={selectedPeriod} isMobile={isMobile} />
           </div>
         </div>

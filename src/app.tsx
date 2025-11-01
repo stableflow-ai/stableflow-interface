@@ -12,6 +12,7 @@ import ErrorPage from "./views/error";
 import Developer from "./views/developer";
 
 const History = lazy(() => import("./views/history"));
+const Overview = lazy(() => import("./views/overview"));
 const LearnMore = lazy(() => import("./views/learn-more"));
 const Apply = lazy(() => import("./views/apply"));
 
@@ -28,6 +29,10 @@ const router = createBrowserRouter([
       {
         path: "history",
         element: <History />
+      },
+      {
+        path: "overview",
+        element: <Overview />
       },
       {
         path: "apply",

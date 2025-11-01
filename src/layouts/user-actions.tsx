@@ -72,7 +72,7 @@ export default function UserActions() {
                   onClick={() => {
                     navigate("/overview");
                   }}
-                  hidden={true}
+                  hidden={false}
                 />
               )}
               <ChainsButton
