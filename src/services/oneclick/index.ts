@@ -10,7 +10,7 @@ export const BridgeFee = [
 
 class OneClickService {
   private api: AxiosInstance;
-  private offsetTime = 1000 * 60 * 10;
+  private offsetTime = 1000 * 60 * 30;
   constructor() {
     this.api = axios.create({
       baseURL: "https://1click.chaindefuser.com/v0",
