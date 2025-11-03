@@ -1,6 +1,9 @@
 import { zeroPadValue } from "ethers";
 import { USDT0_CONFIG } from "./config";
 import { OFT_ABI } from "./contract";
+import Big from "big.js";
+import { numberRemoveEndZero } from "@/utils/format/number";
+import { getPrice } from "@/utils/format/price";
 
 export const PayInLzToken = false;
 
@@ -12,6 +15,8 @@ class Usdt0Service {
       destinationChain,
       amountWei,
       recipient,
+      fromToken,
+      prices,
     } = params;
 
     console.log("params: %o", params);
@@ -20,7 +25,7 @@ class Usdt0Service {
       needApprove: true,
       sendParam: void 0,
       quoteParam: params,
-      fees: void 0,
+      fees: {},
 
       estimateTime: 32, // seconds
       outputAmount: amountWei, // wei
@@ -59,24 +64,28 @@ class Usdt0Service {
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
     // 3. estimate gas
-    const gasLimit = await oftContract.send.estimateGas(
-      sendParam,
-      {
-        nativeFee: msgFee[0],
-        lzTokenFee: msgFee[1],
-      },
-      recipient,
-      { value: msgFee[0] }
-    );
-    const feeData = await wallet.provider.getFeeData();
-    const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
-    const estimateGas = BigInt(gasLimit) * BigInt(gasPrice);
+    const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
+    result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
+    try {
+      const gasLimit = await oftContract.send.estimateGas(
+        sendParam,
+        {
+          nativeFee: msgFee[0],
+          lzTokenFee: msgFee[1],
+        },
+        recipient,
+        { value: msgFee[0] }
+      );
+      const feeData = await wallet.provider.getFeeData();
+      const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
+      const estimateGas = BigInt(gasLimit) * BigInt(gasPrice);
+      const estimateGasUsd = Big(estimateGas.toString()).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
 
-    result.fees = {
-      estimateGas: BigInt(estimateGas) * BigInt(120) / BigInt(100),
-      nativeFee: msgFee[0],
-      lzTokenFee: msgFee[1],
-    };
+      result.fees.estimateGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+    } catch (error) {
+      console.log("usdt0 estimate gas failed: %o", error);
+    }
 
     return result;
   }

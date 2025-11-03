@@ -1,5 +1,7 @@
 import { BridgeDefaultWallets } from "@/config";
 import type { WalletType } from "@/stores/use-wallets";
+import { numberRemoveEndZero } from "@/utils/format/number";
+import { getPrice } from "@/utils/format/price";
 import axios, { type AxiosInstance } from "axios";
 import Big from "big.js";
 
@@ -26,6 +28,7 @@ class OneClickService {
   public async quote(params: {
     wallet: any,
     fromToken: any,
+    toToken: any,
     dry: boolean;
     slippageTolerance: number;
     originAsset: string;
@@ -35,6 +38,7 @@ class OneClickService {
     refundType: "ORIGIN_CHAIN";
     recipient: string;
     connectedWallets?: string[];
+    prices: Record<string, string>;
   }) {
     const res = await this.api.post("/quote", {
       depositMode: "SIMPLE",
@@ -52,6 +56,8 @@ class OneClickService {
       // delete params
       wallet: void 0,
       fromToken: void 0,
+      toToken: void 0,
+      prices: void 0,
     });
 
     if (res.data) {
@@ -59,25 +65,30 @@ class OneClickService {
       res.data.outputAmount = res.data?.quote?.amountOut; // wei
 
       try {
-        const bridgeFee = BridgeFee.reduce((acc, item) => {
-          return acc.plus(Big(item.fee).div(100));
-        }, Big(0)).toFixed(2) + "%";
-        const netFee = Big(params.amount).minus(res.data?.quote?.amountOut);
+        // const bridgeFee = BridgeFee.reduce((acc, item) => {
+        //   return acc.plus(Big(item.fee).div(100));
+        // }, Big(0)).toFixed(2) + "%";
+        const netFee = Big(params.amount).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
         const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
-          return acc.plus(Big(params.amount).times(Big(item.fee).div(10000)));
+          return acc.plus(Big(params.amount).div(10 ** params.fromToken.decimals).times(Big(item.fee).div(10000)));
         }, Big(0));
         const destinationGasFee = Big(netFee).minus(bridgeFeeValue);
-        const sourceGasFee = await params.wallet.estimateGas({
-          originAsset: params.fromToken.contractAddress,
-          depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-          amount: params.amount,
-        });
-  
         res.data.fees = {
-          bridgeFee: Big(bridgeFeeValue).toFixed(0),
-          destinationGasFee: Big(destinationGasFee).toFixed(0),
-          sourceGasFee: Big(sourceGasFee.gasLimit || 0).toFixed(0),
+          bridgeFeeUsd: numberRemoveEndZero(Big(bridgeFeeValue).toFixed(20)),
+          destinationGasFeeUsd: numberRemoveEndZero(Big(destinationGasFee).toFixed(20)),
         };
+
+        try {
+          const sourceGasFee = await params.wallet.estimateGas({
+            originAsset: params.fromToken.contractAddress,
+            depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+            amount: params.amount,
+          });
+          const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
+          res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+        } catch (err) {
+          console.log("oneclick estimate gas failed: %o", err);
+        }
       } catch (error) {
         console.log("oneclick estimate failed: %o", error);
       }

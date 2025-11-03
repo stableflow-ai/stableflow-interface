@@ -18,12 +18,14 @@ import { BridgeDefaultWallets } from "@/config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
 import { Service } from "@/services";
+import usePricesStore from "@/stores/use-prices";
 
 const TRANSFER_MIN_AMOUNT = 1;
 
 export default function useBridge(props?: any) {
   const { liquidityError } = props ?? {};
 
+  const prices = usePricesStore((state) => state.prices);
   const wallets = useWalletsStore();
   const historyStore = useHistoryStore();
   const configStore = useConfigStore();
@@ -74,6 +76,8 @@ export default function useBridge(props?: any) {
         recipient: bridgeStore.recipientAddress || toWalletAddress || "",
         wallet: params.wallet,
         fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        prices,
       });
 
       if (quoteRes.data?.quote) {
@@ -142,6 +146,8 @@ export default function useBridge(props?: any) {
         recipient: bridgeStore.recipientAddress || toWalletAddress || "",
         wallet: params.wallet,
         fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        prices,
       });
 
       bridgeStore.setQuoting(Service.Usdt0, false);

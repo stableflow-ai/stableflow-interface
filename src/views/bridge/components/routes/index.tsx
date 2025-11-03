@@ -5,6 +5,7 @@ import useBridgeStore from "@/stores/use-bridge";
 const QuoteRoutes = () => {
   const {
     quotingMap,
+    quoteDataMap,
   } = useBridgeStore();
 
   const isQuoting = Array.from(quotingMap.values()).some(Boolean);
