@@ -54,6 +54,30 @@ export default function useBridge(props?: any) {
   // Amount state
   const [amountError, setAmountError] = useState<string>("");
 
+  const { runAsync: onReportError } = useRequest(async (errorMsg: string) => {
+    const params = {
+      address: fromWalletAddress,
+      api: "oneclick/quote",
+      content: errorMsg,
+    };
+
+    // remove default wallet address
+    if (Object.values(BridgeDefaultWallets).some((addr) => addr === params.address)) {
+      params.address = "";
+    }
+
+    // truncate content if it's too long
+    if (params.content.length >= 1000) {
+      params.content = params.content.slice(0, 996) + "...";
+    }
+
+    try {
+      await axios.post("https://api.db3.app/api/stableflow/api/error", params);
+    } catch (error) {
+      console.log("report error failed: %o", error);
+    }
+  }, { manual: true });
+
   const quote = async (dry: boolean) => {
     if (
       !walletStore.toToken ||
@@ -124,6 +148,8 @@ export default function useBridge(props?: any) {
         }
       });
       setLiquidityErrorMessage(false);
+      // report error
+      onReportError(getQuoteErrorMessage());
     }
   };
 
