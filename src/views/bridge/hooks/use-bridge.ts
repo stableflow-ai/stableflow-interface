@@ -119,6 +119,7 @@ export default function useBridge(props?: any) {
       setLiquidityErrorMessage(false);
       return quoteRes.data;
     } catch (error: any) {
+      const defaultErrorMessage = "Failed to get quote, please try again later";
       const getQuoteErrorMessage = () => {
         if (
           error?.response?.data?.message &&
@@ -138,7 +139,7 @@ export default function useBridge(props?: any) {
           return error?.response?.data?.message;
         }
         // Unknown error
-        return "Failed to get quote, please try again later";
+        return defaultErrorMessage;
       };
 
       bridgeStore.set({
@@ -150,11 +151,11 @@ export default function useBridge(props?: any) {
       setLiquidityErrorMessage(false);
       // report error
       onReportError({
-        content: getQuoteErrorMessage(),
+        content: getQuoteErrorMessage() === defaultErrorMessage ? error.message : getQuoteErrorMessage(),
         amount: bridgeStore.amount,
-        from_chain: walletStore.fromToken.chainType,
+        from_chain: walletStore.fromToken.chainName,
         symbol: walletStore.fromToken.symbol,
-        to_chain: walletStore.toToken.chainType,
+        to_chain: walletStore.toToken.chainName,
         to_symbol: walletStore.toToken.symbol,
       });
     }
