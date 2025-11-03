@@ -2,6 +2,8 @@ import { zeroPadValue } from "ethers";
 import { USDT0_CONFIG } from "./config";
 import { OFT_ABI } from "./contract";
 
+export const PayInLzToken = false;
+
 class Usdt0Service {
   public async quote(params: any) {
     const {
@@ -12,13 +14,16 @@ class Usdt0Service {
       recipient,
     } = params;
 
-    console.log("wallet: %o", wallet);
+    console.log("params: %o", params);
 
     const result: any = {
       needApprove: true,
       sendParam: void 0,
       quoteParam: params,
       fees: void 0,
+
+      estimateTime: 32, // seconds
+      outputAmount: amountWei, // wei
     };
 
     const originLayerzero = USDT0_CONFIG[originChain];
@@ -49,8 +54,7 @@ class Usdt0Service {
     sendParam.minAmountLD = oftReceipt[1];
     result.sendParam = sendParam;
 
-    const payInLzToken = false;
-    const msgFee = await oftContract.quoteSend.staticCall(sendParam, payInLzToken);
+    const msgFee = await oftContract.quoteSend.staticCall(sendParam, PayInLzToken);
 
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
@@ -107,8 +111,7 @@ class Usdt0Service {
     const oftData = await oftContract.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1];
-    const payInLzToken = false;
-    const msgFee = await oftContract.quoteSend.staticCall(sendParam, payInLzToken);
+    const msgFee = await oftContract.quoteSend.staticCall(sendParam, PayInLzToken);
 
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 

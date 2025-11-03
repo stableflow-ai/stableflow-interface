@@ -1,4 +1,7 @@
+import { BridgeDefaultWallets } from "@/config";
+import type { WalletType } from "@/stores/use-wallets";
 import axios, { type AxiosInstance } from "axios";
+import Big from "big.js";
 
 export const BridgeFee = [
   {
@@ -21,6 +24,8 @@ class OneClickService {
     });
   }
   public async quote(params: {
+    wallet: any,
+    fromToken: any,
     dry: boolean;
     slippageTolerance: number;
     originAsset: string;
@@ -31,7 +36,7 @@ class OneClickService {
     recipient: string;
     connectedWallets?: string[];
   }) {
-    return await this.api.post("/quote", {
+    const res = await this.api.post("/quote", {
       depositMode: "SIMPLE",
       swapType: "EXACT_INPUT",
       depositType: "ORIGIN_CHAIN",
@@ -43,8 +48,42 @@ class OneClickService {
       quoteWaitingTimeMs: 3000,
       appFees: BridgeFee,
       referral: "stableflow",
-      ...params
+      ...params,
+      // delete params
+      wallet: void 0,
+      fromToken: void 0,
     });
+
+    if (res.data) {
+      res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
+      res.data.outputAmount = res.data?.quote?.amountOut; // wei
+
+      try {
+        const bridgeFee = BridgeFee.reduce((acc, item) => {
+          return acc.plus(Big(item.fee).div(100));
+        }, Big(0)).toFixed(2) + "%";
+        const netFee = Big(params.amount).minus(res.data?.quote?.amountOut);
+        const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
+          return acc.plus(Big(params.amount).times(Big(item.fee).div(10000)));
+        }, Big(0));
+        const destinationGasFee = Big(netFee).minus(bridgeFeeValue);
+        const sourceGasFee = await params.wallet.estimateGas({
+          originAsset: params.fromToken.contractAddress,
+          depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+          amount: params.amount,
+        });
+  
+        res.data.fees = {
+          bridgeFee: Big(bridgeFeeValue).toFixed(0),
+          destinationGasFee: Big(destinationGasFee).toFixed(0),
+          sourceGasFee: Big(sourceGasFee.gasLimit || 0).toFixed(0),
+        };
+      } catch (error) {
+        console.log("oneclick estimate failed: %o", error);
+      }
+    }
+
+    return res;
   }
 
   public async submitHash(params: { txHash: string; depositAddress: string }) {

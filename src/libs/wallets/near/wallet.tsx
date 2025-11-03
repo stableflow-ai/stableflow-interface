@@ -145,7 +145,7 @@ export default class NearWallet {
   /**
    * Estimate gas limit for transfer transaction
    * @param data Transfer data
-   * @returns Gas limit estimate
+   * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateGas(data: {
     originAsset: string;
@@ -153,6 +153,8 @@ export default class NearWallet {
     amount: string;
   }): Promise<{
     gasLimit: bigint;
+    gasPrice: bigint;
+    estimateGas: bigint;
   }> {
     const { originAsset, depositAddress } = data;
 
@@ -179,8 +181,16 @@ export default class NearWallet {
     // Increase by 20% to provide buffer
     gasLimit = (gasLimit * 120n) / 100n;
 
+    // NEAR gas price is typically 100000000 yoctoNEAR per gas unit
+    const gasPrice = BigInt("100000000");
+
+    // Calculate estimated gas cost: gasLimit * gasPrice
+    const estimateGas = gasLimit * gasPrice;
+
     return {
-      gasLimit
+      gasLimit,
+      gasPrice,
+      estimateGas
     };
   }
 

@@ -89,19 +89,11 @@ export default function Result() {
             <img src={nearIntentsLogo} className="w-[62px] h-[16px]" />
           </div>
           <div className="px-[14px] items-center flex gap-[6px] border-l border-[#EBF0F8]">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-            >
-              <path
-                opacity="0.5"
-                d="M7 0C3.1348 0 0 3.1348 0 7C0 10.8652 3.13323 14 7 14C10.8668 14 14 10.8668 14 7C14 3.1348 10.8668 0 7 0ZM8.83542 7.71003H6.88244C6.4906 7.71003 6.17241 7.39185 6.17241 7V3.28997C6.17241 2.89812 6.4906 2.57994 6.88244 2.57994C7.27429 2.57994 7.59248 2.89812 7.59248 3.28997V6.29154H8.83542C9.22727 6.29154 9.54545 6.60972 9.54545 7.00157C9.54545 7.39342 9.22727 7.71003 8.83542 7.71003Z"
-                fill="#B3BBCE"
-              />
-            </svg>
+            <img
+              src="/icon-time.svg"
+              alt=""
+              className="w-[14px] h-[14px] object-center object-contain shrink-0"
+            />
             <div className="text-[12px] text-[#444C59]">~{duration}</div>
           </div>
           <div className="px-[14px] items-center flex gap-[6px] border-l border-[#EBF0F8]">

@@ -59,7 +59,7 @@ export default class RainbowWallet {
   /**
    * Estimate gas limit for transfer transaction
    * @param data Transfer data
-   * @returns Gas limit estimate
+   * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateGas(data: {
     originAsset: string;
@@ -67,6 +67,8 @@ export default class RainbowWallet {
     amount: string;
   }): Promise<{
     gasLimit: bigint;
+    gasPrice: bigint;
+    estimateGas: bigint;
   }> {
     const { originAsset, depositAddress, amount } = data;
 
@@ -95,8 +97,17 @@ export default class RainbowWallet {
     // Increase gas limit by 20% to provide buffer
     gasLimit = (gasLimit * 120n) / 100n;
 
+    // Get gas price
+    const feeData = await this.provider.getFeeData();
+    const gasPrice = feeData.gasPrice || 0n;
+
+    // Calculate estimated gas cost: gasLimit * gasPrice
+    const estimateGas = gasLimit * gasPrice;
+
     return {
-      gasLimit
+      gasLimit,
+      gasPrice,
+      estimateGas
     };
   }
 

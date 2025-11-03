@@ -113,7 +113,7 @@ export default class TronWallet {
   /**
    * Estimate gas limit for transfer transaction
    * @param data Transfer data
-   * @returns Gas limit estimate (bandwidth or energy)
+   * @returns Gas limit estimate (bandwidth or energy), gas price, and estimated gas cost
    */
   async estimateGas(data: {
     originAsset: string;
@@ -121,8 +121,12 @@ export default class TronWallet {
     amount: string;
   }): Promise<{
     gasLimit: bigint;
+    gasPrice: bigint;
+    estimateGas: bigint;
   }> {
     const { originAsset } = data;
+
+    await this.waitForTronWeb();
 
     // Tron uses bandwidth for TRX transfers and energy for smart contract calls
     // TRX transfer: ~268 bandwidth
@@ -140,8 +144,26 @@ export default class TronWallet {
     // Increase by 20% to provide buffer
     gasLimit = (gasLimit * 120n) / 100n;
 
+    // Get current energy price from Tron (in sun)
+    // For bandwidth, it's free if you have bandwidth
+    // For energy, the price varies, typically 420 sun per energy unit
+    let gasPrice: bigint;
+    try {
+      const chainParameters = await this.tronWeb.trx.getChainParameters();
+      const energyPrice = chainParameters?.find((p: any) => p.key === "getEnergyFee")?.value || 420;
+      gasPrice = BigInt(energyPrice);
+    } catch (error) {
+      // Default energy price: 420 sun per energy unit
+      gasPrice = 420n;
+    }
+
+    // Calculate estimated gas cost: gasLimit * gasPrice
+    const estimateGas = gasLimit * gasPrice;
+
     return {
-      gasLimit
+      gasLimit,
+      gasPrice,
+      estimateGas
     };
   }
 
@@ -261,7 +283,7 @@ export class OKXTronWallet {
   /**
    * Estimate gas limit for transfer transaction
    * @param data Transfer data
-   * @returns Gas limit estimate (bandwidth or energy)
+   * @returns Gas limit estimate (bandwidth or energy), gas price, and estimated gas cost
    */
   async estimateGas(data: {
     originAsset: string;
@@ -269,6 +291,8 @@ export class OKXTronWallet {
     amount: string;
   }): Promise<{
     gasLimit: bigint;
+    gasPrice: bigint;
+    estimateGas: bigint;
   }> {
     const { originAsset } = data;
 
@@ -288,8 +312,26 @@ export class OKXTronWallet {
     // Increase by 20% to provide buffer
     gasLimit = (gasLimit * 120n) / 100n;
 
+    // Get current energy price from Tron (in sun)
+    // For bandwidth, it's free if you have bandwidth
+    // For energy, the price varies, typically 420 sun per energy unit
+    let gasPrice: bigint;
+    try {
+      const chainParameters = await this.tronWeb.trx.getChainParameters();
+      const energyPrice = chainParameters?.find((p: any) => p.key === "getEnergyFee")?.value || 420;
+      gasPrice = BigInt(energyPrice);
+    } catch (error) {
+      // Default energy price: 420 sun per energy unit
+      gasPrice = 420n;
+    }
+
+    // Calculate estimated gas cost: gasLimit * gasPrice
+    const estimateGas = gasLimit * gasPrice;
+
     return {
-      gasLimit
+      gasLimit,
+      gasPrice,
+      estimateGas
     };
   }
 

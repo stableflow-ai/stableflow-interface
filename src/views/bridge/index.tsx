@@ -3,6 +3,7 @@ import useBridge from "./hooks/use-bridge";
 import MainTitle from "@/components/main-title";
 import PendingTransfer from "./components/pending";
 import { useLiquidityQuote } from "@/stores/use-liquidity-quote";
+import QuoteRoutes from "./components/routes";
 
 // Dynamic import components
 const Assets = lazy(() => import("./components/assets"));
@@ -22,26 +23,31 @@ export default function Bridge() {
 
   return (
     <div className="w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
-      <div className="md:w-[488px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0">
+      <div className="pt-[60px] md:pt-[60px]">
         <MainTitle className="hidden! md:flex!" />
         <div className="text-[16px] text-center w-full hidden md:block">
           Stablecoins to any chain, with one click.
         </div>
-        <PendingTransfer className="block" />
-        <Suspense fallback={<LoadingSpinner />}>
-          <Assets />
-        </Suspense>
-        <Suspense fallback={<LoadingSpinner />}>
-          <Networks addressValidation={addressValidation} />
-        </Suspense>
-        <Suspense fallback={<LoadingSpinner />}>
-          <Result />
-        </Suspense>
-        <div className="px-[10px] md:px-0 w-full">
+      </div>
+      <div className="flex items-stretch gap-[10px] justify-center mt-[20px]">
+        <div className="md:w-[488px] w-full mx-auto shrink-0">
+          <PendingTransfer className="block" />
           <Suspense fallback={<LoadingSpinner />}>
-            <BridgeButton onClick={transfer} errorChain={errorChain} />
+            <Assets />
           </Suspense>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Networks addressValidation={addressValidation} />
+          </Suspense>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Result />
+          </Suspense>
+          <div className="px-[10px] md:px-0 w-full">
+            <Suspense fallback={<LoadingSpinner />}>
+              <BridgeButton onClick={transfer} errorChain={errorChain} />
+            </Suspense>
+          </div>
         </div>
+        <QuoteRoutes />
       </div>
       <Suspense fallback={null}>
         <Trusted />

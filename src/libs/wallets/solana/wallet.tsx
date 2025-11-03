@@ -178,7 +178,7 @@ export default class SolanaWallet {
   /**
    * Estimate gas limit for transfer transaction
    * @param data Transfer data
-   * @returns Gas limit estimate
+   * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateGas(data: {
     originAsset: string;
@@ -186,6 +186,8 @@ export default class SolanaWallet {
     amount: string;
   }): Promise<{
     gasLimit: bigint;
+    gasPrice: bigint;
+    estimateGas: bigint;
   }> {
     if (!this.publicKey) {
       throw new Error("Wallet not connected");
@@ -216,8 +218,17 @@ export default class SolanaWallet {
     // Increase by 20% to provide buffer
     const gasLimit = (estimatedFee * 120n) / 100n;
 
+    // Solana has a fixed fee per signature (5000 lamports)
+    // For gasPrice, we use 1 since the fee is already included in gasLimit
+    const gasPrice = 1n;
+
+    // Calculate estimated gas cost: gasLimit * gasPrice (same as gasLimit for Solana)
+    const estimateGas = gasLimit * gasPrice;
+
     return {
-      gasLimit
+      gasLimit,
+      gasPrice,
+      estimateGas
     };
   }
 

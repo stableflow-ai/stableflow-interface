@@ -1,4 +1,5 @@
 import { create } from "zustand/index";
+import type { ServiceType } from "@/services";
 
 interface BridgeState {
   amount: string;
@@ -41,3 +42,10 @@ const useBridgeStore = create<BridgeState>((set) => ({
 }));
 
 export default useBridgeStore;
+
+
+export interface QuoteData {
+  type: ServiceType;
+  errMsg?: string;
+  data?: any;
+}

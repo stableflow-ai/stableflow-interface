@@ -10,11 +10,11 @@ import { useDebounceFn, useRequest } from "ahooks";
 import { useHistoryStore } from "@/stores/use-history";
 import { useConfigStore } from "@/stores/use-config";
 import useWalletStore from "@/stores/use-wallet";
-import useBridgeStore from "@/stores/use-bridge";
+import useBridgeStore, { type QuoteData } from "@/stores/use-bridge";
 import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
-import { BridgeDefaultWallets } from "../config";
+import { BridgeDefaultWallets } from "@/config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
 import { Service } from "@/services";
@@ -57,7 +57,7 @@ export default function useBridge(props?: any) {
   // Amount state
   const [amountError, setAmountError] = useState<string>("");
 
-  const quoteOneclick = async (params: any) => {
+  const quoteOneclick = async (params: any): Promise<QuoteData> => {
     try {
       bridgeStore.set({ quoting: true });
       bridgeStore.setQuoting(Service.OneClick, true);
@@ -71,7 +71,9 @@ export default function useBridge(props?: any) {
         amount: params.amountWei,
         refundTo: fromWalletAddress || "",
         refundType: "ORIGIN_CHAIN",
-        recipient: bridgeStore.recipientAddress || toWalletAddress || ""
+        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
+        wallet: params.wallet,
+        fromToken: walletStore.fromToken,
       });
 
       if (quoteRes.data?.quote) {
@@ -84,7 +86,10 @@ export default function useBridge(props?: any) {
       bridgeStore.setQuoting(Service.OneClick, false);
       bridgeStore.setQuoteData(Service.OneClick, quoteRes.data);
       setLiquidityErrorMessage(false);
-      return quoteRes.data;
+      return {
+        type: Service.OneClick,
+        data: quoteRes.data,
+      };
     } catch (error: any) {
       const getQuoteErrorMessage = () => {
         if (
@@ -109,6 +114,7 @@ export default function useBridge(props?: any) {
       };
 
       const _quoteData = {
+        type: Service.OneClick,
         errMsg: getQuoteErrorMessage(),
       };
       bridgeStore.set({
@@ -122,9 +128,7 @@ export default function useBridge(props?: any) {
     }
   };
 
-  const quoteUsdt0 = async (params: any) => {
-    // @ts-ignore
-    const wallet = wallets[walletStore.fromToken.chainType];
+  const quoteUsdt0 = async (params: any): Promise<QuoteData> => {
 
     try {
       bridgeStore.setQuoting(Service.Usdt0, true);
@@ -136,15 +140,19 @@ export default function useBridge(props?: any) {
         amountWei: params.amountWei,
         refundTo: fromWalletAddress || "",
         recipient: bridgeStore.recipientAddress || toWalletAddress || "",
-        wallet: wallet.wallet,
+        wallet: params.wallet,
+        fromToken: walletStore.fromToken,
       });
 
       bridgeStore.setQuoting(Service.Usdt0, false);
       // bridgeStore.setQuoteData(Service.Usdt0, quoteRes.data);
-      console.log("usdt0 quoteRes: %o", quoteRes);
-      return {};
+      return {
+        type: Service.Usdt0,
+        data: quoteRes,
+      };
     } catch (error: any) {
       const _quoteData = {
+        type: Service.Usdt0,
         errMsg: error.message,
       };
       bridgeStore.setQuoting(Service.Usdt0, false);
@@ -176,6 +184,8 @@ export default function useBridge(props?: any) {
       return;
     }
 
+    // @ts-ignore
+    const wallet = wallets[walletStore.fromToken.chainType];
     const amountWei = Big(bridgeStore.amount)
       .times(10 ** walletStore.fromToken.decimals)
       .toFixed(0);
@@ -206,6 +216,7 @@ export default function useBridge(props?: any) {
       quoteService.quote({
         ...params,
         amountWei,
+        wallet: wallet.wallet,
       }).then((quoteRes: any) => {
         console.log("%c%s quoteRes: %o", "background:#f00;color:#fff;", quoteService.service, quoteRes);
       });
@@ -246,7 +257,7 @@ export default function useBridge(props?: any) {
           depositAddress: _quote.quote.depositAddress,
           amount: _amount
         });
-        
+
         const gasLimit = gasLimitRes.gasLimit;
         let nativeBalance: string = "0";
         let gasCost: Big = Big(0);
@@ -254,21 +265,21 @@ export default function useBridge(props?: any) {
 
         // Get native token balance and calculate gas cost based on chain type
         const chainType = walletStore.fromToken.chainType;
-        
+
         if (chainType === "evm") {
           // EVM chains: get ETH balance and calculate gas cost
           nativeTokenName = "ETH";
           const feeData = await wallet.wallet.provider.getFeeData();
           const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
           gasCost = Big(gasLimit.toString()).times(gasPrice.toString()).div(1e18);
-          
+
           nativeBalance = await wallet.wallet.getBalance("eth", wallet.account);
           nativeBalance = Big(nativeBalance).div(1e18).toString();
         } else if (chainType === "sol") {
           // Solana: gas limit is already in lamports
           nativeTokenName = "SOL";
           gasCost = Big(gasLimit.toString()).div(1e9);
-          
+
           nativeBalance = await wallet.wallet.getSOLBalance(wallet.account);
           nativeBalance = Big(nativeBalance).toString();
         } else if (chainType === "tron") {
@@ -276,7 +287,7 @@ export default function useBridge(props?: any) {
           nativeTokenName = "TRX";
           // Tron gas is usually free, but we need some TRX for potential fees (0.1 TRX as safety)
           gasCost = Big("0.1");
-          
+
           nativeBalance = await wallet.wallet.getBalance("TRX", wallet.account);
           nativeBalance = Big(nativeBalance).div(1e6).toString();
         } else if (chainType === "aptos") {
@@ -284,7 +295,7 @@ export default function useBridge(props?: any) {
           nativeTokenName = "APT";
           // Assume default gas price of 100 octas per gas unit
           gasCost = Big(gasLimit.toString()).times(100).div(1e8);
-          
+
           nativeBalance = await wallet.wallet.getAPTBalance(wallet.account);
           nativeBalance = Big(nativeBalance).div(1e8).toString();
         } else if (chainType === "near") {
@@ -292,7 +303,7 @@ export default function useBridge(props?: any) {
           nativeTokenName = "NEAR";
           // Near gas price is very low, roughly 1 TGas = 0.0001 NEAR
           gasCost = Big(gasLimit.toString()).div(1e16); // Rough estimate
-          
+
           // Get NEAR balance using wallet method
           const nearBalanceYocto = await wallet.wallet.getNearBalance(wallet.account);
           nativeBalance = Big(nearBalanceYocto).div(1e24).toString();

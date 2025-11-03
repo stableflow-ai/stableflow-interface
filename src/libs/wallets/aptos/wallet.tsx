@@ -2,12 +2,12 @@ import { Aptos, AptosConfig, Network, parseTypeTag, TypeTagAddress, TypeTagU64, 
 
 export default class AptosWallet {
   connection: any;
-  private account: string | null;
+  private account: any | null;
   private aptos: Aptos;
   private signAndSubmitTransaction: any;
   private isMobile: boolean;
 
-  constructor(options: { account: string | null; signAndSubmitTransaction: any; isMobile?: boolean; }) {
+  constructor(options: { account: any | null; signAndSubmitTransaction: any; isMobile?: boolean; }) {
     const config = new AptosConfig({
       network: Network.MAINNET,
     });
@@ -32,7 +32,7 @@ export default class AptosWallet {
       let result: any;
       if (this.isMobile) {
         const transaction = await this.aptos.transaction.build.simple({
-          sender: this.account,
+          sender: this.account?.address?.toString(),
           data: {
             function: "0x1::coin::transfer",
             typeArguments: ["0x1::aptos_coin::AptosCoin"],
@@ -74,7 +74,7 @@ export default class AptosWallet {
       let result: any;
       if (this.isMobile) {
         const transaction = await this.aptos.transaction.build.simple({
-          sender: this.account,
+          sender: this.account?.address?.toString(),
           data: {
             function: "0x1::primary_fungible_store::transfer",
             typeArguments: ["0x1::fungible_asset::Metadata"],
@@ -168,7 +168,7 @@ export default class AptosWallet {
   /**
    * Estimate gas limit for transfer transaction
    * @param data Transfer data
-   * @returns Gas limit estimate
+   * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateGas(data: {
     originAsset: string;
@@ -176,31 +176,161 @@ export default class AptosWallet {
     amount: string;
   }): Promise<{
     gasLimit: bigint;
+    gasPrice: bigint;
+    estimateGas: bigint;
   }> {
     if (!this.account) {
       throw new Error("Wallet not connected");
     }
 
-    const { originAsset } = data;
-
-    // Aptos has a maximum gas unit price and gas limit
-    // Typical transfer: ~1000-5000 gas units
-    // For simplicity, we'll estimate based on transaction type
-    let gasLimit: bigint;
-
-    if (originAsset === "APT" || originAsset === "apt") {
-      // APT transfer typically uses ~1000-2000 gas units
-      gasLimit = 2000n;
-    } else {
-      // Fungible Asset transfer may use more gas (~3000-5000)
-      gasLimit = 5000n;
+    const { originAsset, depositAddress, amount } = data;
+    const sender = this.account?.address?.toString();
+    
+    if (!sender) {
+      throw new Error("Invalid sender address");
     }
 
-    // Increase by 20% to provide buffer
-    gasLimit = (gasLimit * 120n) / 100n;
+    // Get signer public key for simulation
+    // The account object from wallet adapter should have publicKey or we can derive it from address
+    let signerPublicKey: any;
+    if (this.account.publicKey) {
+      signerPublicKey = this.account.publicKey;
+    } else if (this.account.address) {
+      // If publicKey is not available, we can use the address as PublicKey for simulation
+      // Aptos SDK can handle this in some cases, but ideally we need the actual public key
+      signerPublicKey = this.account.address;
+    } else {
+      throw new Error("Unable to get signer public key");
+    }
 
+    // For simulation, we might need to use a smaller amount if balance is insufficient
+    // First try with the actual amount, if it fails due to insufficient balance, use a minimal amount
+    let simulationAmount = amount;
+    let useMinimalAmount = false;
+  
+    try {
+      // Check balance first for APT transfers
+      if (originAsset === "APT" || originAsset === "apt") {
+        try {
+          const balance = await this.aptos.getAccountAPTAmount({
+            accountAddress: sender,
+          });
+          const amountBigInt = BigInt(amount);
+          // If amount exceeds balance, use a minimal amount for estimation (1 octa)
+          if (amountBigInt > balance) {
+            simulationAmount = "1";
+            useMinimalAmount = true;
+          }
+        } catch (error) {
+          // If balance check fails, try with minimal amount
+          simulationAmount = "1";
+          useMinimalAmount = true;
+        }
+      }
+    } catch (error) {
+      // If check fails, proceed with original amount
+    }
+
+    let rawTxn;
+    if (originAsset === "APT" || originAsset === "apt") {
+      // For APT, ensure amount is in octas (smallest unit)
+      // If amount might be in APT units, convert it, but typically it's already in octas
+      rawTxn = await this.aptos.transaction.build.simple({
+        sender,
+        data: {
+          function: "0x1::coin::transfer",
+          typeArguments: ["0x1::aptos_coin::AptosCoin"],
+          functionArguments: [depositAddress, simulationAmount],
+        },
+      });
+    } else {
+      rawTxn = await this.aptos.transaction.build.simple({
+        sender,
+        data: {
+          function: "0x1::primary_fungible_store::transfer",
+          typeArguments: ["0x1::fungible_asset::Metadata"],
+          functionArguments: [originAsset, depositAddress, simulationAmount],
+        },
+      });
+    }
+  
+    let simulation: any;
+    try {
+      const simulationResult = await this.aptos.transaction.simulate.simple({
+        signerPublicKey,
+        transaction: rawTxn,
+        options: {
+          estimateGasUnitPrice: true,
+          estimateMaxGasAmount: true,
+          estimatePrioritizedGasUnitPrice: true,
+        },
+      });
+      simulation = simulationResult[0];
+    } catch (error: any) {
+      // If simulation fails with insufficient balance and we haven't tried minimal amount, retry
+      if (!useMinimalAmount && (error.message?.includes("INSUFFICIENT_BALANCE") || error.message?.includes("EINSUFFICIENT_BALANCE"))) {
+        simulationAmount = originAsset === "APT" || originAsset === "apt" ? "1" : "1";
+        // Rebuild transaction with minimal amount
+        if (originAsset === "APT" || originAsset === "apt") {
+          rawTxn = await this.aptos.transaction.build.simple({
+            sender,
+            data: {
+              function: "0x1::coin::transfer",
+              typeArguments: ["0x1::aptos_coin::AptosCoin"],
+              functionArguments: [depositAddress, simulationAmount],
+            },
+          });
+        } else {
+          rawTxn = await this.aptos.transaction.build.simple({
+            sender,
+            data: {
+              function: "0x1::primary_fungible_store::transfer",
+              typeArguments: ["0x1::fungible_asset::Metadata"],
+              functionArguments: [originAsset, depositAddress, simulationAmount],
+            },
+          });
+        }
+        
+        const simulationResult = await this.aptos.transaction.simulate.simple({
+          signerPublicKey,
+          transaction: rawTxn,
+          options: {
+            estimateGasUnitPrice: true,
+            estimateMaxGasAmount: true,
+            estimatePrioritizedGasUnitPrice: true,
+          },
+        });
+        simulation = simulationResult[0];
+      } else {
+        throw error;
+      }
+    }
+  
+    if (!simulation.success) {
+      // If simulation still fails, return default values
+      const defaultGasLimit = originAsset === "APT" || originAsset === "apt" ? 2400n : 6000n; // 2000 * 1.2 or 5000 * 1.2
+      const defaultGasPrice = 100n; // 100 octas per gas unit
+      const defaultEstimateGas = defaultGasLimit * defaultGasPrice;
+      
+      console.warn(`Simulation failed: ${simulation.vm_status}, using default gas estimates`);
+      return {
+        gasLimit: defaultGasLimit,
+        gasPrice: defaultGasPrice,
+        estimateGas: defaultEstimateGas,
+      };
+    }
+  
+    const gasUsed = BigInt(simulation.gas_used || 0);
+    const gasLimit = (gasUsed * 150n) / 100n;
+  
+    const gasPrice = BigInt(simulation.gas_unit_price || 100);
+  
+    const estimateGas = gasLimit * gasPrice;
+  
     return {
-      gasLimit
+      gasLimit,
+      gasPrice,
+      estimateGas,
     };
   }
 
