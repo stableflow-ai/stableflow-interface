@@ -175,6 +175,52 @@ export default class SolanaWallet {
     return await this.getBalance(token, account);
   }
 
+  /**
+   * Estimate gas limit for transfer transaction
+   * @param data Transfer data
+   * @returns Gas limit estimate
+   */
+  async estimateGas(data: {
+    originAsset: string;
+    depositAddress: string;
+    amount: string;
+  }): Promise<{
+    gasLimit: bigint;
+  }> {
+    if (!this.publicKey) {
+      throw new Error("Wallet not connected");
+    }
+
+    const { originAsset, depositAddress } = data;
+
+    // Solana transaction fees are typically fixed at 5000 lamports per signature
+    // Base fee per signature: 5000 lamports
+    let estimatedFee = 5000n;
+    
+    // Check if token account creation is needed for SPL tokens
+    if (originAsset !== "SOL" && originAsset !== "sol") {
+      const mint = new PublicKey(originAsset);
+      const toPubkey = new PublicKey(depositAddress);
+      const toTokenAccount = getAssociatedTokenAddressSync(mint, toPubkey);
+
+      // Check if recipient has token account
+      try {
+        await getAccount(this.connection, toTokenAccount);
+        // Account exists, no additional fee
+      } catch (error) {
+        // Account doesn't exist, will need to create it (additional fee)
+        estimatedFee += 5000n;
+      }
+    }
+
+    // Increase by 20% to provide buffer
+    const gasLimit = (estimatedFee * 120n) / 100n;
+
+    return {
+      gasLimit
+    };
+  }
+
   async checkTransactionStatus(signature: string) {
     const maxAttempts = 30;
     const interval = 4000;
