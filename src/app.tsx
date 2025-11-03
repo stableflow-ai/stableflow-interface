@@ -8,7 +8,6 @@ import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy } from "react";
-import ErrorPage from "./views/error";
 import Developer from "./views/developer";
 
 const History = lazy(() => import("./views/history"));
@@ -19,7 +18,6 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <Layout />,
-    errorElement: <ErrorPage />,
     children: [
       {
         index: true,
@@ -36,8 +34,7 @@ const router = createBrowserRouter([
       {
         path: "learn-more",
         element: <LearnMore />
-      }
-      ,
+      },
       {
         path: "developer",
         element: <Developer />
