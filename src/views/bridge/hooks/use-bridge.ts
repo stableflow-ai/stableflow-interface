@@ -54,11 +54,11 @@ export default function useBridge(props?: any) {
   // Amount state
   const [amountError, setAmountError] = useState<string>("");
 
-  const { runAsync: onReportError } = useRequest(async (errorMsg: string) => {
+  const { runAsync: onReportError } = useRequest(async (reportData: any) => {
     const params = {
       address: fromWalletAddress,
       api: "oneclick/quote",
-      content: errorMsg,
+      ...reportData,
     };
 
     // remove default wallet address
@@ -149,7 +149,14 @@ export default function useBridge(props?: any) {
       });
       setLiquidityErrorMessage(false);
       // report error
-      onReportError(getQuoteErrorMessage());
+      onReportError({
+        content: getQuoteErrorMessage(),
+        amount: bridgeStore.amount,
+        from_chain: walletStore.fromToken.chainType,
+        symbol: walletStore.fromToken.symbol,
+        to_chain: walletStore.toToken.chainType,
+        to_symbol: walletStore.toToken.symbol,
+      });
     }
   };
 
@@ -187,7 +194,7 @@ export default function useBridge(props?: any) {
           depositAddress: _quote.quote.depositAddress,
           amount: _amount
         });
-        
+
         const gasLimit = gasLimitRes.gasLimit;
         let nativeBalance: string = "0";
         let gasCost: Big = Big(0);
@@ -195,21 +202,21 @@ export default function useBridge(props?: any) {
 
         // Get native token balance and calculate gas cost based on chain type
         const chainType = walletStore.fromToken.chainType;
-        
+
         if (chainType === "evm") {
           // EVM chains: get ETH balance and calculate gas cost
           nativeTokenName = "ETH";
           const feeData = await wallet.wallet.provider.getFeeData();
           const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
           gasCost = Big(gasLimit.toString()).times(gasPrice.toString()).div(1e18);
-          
+
           nativeBalance = await wallet.wallet.getBalance("eth", wallet.account);
           nativeBalance = Big(nativeBalance).div(1e18).toString();
         } else if (chainType === "sol") {
           // Solana: gas limit is already in lamports
           nativeTokenName = "SOL";
           gasCost = Big(gasLimit.toString()).div(1e9);
-          
+
           nativeBalance = await wallet.wallet.getSOLBalance(wallet.account);
           nativeBalance = Big(nativeBalance).toString();
         } else if (chainType === "tron") {
@@ -217,7 +224,7 @@ export default function useBridge(props?: any) {
           nativeTokenName = "TRX";
           // Tron gas is usually free, but we need some TRX for potential fees (0.1 TRX as safety)
           gasCost = Big("0.1");
-          
+
           nativeBalance = await wallet.wallet.getBalance("TRX", wallet.account);
           nativeBalance = Big(nativeBalance).div(1e6).toString();
         } else if (chainType === "aptos") {
@@ -225,7 +232,7 @@ export default function useBridge(props?: any) {
           nativeTokenName = "APT";
           // Assume default gas price of 100 octas per gas unit
           gasCost = Big(gasLimit.toString()).times(100).div(1e8);
-          
+
           nativeBalance = await wallet.wallet.getAPTBalance(wallet.account);
           nativeBalance = Big(nativeBalance).div(1e8).toString();
         } else if (chainType === "near") {
@@ -233,7 +240,7 @@ export default function useBridge(props?: any) {
           nativeTokenName = "NEAR";
           // Near gas price is very low, roughly 1 TGas = 0.0001 NEAR
           gasCost = Big(gasLimit.toString()).div(1e16); // Rough estimate
-          
+
           // Get NEAR balance using wallet method
           const nearBalanceYocto = await wallet.wallet.getNearBalance(wallet.account);
           nativeBalance = Big(nearBalanceYocto).div(1e24).toString();
