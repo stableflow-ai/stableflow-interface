@@ -19,6 +19,7 @@ import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
 import { Service } from "@/services";
 import usePricesStore from "@/stores/use-prices";
+import { v4 as uuidV4 } from "uuid";
 
 const TRANSFER_MIN_AMOUNT = 1;
 
@@ -127,7 +128,6 @@ export default function useBridge(props?: any) {
   };
 
   const quoteUsdt0 = async (params: any): Promise<QuoteData> => {
-
     try {
       bridgeStore.setQuoting(Service.Usdt0, true);
 
@@ -222,10 +222,16 @@ export default function useBridge(props?: any) {
       quoteService.quote(quoteParams).then((_quoteRes: any) => {
         console.log("%c[%s]Quote Result: %o", "background:#f00;color:#fff;", quoteService.service, _quoteRes);
 
-        quoteList.push(_quoteRes);
+        if (!_quoteRes.errMsg) {
+          quoteList.push(_quoteRes);
+        }
 
         if (quoteList.length < 2) {
-          bridgeStore.set({ quoteDataService: quoteService.service });
+          if (!_quoteRes.errMsg) {
+            bridgeStore.set({ quoteDataService: quoteService.service });
+            return;
+          }
+          bridgeStore.set({ quoteDataService: null });
           return;
         }
 
@@ -302,6 +308,7 @@ export default function useBridge(props?: any) {
         });
 
         historyStore.addHistory({
+          type: Service.OneClick,
           despoitAddress: _quote.data.quote.depositAddress,
           amount: bridgeStore.amount,
           fromToken: walletStore.fromToken,
@@ -323,7 +330,21 @@ export default function useBridge(props?: any) {
 
       // usdt0 transfer
       if (bridgeStore.quoteDataService === Service.Usdt0) {
-        await ServiceMap[Service.Usdt0].send(_quote?.data?.sendParam);
+        const hash = await ServiceMap[Service.Usdt0].send(_quote?.data?.sendParam);
+        const uniqueId = uuidV4();
+        historyStore.addHistory({
+          type: Service.Usdt0,
+          despoitAddress: uniqueId,
+          amount: bridgeStore.amount,
+          fromToken: walletStore.fromToken,
+          toToken: walletStore.toToken,
+          fromAddress: wallet.account,
+          toAddress: _quote.data.quoteParam.recipient,
+          time: Date.now(),
+          txHash: hash,
+          timeEstimate: _quote.data.estimateTime,
+        });
+        historyStore.updateStatus(uniqueId, "PENDING_DEPOSIT");
       }
 
       bridgeStore.set({ transferring: false });

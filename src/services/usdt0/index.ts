@@ -22,19 +22,23 @@ class Usdt0Service {
       prices,
     } = params;
 
+    const originLayerzero = USDT0_CONFIG[originChain];
+    const destinationLayerzero = USDT0_CONFIG[destinationChain];
+
     const result: any = {
       needApprove: true,
       sendParam: void 0,
-      quoteParam: params,
+      quoteParam: {
+        ...params,
+        originLayerzeroAddress: originLayerzero.oft,
+        destinationLayerzeroAddress: destinationLayerzero.oft,
+      },
       fees: {},
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
       estimateTime: 32, // seconds
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
-
-    const originLayerzero = USDT0_CONFIG[originChain];
-    const destinationLayerzero = USDT0_CONFIG[destinationChain];
 
     const oftContract = wallet.getContract({
       contractAddress: originLayerzero.oft,
@@ -123,8 +127,10 @@ class Usdt0Service {
     const tx = await contract.send(...param);
 
     const txReceipt = await tx.wait();
-    console.log("txReceipt: %o", txReceipt);
-    return txReceipt;
+    if (txReceipt.status !== 1) {
+      throw new Error("Transaction failed");
+    }
+    return txReceipt.hash;
   }
 }
 

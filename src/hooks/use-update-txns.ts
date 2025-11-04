@@ -1,6 +1,7 @@
 import { useHistoryStore } from "@/stores/use-history";
 import oneClickService from "@/services/oneclick";
 import { useEffect } from "react";
+import { Service } from "@/services";
 
 export default function useUpdateTxns() {
   const historyStore = useHistoryStore();
@@ -10,22 +11,31 @@ export default function useUpdateTxns() {
     );
     while (pendingStatus.length > 0) {
       const address = pendingStatus.pop();
-      const result = await oneClickService.getStatus({
-        depositAddress: address
-      });
-      let status = result.data.status;
-      if (status === "PENDING_DEPOSIT") {
-        if (result.data.quoteResponse?.quote?.deadline) {
-          const isTimeout = Date.now() > new Date(result.data.quoteResponse?.quote?.deadline).getTime();
-          if (isTimeout) {
-            status = "FAILED";
+      const historyType = historyStore.history[address]?.type;
+      // 1click transfer
+      if (historyType === Service.OneClick) {
+        const result = await oneClickService.getStatus({
+          depositAddress: address
+        });
+        let status = result.data.status;
+        if (status === "PENDING_DEPOSIT") {
+          if (result.data.quoteResponse?.quote?.deadline) {
+            const isTimeout = Date.now() > new Date(result.data.quoteResponse?.quote?.deadline).getTime();
+            if (isTimeout) {
+              status = "FAILED";
+            }
           }
         }
+        historyStore.updateStatus(address, status);
+        historyStore.updateHistory(address, {
+          toChainTxHash: result.data.swapDetails?.destinationChainTxHashes?.[0]?.hash,
+        });
       }
-      historyStore.updateStatus(address, status);
-      historyStore.updateHistory(address, {
-        toChainTxHash: result.data.swapDetails?.destinationChainTxHashes?.[0]?.hash,
-      });
+
+      // usdt0 transfer
+      if (historyType === Service.Usdt0) {
+        // TODO
+      }
     }
 
     window.updateTxnTimer = setTimeout(() => {

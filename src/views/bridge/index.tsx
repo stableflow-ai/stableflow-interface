@@ -19,7 +19,7 @@ const LoadingSpinner = () => null;
 
 export default function Bridge() {
   const liquidity = useLiquidityQuote();
-  const { transfer, addressValidation, errorChain } = useBridge(liquidity);
+  const { quote, transfer, addressValidation, errorChain } = useBridge(liquidity);
 
   return (
     <div className="w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
@@ -43,12 +43,18 @@ export default function Bridge() {
           </Suspense>
           <div className="px-[10px] md:px-0 w-full">
             <Suspense fallback={<LoadingSpinner />}>
-              <BridgeButton onClick={transfer} errorChain={errorChain} />
+              <BridgeButton
+                onClick={transfer}
+                onQuote={quote}
+                errorChain={errorChain}
+              />
             </Suspense>
           </div>
         </div>
         <Suspense fallback={null}>
-          <QuoteRoutes />
+          <QuoteRoutes
+            onQuote={quote}
+          />
         </Suspense>
       </div>
       <Suspense fallback={null}>

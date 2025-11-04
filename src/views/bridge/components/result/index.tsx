@@ -27,7 +27,7 @@ export default function Result() {
         <div className="text-[12px] text-[#70788A] shrink-0">Result</div>
         <div className="flex items-center justify-end flex-1">
           <div className="flex items-center justify-center w-[69px] h-[20px] rounded-[6px] bg-[#EDF0F7] mr-[14px]">
-            <img src={ServiceLogoMap[bridgeStore.quoteDataService]} className="w-[62px] h-[16px]" />
+            <img src={ServiceLogoMap[bridgeStore.quoteDataService || Service.OneClick]} className="w-[62px] h-[16px]" />
           </div>
           <div className="px-[14px] items-center flex gap-[6px] border-l border-[#EBF0F8]">
             <img

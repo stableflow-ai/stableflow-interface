@@ -3,7 +3,9 @@ import QuoteRoute from "./route";
 import useBridgeStore from "@/stores/use-bridge";
 import { useMemo } from "react";
 
-const QuoteRoutes = () => {
+const QuoteRoutes = (props: any) => {
+  const { onQuote } = props;
+
   const {
     quotingMap,
     quoteDataMap,
@@ -15,8 +17,8 @@ const QuoteRoutes = () => {
   const quoteDataList = useMemo(() => {
     quoteDataMap.forEach((data, service) => {
       data.service = service;
-    })
-    return Array.from(quoteDataMap.values());
+    });
+    return Array.from(quoteDataMap.values()).filter((data) => !data.errMsg);
   }, [quoteDataMap]);
 
   return (
@@ -26,6 +28,10 @@ const QuoteRoutes = () => {
         <button
           type="button"
           className="button w-[16px] h-[16px] shrink-0"
+          disabled={isQuoting}
+          onClick={() => {
+            onQuote({ dry: true });
+          }}
         >
           <motion.img
             src="/icon-refresh.svg"
@@ -44,7 +50,7 @@ const QuoteRoutes = () => {
       </div>
       <div className="flex flex-col gap-[10px] h-0 flex-1 overflow-y-auto">
         {
-          quoteDataMap?.size > 0 ? quoteDataList.map((data, index) => (
+          quoteDataList?.length > 0 ? quoteDataList.map((data, index) => (
             <QuoteRoute
               key={index}
               service={data.service}
