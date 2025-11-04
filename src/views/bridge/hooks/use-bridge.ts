@@ -217,38 +217,9 @@ export default function useBridge(props?: any) {
       return currentQuoteService.quote(quoteParams);
     }
 
-    let quoteList: any = [];
     for (const quoteService of quoteServices) {
       quoteService.quote(quoteParams).then((_quoteRes: any) => {
         console.log("%c[%s]Quote Result: %o", "background:#f00;color:#fff;", quoteService.service, _quoteRes);
-
-        if (!_quoteRes.errMsg) {
-          quoteList.push(_quoteRes);
-        }
-
-        if (quoteList.length < 2) {
-          if (!_quoteRes.errMsg) {
-            bridgeStore.set({ quoteDataService: quoteService.service });
-            return;
-          }
-          bridgeStore.set({ quoteDataService: null });
-          return;
-        }
-
-        // sort
-        const sortedQuoteData = quoteList.sort((a: any, b: any) => {
-          const netA = Big(a.data.outputAmount || 0).minus(a.data.totalFeesUsd || 0);
-          const netB = Big(b.data.outputAmount || 0).minus(b.data.totalFeesUsd || 0);
-
-          if (netB.gt(netA)) return 1;
-          if (netA.gt(netB)) return -1;
-
-          if (netA.eq(netB)) return 0;
-
-          return 0;
-        });
-        console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
-        bridgeStore.set({ quoteDataService: sortedQuoteData[0]?.type });
       });
     }
   };
@@ -342,6 +313,7 @@ export default function useBridge(props?: any) {
           toAddress: _quote.data.quoteParam.recipient,
           time: Date.now(),
           txHash: hash,
+          toChainTxHash: hash,
           timeEstimate: _quote.data.estimateTime,
         });
         historyStore.updateStatus(uniqueId, "PENDING_DEPOSIT");
@@ -438,7 +410,7 @@ export default function useBridge(props?: any) {
     amountError,
     addressValidation,
     fromWalletAddress,
-    toWalletAddress
+    toWalletAddress,
   ]);
 
   useEffect(() => {
@@ -504,6 +476,43 @@ export default function useBridge(props?: any) {
     toWalletAddress,
     wallets.evm?.chainId,
     liquidityErrorMssage
+  ]);
+
+  useEffect(() => {
+    if (bridgeStore.transferring) {
+      return;
+    }
+    const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
+    console.log("quoteList: %o", quoteList);
+    if (!quoteList.length) {
+      bridgeStore.set({ quoteDataService: null });
+      return;
+    }
+    if (quoteList.length < 2) {
+      bridgeStore.set({ quoteDataService: quoteList[0][0] });
+      return;
+    }
+    // sort
+    const sortedQuoteData = quoteList.sort((a: any, b: any) => {
+      const [_serviceA, dataA] = a;
+      const [_serviceB, dataB] = b;
+
+      const netA = Big(dataA.outputAmount || 0).minus(dataA.totalFeesUsd || 0);
+      const netB = Big(dataB.outputAmount || 0).minus(dataB.totalFeesUsd || 0);
+
+      if (netB.gt(netA)) return 1;
+      if (netA.gt(netB)) return -1;
+
+      if (netA.eq(netB)) return 0;
+
+      return 0;
+    });
+    console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
+    bridgeStore.set({ quoteDataService: sortedQuoteData[0][0] });
+  }, [
+    bridgeStore.transferring,
+    bridgeStore.quoteDataMap,
+    bridgeStore.quoteDataService,
   ]);
 
   return {

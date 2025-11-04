@@ -18,7 +18,7 @@ export default function BridgeButton({
   const loading = bridgeStore.quotingMap.get(bridgeStore.quoteDataService) || bridgeStore.transferring;
   return (
     <Button
-      disabled={!!bridgeStore.errorTips || loading}
+      disabled={!!bridgeStore.errorTips || loading || !bridgeStore.quoteDataService || bridgeStore.quoteDataMap.size < 1}
       loading={loading}
       className="w-full h-[50px] mt-[10px] rounded-[25px] bg-[#6284F5] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-white text-[16px]"
       onClick={() => {

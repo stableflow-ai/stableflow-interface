@@ -1,7 +1,7 @@
 import { useHistoryStore } from "@/stores/use-history";
 import oneClickService from "@/services/oneclick";
 import { useEffect } from "react";
-import { Service } from "@/services";
+import { Service, ServiceMap } from "@/services";
 
 export default function useUpdateTxns() {
   const historyStore = useHistoryStore();
@@ -11,10 +11,11 @@ export default function useUpdateTxns() {
     );
     while (pendingStatus.length > 0) {
       const address = pendingStatus.pop();
-      const historyType = historyStore.history[address]?.type;
+      const currentHistory = historyStore.history[address];
+      const historyType = currentHistory?.type;
       // 1click transfer
-      if (historyType === Service.OneClick) {
-        const result = await oneClickService.getStatus({
+      if (historyType === Service.OneClick || historyType === void 0) {
+        const result = await ServiceMap[Service.OneClick].getStatus({
           depositAddress: address
         });
         let status = result.data.status;
@@ -34,7 +35,23 @@ export default function useUpdateTxns() {
 
       // usdt0 transfer
       if (historyType === Service.Usdt0) {
-        // TODO
+        try {
+          const response = await ServiceMap[Service.Usdt0].getStatus({
+            hash: currentHistory?.txHash,
+          });
+          const result = response.data.data[0];
+          // INFLIGHT | CONFIRMING | DELIVERED | BLOCKED | FAILED
+          const status = result.status.name;
+          let finalStatus = "PENDING_DEPOSIT";
+          if (status === "DELIVERED") {
+            finalStatus = "SUCCESS";
+          }
+          if (status === "FAILED" || status === "BLOCKED") {
+            finalStatus = "FAILED";
+          }
+          historyStore.updateStatus(address, finalStatus);
+        } catch (error) {
+        }
       }
     }
 

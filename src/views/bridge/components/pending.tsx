@@ -1,10 +1,11 @@
+import { Service } from "@/services";
 import { useHistoryStore } from "@/stores/use-history";
 import { formatAddress } from "@/utils/format/address";
 import { formatNumber } from "@/utils/format/number";
 import Big from "big.js";
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 
 const PendingTransfer = (props: any) => {
@@ -80,6 +81,13 @@ const PendingItem = (props: any) => {
   const MaxPendingProgress = 90;
   const [progress, setProgress] = useState(0);
 
+  const toTokenExplorerUrl = useMemo(() => {
+   if (data.type === Service.Usdt0) {
+    return "https://layerzeroscan.com/tx";
+   }
+   return data.toToken.blockExplorerUrl;
+  }, [data.txHash, data.type, data.toToken]);
+
   useEffect(() => {
     if (!isPending) {
       setProgress(100);
@@ -138,7 +146,7 @@ const PendingItem = (props: any) => {
               <a
                 className="w-[11px] h-[11px] shrink-0 button"
                 target="_blank"
-                href={`${data.toToken.blockExplorerUrl}/${data.toChainTxHash}`}
+                href={`${toTokenExplorerUrl}/${data.toChainTxHash}`}
                 rel="noreferrer noopener nofollow"
               >
                 <svg className="w-[11px] h-[11px] shrink-0" width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">

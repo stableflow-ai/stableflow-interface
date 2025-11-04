@@ -4,6 +4,7 @@ import { OFT_ABI } from "./contract";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
+import axios from "axios";
 
 export const PayInLzToken = false;
 
@@ -131,6 +132,17 @@ class Usdt0Service {
       throw new Error("Transaction failed");
     }
     return txReceipt.hash;
+  }
+
+  public async getStatus(params: any) {
+    return axios({
+      url: `https://scan.layerzero-api.com/v1/messages/tx/${params.hash}`,
+      method: "GET",
+      timeout: 30000,
+      headers: {
+        "Content-Type": "application/json"
+      },
+    });
   }
 }
 
