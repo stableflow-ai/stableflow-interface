@@ -101,6 +101,9 @@ export default class NearWallet {
   }
 
   async getBalance(token: string, _account: string) {
+    if (token === "near" || token === "NEAR" || token === "native") {
+      return this.getNearBalance(_account);
+    }
     const balance = await this.query(token, "ft_balance_of", {
       account_id: _account
     });

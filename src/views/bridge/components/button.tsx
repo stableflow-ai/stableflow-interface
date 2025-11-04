@@ -11,8 +11,7 @@ export default function BridgeButton({
 }) {
   const bridgeStore = useBridgeStore();
   const { switchChain } = useSwitchChain();
-  // const loading = !bridgeStore.errorTips && (bridgeStore.quoting || bridgeStore.transferring);
-  const loading = bridgeStore.quoting || bridgeStore.transferring;
+  const loading = bridgeStore.quotingMap.get(bridgeStore.quoteDataService) || bridgeStore.transferring;
   return (
     <Button
       disabled={!!bridgeStore.errorTips || loading}

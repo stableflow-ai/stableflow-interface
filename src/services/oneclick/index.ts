@@ -13,6 +13,8 @@ export const BridgeFee = [
   },
 ];
 
+const excludeFees: string[] = ["sourceGasFeeUsd"];
+
 class OneClickService {
   private api: AxiosInstance;
   private offsetTime = 1000 * 60 * 10;
@@ -62,7 +64,7 @@ class OneClickService {
 
     if (res.data) {
       res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
-      res.data.outputAmount = res.data?.quote?.amountOut; // wei
+      res.data.outputAmount = numberRemoveEndZero(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
 
       try {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
@@ -86,9 +88,20 @@ class OneClickService {
           });
           const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+          res.data.estimateSourceGas = sourceGasFee.estimateGas;
         } catch (err) {
           console.log("oneclick estimate gas failed: %o", err);
         }
+
+        // calculate total fees
+        for (const feeKey in res.data.fees) {
+          if (excludeFees.includes(feeKey)) {
+            continue;
+          }
+          res.data.totalFeesUsd = Big(res.data.totalFeesUsd || 0).plus(res.data.fees[feeKey] || 0);
+        }
+        res.data.totalFeesUsd = numberRemoveEndZero(Big(res.data.totalFeesUsd).toFixed(20));
+
       } catch (error) {
         console.log("oneclick estimate failed: %o", error);
       }

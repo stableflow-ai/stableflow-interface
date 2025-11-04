@@ -1,14 +1,23 @@
 import { motion } from "framer-motion";
 import QuoteRoute from "./route";
 import useBridgeStore from "@/stores/use-bridge";
+import { useMemo } from "react";
 
 const QuoteRoutes = () => {
   const {
     quotingMap,
     quoteDataMap,
+    quoteDataService,
+    set,
   } = useBridgeStore();
 
   const isQuoting = Array.from(quotingMap.values()).some(Boolean);
+  const quoteDataList = useMemo(() => {
+    quoteDataMap.forEach((data, service) => {
+      data.service = service;
+    })
+    return Array.from(quoteDataMap.values());
+  }, [quoteDataMap]);
 
   return (
     <div className="hidden md:flex p-[10px] flex-col items-stretch gap-[20px] bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] w-[250px]">
@@ -34,7 +43,28 @@ const QuoteRoutes = () => {
         </button>
       </div>
       <div className="flex flex-col gap-[10px] h-0 flex-1 overflow-y-auto">
-        <QuoteRoute />
+        {
+          quoteDataMap?.size > 0 ? quoteDataList.map((data, index) => (
+            <QuoteRoute
+              key={index}
+              service={data.service}
+              data={data}
+              selected={quoteDataService === data.service}
+              onSelect={() => {
+                if (quoteDataService === data.service) {
+                  return;
+                }
+                set({
+                  quoteDataService: data.service,
+                });
+              }}
+            />
+          )) : (
+            <div className="text-center text-[12px] pt-[50px]">
+              No routes found
+            </div>
+          )
+        }
       </div>
     </div>
   );

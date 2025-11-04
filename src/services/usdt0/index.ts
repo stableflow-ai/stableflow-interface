@@ -7,6 +7,8 @@ import { getPrice } from "@/utils/format/price";
 
 export const PayInLzToken = false;
 
+const excludeFees: string[] = []; // "estimateGasUsd"
+
 class Usdt0Service {
   public async quote(params: any) {
     const {
@@ -16,19 +18,19 @@ class Usdt0Service {
       amountWei,
       recipient,
       fromToken,
+      slippageTolerance,
       prices,
     } = params;
-
-    console.log("params: %o", params);
 
     const result: any = {
       needApprove: true,
       sendParam: void 0,
       quoteParam: params,
       fees: {},
-
+      totalFeesUsd: void 0,
+      estimateSourceGas: void 0,
       estimateTime: 32, // seconds
-      outputAmount: amountWei, // wei
+      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
 
     const originLayerzero = USDT0_CONFIG[originChain];
@@ -48,20 +50,32 @@ class Usdt0Service {
       dstEid: destinationLayerzero.eid,
       to: zeroPadValue(recipient, 32),
       amountLD: amountWei,
-      minAmountLD: 0,
-      extraOptions: "0x",
+      minAmountLD: 0n,
+      extraOptions: "0x0003",
       composeMsg: "0x",
       oftCmd: "0x"
     };
 
     const oftData = await oftContract.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
-    sendParam.minAmountLD = oftReceipt[1];
-    result.sendParam = sendParam;
+    sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
 
     const msgFee = await oftContract.quoteSend.staticCall(sendParam, PayInLzToken);
 
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+
+    result.sendParam = {
+      contract: oftContract,
+      param: [
+        sendParam,
+        {
+          nativeFee: msgFee[0],
+          lzTokenFee: msgFee[1],
+        },
+        recipient,
+        { value: msgFee[0] }
+      ],
+    };
 
     // 3. estimate gas
     const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
@@ -83,56 +97,30 @@ class Usdt0Service {
       const estimateGasUsd = Big(estimateGas.toString()).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
 
       result.fees.estimateGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+      result.estimateSourceGas = estimateGas;
     } catch (error) {
       console.log("usdt0 estimate gas failed: %o", error);
     }
+
+    // calculate total fees
+    for (const feeKey in result.fees) {
+      if (excludeFees.includes(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
     return result;
   }
 
   public async send(params: any) {
     const {
-      wallet,
-      originChain,
-      destinationChain,
-      amountWei,
-      recipient,
+      contract,
+      param,
     } = params;
 
-    const originLayerzero = USDT0_CONFIG[originChain];
-    const destinationLayerzero = USDT0_CONFIG[destinationChain];
-
-    const oftContract = wallet.getContract({
-      contractAddress: originLayerzero.oft,
-      abi: OFT_ABI,
-    });
-
-    const sendParam = {
-      dstEid: destinationLayerzero.eid,
-      to: zeroPadValue(recipient, 32),
-      amountLD: amountWei,
-      minAmountLD: 0,
-      extraOptions: "0x",
-      composeMsg: "0x",
-      oftCmd: "0x"
-    };
-
-    const oftData = await oftContract.quoteOFT.staticCall(sendParam);
-    const [, , oftReceipt] = oftData;
-    sendParam.minAmountLD = oftReceipt[1];
-    const msgFee = await oftContract.quoteSend.staticCall(sendParam, PayInLzToken);
-
-    console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
-
-    const tx = await oftContract.send(
-      sendParam,
-      {
-        nativeFee: msgFee[0],
-        lzTokenFee: msgFee[1],
-      },
-      recipient,
-      { value: msgFee[0] }
-    );
+    const tx = await contract.send(...param);
 
     const txReceipt = await tx.wait();
     console.log("txReceipt: %o", txReceipt);

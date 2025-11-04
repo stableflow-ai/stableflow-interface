@@ -12,3 +12,8 @@ export const ServiceMap: Record<ServiceType, any> = {
   [Service.OneClick]: oneClickService,
   [Service.Usdt0]: usdt0Service,
 };
+
+export const ServiceLogoMap: Record<ServiceType, string> = {
+  [Service.OneClick]: "/src/assets/near-intents-logo.png",
+  [Service.Usdt0]: "/bridge/logo-usdt0.svg",
+};

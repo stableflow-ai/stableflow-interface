@@ -77,7 +77,7 @@ export default class TronWallet {
   async getBalance(token: string, account: string) {
     await this.waitForTronWeb();
 
-    if (token === "TRX" || token === "trx") {
+    if (token === "TRX" || token === "trx" || token === "native") {
       return await this.getTRXBalance(account);
     }
 
@@ -244,7 +244,7 @@ export class OKXTronWallet {
   }
 
   async getBalance(token: string, account: string) {
-    if (token === "TRX" || token === "trx") {
+    if (token === "TRX" || token === "trx" || token === "native") {
       return await this.getTRXBalance(account);
     }
 

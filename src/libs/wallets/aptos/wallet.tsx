@@ -155,7 +155,7 @@ export default class AptosWallet {
   }
 
   async getBalance(token: string, account: string) {
-    if (token === "APT" || token === "apt") {
+    if (token === "APT" || token === "apt" || token === "native") {
       return await this.getAPTBalance(account);
     }
     return await this.getTokenBalance(token, account);

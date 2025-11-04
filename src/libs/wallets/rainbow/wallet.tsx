@@ -36,7 +36,7 @@ export default class RainbowWallet {
 
   async getBalance(token: string, account: string) {
     try {
-      if (token === "eth") {
+      if (token === "eth" || token === "ETH" || token === "native") {
         const balance = await this.provider.getBalance(account);
         return balance.toString();
       }

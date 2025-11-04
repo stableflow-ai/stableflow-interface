@@ -143,7 +143,7 @@ export default class SolanaWallet {
   async getSOLBalance(account: string) {
     const publicKey = new PublicKey(account);
     const balance = await this.connection.getBalance(publicKey);
-    return balance / 1e9;
+    return balance;
   }
 
   async getTokenBalance(tokenMint: string, account: string) {
@@ -165,7 +165,7 @@ export default class SolanaWallet {
   }
 
   async getBalance(token: string, account: string) {
-    if (token === "SOL" || token === "sol") {
+    if (token === "SOL" || token === "sol" || token === "native") {
       return await this.getSOLBalance(account);
     }
     return await this.getTokenBalance(token, account);

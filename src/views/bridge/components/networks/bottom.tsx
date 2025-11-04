@@ -19,6 +19,7 @@ export default function Bottom({ token }: { token: any }) {
   const progressBarRef = useRef<HTMLDivElement>(null);
   const bridgeStore = useBridgeStore();
   const balancesStore = useBalancesStore();
+  const _quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
 
   const mergedBalance =
     balancesStore[`${token?.chainType}Balances` as keyof BalancesState]?.[
@@ -96,15 +97,15 @@ export default function Bottom({ token }: { token: any }) {
         progressBarRef={progressBarRef}
       />
       <div className="shrink-0 w-[100px] flex justify-end">
-        {bridgeStore.quoting ? (
+        {bridgeStore.quotingMap.get(bridgeStore.quoteDataService) ? (
           <Loading size={12} />
-        ) : bridgeStore.quoteData?.quote?.amountOutFormatted ? (
+        ) : _quoteData?.outputAmount ? (
           <div
             className={clsx(
               "text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis",
               getAmountNumberFontSize(
                 formatNumber(
-                  bridgeStore.quoteData.quote.amountOutFormatted,
+                  _quoteData.outputAmount,
                   2,
                   true,
                   { isShort: false }
@@ -119,7 +120,7 @@ export default function Bottom({ token }: { token: any }) {
                 className="!text-[#4DCF5E]"
               /> */}
             {formatNumber(
-              bridgeStore.quoteData.quote.amountOutFormatted,
+              _quoteData.outputAmount,
               2,
               true,
               { isShort: false }

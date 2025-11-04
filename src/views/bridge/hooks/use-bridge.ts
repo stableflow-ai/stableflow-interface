@@ -61,7 +61,6 @@ export default function useBridge(props?: any) {
 
   const quoteOneclick = async (params: any): Promise<QuoteData> => {
     try {
-      bridgeStore.set({ quoting: true });
       bridgeStore.setQuoting(Service.OneClick, true);
       setLiquidityErrorMessage(liquidityError);
 
@@ -86,7 +85,6 @@ export default function useBridge(props?: any) {
         }
       }
 
-      bridgeStore.set({ quoteData: quoteRes.data, quoting: false });
       bridgeStore.setQuoting(Service.OneClick, false);
       bridgeStore.setQuoteData(Service.OneClick, quoteRes.data);
       setLiquidityErrorMessage(false);
@@ -121,10 +119,6 @@ export default function useBridge(props?: any) {
         type: Service.OneClick,
         errMsg: getQuoteErrorMessage(),
       };
-      bridgeStore.set({
-        quoting: false,
-        quoteData: _quoteData,
-      });
       bridgeStore.setQuoting(Service.OneClick, false);
       bridgeStore.setQuoteData(Service.OneClick, _quoteData);
       setLiquidityErrorMessage(false);
@@ -151,7 +145,7 @@ export default function useBridge(props?: any) {
       });
 
       bridgeStore.setQuoting(Service.Usdt0, false);
-      // bridgeStore.setQuoteData(Service.Usdt0, quoteRes.data);
+      bridgeStore.setQuoteData(Service.Usdt0, quoteRes);
       return {
         type: Service.Usdt0,
         data: quoteRes,
@@ -168,16 +162,10 @@ export default function useBridge(props?: any) {
     }
   };
 
-  const quote = async (params: { dry: boolean; }) => {
-    console.log("------- ⬇️ quote ⬇️ -------");
-    console.log("configStore.slippage: %o", configStore.slippage);
-    console.log("walletStore.fromToken: %o", walletStore.fromToken);
-    console.log("walletStore.toToken: %o", walletStore.toToken);
-    console.log("fromWalletAddress: %o", fromWalletAddress);
-    console.log("custom recipient address: %o", bridgeStore.recipientAddress);
-    console.log("default recipient address: %o", toWalletAddress);
-    console.log("final recipient address: %o", bridgeStore.recipientAddress || toWalletAddress || "");
-    console.log("------- ⬆️ quote ⬆️ -------");
+  const quote = async (params: { dry: boolean; }, isSync?: boolean) => {
+    if (!isSync) {
+      bridgeStore.clearQuoteData();
+    }
 
     if (
       !walletStore.toToken ||
@@ -186,7 +174,7 @@ export default function useBridge(props?: any) {
       !(bridgeStore.recipientAddress || toWalletAddress) ||
       Big(bridgeStore.amount).lt(TRANSFER_MIN_AMOUNT)
     ) {
-      bridgeStore.set({ quoteData: null, quoteDataMap: new Map() });
+      bridgeStore.clearQuoteData();
       return;
     }
 
@@ -202,13 +190,13 @@ export default function useBridge(props?: any) {
         switch (service) {
           case Service.OneClick:
             quoteServices.push({
-              service: [Service.OneClick],
+              service: Service.OneClick,
               quote: quoteOneclick
             });
             break;
           case Service.Usdt0:
             quoteServices.push({
-              service: [Service.Usdt0],
+              service: Service.Usdt0,
               quote: quoteUsdt0,
             });
             break;
@@ -218,13 +206,43 @@ export default function useBridge(props?: any) {
       }
     }
 
+    const quoteParams = {
+      ...params,
+      amountWei,
+      wallet: wallet.wallet,
+    };
+
+    if (isSync) {
+      const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
+      return currentQuoteService.quote(quoteParams);
+    }
+
+    let quoteList: any = [];
     for (const quoteService of quoteServices) {
-      quoteService.quote({
-        ...params,
-        amountWei,
-        wallet: wallet.wallet,
-      }).then((quoteRes: any) => {
-        console.log("%c%s quoteRes: %o", "background:#f00;color:#fff;", quoteService.service, quoteRes);
+      quoteService.quote(quoteParams).then((_quoteRes: any) => {
+        console.log("%c[%s]Quote Result: %o", "background:#f00;color:#fff;", quoteService.service, _quoteRes);
+
+        quoteList.push(_quoteRes);
+
+        if (quoteList.length < 2) {
+          bridgeStore.set({ quoteDataService: quoteService.service });
+          return;
+        }
+
+        // sort
+        const sortedQuoteData = quoteList.sort((a: any, b: any) => {
+          const netA = Big(a.data.outputAmount || 0).minus(a.data.totalFeesUsd || 0);
+          const netB = Big(b.data.outputAmount || 0).minus(b.data.totalFeesUsd || 0);
+
+          if (netB.gt(netA)) return 1;
+          if (netA.gt(netB)) return -1;
+
+          if (netA.eq(netB)) return 0;
+
+          return 0;
+        });
+        console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
+        bridgeStore.set({ quoteDataService: sortedQuoteData[0]?.type });
       });
     }
   };
@@ -243,7 +261,7 @@ export default function useBridge(props?: any) {
     if (!walletStore.fromToken) return;
     try {
       bridgeStore.set({ transferring: true });
-      const _quote: any = await quote({ dry: false });
+      const _quote = await quote({ dry: false }, true);
 
       // @ts-ignore
       const wallet = wallets[walletStore.fromToken.chainType];
@@ -251,114 +269,69 @@ export default function useBridge(props?: any) {
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
-      // Check quote result
-      if (!_quote?.quote?.depositAddress) {
-        throw new Error("Failed to get quote");
-      }
-
       // Estimate gas and check native token balance
-      if (wallet.wallet.estimateGas) {
-        const gasLimitRes = await wallet.wallet.estimateGas({
-          originAsset: walletStore.fromToken.contractAddress,
-          depositAddress: _quote.quote.depositAddress,
-          amount: _amount
-        });
+      try {
+        const estimateGas = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService)?.estimateSourceGas;
+        const nativeBalance = await wallet.wallet.getBalance("native", wallet.account);
+        const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
 
-        const gasLimit = gasLimitRes.gasLimit;
-        let nativeBalance: string = "0";
-        let gasCost: Big = Big(0);
-        let nativeTokenName = "";
-
-        // Get native token balance and calculate gas cost based on chain type
-        const chainType = walletStore.fromToken.chainType;
-
-        if (chainType === "evm") {
-          // EVM chains: get ETH balance and calculate gas cost
-          nativeTokenName = "ETH";
-          const feeData = await wallet.wallet.provider.getFeeData();
-          const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
-          gasCost = Big(gasLimit.toString()).times(gasPrice.toString()).div(1e18);
-
-          nativeBalance = await wallet.wallet.getBalance("eth", wallet.account);
-          nativeBalance = Big(nativeBalance).div(1e18).toString();
-        } else if (chainType === "sol") {
-          // Solana: gas limit is already in lamports
-          nativeTokenName = "SOL";
-          gasCost = Big(gasLimit.toString()).div(1e9);
-
-          nativeBalance = await wallet.wallet.getSOLBalance(wallet.account);
-          nativeBalance = Big(nativeBalance).toString();
-        } else if (chainType === "tron") {
-          // Tron: typically free if account has bandwidth/energy, but check TRX balance anyway
-          nativeTokenName = "TRX";
-          // Tron gas is usually free, but we need some TRX for potential fees (0.1 TRX as safety)
-          gasCost = Big("0.1");
-
-          nativeBalance = await wallet.wallet.getBalance("TRX", wallet.account);
-          nativeBalance = Big(nativeBalance).div(1e6).toString();
-        } else if (chainType === "aptos") {
-          // Aptos: estimate gas cost
-          nativeTokenName = "APT";
-          // Assume default gas price of 100 octas per gas unit
-          gasCost = Big(gasLimit.toString()).times(100).div(1e8);
-
-          nativeBalance = await wallet.wallet.getAPTBalance(wallet.account);
-          nativeBalance = Big(nativeBalance).div(1e8).toString();
-        } else if (chainType === "near") {
-          // Near: convert gas to NEAR (1 TGas = 1e12 gas units, typical price ~1 TGas = 0.0001 NEAR)
-          nativeTokenName = "NEAR";
-          // Near gas price is very low, roughly 1 TGas = 0.0001 NEAR
-          gasCost = Big(gasLimit.toString()).div(1e16); // Rough estimate
-
-          // Get NEAR balance using wallet method
-          const nearBalanceYocto = await wallet.wallet.getNearBalance(wallet.account);
-          nativeBalance = Big(nearBalanceYocto).div(1e24).toString();
-        }
-
-        console.log(`estimate ${nativeTokenName} balance. Required: ${formatNumber(gasCost.toString(), 6, true)} ${nativeTokenName}, Available: ${formatNumber(nativeBalance, 6, true)} ${nativeTokenName}`);
+        console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
 
         // Check if balance is sufficient
-        if (Big(nativeBalance).lt(gasCost)) {
+        if (Big(nativeBalance).lt(estimateGas)) {
           bridgeStore.set({ transferring: false });
-          bridgeStore.set({
-            quoting: false,
-            quoteData: {
-              errMsg: "Insufficient native token balance",
-            }
+          bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+            errMsg: "Insufficient native token balance",
           });
           return;
         }
+      } catch (error) {
+        console.log("check estimate gas failed: %o", error);
       }
 
-      const hash = await wallet.wallet.transfer({
-        originAsset: walletStore.fromToken.contractAddress,
-        depositAddress: _quote.quote.depositAddress,
-        amount: _amount
-      });
+      // 1click transfer
+      if (bridgeStore.quoteDataService === Service.OneClick) {
+        if (!_quote?.data?.quote?.depositAddress) {
+          throw new Error("Failed to get quote");
+        }
 
-      historyStore.addHistory({
-        despoitAddress: _quote.quote.depositAddress,
-        amount: bridgeStore.amount,
-        fromToken: walletStore.fromToken,
-        toToken: walletStore.toToken,
-        fromAddress: wallet.account,
-        toAddress: _quote.quoteRequest.recipient,
-        time: Date.now(),
-        txHash: hash,
-        timeEstimate: _quote.quote.timeEstimate,
-      });
-      report({
-        address: wallet.account,
-        receive_address: _quote.quoteRequest.recipient,
-        deposit_address: _quote.quote.depositAddress,
-      });
+        const hash = await wallet.wallet.transfer({
+          originAsset: walletStore.fromToken.contractAddress,
+          depositAddress: _quote.data.quote.depositAddress,
+          amount: _amount
+        });
 
-      historyStore.updateStatus(_quote.quote.depositAddress, "PENDING_DEPOSIT");
+        historyStore.addHistory({
+          despoitAddress: _quote.data.quote.depositAddress,
+          amount: bridgeStore.amount,
+          fromToken: walletStore.fromToken,
+          toToken: walletStore.toToken,
+          fromAddress: wallet.account,
+          toAddress: _quote.data.quoteRequest.recipient,
+          time: Date.now(),
+          txHash: hash,
+          timeEstimate: _quote.data.quote.timeEstimate,
+        });
+        report({
+          address: wallet.account,
+          receive_address: _quote.data.quoteRequest.recipient,
+          deposit_address: _quote.data.quote.depositAddress,
+        });
+
+        historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
+      }
+
+      // usdt0 transfer
+      if (bridgeStore.quoteDataService === Service.Usdt0) {
+        await ServiceMap[Service.Usdt0].send(_quote?.data?.sendParam);
+      }
+
       bridgeStore.set({ transferring: false });
       getBalance();
       toast.success({
         title: "Transfer submitted"
       });
+
     } catch (error) {
       console.error(error);
       bridgeStore.set({ transferring: false });
@@ -458,8 +431,8 @@ export default function useBridge(props?: any) {
       if (!bridgeStore.amount) {
         return "Please enter amount";
       }
-      if (bridgeStore.quoteData?.errMsg) {
-        return bridgeStore.quoteData.errMsg;
+      if (bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg) {
+        return bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg;
       }
       if (liquidityErrorMssage) {
         return "Amount exceeds max";
@@ -504,7 +477,8 @@ export default function useBridge(props?: any) {
     walletStore.fromToken,
     bridgeStore.amount,
     walletStore.toToken,
-    bridgeStore.quoteData,
+    bridgeStore.quoteDataMap,
+    bridgeStore.quoteDataService,
     fromWalletAddress,
     toWalletAddress,
     wallets.evm?.chainId,

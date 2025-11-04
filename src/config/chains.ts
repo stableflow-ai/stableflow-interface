@@ -58,7 +58,7 @@ const chains = {
       symbol: "SOL",
       decimals: 9,
     },
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick],
   },
   eth: {
     chainName: "Ethereum",
@@ -183,7 +183,7 @@ const chains = {
       symbol: "TRX",
       decimals: 6,
     },
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick],
   },
   aptos: {
     chainName: "Aptos",

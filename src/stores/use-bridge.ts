@@ -1,27 +1,27 @@
 import { create } from "zustand/index";
-import type { ServiceType } from "@/services";
+import { Service, type ServiceType } from "@/services";
 
 interface BridgeState {
   amount: string;
   recipientAddress: string;
-  quoteData: any;
+  quoteDataService: ServiceType;
   quoteDataMap: Map<string, any>;
-  quoting: boolean;
   quotingMap: Map<string, boolean>;
   transferring: boolean;
   errorTips: string;
   showFee: boolean;
   set: (params: any) => void;
   setQuoteData: (key: string, value: any) => void;
+  modifyQuoteData: (key: string, value: any) => void;
+  clearQuoteData: () => void;
   setQuoting: (key: string, value: boolean) => void;
 }
 
 const useBridgeStore = create<BridgeState>((set) => ({
   amount: "",
   recipientAddress: "",
-  quoteData: null,
+  quoteDataService: Service.OneClick,
   quoteDataMap: new Map(),
-  quoting: false,
   quotingMap: new Map(),
   transferring: false,
   errorTips: "",
@@ -29,14 +29,34 @@ const useBridgeStore = create<BridgeState>((set) => ({
   set: (params) => set(() => ({ ...params })),
   setQuoteData: (key, value) => {
     set((state) => {
-      state.quoteDataMap.set(key, value);
-      return state;
+      const _quoteDataMap = new Map(state.quoteDataMap);
+      _quoteDataMap.set(key, value);
+      return { ...state, quoteDataMap: _quoteDataMap };
+    });
+  },
+  modifyQuoteData: (key, value) => {
+    set((state) => {
+      const _quoteDataMap = new Map(state.quoteDataMap);
+      _quoteDataMap.set(key, {
+        ..._quoteDataMap.get(key),
+        ...value,
+      });
+      return { ...state, quoteDataMap: _quoteDataMap };
+    });
+  },
+  clearQuoteData: () => {
+    set((state) => {
+      return {
+        ...state,
+        quoteDataMap: new Map(),
+      };
     });
   },
   setQuoting: (key, value) => {
     set((state) => {
-      state.quotingMap.set(key, value);
-      return state;
+      const _quotingMap = new Map(state.quotingMap);
+      _quotingMap.set(key, value);
+      return { ...state, quotingMap: _quotingMap };
     });
   },
 }));
