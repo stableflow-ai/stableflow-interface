@@ -404,11 +404,16 @@ export default function useBridge(props?: any) {
 
   // Re-validate amount when token or chain changes
   useEffect(() => {
-    if (bridgeStore.amount && walletStore.fromToken) {
-      const error = validateAmount(bridgeStore.amount);
+    if (
+      bridgeStore.quoteData?.quote?.amountInFormatted &&
+      walletStore.fromToken
+    ) {
+      const error = validateAmount(
+        bridgeStore.quoteData?.quote?.amountInFormatted
+      );
       setAmountError(error);
     }
-  }, [walletStore.fromToken, bridgeStore.amount, balancesStore]);
+  }, [walletStore.fromToken, bridgeStore.quoteData, balancesStore]);
 
   useEffect(() => {
     debouncedQuote(true);
