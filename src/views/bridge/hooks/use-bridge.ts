@@ -162,6 +162,41 @@ export default function useBridge(props?: any) {
     }
   };
 
+  const quoteCCTP = async (params: any): Promise<QuoteData> => {
+    try {
+      bridgeStore.setQuoting(Service.CCTP, true);
+
+      const quoteRes = await ServiceMap[Service.CCTP].quote({
+        slippageTolerance: configStore.slippage,
+        originChain: walletStore.fromToken.chainName,
+        destinationChain: walletStore.toToken.chainName,
+        amountWei: params.amountWei,
+        refundTo: fromWalletAddress || "",
+        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
+        wallet: params.wallet,
+        fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        prices,
+      });
+
+      bridgeStore.setQuoting(Service.CCTP, false);
+      bridgeStore.setQuoteData(Service.CCTP, quoteRes);
+      return {
+        type: Service.CCTP,
+        data: quoteRes,
+      };
+    } catch (error: any) {
+      const _quoteData = {
+        type: Service.CCTP,
+        errMsg: error.message,
+      };
+      bridgeStore.setQuoting(Service.CCTP, false);
+      bridgeStore.setQuoteData(Service.CCTP, _quoteData);
+      setLiquidityErrorMessage(false);
+      return _quoteData;
+    }
+  };
+
   const quote = async (params: { dry: boolean; }, isSync?: boolean) => {
     if (!isSync) {
       bridgeStore.clearQuoteData();
@@ -198,6 +233,12 @@ export default function useBridge(props?: any) {
             quoteServices.push({
               service: Service.Usdt0,
               quote: quoteUsdt0,
+            });
+            break;
+          case Service.CCTP:
+            quoteServices.push({
+              service: Service.CCTP,
+              quote: quoteCCTP,
             });
             break;
           default:
@@ -512,7 +553,6 @@ export default function useBridge(props?: any) {
   }, [
     bridgeStore.transferring,
     bridgeStore.quoteDataMap,
-    bridgeStore.quoteDataService,
   ]);
 
   return {

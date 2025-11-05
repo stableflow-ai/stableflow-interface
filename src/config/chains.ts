@@ -1,5 +1,3 @@
-import { Service } from "@/services";
-
 export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
   near: {
     value: "near",
@@ -45,7 +43,6 @@ const chains = {
       symbol: "NEAR",
       decimals: 24,
     },
-    services: [Service.OneClick],
   },
   sol: {
     chainName: "Solana",
@@ -58,7 +55,6 @@ const chains = {
       symbol: "SOL",
       decimals: 9,
     },
-    services: [Service.OneClick],
   },
   eth: {
     chainName: "Ethereum",
@@ -72,7 +68,6 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
-    services: [Service.OneClick, Service.Usdt0],
   },
   arb: {
     chainName: "Arbitrum",
@@ -86,7 +81,6 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
-    services: [Service.OneClick, Service.Usdt0],
   },
   bsc: {
     chainName: "BNB Chain",
@@ -100,7 +94,6 @@ const chains = {
       symbol: "BNB",
       decimals: 18,
     },
-    services: [Service.OneClick],
   },
   avax: {
     chainName: "Avalanche",
@@ -114,7 +107,6 @@ const chains = {
       symbol: "AVAX",
       decimals: 18,
     },
-    services: [Service.OneClick],
   },
   base: {
     chainName: "Base",
@@ -128,7 +120,6 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
-    services: [Service.OneClick],
   },
   pol: {
     chainName: "Polygon",
@@ -142,7 +133,6 @@ const chains = {
       symbol: "MATIC",
       decimals: 18,
     },
-    services: [Service.OneClick, Service.Usdt0],
   },
   gnosis: {
     chainName: "Gnosis",
@@ -156,7 +146,6 @@ const chains = {
       symbol: "XDAI",
       decimals: 18,
     },
-    services: [Service.OneClick],
   },
   op: {
     chainName: "Optimism",
@@ -170,7 +159,6 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
-    services: [Service.OneClick, Service.Usdt0],
   },
   tron: {
     chainName: "Tron",
@@ -183,7 +171,6 @@ const chains = {
       symbol: "TRX",
       decimals: 6,
     },
-    services: [Service.OneClick],
   },
   aptos: {
     chainName: "Aptos",
@@ -196,7 +183,6 @@ const chains = {
       symbol: "APT",
       decimals: 8,
     },
-    services: [Service.OneClick],
   },
 };
 

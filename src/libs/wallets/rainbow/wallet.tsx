@@ -1,4 +1,6 @@
 import erc20Abi from "@/config/abi/erc20";
+import { numberRemoveEndZero } from "@/utils/format/number";
+import Big from "big.js";
 import { ethers } from "ethers";
 
 export default class RainbowWallet {
@@ -118,5 +120,78 @@ export default class RainbowWallet {
     } = params;
 
     return new ethers.Contract(contractAddress, abi, this.signer);
+  }
+
+  async allowance(params: any) {
+    const {
+      contractAddress,
+      spender,
+      address,
+      amountWei,
+    } = params;
+
+    const contract = new ethers.Contract(contractAddress, erc20Abi, this.signer);
+
+    // get allowance
+    let allowance = "0";
+    try {
+      allowance = await contract.allowance(address, spender);
+      allowance = allowance.toString();
+    } catch (error) {
+      console.log("Error getting allowance: %o", error)
+    }
+
+    return {
+      contract,
+      allowance,
+      needApprove: Big(amountWei || 0).gt(allowance || 0),
+    };
+  }
+
+  async approve(params: any) {
+    const {
+      contractAddress,
+      spender,
+      amountWei,
+      isApproveMax = false,
+    } = params;
+
+    const contract = new ethers.Contract(contractAddress, erc20Abi, this.signer);
+
+    let _amountWei = amountWei;
+    if (isApproveMax) {
+      _amountWei = ethers.MaxUint256;
+    }
+
+    try {
+      const tx = await contract.approve(spender, _amountWei);
+      const txReceipt = await tx.wait();
+      if (txReceipt.status === 1) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log("Error approve: %o", error)
+    }
+
+    return false;
+  }
+
+  async getEstimateGas(params: any) {
+    const { gasLimit, price, nativeToken } = params;
+
+    const feeData = await this.provider.getFeeData();
+    const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
+
+    const estimateGas = BigInt(gasLimit) * BigInt(gasPrice);
+    const estimateGasAmount = Big(estimateGas.toString()).div(10 ** nativeToken.decimals);
+    const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
+
+    return {
+      gasPrice,
+      usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
+      wei: estimateGas,
+      amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
+    };
   }
 }

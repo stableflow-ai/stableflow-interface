@@ -5,6 +5,7 @@ import { lazy, Suspense, useMemo } from "react";
 import { Service, ServiceLogoMap } from "@/services";
 import { formatDuration } from "@/utils/format/time";
 import ResultUsdt0 from "./usdt0";
+import ResultCCTP from "./cctp";
 
 const ResultOneClick = lazy(() => import("./oneclick"));
 
@@ -69,6 +70,11 @@ export default function Result() {
         {
           bridgeStore.quoteDataService === Service.Usdt0 && (
             <ResultUsdt0 />
+          )
+        }
+        {
+          bridgeStore.quoteDataService === Service.CCTP && (
+            <ResultCCTP />
           )
         }
       </Suspense>

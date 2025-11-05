@@ -152,13 +152,13 @@ class Usdt0Service {
         recipient,
         { value: msgFee[0] }
       );
-      const feeData = await wallet.provider.getFeeData();
-      const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
-      const estimateGas = BigInt(gasLimit) * BigInt(gasPrice);
-      const estimateGasUsd = Big(estimateGas.toString()).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
-
-      result.fees.estimateGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-      result.estimateSourceGas = estimateGas;
+      const { usd, wei } = await wallet.getEstimateGas({
+        gasLimit,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+      });
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas = wei;
     } catch (error) {
       console.log("usdt0 estimate gas failed: %o", error);
     }

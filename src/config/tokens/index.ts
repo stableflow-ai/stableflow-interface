@@ -55,3 +55,8 @@ export const stablecoinWithChains: any = {
     "USDT": usdtAptos,
   },
 };
+
+export const stablecoinLogoMap: Record<string, string> = {
+  "USDT": "/usdt.png",
+  "USDC": "/usdc.png",
+};
