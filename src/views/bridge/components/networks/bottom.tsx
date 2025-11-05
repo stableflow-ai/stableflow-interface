@@ -83,7 +83,7 @@ export default function Bottom({ token }: { token: any }) {
         ) : bridgeStore.quoteData?.quote?.amountInFormatted ? (
           <div
             className={clsx(
-              "text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis",
+              "text-[#FF399F] whitespace-nowrap overflow-hidden text-ellipsis",
               getAmountNumberFontSize(
                 formatNumber(
                   bridgeStore.quoteData.quote.amountInFormatted,
@@ -95,7 +95,7 @@ export default function Bottom({ token }: { token: any }) {
               )
             )}
           >
-            +
+            -
             {formatNumber(
               bridgeStore.quoteData.quote.amountInFormatted,
               2,
@@ -118,11 +118,11 @@ export default function Bottom({ token }: { token: any }) {
         progressBarRef={progressBarRef}
       />
       <div className="shrink-0 w-[100px] flex justify-end">
-        {bridgeStore.quoting ? (
-          <Loading size={12} />
-        ) : !!bridgeStore.amount ? (
+        {!!bridgeStore.amount ? (
           // <Amount amount={bridgeStore.amount} />
-          formatNumber(bridgeStore.amount, 2, true, { isShort: false })
+          <span className="text-[#4DCF5E]">
+            +{formatNumber(bridgeStore.amount, 2, true, { isShort: false })}
+          </span>
         ) : (
           <div className="w-[38px] h-[12px] rounded-[6px] bg-[#EDF0F7]" />
         )}
