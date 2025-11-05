@@ -1,6 +1,7 @@
 import Button from "@/components/button";
 import useBridgeStore from "@/stores/use-bridge";
 import { useDebounceFn } from "ahooks";
+import { useMemo } from "react";
 import { useSwitchChain } from "wagmi";
 
 export default function BridgeButton({
@@ -16,6 +17,21 @@ export default function BridgeButton({
   const bridgeStore = useBridgeStore();
   const { switchChainAsync } = useSwitchChain();
   const loading = bridgeStore.quotingMap.get(bridgeStore.quoteDataService) || bridgeStore.transferring;
+
+  const buttonText = useMemo(() => {
+    if (bridgeStore.errorTips) {
+      return bridgeStore.errorTips;
+    }
+    if (errorChain) {
+      return "Switch Network";
+    }
+    const quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
+    if (quoteData?.needApprove) {
+      return "Approve";
+    }
+    return "Transfer";
+  }, [bridgeStore.errorTips, errorChain, bridgeStore.quoteDataService, bridgeStore.quoteDataMap]);
+
   return (
     <Button
       disabled={!!bridgeStore.errorTips || loading || !bridgeStore.quoteDataService || bridgeStore.quoteDataMap.size < 1}
@@ -34,11 +50,7 @@ export default function BridgeButton({
         onClick();
       }}
     >
-      {bridgeStore.errorTips
-        ? bridgeStore.errorTips
-        : errorChain
-          ? "Switch Network"
-          : "Transfer"}
+      {buttonText}
     </Button>
   );
 }
