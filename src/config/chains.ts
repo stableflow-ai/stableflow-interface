@@ -39,6 +39,10 @@ const chains = {
     chainType: chainTypes.near.value,
     blockExplorerUrl: "https://nearblocks.io/txns",
     primaryColor: "#76EA9E",
+    nativeToken: {
+      symbol: "NEAR",
+      decimals: 24,
+    },
   },
   sol: {
     chainName: "Solana",
@@ -47,6 +51,10 @@ const chains = {
     chainType: chainTypes.sol.value,
     blockExplorerUrl: "https://solscan.io/tx",
     primaryColor: "#B93EF0",
+    nativeToken: {
+      symbol: "SOL",
+      decimals: 9,
+    },
   },
   eth: {
     chainName: "Ethereum",
@@ -56,6 +64,10 @@ const chains = {
     chainId: 1,
     blockExplorerUrl: "https://etherscan.io/tx",
     primaryColor: "#7083ee",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
   },
   arb: {
     chainName: "Arbitrum",
@@ -65,6 +77,10 @@ const chains = {
     chainId: 42161,
     blockExplorerUrl: "https://arbiscan.io/tx",
     primaryColor: "#4763A7",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
   },
   bsc: {
     chainName: "BNB Chain",
@@ -74,6 +90,10 @@ const chains = {
     chainId: 56,
     blockExplorerUrl: "https://bscscan.com/tx",
     primaryColor: "#F1C144",
+    nativeToken: {
+      symbol: "BNB",
+      decimals: 18,
+    },
   },
   avax: {
     chainName: "Avalanche",
@@ -83,6 +103,10 @@ const chains = {
     chainId: 43114,
     blockExplorerUrl: "https://snowtrace.io/tx",
     primaryColor: "#9D2620",
+    nativeToken: {
+      symbol: "AVAX",
+      decimals: 18,
+    },
   },
   base: {
     chainName: "Base",
@@ -92,6 +116,10 @@ const chains = {
     chainId: 8453,
     blockExplorerUrl: "https://basescan.org/tx",
     primaryColor: "#3137F6",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
   },
   pol: {
     chainName: "Polygon",
@@ -101,6 +129,10 @@ const chains = {
     chainId: 137,
     blockExplorerUrl: "https://polygonscan.com/tx",
     primaryColor: "#5A2AD1",
+    nativeToken: {
+      symbol: "MATIC",
+      decimals: 18,
+    },
   },
   gnosis: {
     chainName: "Gnosis",
@@ -110,6 +142,10 @@ const chains = {
     chainId: 100,
     blockExplorerUrl: "https://gnosisscan.io/tx",
     primaryColor: "#285230",
+    nativeToken: {
+      symbol: "XDAI",
+      decimals: 18,
+    },
   },
   op: {
     chainName: "Optimism",
@@ -119,6 +155,10 @@ const chains = {
     chainId: 10,
     blockExplorerUrl: "https://optimistic.etherscan.io/tx",
     primaryColor: "#B5271D",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
   },
   tron: {
     chainName: "Tron",
@@ -127,6 +167,10 @@ const chains = {
     chainType: chainTypes.tron.value,
     blockExplorerUrl: "https://tronscan.org/tx",
     primaryColor: "#BC3221",
+    nativeToken: {
+      symbol: "TRX",
+      decimals: 6,
+    },
   },
   aptos: {
     chainName: "Aptos",
@@ -135,6 +179,10 @@ const chains = {
     chainType: chainTypes.aptos.value,
     blockExplorerUrl: "https://aptoscan.com/transaction",
     primaryColor: "#000000",
+    nativeToken: {
+      symbol: "APT",
+      decimals: 8,
+    },
   },
   bera: {
     chainName: "Berachain",

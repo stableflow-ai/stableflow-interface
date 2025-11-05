@@ -3,9 +3,11 @@ import useWalletStore from "@/stores/use-wallet";
 import Chain from "./chain";
 import Input from "./input";
 import Bottom from "./bottom";
+import { useSwitchChain } from "wagmi";
 
 export default function Networks({ addressValidation }: any) {
   const walletStore = useWalletStore();
+  const { switchChain } = useSwitchChain();
   return (
     <div className="w-full mt-[20px] px-[10px] md:px-0">
       <div className="text-[16px] text-[#444C59] md:text-[#0E3616]">Select Networks</div>
@@ -28,9 +30,12 @@ export default function Networks({ addressValidation }: any) {
             <Input />
             <Chain token={walletStore.toToken} isTo={true} />
             <ExchangeButton
-              onClick={() => {
+              onClick={async () => {
                 const fromToken = walletStore.fromToken;
                 const toToken = walletStore.toToken;
+                if (toToken.chainType === "evm") {
+                  await switchChain({ chainId: toToken.chainId });
+                }
                 walletStore.set({ fromToken: toToken, toToken: fromToken });
               }}
             />

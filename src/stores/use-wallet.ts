@@ -1,4 +1,5 @@
 import { create } from "zustand/index";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { usdt } from "@/config/tokens/usdt";
 
 interface WalletState {
@@ -12,15 +13,29 @@ interface WalletState {
   set: (params: any) => void;
 }
 
-const useWalletStore = create<WalletState>((set) => ({
-  showWallet: false,
-  usdcExpand: false,
-  usdtExpand: false,
-  selectedToken: "USDT",
-  fromToken: usdt,
-  toToken: null,
-  isTo: false,
-  set: (params) => set(() => ({ ...params }))
-}));
+const useWalletStore = create<WalletState>()(
+  persist(
+    (set) => ({
+      showWallet: false,
+      usdcExpand: false,
+      usdtExpand: false,
+      selectedToken: "USDT",
+      fromToken: usdt,
+      toToken: null,
+      isTo: false,
+      set: (params) => set(() => ({ ...params }))
+    }),
+    {
+      name: "_wallet",
+      version: 0.1,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        usdcExpand: state.usdcExpand,
+        usdtExpand: state.usdtExpand,
+        selectedToken: state.selectedToken
+      })
+    }
+  )
+);
 
 export default useWalletStore;

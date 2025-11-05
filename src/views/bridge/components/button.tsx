@@ -1,27 +1,34 @@
 import Button from "@/components/button";
 import useBridgeStore from "@/stores/use-bridge";
+import { useDebounceFn } from "ahooks";
 import { useSwitchChain } from "wagmi";
 
 export default function BridgeButton({
   onClick,
+  onQuote,
   errorChain
 }: {
   onClick: () => void;
+  onQuote: (params: { dry: boolean; }, isSync?: boolean) => void;
   errorChain: number;
 }) {
+  const { run: onQuoteDebounce } = useDebounceFn(onQuote, { wait: 2000 });
   const bridgeStore = useBridgeStore();
-  const { switchChain } = useSwitchChain();
-  // const loading = !bridgeStore.errorTips && (bridgeStore.quoting || bridgeStore.transferring);
-  const loading = bridgeStore.quoting || bridgeStore.transferring;
+  const { switchChainAsync } = useSwitchChain();
+  const loading = bridgeStore.quotingMap.get(bridgeStore.quoteDataService) || bridgeStore.transferring;
   return (
     <Button
-      disabled={!!bridgeStore.errorTips || loading}
+      disabled={!!bridgeStore.errorTips || loading || !bridgeStore.quoteDataService || bridgeStore.quoteDataMap.size < 1}
       loading={loading}
       className="w-full h-[50px] mt-[10px] rounded-[25px] bg-[#6284F5] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-white text-[16px]"
       onClick={() => {
         if (!!bridgeStore.errorTips) return;
         if (errorChain) {
-          switchChain({ chainId: errorChain });
+          switchChainAsync({ chainId: errorChain }, {
+            onSuccess: () => {
+              onQuoteDebounce({ dry: true });
+            },
+          });
           return;
         }
         onClick();
@@ -30,8 +37,8 @@ export default function BridgeButton({
       {bridgeStore.errorTips
         ? bridgeStore.errorTips
         : errorChain
-        ? "Switch Network"
-        : "Transfer"}
+          ? "Switch Network"
+          : "Transfer"}
     </Button>
   );
 }

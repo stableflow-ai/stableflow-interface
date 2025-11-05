@@ -31,7 +31,7 @@ export default function Assets() {
         <AssetItem
           asset={usdc}
           active={walletStore.selectedToken === "USDC"}
-          disabled={true}
+          disabled={false}
           onClick={() => {
             walletStore.set({
               fromToken: usdc,

@@ -7,7 +7,7 @@ import { chainTypes } from "@/config/chains";
 import { formatNumber } from "@/utils/format/number";
 import Popover from "@/components/popover";
 import clsx from "clsx";
-import { stablecoinWithChains } from "@/config/tokens";
+import { stablecoinLogoMap, stablecoinWithChains } from "@/config/tokens";
 
 export default function Total() {
   const walletStore = useWalletStore();
@@ -110,13 +110,13 @@ export default function Total() {
     <div className="flex flex-col justify-center items-center border-b border-[#EDF0EF] pb-[40px]">
       <div className="w-full px-[25px] flex items-center gap-[7px]">
         <img
-          src={walletStore.fromToken?.icon}
+          src={stablecoinLogoMap[walletStore.selectedToken]}
           alt=""
           className="w-[34px] h-[34px] object-center object-contain shrink-0"
         />
         <div className="flex flex-col gap-[0px] text-black text-[14px] font-[500] leading-[100%]">
           <div className="">
-            Total {walletStore.fromToken?.symbol}
+            Total {walletStore.selectedToken}
           </div>
           {total && Big(total).gt(0) ? (
             <Amount

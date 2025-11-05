@@ -57,9 +57,13 @@ export default function Wallet() {
             /> */}
               <Token
                 token={stablecoinWithChains.evm[walletStore.selectedToken]}
-                expand={walletStore.usdtExpand}
+                expand={walletStore.selectedToken === "USDT" ? walletStore.usdtExpand : walletStore.usdcExpand}
                 onExpand={() => {
-                  walletStore.set({ usdtExpand: !walletStore.usdtExpand });
+                  if (walletStore.selectedToken === "USDT") {
+                    walletStore.set({ usdtExpand: !walletStore.usdtExpand });
+                    return;
+                  }
+                  walletStore.set({ usdcExpand: !walletStore.usdcExpand });
                 }}
                 balances={balancesStore.evmBalances}
                 // loading={loading}

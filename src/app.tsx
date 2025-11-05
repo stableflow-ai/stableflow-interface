@@ -10,6 +10,7 @@ import Layout from "./layouts";
 import { lazy } from "react";
 import Developer from "./views/developer";
 import ErrorPage from "./views/error";
+import { usePrices } from "./hooks/use-prices";
 
 const History = lazy(() => import("./views/history"));
 const LearnMore = lazy(() => import("./views/learn-more"));
@@ -50,6 +51,7 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
+  usePrices();
   return (
     <WalletsProvider>
       <RouterProvider router={router} />
