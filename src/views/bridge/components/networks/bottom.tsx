@@ -79,31 +79,9 @@ export default function Bottom({ token }: { token: any }) {
           )
         )}
       >
-        {bridgeStore.quotingMap.get(bridgeStore.quoteDataService) ? (
-          <Loading size={12} />
-        ) : _quoteData?.outputAmount ? (
-          <div
-            className={clsx(
-              "text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis",
-              getAmountNumberFontSize(
-                formatNumber(
-                  _quoteData.outputAmount,
-                  2,
-                  true,
-                  { isShort: false }
-                ),
-                0
-              )
-            )}
-          >
-            +
-            {formatNumber(
-              _quoteData.outputAmount,
-              2,
-              true,
-              { isShort: false }
-            )}
-          </div>
+        {!!bridgeStore.amount ? (
+          // <Amount amount={bridgeStore.amount} />
+          formatNumber(bridgeStore.amount, 2, true, { isShort: false })
         ) : (
           <div className="w-[38px] h-[12px] rounded-[6px] bg-[#EDF0F7]" />
         )}
@@ -121,9 +99,27 @@ export default function Bottom({ token }: { token: any }) {
       <div className="shrink-0 w-[100px] flex justify-end">
         {bridgeStore.quotingMap.get(bridgeStore.quoteDataService) ? (
           <Loading size={12} />
-        ) : !!bridgeStore.amount ? (
-          // <Amount amount={bridgeStore.amount} />
-          formatNumber(bridgeStore.amount, 2, true, { isShort: false })
+        ) : _quoteData?.outputAmount ? (
+          <div
+            className={clsx(
+              "text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis",
+              getAmountNumberFontSize(
+                formatNumber(_quoteData?.outputAmount, 2, true, {
+                  isShort: false
+                }),
+                0
+              )
+            )}
+          >
+            +
+            {/* <Amount
+                amount={bridgeStore.quoteData.quote.amountOutFormatted}
+                className="!text-[#4DCF5E]"
+              /> */}
+            {formatNumber(_quoteData?.outputAmount, 2, true, {
+              isShort: false
+            })}
+          </div>
         ) : (
           <div className="w-[38px] h-[12px] rounded-[6px] bg-[#EDF0F7]" />
         )}

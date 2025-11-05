@@ -28,9 +28,9 @@ class OneClickService {
     });
   }
   public async quote(params: {
-    wallet: any,
-    fromToken: any,
-    toToken: any,
+    wallet: any;
+    fromToken: any;
+    toToken: any;
     dry: boolean;
     slippageTolerance: number;
     originAsset: string;
@@ -44,7 +44,7 @@ class OneClickService {
   }) {
     const res = await this.api.post("/quote", {
       depositMode: "SIMPLE",
-      swapType: "EXACT_OUTPUT",
+      swapType: "EXACT_INPUT",
       depositType: "ORIGIN_CHAIN",
       sessionId: `session_${Date.now()}_${Math.random()
         .toString(36)
@@ -59,35 +59,59 @@ class OneClickService {
       wallet: void 0,
       fromToken: void 0,
       toToken: void 0,
-      prices: void 0,
+      prices: void 0
     });
 
     if (res.data) {
       res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
-      res.data.outputAmount = numberRemoveEndZero(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
+      res.data.outputAmount = numberRemoveEndZero(
+        Big(res.data?.quote?.amountOut || 0)
+          .div(10 ** params.toToken.decimals)
+          .toFixed(params.toToken.decimals, 0)
+      );
 
       try {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
         //   return acc.plus(Big(item.fee).div(100));
         // }, Big(0)).toFixed(2) + "%";
-        const netFee = Big(params.amount).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
+        const netFee = Big(params.amount)
+          .div(10 ** params.fromToken.decimals)
+          .minus(
+            Big(res.data?.quote?.amountOut || 0).div(
+              10 ** params.toToken.decimals
+            )
+          );
         const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
-          return acc.plus(Big(params.amount).div(10 ** params.fromToken.decimals).times(Big(item.fee).div(10000)));
+          return acc.plus(
+            Big(params.amount)
+              .div(10 ** params.fromToken.decimals)
+              .times(Big(item.fee).div(10000))
+          );
         }, Big(0));
         const destinationGasFee = Big(netFee).minus(bridgeFeeValue);
         res.data.fees = {
           bridgeFeeUsd: numberRemoveEndZero(Big(bridgeFeeValue).toFixed(20)),
-          destinationGasFeeUsd: numberRemoveEndZero(Big(destinationGasFee).toFixed(20)),
+          destinationGasFeeUsd: numberRemoveEndZero(
+            Big(destinationGasFee).toFixed(20)
+          )
         };
 
         try {
           const sourceGasFee = await params.wallet.estimateGas({
             originAsset: params.fromToken.contractAddress,
-            depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-            amount: params.amount,
+            depositAddress:
+              res.data?.quote?.depositAddress ||
+              BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+            amount: params.amount
           });
-          const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-          res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+          const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0)
+            .div(10 ** params.fromToken.nativeToken.decimals)
+            .times(
+              getPrice(params.prices, params.fromToken.nativeToken.symbol)
+            );
+          res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(
+            Big(sourceGasFeeUsd).toFixed(20)
+          );
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
         } catch (err) {
           console.log("oneclick estimate gas failed: %o", err);
@@ -98,10 +122,13 @@ class OneClickService {
           if (excludeFees.includes(feeKey)) {
             continue;
           }
-          res.data.totalFeesUsd = Big(res.data.totalFeesUsd || 0).plus(res.data.fees[feeKey] || 0);
+          res.data.totalFeesUsd = Big(res.data.totalFeesUsd || 0).plus(
+            res.data.fees[feeKey] || 0
+          );
         }
-        res.data.totalFeesUsd = numberRemoveEndZero(Big(res.data.totalFeesUsd).toFixed(20));
-
+        res.data.totalFeesUsd = numberRemoveEndZero(
+          Big(res.data.totalFeesUsd).toFixed(20)
+        );
       } catch (error) {
         console.log("oneclick estimate failed: %o", error);
       }
