@@ -60,6 +60,31 @@ export default function useBridge(props?: any) {
   // Amount state
   const [amountError, setAmountError] = useState<string>("");
 
+  const { runAsync: onReportError } = useRequest(async (reportData: any) => {
+    const params = {
+      address: fromWalletAddress,
+      api: "oneclick/quote",
+      ...reportData,
+    };
+
+    // remove default wallet address
+    if (Object.values(BridgeDefaultWallets).some((addr) => addr === params.address)) {
+      params.address = "";
+    }
+
+    // truncate content if it's too long
+    if (params.content.length >= 1000) {
+      params.content = params.content.slice(0, 996) + "...";
+    }
+
+    try {
+      await axios.post("https://api.db3.app/api/stableflow/api/error", params);
+    } catch (error) {
+      console.log("report error failed: %o", error);
+    }
+  }, { manual: true });
+
+
   const quoteOneclick = async (params: any): Promise<QuoteData> => {
     try {
       bridgeStore.setQuoting(Service.OneClick, true);
@@ -94,6 +119,7 @@ export default function useBridge(props?: any) {
         data: quoteRes.data,
       };
     } catch (error: any) {
+      const defaultErrorMessage = "Failed to get quote, please try again later";
       const getQuoteErrorMessage = () => {
         if (
           error?.response?.data?.message &&
@@ -113,7 +139,7 @@ export default function useBridge(props?: any) {
           return error?.response?.data?.message;
         }
         // Unknown error
-        return "Failed to get quote, please try again later";
+        return defaultErrorMessage;
       };
 
       const _quoteData = {
@@ -123,6 +149,15 @@ export default function useBridge(props?: any) {
       bridgeStore.setQuoting(Service.OneClick, false);
       bridgeStore.setQuoteData(Service.OneClick, _quoteData);
       setLiquidityErrorMessage(false);
+      // report error
+      onReportError({
+        content: getQuoteErrorMessage() === defaultErrorMessage ? error.message : getQuoteErrorMessage(),
+        amount: bridgeStore.amount,
+        from_chain: walletStore.fromToken.chainName,
+        symbol: walletStore.fromToken.symbol,
+        to_chain: walletStore.toToken.chainName,
+        to_symbol: walletStore.toToken.symbol,
+      });
       return _quoteData;
     }
   };
