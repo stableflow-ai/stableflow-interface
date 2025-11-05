@@ -4,8 +4,8 @@ export const BridgeFee = [
   {
     recipient: "reffer.near",
     // No bridge fee will be charged temporarily
-    fee: 0, // 100=1% 1=0.01%
-  },
+    fee: 0 // 100=1% 1=0.01%
+  }
 ];
 
 class OneClickService {
@@ -33,7 +33,7 @@ class OneClickService {
   }) {
     return await this.api.post("/quote", {
       depositMode: "SIMPLE",
-      swapType: "EXACT_INPUT",
+      swapType: "EXACT_OUTPUT",
       depositType: "ORIGIN_CHAIN",
       sessionId: `session_${Date.now()}_${Math.random()
         .toString(36)
