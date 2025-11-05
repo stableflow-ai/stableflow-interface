@@ -84,6 +84,7 @@ class Usdt0Service {
 
     const result: any = {
       needApprove: true,
+      approveSpender: originLayerzero.oft,
       sendParam: void 0,
       quoteParam: {
         ...params,

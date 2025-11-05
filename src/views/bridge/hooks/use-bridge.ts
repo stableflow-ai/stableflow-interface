@@ -322,6 +322,29 @@ export default function useBridge(props?: any) {
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
+      // approve
+      if (_quote?.data?.needApprove) {
+        const approveResult = await wallet.wallet.approve({
+          contractAddress: walletStore.fromToken.contractAddress,
+          spender: _quote?.data?.approveSpender,
+          amountWei: _amount,
+        });
+        bridgeStore.set({ transferring: false });
+        if (!approveResult) {
+          toast.fail({
+            title: "Approve failed"
+          });
+          return;
+        }
+        toast.success({
+          title: "Approve success"
+        });
+        bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+          needApprove: false,
+        });
+        return;
+      }
+
       // Estimate gas and check native token balance
       try {
         const estimateGas = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService)?.estimateSourceGas;

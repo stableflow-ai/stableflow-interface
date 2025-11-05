@@ -66,6 +66,7 @@ class CCTPService {
 
     const result: any = {
       needApprove: true,
+      approveSpender: proxyAddress,
       sendParam: void 0,
       quoteParam: {
         sourceDomain,
