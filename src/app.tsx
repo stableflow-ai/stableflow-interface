@@ -9,6 +9,7 @@ import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy } from "react";
 import Developer from "./views/developer";
+import ErrorPage from "./views/error";
 
 const History = lazy(() => import("./views/history"));
 const LearnMore = lazy(() => import("./views/learn-more"));
@@ -18,6 +19,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <Layout />,
+    errorElement: <ErrorPage />,
     children: [
       {
         index: true,

@@ -54,29 +54,39 @@ export default function useBridge(props?: any) {
   // Amount state
   const [amountError, setAmountError] = useState<string>("");
 
-  const { runAsync: onReportError } = useRequest(async (reportData: any) => {
-    const params = {
-      address: fromWalletAddress,
-      api: "oneclick/quote",
-      ...reportData,
-    };
+  const { runAsync: onReportError } = useRequest(
+    async (reportData: any) => {
+      const params = {
+        address: fromWalletAddress,
+        api: "oneclick/quote",
+        ...reportData
+      };
 
-    // remove default wallet address
-    if (Object.values(BridgeDefaultWallets).some((addr) => addr === params.address)) {
-      params.address = "";
-    }
+      // remove default wallet address
+      if (
+        Object.values(BridgeDefaultWallets).some(
+          (addr) => addr === params.address
+        )
+      ) {
+        params.address = "";
+      }
 
-    // truncate content if it's too long
-    if (params.content.length >= 1000) {
-      params.content = params.content.slice(0, 996) + "...";
-    }
+      // truncate content if it's too long
+      if (params.content.length >= 1000) {
+        params.content = params.content.slice(0, 996) + "...";
+      }
 
-    try {
-      await axios.post("https://api.db3.app/api/stableflow/api/error", params);
-    } catch (error) {
-      console.log("report error failed: %o", error);
-    }
-  }, { manual: true });
+      try {
+        await axios.post(
+          "https://api.db3.app/api/stableflow/api/error",
+          params
+        );
+      } catch (error) {
+        console.log("report error failed: %o", error);
+      }
+    },
+    { manual: true }
+  );
 
   const quote = async (dry: boolean) => {
     if (
@@ -130,11 +140,27 @@ export default function useBridge(props?: any) {
             return "Amount exceeds max";
           }
           // Amount is too low for bridge
-          if (error?.response?.data?.message?.includes("Amount is too low for bridge, try at least")) {
-            const match = error.response.data.message.match(/try at least\s+(\d+(?:\.\d+)?)/i);
-            let minimumAmount = match ? match[1] : Big(1).times(10 ** walletStore.fromToken.decimals).toFixed(0);
-            minimumAmount = Big(minimumAmount).div(10 ** walletStore.fromToken.decimals);
-            return `Amount is too low, at least ${formatNumber(minimumAmount, walletStore.fromToken.decimals, true)}`;
+          if (
+            error?.response?.data?.message?.includes(
+              "Amount is too low for bridge, try at least"
+            )
+          ) {
+            const match = error.response.data.message.match(
+              /try at least\s+(\d+(?:\.\d+)?)/i
+            );
+            let minimumAmount = match
+              ? match[1]
+              : Big(1)
+                  .times(10 ** walletStore.fromToken.decimals)
+                  .toFixed(0);
+            minimumAmount = Big(minimumAmount).div(
+              10 ** walletStore.fromToken.decimals
+            );
+            return `Amount is too low, at least ${formatNumber(
+              minimumAmount,
+              walletStore.fromToken.decimals,
+              true
+            )}`;
           }
           return error?.response?.data?.message;
         }
@@ -145,31 +171,37 @@ export default function useBridge(props?: any) {
       bridgeStore.set({
         quoting: false,
         quoteData: {
-          errMsg: getQuoteErrorMessage(),
+          errMsg: getQuoteErrorMessage()
         }
       });
       setLiquidityErrorMessage(false);
       // report error
       onReportError({
-        content: getQuoteErrorMessage() === defaultErrorMessage ? error.message : getQuoteErrorMessage(),
+        content:
+          getQuoteErrorMessage() === defaultErrorMessage
+            ? error.message
+            : getQuoteErrorMessage(),
         amount: bridgeStore.amount,
         from_chain: walletStore.fromToken.chainName,
         symbol: walletStore.fromToken.symbol,
         to_chain: walletStore.toToken.chainName,
-        to_symbol: walletStore.toToken.symbol,
+        to_symbol: walletStore.toToken.symbol
       });
     }
   };
 
-  const { runAsync: report } = useRequest(async (params: any) => {
-    try {
-      await axios.post("https://api.db3.app/api/stableflow/trade", params);
-    } catch (error) {
-      console.log("report failed: %o", error);
+  const { runAsync: report } = useRequest(
+    async (params: any) => {
+      try {
+        await axios.post("https://api.db3.app/api/stableflow/trade", params);
+      } catch (error) {
+        console.log("report failed: %o", error);
+      }
+    },
+    {
+      manual: true
     }
-  }, {
-    manual: true,
-  });
+  );
 
   const transfer = async () => {
     if (!walletStore.fromToken) return;
@@ -179,9 +211,7 @@ export default function useBridge(props?: any) {
 
       // @ts-ignore
       const wallet = wallets[walletStore.fromToken.chainType];
-      const _amount = Big(bridgeStore.amount)
-        .times(10 ** walletStore.fromToken.decimals)
-        .toFixed(0);
+      const _amount = _quote.quote.amountIn;
 
       // Check quote result
       if (!_quote?.quote?.depositAddress) {
@@ -208,8 +238,11 @@ export default function useBridge(props?: any) {
           // EVM chains: get ETH balance and calculate gas cost
           nativeTokenName = "ETH";
           const feeData = await wallet.wallet.provider.getFeeData();
-          const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
-          gasCost = Big(gasLimit.toString()).times(gasPrice.toString()).div(1e18);
+          const gasPrice =
+            feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
+          gasCost = Big(gasLimit.toString())
+            .times(gasPrice.toString())
+            .div(1e18);
 
           nativeBalance = await wallet.wallet.getBalance("eth", wallet.account);
           nativeBalance = Big(nativeBalance).div(1e18).toString();
@@ -243,11 +276,23 @@ export default function useBridge(props?: any) {
           gasCost = Big(gasLimit.toString()).div(1e16); // Rough estimate
 
           // Get NEAR balance using wallet method
-          const nearBalanceYocto = await wallet.wallet.getNearBalance(wallet.account);
+          const nearBalanceYocto = await wallet.wallet.getNearBalance(
+            wallet.account
+          );
           nativeBalance = Big(nearBalanceYocto).div(1e24).toString();
         }
 
-        console.log(`estimate ${nativeTokenName} balance. Required: ${formatNumber(gasCost.toString(), 6, true)} ${nativeTokenName}, Available: ${formatNumber(nativeBalance, 6, true)} ${nativeTokenName}`);
+        console.log(
+          `estimate ${nativeTokenName} balance. Required: ${formatNumber(
+            gasCost.toString(),
+            6,
+            true
+          )} ${nativeTokenName}, Available: ${formatNumber(
+            nativeBalance,
+            6,
+            true
+          )} ${nativeTokenName}`
+        );
 
         // Check if balance is sufficient
         if (Big(nativeBalance).lt(gasCost)) {
@@ -255,7 +300,7 @@ export default function useBridge(props?: any) {
           bridgeStore.set({
             quoting: false,
             quoteData: {
-              errMsg: "Insufficient native token balance",
+              errMsg: "Insufficient native token balance"
             }
           });
           return;
@@ -270,19 +315,19 @@ export default function useBridge(props?: any) {
 
       historyStore.addHistory({
         despoitAddress: _quote.quote.depositAddress,
-        amount: bridgeStore.amount,
+        amount: _quote.quote.amountInFormatted,
         fromToken: walletStore.fromToken,
         toToken: walletStore.toToken,
         fromAddress: wallet.account,
         toAddress: _quote.quoteRequest.recipient,
         time: Date.now(),
         txHash: hash,
-        timeEstimate: _quote.quote.timeEstimate,
+        timeEstimate: _quote.quote.timeEstimate
       });
       report({
         address: wallet.account,
         receive_address: _quote.quoteRequest.recipient,
-        deposit_address: _quote.quote.depositAddress,
+        deposit_address: _quote.quote.depositAddress
       });
 
       historyStore.updateStatus(_quote.quote.depositAddress, "PENDING_DEPOSIT");
@@ -338,7 +383,7 @@ export default function useBridge(props?: any) {
       try {
         const balance =
           balancesStore[
-          `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
+            `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
           ]?.[walletStore.fromToken.contractAddress] || 0;
 
         if (Big(value).gt(balance)) {

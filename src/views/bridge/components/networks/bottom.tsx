@@ -78,9 +78,31 @@ export default function Bottom({ token }: { token: any }) {
           )
         )}
       >
-        {!!bridgeStore.amount ? (
-          // <Amount amount={bridgeStore.amount} />
-          formatNumber(bridgeStore.amount, 2, true, { isShort: false })
+        {bridgeStore.quoting ? (
+          <Loading size={12} />
+        ) : bridgeStore.quoteData?.quote?.amountInFormatted ? (
+          <div
+            className={clsx(
+              "text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis",
+              getAmountNumberFontSize(
+                formatNumber(
+                  bridgeStore.quoteData.quote.amountInFormatted,
+                  2,
+                  true,
+                  { isShort: false }
+                ),
+                0
+              )
+            )}
+          >
+            +
+            {formatNumber(
+              bridgeStore.quoteData.quote.amountInFormatted,
+              2,
+              true,
+              { isShort: false }
+            )}
+          </div>
         ) : (
           <div className="w-[38px] h-[12px] rounded-[6px] bg-[#EDF0F7]" />
         )}
@@ -98,33 +120,9 @@ export default function Bottom({ token }: { token: any }) {
       <div className="shrink-0 w-[100px] flex justify-end">
         {bridgeStore.quoting ? (
           <Loading size={12} />
-        ) : bridgeStore.quoteData?.quote?.amountOutFormatted ? (
-          <div
-            className={clsx(
-              "text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis",
-              getAmountNumberFontSize(
-                formatNumber(
-                  bridgeStore.quoteData.quote.amountOutFormatted,
-                  2,
-                  true,
-                  { isShort: false }
-                ),
-                0
-              )
-            )}
-          >
-            +
-            {/* <Amount
-                amount={bridgeStore.quoteData.quote.amountOutFormatted}
-                className="!text-[#4DCF5E]"
-              /> */}
-            {formatNumber(
-              bridgeStore.quoteData.quote.amountOutFormatted,
-              2,
-              true,
-              { isShort: false }
-            )}
-          </div>
+        ) : !!bridgeStore.amount ? (
+          // <Amount amount={bridgeStore.amount} />
+          formatNumber(bridgeStore.amount, 2, true, { isShort: false })
         ) : (
           <div className="w-[38px] h-[12px] rounded-[6px] bg-[#EDF0F7]" />
         )}
