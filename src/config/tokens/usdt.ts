@@ -37,7 +37,7 @@ export const usdtChains = {
     assetId: "nep245:v2_1.omni.hot.tg:10_359RPSJVdTxwTJT9TyGssr2rFoWo",
     contractAddress: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
     ...chains.op,
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick], // Service.Usdt0 is not supported yet, because the contract address is not the same as the USDT contract address
   },
   avax: {
     assetId: "nep245:v2_1.omni.hot.tg:43114_372BeH7ENZieCaabwkbWkBiTTgXp",

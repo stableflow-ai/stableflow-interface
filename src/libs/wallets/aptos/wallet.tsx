@@ -170,7 +170,7 @@ export default class AptosWallet {
    * @param data Transfer data
    * @returns Gas limit estimate, gas price, and estimated gas cost
    */
-  async estimateGas(data: {
+  async estimateTransferGas(data: {
     originAsset: string;
     depositAddress: string;
     amount: string;
@@ -184,6 +184,7 @@ export default class AptosWallet {
     }
 
     const { originAsset, depositAddress, amount } = data;
+    const isOriginNative = originAsset === "APT" || originAsset === "apt";
     const sender = this.account?.address?.toString();
     
     if (!sender) {
@@ -210,7 +211,7 @@ export default class AptosWallet {
   
     try {
       // Check balance first for APT transfers
-      if (originAsset === "APT" || originAsset === "apt") {
+      if (isOriginNative) {
         try {
           const balance = await this.aptos.getAccountAPTAmount({
             accountAddress: sender,
@@ -232,7 +233,7 @@ export default class AptosWallet {
     }
 
     let rawTxn;
-    if (originAsset === "APT" || originAsset === "apt") {
+    if (isOriginNative) {
       // For APT, ensure amount is in octas (smallest unit)
       // If amount might be in APT units, convert it, but typically it's already in octas
       rawTxn = await this.aptos.transaction.build.simple({
@@ -269,9 +270,9 @@ export default class AptosWallet {
     } catch (error: any) {
       // If simulation fails with insufficient balance and we haven't tried minimal amount, retry
       if (!useMinimalAmount && (error.message?.includes("INSUFFICIENT_BALANCE") || error.message?.includes("EINSUFFICIENT_BALANCE"))) {
-        simulationAmount = originAsset === "APT" || originAsset === "apt" ? "1" : "1";
+        simulationAmount = isOriginNative ? "1" : "1";
         // Rebuild transaction with minimal amount
-        if (originAsset === "APT" || originAsset === "apt") {
+        if (isOriginNative) {
           rawTxn = await this.aptos.transaction.build.simple({
             sender,
             data: {
@@ -308,7 +309,7 @@ export default class AptosWallet {
   
     if (!simulation.success) {
       // If simulation still fails, return default values
-      const defaultGasLimit = originAsset === "APT" || originAsset === "apt" ? 2400n : 6000n; // 2000 * 1.2 or 5000 * 1.2
+      const defaultGasLimit = isOriginNative ? 2400n : 6000n; // 2000 * 1.2 or 5000 * 1.2
       const defaultGasPrice = 100n; // 100 octas per gas unit
       const defaultEstimateGas = defaultGasLimit * defaultGasPrice;
       

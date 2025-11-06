@@ -180,7 +180,7 @@ export default class SolanaWallet {
    * @param data Transfer data
    * @returns Gas limit estimate, gas price, and estimated gas cost
    */
-  async estimateGas(data: {
+  async estimateTransferGas(data: {
     originAsset: string;
     depositAddress: string;
     amount: string;
@@ -193,12 +193,12 @@ export default class SolanaWallet {
       throw new Error("Wallet not connected");
     }
 
-    const { originAsset, depositAddress } = data;
-
     // Solana transaction fees are typically fixed at 5000 lamports per signature
     // Base fee per signature: 5000 lamports
     let estimatedFee = 5000n;
-    
+
+    const { originAsset, depositAddress } = data;
+
     // Check if token account creation is needed for SPL tokens
     if (originAsset !== "SOL" && originAsset !== "sol") {
       const mint = new PublicKey(originAsset);
@@ -215,20 +215,10 @@ export default class SolanaWallet {
       }
     }
 
-    // Increase by 20% to provide buffer
-    const gasLimit = (estimatedFee * 120n) / 100n;
-
-    // Solana has a fixed fee per signature (5000 lamports)
-    // For gasPrice, we use 1 since the fee is already included in gasLimit
-    const gasPrice = 1n;
-
-    // Calculate estimated gas cost: gasLimit * gasPrice (same as gasLimit for Solana)
-    const estimateGas = gasLimit * gasPrice;
-
     return {
-      gasLimit,
-      gasPrice,
-      estimateGas
+      gasLimit: estimatedFee,
+      gasPrice: 1n,
+      estimateGas: estimatedFee,
     };
   }
 

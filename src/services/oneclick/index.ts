@@ -82,7 +82,7 @@ class OneClickService {
         };
 
         try {
-          const sourceGasFee = await params.wallet.estimateGas({
+          const sourceGasFee = await params.wallet.estimateTransferGas({
             originAsset: params.fromToken.contractAddress,
             depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
             amount: params.amount,
