@@ -39,6 +39,15 @@ export const USDT0_CONFIG: Record<string, any> = {
     blockTime: 2, // Optimism average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
   },
+  Berachain: {
+    contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    oft: "0x3Dc96399109df5ceb2C226664A086140bD0379cB",
+    oftTetherTokenOFTExtension: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    eid: 30362,
+    chainKey: "berachain",
+    blockTime: 2, // Optimism average block time ~2 seconds
+    confirmations: 20, // Default confirmations from layerzeroscan.com
+  },
   Solana: {
     contractAddress: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
     oftLegacy: "Fuww9mfc8ntAwxPUzFia7VJFAdvLppyZwhPJoXySZXf7",
