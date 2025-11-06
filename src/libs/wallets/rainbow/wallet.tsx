@@ -209,6 +209,7 @@ export default class RainbowWallet {
       originLayerzeroAddress,
       destinationLayerzeroAddress,
       excludeFees,
+      refundTo,
     } = params;
 
     const result: any = {
@@ -231,8 +232,24 @@ export default class RainbowWallet {
     const oftContract = new ethers.Contract(originLayerzeroAddress, abi, this.signer);
 
     // 1. check if need approve
-    result.needApprove = await oftContract.approvalRequired();
+    const approvalRequired = await oftContract.approvalRequired();
     console.log("%cApprovalRequired: %o", "background:blue;color:white;", result.needApprove);
+
+    // If approval is required, check actual allowance
+    if (approvalRequired) {
+      try {
+        // Check allowance
+        const allowanceResult = await this.allowance({
+          contractAddress: fromToken.contractAddress,
+          spender: originLayerzeroAddress,
+          address: refundTo,
+          amountWei,
+        });
+        result.needApprove = allowanceResult.needApprove;
+      } catch (error) {
+        console.log("Error checking allowance: %o", error);
+      }
+    }
 
     // 2. quote send
     const sendParam = {
@@ -302,5 +319,20 @@ export default class RainbowWallet {
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
     return result;
+  }
+
+  async sendOFT(params: any) {
+    const {
+      contract,
+      param,
+    } = params;
+
+    const tx = await contract.send(...param);
+
+    const txReceipt = await tx.wait();
+    if (txReceipt.status !== 1) {
+      throw new Error("Transaction failed");
+    }
+    return txReceipt.hash;
   }
 }

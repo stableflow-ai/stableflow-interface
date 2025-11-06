@@ -66,6 +66,7 @@ class Usdt0Service {
       originChain,
       destinationChain,
       amountWei,
+      refundTo,
       recipient,
       fromToken,
       slippageTolerance,
@@ -77,14 +78,35 @@ class Usdt0Service {
 
     let originLayerzeroAddress = originLayerzero.oft;
     let destinationLayerzeroAddress = destinationLayerzero.oft;
+    let dstEid = destinationLayerzero.eid;
 
     // Dynamically calculate estimated time
     const estimateTime = calculateEstimateTime(originChain, destinationChain);
 
     if (fromToken.chainType === "evm") {
+      destinationLayerzeroAddress = destinationLayerzero.oft || destinationLayerzero.oftLegacy;
+      let isOriginLegacy = false;
+      const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
+      if (isDestinationLegacy) {
+        originLayerzeroAddress = originLayerzero.oftLegacy || originLayerzero.oft;
+        isOriginLegacy = originLayerzeroAddress === originLayerzero.oftLegacy;
+      }
+      const isBothLegacy = isOriginLegacy && isDestinationLegacy;
+      const isBothOUpgradeable = !isOriginLegacy && !isDestinationLegacy;
+      console.log("isBothLegacy: %o", isBothLegacy);
+      console.log("isBothOUpgradeable: %o", isBothOUpgradeable);
+
+      // one is legacy, and one is upgradeable
+      // should use multi hop composer
+      // and special extraOptions & composeMsg
+      if (!isBothLegacy && !isBothOUpgradeable) {
+        dstEid = USDT0_CONFIG["Arbitrum"].eid;
+        destinationLayerzeroAddress = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
+      }
+
       const result = await wallet.quoteOFT({
         abi: OFT_ABI,
-        dstEid: destinationLayerzero.eid,
+        dstEid,
         recipient,
         amountWei,
         slippageTolerance,
@@ -102,23 +124,68 @@ class Usdt0Service {
     }
 
     if (fromToken.chainType === "tron") {
-      
+      // source chain must be legacy
+      const isOriginLegacy = true;
+      originLayerzeroAddress = originLayerzero.oftLegacy;
+      destinationLayerzeroAddress = destinationLayerzero.oftLegacy || destinationLayerzero.oft;
+      const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
+      const isBothLegacy = isOriginLegacy && isDestinationLegacy;
+      console.log("isBothLegacy: %o", isBothLegacy);
+
+      // one is legacy, and one is upgradeable
+      // should use multi hop composer
+      // and special extraOptions & composeMsg
+      if (!isBothLegacy) {
+        dstEid = USDT0_CONFIG["Arbitrum"].eid;
+        destinationLayerzeroAddress = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
+      }
+
+      const result = await wallet.quoteOFT({
+        abi: OFT_ABI,
+        dstEid: destinationLayerzero.eid,
+        refundTo,
+        recipient,
+        amountWei,
+        slippageTolerance,
+        payInLzToken: PayInLzToken,
+        fromToken,
+        prices,
+        originLayerzeroAddress,
+        destinationLayerzeroAddress,
+        excludeFees,
+      });
+
+      result.estimateTime = estimateTime;
+
+      return result;
+    }
+
+    if (fromToken.chainType === "sol") {
+      // source chain must be legacy
+      const isOriginLegacy = true;
+      originLayerzeroAddress = originLayerzero.oftLegacy;
+      destinationLayerzeroAddress = destinationLayerzero.oftLegacy || destinationLayerzero.oft;
+      const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
+      const isBothLegacy = isOriginLegacy && isDestinationLegacy;
+      console.log("isBothLegacy: %o", isBothLegacy);
+
+      // one is legacy, and one is upgradeable
+      // should use multi hop composer
+      // and special extraOptions & composeMsg
+      if (!isBothLegacy) {
+        dstEid = USDT0_CONFIG["Arbitrum"].eid;
+        destinationLayerzeroAddress = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
+      }
     }
   }
 
   public async send(params: any) {
     const {
-      contract,
-      param,
+      wallet,
+      ...rest
     } = params;
 
-    const tx = await contract.send(...param);
-
-    const txReceipt = await tx.wait();
-    if (txReceipt.status !== 1) {
-      throw new Error("Transaction failed");
-    }
-    return txReceipt.hash;
+    return wallet.sendOFT(rest);
   }
 
   public async getStatus(params: any) {

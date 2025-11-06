@@ -410,7 +410,10 @@ export default function useBridge(props?: any) {
 
       // usdt0 transfer
       if (bridgeStore.quoteDataService === Service.Usdt0) {
-        const hash = await ServiceMap[Service.Usdt0].send(_quote?.data?.sendParam);
+        const hash = await ServiceMap[Service.Usdt0].send({
+          ..._quote?.data?.sendParam,
+          wallet: wallet.wallet,
+        });
         const uniqueId = uuidV4();
         historyStore.addHistory({
           type: Service.Usdt0,
