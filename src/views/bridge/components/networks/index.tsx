@@ -4,14 +4,22 @@ import Chain from "./chain";
 import Input from "./input";
 import Bottom from "./bottom";
 import { useSwitchChain } from "wagmi";
+import { lazy } from "react";
+
+const Setting = lazy(() => import("@/sections/setting"));
 
 export default function Networks({ addressValidation }: any) {
   const walletStore = useWalletStore();
   const { switchChain } = useSwitchChain();
   return (
-    <div className="w-full mt-[20px] px-[10px] md:px-0">
-      <div className="text-[16px] text-[#444C59] md:text-[#0E3616]">Select Networks</div>
-      <div className="mt-[10px] bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)]">
+    <div className="w-full px-[10px] md:px-0">
+      <div className="w-full flex justify-between items-center">
+        <div className="text-[#444C59] text-[16px] w-full hidden md:block">
+          Stablecoins to any chain, with one click.
+        </div>
+        <Setting />
+      </div>
+      <div className="mt-[12px] bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)]">
         <div className="h-[36px] px-[20px] flex items-center bg-[#FAFBFF] rounded-t-[12px] border-b border-[#EBF0F8]">
           <div className="w-1/2 border-r border-[#EBF0F8] flex items-center h-full">
             <Address token={walletStore.fromToken} isTo={false} />
@@ -24,8 +32,8 @@ export default function Networks({ addressValidation }: any) {
             />
           </div>
         </div>
-        <div className="w-full mt-[8px]">
-          <div className="p-[6px] flex items-center relative">
+        <div className="w-full mt-[6px]">
+          <div className="p-[6px] pt-0 flex items-center relative">
             <Chain token={walletStore.fromToken} isTo={false} />
             <Input />
             <Chain token={walletStore.toToken} isTo={true} />

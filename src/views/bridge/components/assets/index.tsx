@@ -1,7 +1,6 @@
-import Setting from "@/sections/setting";
 import { usdt } from "@/config/tokens/usdt";
 import { usdc } from "@/config/tokens/usdc";
-import { usd1 } from "@/config/tokens/usd1";
+// import { usd1 } from "@/config/tokens/usd1";
 import clsx from "clsx";
 import useWalletStore from "@/stores/use-wallet";
 
@@ -9,14 +8,8 @@ export default function Assets() {
   const walletStore = useWalletStore();
 
   return (
-    <div className="w-full px-[10px] md:px-0 md:mt-[20px]">
-      <div className="flex items-center justify-between">
-        <span className="text-[16px] font-[500] text-[#0E3616]">
-          Bridge Asset
-        </span>
-        <Setting />
-      </div>
-      <div className="mt-[8px] flex items-center gap-[16px]">
+    <div className="w-full px-[10px] mt-[8px]">
+      <div className="flex items-center gap-[16px]">
         <AssetItem
           asset={usdt}
           active={walletStore.selectedToken === "USDT"}
@@ -40,7 +33,7 @@ export default function Assets() {
             });
           }}
         />
-        <AssetItem
+        {/* <AssetItem
           asset={usd1}
           active={false}
           disabled={true}
@@ -51,7 +44,7 @@ export default function Assets() {
             //   selectedToken: "USD1"
             // });
           }}
-        />
+        /> */}
       </div>
     </div>
   );
@@ -71,10 +64,10 @@ const AssetItem = ({
   return (
     <div
       className={clsx(
-        "flex items-center gap-[10px] p-[10px] w-[132px] h-[46px] md:h-[52px] rounded-[26px] duration-300",
+        "flex items-center gap-[10px] p-[10px] w-[103px] h-[46px] md:h-[46px] rounded-[26px] duration-300 shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] border-[2px] text-black",
         active
-          ? "shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] bg-white border border-transparent text-black"
-          : "border-dashed border-[#B3BBCE] border",
+          ? "border-[#6284F5]"
+          : "border-[#ffffff]",
         disabled ? "cursor-not-allowed" : "cursor-pointer"
       )}
       onClick={() => {

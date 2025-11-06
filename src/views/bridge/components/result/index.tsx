@@ -1,9 +1,7 @@
 import useBridgeStore from "@/stores/use-bridge";
-import { formatNumber } from "@/utils/format/number";
 import { motion } from "framer-motion";
-import { lazy, Suspense, useMemo } from "react";
-import { Service, ServiceLogoMap } from "@/services";
-import { formatDuration } from "@/utils/format/time";
+import { lazy, Suspense } from "react";
+import { Service } from "@/services";
 import ResultUsdt0 from "./usdt0";
 import ResultCCTP from "./cctp";
 
@@ -11,22 +9,52 @@ const ResultOneClick = lazy(() => import("./oneclick"));
 
 export default function Result() {
   const bridgeStore = useBridgeStore();
-  const _quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
+  // const _quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
 
-  const duration = useMemo(() => {
-    return formatDuration(_quoteData?.estimateTime);
-  }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
+  // const duration = useMemo(() => {
+  //   return formatDuration(_quoteData?.estimateTime);
+  // }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
 
   return (
     <>
-      <div
-        className="w-full flex justify-between items-center p-[10px] cursor-pointer"
-        onClick={() => {
-          bridgeStore.set({ showFee: !bridgeStore.showFee });
-        }}
-      >
-        <div className="text-[12px] text-[#70788A] shrink-0">Result</div>
-        <div className="flex items-center justify-end flex-1">
+      <div className="w-full flex justify-between items-center p-[10px] cursor-pointer">
+        <div
+          className="flex items-center gap-[6px] shrink-0"
+          onClick={() => {
+            bridgeStore.set({ showFee: !bridgeStore.showFee });
+          }}
+        >
+          <div className="text-[12px] text-[#70788A] leading-[100%] font-[400]">
+            View Details
+          </div>
+          <motion.img
+            src="/icon-arrow-down.svg"
+            className="w-[10px] h-[10px] shrink-0 object-center object-contain"
+            alt=""
+            animate={{
+              rotate: bridgeStore.showFee ? 180 : 0,
+            }}
+          />
+        </div>
+        <div
+          className="flex justify-end items-center gap-[6px] shrink-0"
+          onClick={() => {
+            bridgeStore.set({ showRoutes: !bridgeStore.showRoutes });
+          }}
+        >
+          <div className="text-[12px] text-[#70788A] leading-[100%] font-[400]">
+            View All Routes <span className="">{bridgeStore.quoteDataMap?.size}</span>
+          </div>
+          <motion.img
+            src="/icon-arrow-down.svg"
+            className="w-[10px] h-[10px] shrink-0 object-center object-contain"
+            alt=""
+            animate={{
+              rotate: bridgeStore.showRoutes ? -180 : -90,
+            }}
+          />
+        </div>
+        {/* <div className="flex items-center justify-end flex-1">
           <div className="flex items-center justify-center w-[69px] h-[20px] rounded-[6px] bg-[#EDF0F7] mr-[14px]">
             <img src={ServiceLogoMap[bridgeStore.quoteDataService || Service.OneClick]} className="w-[62px] h-[16px]" />
           </div>
@@ -51,15 +79,7 @@ export default function Result() {
                 : "-"}
             </div>
           </div>
-        </div>
-        <motion.img
-          src="/icon-arrow-down.svg"
-          className="w-[10px] h-[10px] shrink-0 object-center object-contain"
-          alt=""
-          animate={{
-            rotate: bridgeStore.showFee ? 180 : 0,
-          }}
-        />
+        </div> */}
       </div>
       <Suspense fallback={null}>
         {
