@@ -1,6 +1,6 @@
 import useBridgeStore from "@/stores/use-bridge";
 import { motion } from "framer-motion";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { Service } from "@/services";
 import ResultUsdt0 from "./usdt0";
 import ResultCCTP from "./cctp";
@@ -14,6 +14,14 @@ export default function Result() {
   // const duration = useMemo(() => {
   //   return formatDuration(_quoteData?.estimateTime);
   // }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
+
+  const quoteDataList = useMemo(() => {
+    bridgeStore.quoteDataMap.forEach((data, service) => {
+      data.service = service;
+    });
+    const list = Array.from(bridgeStore.quoteDataMap.values()).filter((data) => !data.errMsg);
+    return list;
+  }, [bridgeStore.quoteDataMap]);
 
   return (
     <>
@@ -43,7 +51,7 @@ export default function Result() {
           }}
         >
           <div className="text-[12px] text-[#70788A] leading-[100%] font-[400]">
-            View All Routes <span className="">{bridgeStore.quoteDataMap?.size}</span>
+            View All Routes <span className="">{quoteDataList?.length}</span>
           </div>
           <motion.img
             src="/icon-arrow-down.svg"

@@ -1,7 +1,8 @@
 import erc20Abi from "@/config/abi/erc20";
 import { numberRemoveEndZero } from "@/utils/format/number";
+import { getPrice } from "@/utils/format/price";
 import Big from "big.js";
-import { ethers } from "ethers";
+import { ethers, zeroPadValue } from "ethers";
 
 export default class RainbowWallet {
   provider: any;
@@ -193,5 +194,145 @@ export default class RainbowWallet {
       wei: estimateGas,
       amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
     };
+  }
+
+  async quoteOFT(params: any) {
+    const {
+      abi,
+      dstEid,
+      recipient,
+      amountWei,
+      slippageTolerance,
+      payInLzToken,
+      fromToken,
+      prices,
+      originLayerzeroAddress,
+      destinationLayerzeroAddress,
+      excludeFees,
+      refundTo,
+    } = params;
+
+    const result: any = {
+      needApprove: true,
+      approveSpender: originLayerzeroAddress,
+      sendParam: void 0,
+      quoteParam: {
+        ...params,
+        originLayerzeroAddress: originLayerzeroAddress,
+        destinationLayerzeroAddress: destinationLayerzeroAddress,
+      },
+      fees: {},
+      totalFeesUsd: void 0,
+      estimateSourceGas: void 0,
+      estimateSourceGasUsd: void 0,
+      estimateTime: 0, // seconds - dynamically calculated using LayerZero formula
+      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
+    };
+
+    const oftContract = new ethers.Contract(originLayerzeroAddress, abi, this.signer);
+
+    // 1. check if need approve
+    const approvalRequired = await oftContract.approvalRequired();
+    console.log("%cApprovalRequired: %o", "background:blue;color:white;", result.needApprove);
+
+    // If approval is required, check actual allowance
+    if (approvalRequired) {
+      try {
+        // Check allowance
+        const allowanceResult = await this.allowance({
+          contractAddress: fromToken.contractAddress,
+          spender: originLayerzeroAddress,
+          address: refundTo,
+          amountWei,
+        });
+        result.needApprove = allowanceResult.needApprove;
+      } catch (error) {
+        console.log("Error checking allowance: %o", error);
+      }
+    }
+
+    // 2. quote send
+    const sendParam = {
+      dstEid: dstEid,
+      to: zeroPadValue(recipient, 32),
+      amountLD: amountWei,
+      minAmountLD: 0n,
+      extraOptions: "0x0003",
+      composeMsg: "0x",
+      oftCmd: "0x"
+    };
+
+    const oftData = await oftContract.quoteOFT.staticCall(sendParam);
+    const [, , oftReceipt] = oftData;
+    sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
+
+    const msgFee = await oftContract.quoteSend.staticCall(sendParam, payInLzToken);
+
+    console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+
+    result.sendParam = {
+      contract: oftContract,
+      param: [
+        sendParam,
+        {
+          nativeFee: msgFee[0],
+          lzTokenFee: msgFee[1],
+        },
+        recipient,
+        { value: msgFee[0] }
+      ],
+    };
+
+    // 3. estimate gas
+    const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
+    result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
+    try {
+      const gasLimit = await oftContract.send.estimateGas(
+        sendParam,
+        {
+          nativeFee: msgFee[0],
+          lzTokenFee: msgFee[1],
+        },
+        recipient,
+        { value: msgFee[0] }
+      );
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+      });
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    } catch (error) {
+      console.log("usdt0 estimate gas failed: %o", error);
+    }
+
+    // calculate total fees
+    for (const feeKey in result.fees) {
+      if (excludeFees.includes(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
+    return result;
+  }
+
+  async sendOFT(params: any) {
+    const {
+      contract,
+      param,
+    } = params;
+
+    const tx = await contract.send(...param);
+
+    const txReceipt = await tx.wait();
+    if (txReceipt.status !== 1) {
+      throw new Error("Transaction failed");
+    }
+    return txReceipt.hash;
   }
 }

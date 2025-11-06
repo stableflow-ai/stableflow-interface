@@ -17,6 +17,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     contractAddress: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
     oft: "0x14E4A1B13bf7F943c8ff7C51fb60FA964A298D92",
     oftLegacy: "0x77652d5aba086137b595875263fc200182919b92",
+    oftMultiHopComposer: "0x759BA420bF1ded1765F18C2DC3Fc57A1964A2Ad1",
     eid: 30110,
     chainKey: "arbitrum",
     blockTime: 0.25, // Arbitrum average block time ~0.25 seconds

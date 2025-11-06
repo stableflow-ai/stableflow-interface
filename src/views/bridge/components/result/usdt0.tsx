@@ -72,13 +72,6 @@ const ResultUsdt0 = (props: any) => {
             >
               {fees?.messagingFee}
             </ResultFeeItem>
-            <ResultFeeItem
-              label="Gas fee"
-              precision={2}
-              loading={bridgeStore.quotingMap.get(Service.Usdt0)}
-            >
-              {fees?.estimatedSourceGas}
-            </ResultFeeItem>
             {/* <ResultFeeItem 
             label="Swap Slippage"
              precision={2} 
