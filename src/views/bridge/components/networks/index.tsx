@@ -4,13 +4,40 @@ import Chain from "./chain";
 import Input from "./input";
 import Bottom from "./bottom";
 import { useSwitchChain } from "wagmi";
-import { lazy } from "react";
+import { lazy, useEffect, useRef, useState } from "react";
 
 const Setting = lazy(() => import("@/sections/setting"));
 
 export default function Networks({ addressValidation }: any) {
   const walletStore = useWalletStore();
   const { switchChain } = useSwitchChain();
+  const timer = useRef<any>(null);
+  const [toggleLoading, setToggleLoading] = useState(false);
+
+  const toggleChain = () => {
+    if (toggleLoading) return;
+    setToggleLoading(true);
+    return new Promise(async (resolve) => {
+      const fromToken = walletStore.fromToken;
+      const toToken = walletStore.toToken;
+      if (toToken.chainType === "evm") {
+        await switchChain({ chainId: toToken.chainId });
+      }
+      timer.current = setTimeout(() => {
+        walletStore.set({ fromToken: toToken, toToken: fromToken });
+        clearTimeout(timer.current);
+        resolve(true);
+        setToggleLoading(false);
+      }, 1000);
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(timer.current);
+    };
+  }, []);
+
   return (
     <div className="w-full px-[10px] md:px-0">
       <div className="w-full flex justify-between items-center">
@@ -38,14 +65,7 @@ export default function Networks({ addressValidation }: any) {
             <Input />
             <Chain token={walletStore.toToken} isTo={true} />
             <ExchangeButton
-              onClick={async () => {
-                const fromToken = walletStore.fromToken;
-                const toToken = walletStore.toToken;
-                if (toToken.chainType === "evm") {
-                  await switchChain({ chainId: toToken.chainId });
-                }
-                walletStore.set({ fromToken: toToken, toToken: fromToken });
-              }}
+              onClick={toggleChain}
             />
           </div>
 

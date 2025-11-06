@@ -1,14 +1,10 @@
-import { zeroPadValue } from "ethers";
 import { USDT0_CONFIG, USDT0_DVN_COUNT } from "./config";
 import { OFT_ABI } from "./contract";
-import Big from "big.js";
-import { numberRemoveEndZero } from "@/utils/format/number";
-import { getPrice } from "@/utils/format/price";
 import axios from "axios";
 
 export const PayInLzToken = false;
 
-const excludeFees: string[] = []; // "estimateGasUsd"
+const excludeFees: string[] = ["estimateGasUsd"];
 
 /**
  * Calculate USDT0 cross-chain estimated time using LayerZero formula
@@ -79,103 +75,35 @@ class Usdt0Service {
     const originLayerzero = USDT0_CONFIG[originChain];
     const destinationLayerzero = USDT0_CONFIG[destinationChain];
 
+    let originLayerzeroAddress = originLayerzero.oft;
+    let destinationLayerzeroAddress = destinationLayerzero.oft;
+
     // Dynamically calculate estimated time
     const estimateTime = calculateEstimateTime(originChain, destinationChain);
 
-    const result: any = {
-      needApprove: true,
-      approveSpender: originLayerzero.oft,
-      sendParam: void 0,
-      quoteParam: {
-        ...params,
-        originLayerzeroAddress: originLayerzero.oft,
-        destinationLayerzeroAddress: destinationLayerzero.oft,
-      },
-      fees: {},
-      totalFeesUsd: void 0,
-      estimateSourceGas: void 0,
-      estimateSourceGasUsd: void 0,
-      estimateTime, // seconds - dynamically calculated using LayerZero formula
-      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
-    };
-
-    const oftContract = wallet.getContract({
-      contractAddress: originLayerzero.oft,
-      abi: OFT_ABI,
-    });
-
-    // 1. check if need approve
-    result.needApprove = await oftContract.approvalRequired();
-    console.log("%cApprovalRequired: %o", "background:blue;color:white;", result.needApprove);
-
-    // 2. quote send
-    const sendParam = {
-      dstEid: destinationLayerzero.eid,
-      to: zeroPadValue(recipient, 32),
-      amountLD: amountWei,
-      minAmountLD: 0n,
-      extraOptions: "0x0003",
-      composeMsg: "0x",
-      oftCmd: "0x"
-    };
-
-    const oftData = await oftContract.quoteOFT.staticCall(sendParam);
-    const [, , oftReceipt] = oftData;
-    sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
-
-    const msgFee = await oftContract.quoteSend.staticCall(sendParam, PayInLzToken);
-
-    console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
-
-    result.sendParam = {
-      contract: oftContract,
-      param: [
-        sendParam,
-        {
-          nativeFee: msgFee[0],
-          lzTokenFee: msgFee[1],
-        },
+    if (fromToken.chainType === "evm") {
+      const result = await wallet.quoteOFT({
+        abi: OFT_ABI,
+        dstEid: destinationLayerzero.eid,
         recipient,
-        { value: msgFee[0] }
-      ],
-    };
-
-    // 3. estimate gas
-    const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
-    result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
-    result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
-    try {
-      const gasLimit = await oftContract.send.estimateGas(
-        sendParam,
-        {
-          nativeFee: msgFee[0],
-          lzTokenFee: msgFee[1],
-        },
-        recipient,
-        { value: msgFee[0] }
-      );
-      const { usd, wei } = await wallet.getEstimateGas({
-        gasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
+        amountWei,
+        slippageTolerance,
+        payInLzToken: PayInLzToken,
+        fromToken,
+        prices,
+        originLayerzeroAddress,
+        destinationLayerzeroAddress,
+        excludeFees,
       });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      console.log("usdt0 estimate gas failed: %o", error);
+
+      result.estimateTime = estimateTime;
+
+      return result;
     }
 
-    // calculate total fees
-    for (const feeKey in result.fees) {
-      if (excludeFees.includes(feeKey)) {
-        continue;
-      }
-      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    if (fromToken.chainType === "tron") {
+      
     }
-    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
-
-    return result;
   }
 
   public async send(params: any) {
