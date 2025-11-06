@@ -284,8 +284,8 @@ export default function useBridge(props?: any) {
         project: "nearintents",
         address: wallet.account,
         amount: bridgeStore.amount,
-        deposit_address: _quote.data.quote.depositAddress,
-        receive_address: _quote.data.quoteRequest.recipient,
+        deposit_address: _quote.quote.depositAddress,
+        receive_address: _quote.quoteRequest.recipient,
       });
 
       historyStore.updateStatus(_quote.quote.depositAddress, "PENDING_DEPOSIT");
