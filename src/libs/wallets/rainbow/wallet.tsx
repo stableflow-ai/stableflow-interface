@@ -63,7 +63,7 @@ export default class RainbowWallet {
    * @param data Transfer data
    * @returns Gas limit estimate, gas price, and estimated gas cost
    */
-  async estimateGas(data: {
+  async estimateTransferGas(data: {
     originAsset: string;
     depositAddress: string;
     amount: string;

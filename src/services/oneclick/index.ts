@@ -4,6 +4,7 @@ import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
 import axios, { type AxiosInstance } from "axios";
 import Big from "big.js";
+import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 
 export const BridgeFee = [
   {
@@ -97,7 +98,7 @@ class OneClickService {
         };
 
         try {
-          const sourceGasFee = await params.wallet.estimateGas({
+          const sourceGasFee = await params.wallet.estimateTransferGas({
             originAsset: params.fromToken.contractAddress,
             depositAddress:
               res.data?.quote?.depositAddress ||
@@ -132,9 +133,77 @@ class OneClickService {
       } catch (error) {
         console.log("oneclick estimate failed: %o", error);
       }
+
+      const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
+      if (proxyAddress) {
+        try {
+          const allowance = await params.wallet.allowance({
+            contractAddress: params.fromToken.contractAddress,
+            address: params.refundTo,
+            spender: proxyAddress,
+            amountWei: params.amount,
+          });
+          res.data.needApprove = allowance.needApprove;
+          res.data.approveSpender = proxyAddress;
+        } catch (error) {
+          console.log("oneclick check allowance failed: %o", error);
+        }
+
+        const proxyContract = params.wallet.getContract({
+          contractAddress: proxyAddress,
+          abi: ONECLICK_PROXY_ABI,
+        });
+        const proxyParam: any = [
+          // tokenAddress
+          params.fromToken.contractAddress,
+          // recipient
+          params.recipient,
+          // amount
+          params.amount,
+        ];
+        res.data.sendParam = {
+          contract: proxyContract,
+          param: proxyParam,
+        };
+        try {
+          const gasLimit = await proxyContract.proxyTransfer.estimateGas(...proxyParam);
+          const { usd, wei } = await params.wallet.getEstimateGas({
+            gasLimit,
+            price: getPrice(params.prices, params.fromToken.nativeToken.symbol),
+            nativeToken: params.fromToken.nativeToken,
+          });
+          res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+          res.data.estimateSourceGas = wei;
+        } catch (error) {
+          console.log("onclick estimate proxy failed: %o", error);
+        }
+      }
     }
 
     return res;
+  }
+
+  public async send(params: any) {
+    const {
+      wallet,
+      fromToken,
+      depositAddress,
+      amountWei,
+      sendParam,
+    } = params;
+
+    // proxy transfer
+    if (sendParam) {
+      const tx = await sendParam.contract.proxyTransfer(...sendParam.param);
+      return tx;
+    }
+
+    const hash = await wallet.transfer({
+      originAsset: fromToken.contractAddress,
+      depositAddress: depositAddress,
+      amount: amountWei,
+    });
+    return hash;
   }
 
   public async submitHash(params: { txHash: string; depositAddress: string }) {

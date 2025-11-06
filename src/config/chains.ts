@@ -130,7 +130,7 @@ const chains = {
     blockExplorerUrl: "https://polygonscan.com/tx",
     primaryColor: "#5A2AD1",
     nativeToken: {
-      symbol: "MATIC",
+      symbol: "POL",
       decimals: 18,
     },
   },

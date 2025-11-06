@@ -184,7 +184,7 @@ class CCTPService {
       param,
     } = params;
 
-    const tx = await contract.send(...param);
+    const tx = await contract.depositWithFee(...param);
 
     const txReceipt = await tx.wait();
     if (txReceipt.status !== 1) {

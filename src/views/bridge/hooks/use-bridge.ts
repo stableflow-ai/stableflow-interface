@@ -20,6 +20,7 @@ import { formatNumber } from "@/utils/format/number";
 import { Service } from "@/services";
 import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
+import { BASE_API_URL } from "@/config/api";
 
 const TRANSFER_MIN_AMOUNT = 1;
 
@@ -78,7 +79,7 @@ export default function useBridge(props?: any) {
     }
 
     try {
-      await axios.post("https://api.db3.app/api/stableflow/api/error", params);
+      await axios.post(`${BASE_API_URL}/v1/api/error`, params);
     } catch (error) {
       console.log("report error failed: %o", error);
     }
@@ -302,7 +303,7 @@ export default function useBridge(props?: any) {
 
   const { runAsync: report } = useRequest(async (params: any) => {
     try {
-      await axios.post("https://api.db3.app/api/stableflow/trade", params);
+      await axios.post(`${BASE_API_URL}/v1/trade/add`, params);
     } catch (error) {
       console.log("report failed: %o", error);
     }
@@ -345,9 +346,10 @@ export default function useBridge(props?: any) {
         return;
       }
 
-      // Estimate gas and check native token balance
+      // Estimate transfer gas and check native token balance
       try {
         const estimateGas = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService)?.estimateSourceGas;
+        // get native token balance
         const nativeBalance = await wallet.wallet.getBalance("native", wallet.account);
         const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
 
@@ -371,10 +373,16 @@ export default function useBridge(props?: any) {
           throw new Error("Failed to get quote");
         }
 
-        const hash = await wallet.wallet.transfer({
-          originAsset: walletStore.fromToken.contractAddress,
+        if (_quote?.data?.sendParam) {
+          // proxyTransfer.recipient = depositAddress
+          _quote.data.sendParam.param[1] = _quote.data.quote.depositAddress;
+        }
+        const hash = await ServiceMap[Service.OneClick].send({
+          sendParam: _quote?.data?.sendParam,
+          wallet: wallet.wallet,
+          fromToken: walletStore.fromToken,
           depositAddress: _quote.data.quote.depositAddress,
-          amount: _amount
+          amountWei: _amount,
         });
 
         historyStore.addHistory({
@@ -390,9 +398,11 @@ export default function useBridge(props?: any) {
           timeEstimate: _quote.data.quote.timeEstimate,
         });
         report({
+          project: "nearintents",
           address: wallet.account,
-          receive_address: _quote.data.quoteRequest.recipient,
+          amount: bridgeStore.amount,
           deposit_address: _quote.data.quote.depositAddress,
+          receive_address: _quote.data.quoteRequest.recipient,
         });
 
         historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
@@ -416,6 +426,18 @@ export default function useBridge(props?: any) {
           timeEstimate: _quote.data.estimateTime,
         });
         historyStore.updateStatus(uniqueId, "PENDING_DEPOSIT");
+        report({
+          project: "layerzero",
+          address: wallet.account,
+          amount: bridgeStore.amount,
+          deposit_address: hash,
+          receive_address: _quote.data.quoteParam.recipient,
+        });
+      }
+
+      // cctp transfer
+      if (bridgeStore.quoteDataService === Service.CCTP) {
+        throw new Error("CCTP transfer not supported yet");
       }
 
       bridgeStore.set({ transferring: false });
@@ -582,7 +604,6 @@ export default function useBridge(props?: any) {
       return;
     }
     const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
-    console.log("quoteList: %o", quoteList);
     if (!quoteList.length) {
       bridgeStore.set({ quoteDataService: null });
       return;
