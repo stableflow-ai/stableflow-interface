@@ -5,7 +5,6 @@ import PendingTransfer from "./components/pending";
 import { useLiquidityQuote } from "@/stores/use-liquidity-quote";
 
 // Dynamic import components
-const Assets = lazy(() => import("./components/assets"));
 const Networks = lazy(() => import("./components/networks"));
 const Result = lazy(() => import("./components/result"));
 const BridgeButton = lazy(() => import("./components/button"));
@@ -25,18 +24,17 @@ export default function Bridge() {
     <div className="w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
       <div className="pt-[60px] md:pt-[60px]">
         <MainTitle className="hidden! md:flex!" />
-        <div className="text-[16px] text-center w-full hidden md:block">
-          Stablecoins to any chain, with one click.
-        </div>
       </div>
       <div className="flex items-stretch gap-[10px] justify-center mt-[20px] md:min-h-[490px]">
         <div className="md:w-[488px] w-full mx-auto shrink-0">
           <PendingTransfer className="block" />
           <Suspense fallback={<LoadingSpinner />}>
-            <Assets />
+            <Networks addressValidation={addressValidation} />
           </Suspense>
           <Suspense fallback={<LoadingSpinner />}>
-            <Networks addressValidation={addressValidation} />
+            <QuoteRoutes
+              onQuote={quote}
+            />
           </Suspense>
           <Suspense fallback={<LoadingSpinner />}>
             <Result />
@@ -51,11 +49,6 @@ export default function Bridge() {
             </Suspense>
           </div>
         </div>
-        <Suspense fallback={null}>
-          <QuoteRoutes
-            onQuote={quote}
-          />
-        </Suspense>
       </div>
       <Suspense fallback={null}>
         <Trusted />

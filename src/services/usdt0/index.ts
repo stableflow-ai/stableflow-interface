@@ -94,6 +94,7 @@ class Usdt0Service {
       fees: {},
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
+      estimateSourceGasUsd: void 0,
       estimateTime, // seconds - dynamically calculated using LayerZero formula
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
@@ -160,6 +161,7 @@ class Usdt0Service {
       });
       result.fees.estimateGasUsd = usd;
       result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
     } catch (error) {
       console.log("usdt0 estimate gas failed: %o", error);
     }

@@ -107,13 +107,8 @@ export default function Total() {
   }, [balancesStore]);
 
   return (
-    <div className="flex flex-col justify-center items-center border-b border-[#EDF0EF] pb-[40px]">
-      <div className="w-full px-[25px] flex items-center gap-[7px]">
-        <img
-          src={stablecoinLogoMap[walletStore.selectedToken]}
-          alt=""
-          className="w-[34px] h-[34px] object-center object-contain shrink-0"
-        />
+    <div className="flex flex-col justify-center items-center border-b border-[#EDF0EF] pb-[40px] mt-[20px]">
+      <div className="w-full px-[18px] flex items-center gap-[7px]">
         <div className="flex flex-col gap-[0px] text-black text-[14px] font-[500] leading-[100%]">
           <div className="">
             Total {walletStore.selectedToken}
@@ -131,7 +126,7 @@ export default function Total() {
         </div>
       </div>
       <div
-        className="w-full h-[16px] px-[25px] grid grid-cols-1 gap-[2px] mt-[50px]"
+        className="w-full h-[16px] px-[25px] grid grid-cols-1 gap-[2px] mt-[30px]"
         style={{
           gridTemplateColumns,
         }}

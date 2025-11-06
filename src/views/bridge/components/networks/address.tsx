@@ -46,7 +46,12 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
   const [edit, setEdit] = useState(false);
   const bridgeStore = useBridgeStore();
   return (
-    <div className="flex items-center gap-[8px] w-full md:w-[unset]">
+    <div
+      className={clsx(
+        "flex items-center gap-[8px] w-full md:w-[unset]",
+        isTo ? "justify-end" : "justify-start",
+      )}
+    >
       {edit ? (
         <input
           type="text"
@@ -79,7 +84,7 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
               <img className="w-[12px] h-[12px]" src={wallet.walletIcon} />
             )
           )}
-          <span className="text-[14px] font-[500]">
+          <span className="text-[12px] text-[#0E3616] font-[400]">
             {formatAddress(wallet.account, 5, 4)}
           </span>
         </>

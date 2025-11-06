@@ -1,31 +1,53 @@
+import InputRadio from "@/components/input-radio";
+import { stablecoinLogoMap } from "@/config/tokens";
 import { ServiceLogoMap, type ServiceType } from "@/services";
+import useWalletStore from "@/stores/use-wallet";
 import { formatNumber } from "@/utils/format/number";
 import { formatDuration } from "@/utils/format/time";
 import clsx from "clsx";
+import { motion } from "framer-motion";
 
 const QuoteRoute = (props: any) => {
   const { service, data, selected, onSelect } = props;
 
+  const walletStore = useWalletStore();
+
   return (
-    <div
+    <motion.div
       className={clsx(
-        "button border rounded-[10px] p-[10px] hover:bg-[#EDF0F7] duration-300",
-        selected ? "border-[#6284F5]" : "border-[#EBF0F8]",
+        "button w-full h-[34px] shrink-0 rounded-[8px] bg-[#EDF0F7] border border-[#EDF0F7] flex justify-between items-center gap-[10px] pl-[6px] pr-[10px]",
+        selected ? "" : "",
       )}
       onClick={onSelect}
+      animate={{
+        backgroundImage: selected ? "linear-gradient(90deg, rgba(1, 237, 151, 0.20) 0%, rgba(1, 237, 151, 0.00) 50%)" : "none",
+      }}
     >
-      <div className="flex items-center justify-between gap-[10px]">
+      <div className="flex items-center justify-start gap-[5px]">
+        <InputRadio
+          checked={selected}
+          onChange={onSelect}
+        />
         <img
           src={ServiceLogoMap[service as ServiceType]}
           alt=""
           className="w-[62px] h-[16px] object-center object-contain shrink-0"
         />
-        <div className="text-[#4DCF5E]">
-          {formatNumber(data.outputAmount, 2, true, { prefix: "+", isShort: true, isShortUppercase: true })}
-        </div>
       </div>
-      <div className="mt-[10px] flex items-center justify-end gap-[10px] text-[12px] font-[400] text-[#444C59]">
-        <div className="flex items-center gap-[4px] border-r border-[#EBF0F8] pr-[10px]">
+      <div className="flex items-center justify-end gap-[10px] text-[12px] font-[400] text-[#444C59] leading-[100%]">
+        <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
+        <div className="flex items-center gap-[4px] border-r border-[#EBF0F8]">
+          <img
+            src="/icon-gas.svg"
+            alt=""
+            className="w-[14px] h-[14px] object-center object-contain shrink-0"
+          />
+          <div className="">
+            {formatNumber(data.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true })}
+          </div>
+        </div>
+        <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
+        <div className="flex items-center gap-[4px] border-r border-[#EBF0F8]">
           <img
             src="/icon-time.svg"
             alt=""
@@ -35,16 +57,19 @@ const QuoteRoute = (props: any) => {
             ~{formatDuration(data.estimateTime)}
           </div>
         </div>
+        <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
         <div className="flex items-center gap-[4px]">
-          <div className="text-[#B3BBCE]">
-            Fee:
-          </div>
+          <img
+            src={stablecoinLogoMap[walletStore.selectedToken]}
+            alt=""
+            className="w-[14px] h-[14px] object-center object-contain shrink-0"
+          />
           <div className="">
-            ~{formatNumber(data.totalFeesUsd, 2, true, { prefix: "$", isZeroPrecision: true })}
+            {formatNumber(data.outputAmount, 2, true, { prefix: "~", isShort: true, isShortUppercase: true })}
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

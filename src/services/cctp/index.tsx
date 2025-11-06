@@ -77,6 +77,7 @@ class CCTPService {
       fees: {},
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
+      estimateSourceGasUsd: void 0,
       estimateTime: 0,
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
     };
@@ -162,6 +163,7 @@ class CCTPService {
       });
       result.fees.estimateDepositGasUsd = usd;
       result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
     } catch (error) {
       console.log("cctp estimate deposit gas failed: %o", error);
     }

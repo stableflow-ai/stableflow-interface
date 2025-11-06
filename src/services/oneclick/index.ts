@@ -90,6 +90,7 @@ class OneClickService {
           const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
+          res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
         } catch (err) {
           console.log("oneclick estimate gas failed: %o", err);
         }
@@ -147,6 +148,7 @@ class OneClickService {
           });
           res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
           res.data.estimateSourceGas = wei;
+          res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
         } catch (error) {
           console.log("onclick estimate proxy failed: %o", error);
         }
