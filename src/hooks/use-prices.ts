@@ -7,8 +7,8 @@ export function usePrices() {
 
   const { } = useRequest(async () => {
     try {
-      const res = await axios.get("https://api.db3.app/api/token/price");
-      if (res.status !== 200 || res.data?.code !== 200) {
+      const res = await axios.get("https://api.dapdap.net/get-token-price-by-dapdap");
+      if (res.status !== 200 || res.data?.code !== 0) {
         return;
       }
       pricesStore.set({

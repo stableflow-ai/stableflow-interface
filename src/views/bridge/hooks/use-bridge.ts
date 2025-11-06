@@ -20,6 +20,7 @@ import { formatNumber } from "@/utils/format/number";
 import { Service } from "@/services";
 import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
+import { BASE_API_URL } from "@/config/api";
 
 const TRANSFER_MIN_AMOUNT = 1;
 
@@ -78,7 +79,7 @@ export default function useBridge(props?: any) {
     }
 
     try {
-      await axios.post("https://api.db3.app/api/stableflow/api/error", params);
+      await axios.post(`${BASE_API_URL}/v1/api/error`, params);
     } catch (error) {
       console.log("report error failed: %o", error);
     }
@@ -302,7 +303,7 @@ export default function useBridge(props?: any) {
 
   const { runAsync: report } = useRequest(async (params: any) => {
     try {
-      await axios.post("https://api.db3.app/api/stableflow/trade", params);
+      await axios.post(`${BASE_API_URL}/v1/trade/add`, params);
     } catch (error) {
       console.log("report failed: %o", error);
     }
@@ -397,9 +398,11 @@ export default function useBridge(props?: any) {
           timeEstimate: _quote.data.quote.timeEstimate,
         });
         report({
+          project: "nearintents",
           address: wallet.account,
-          receive_address: _quote.data.quoteRequest.recipient,
+          amount: bridgeStore.amount,
           deposit_address: _quote.data.quote.depositAddress,
+          receive_address: _quote.data.quoteRequest.recipient,
         });
 
         historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
@@ -423,6 +426,13 @@ export default function useBridge(props?: any) {
           timeEstimate: _quote.data.estimateTime,
         });
         historyStore.updateStatus(uniqueId, "PENDING_DEPOSIT");
+        report({
+          project: "layerzero",
+          address: wallet.account,
+          amount: bridgeStore.amount,
+          deposit_address: hash,
+          receive_address: _quote.data.quoteParam.recipient,
+        });
       }
 
       // cctp transfer

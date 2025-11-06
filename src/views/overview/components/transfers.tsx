@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Loading from "@/components/loading/icon";
 import clsx from "clsx";
+import { DB3_API_URL } from "@/config/api";
 
 interface TransferData {
   id: number;
@@ -84,7 +85,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
       if (filters.toChain) params.append("to_chain", filters.toChain);
 
       const response = await axios.get<ApiResponse>(
-        `https://api.db3.app/api/stableflow/trade/list?${params.toString()}`
+        `${DB3_API_URL}/stableflow/trade/list?${params.toString()}`
       );
 
       if (response.data.code === 200) {
