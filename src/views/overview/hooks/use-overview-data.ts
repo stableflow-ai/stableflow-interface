@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRequest } from "ahooks";
+import { DB3_API_URL } from "@/config/api";
 
 interface DashboardData {
   symbol: string;
@@ -35,7 +36,7 @@ export default function useOverviewData(
   const fetchDashboardData = async (token: string) => {
     try {
       const response = await axios.get<ApiResponse<DashboardData>>(
-        `https://api.db3.app/api/stableflow/dashboard?symbol=${token}`
+        `${DB3_API_URL}/stableflow/dashboard?symbol=${token}`
       );
 
       if (response.data.code === 200) {
@@ -53,7 +54,7 @@ export default function useOverviewData(
     try {
       setChartLoading(true);
       const response = await axios.get<ApiResponse<ChartData[]>>(
-        `https://api.db3.app/api/stableflow/dashboard/${period}?symbol=${token}`
+        `${DB3_API_URL}/stableflow/dashboard/${period}?symbol=${token}`
       );
 
       if (response.data.code === 200) {
@@ -90,7 +91,7 @@ export default function useOverviewData(
 
   const { runAsync: getChainData, loading: chainLoading, data: chainData } = useRequest(async () => {
     try {
-      const res = await axios.get(`https://api.db3.app/api/stableflow/dashboard/chain?symbol=${selectedToken}`);
+      const res = await axios.get(`${DB3_API_URL}/stableflow/dashboard/chain?symbol=${selectedToken}`);
       if (res.status !== 200 || res.data?.code !== 200) {
         console.log("get /stableflow/dashboard/chain failed: %o", res);
         return;

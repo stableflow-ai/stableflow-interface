@@ -5,6 +5,7 @@ import useBridgeStore from "./use-bridge";
 import chains from "@/config/chains";
 import { useMemo } from "react";
 import Big from "big.js";
+import { BASE_API_URL } from "@/config/api";
 
 export function useLiquidityQuote() {
   const walletStore = useWalletStore();
@@ -12,7 +13,7 @@ export function useLiquidityQuote() {
 
   const { data: liquidityQuote, loading: liquidityQuoteLoading, runAsync: getLiquidityQuote } = useRequest(async () => {
     try {
-      const res = await axios.get("https://api.db3.app/api/stableflow/quote");
+      const res = await axios.get(`${BASE_API_URL}/v1/nearintents/quote`);
       if (res.status !== 200 || res.data?.code !== 200) {
         console.log("get liquidity quote failed: %o", res);
         return;

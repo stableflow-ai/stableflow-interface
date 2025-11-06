@@ -9,6 +9,7 @@ import {
 import Big from "big.js";
 import useBalancesStore from "@/stores/use-balances";
 import { useDebounceFn } from "ahooks";
+import { DB3_API_URL } from "@/config/api";
 
 export default function useEvmBalances(auto = false) {
   const [loading, setLoading] = useState(false);
@@ -22,7 +23,7 @@ export default function useEvmBalances(auto = false) {
     if (!wallet || !wallet.account) return;
     try {
       setLoading(true);
-      const res = await axios.post("https://api.db3.app/api/balance/tokens", {
+      const res = await axios.post(`${DB3_API_URL}/balance/tokens`, {
         address: wallet.account,
         tokens: evmBalancesTokens
       });
