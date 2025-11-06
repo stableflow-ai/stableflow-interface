@@ -184,6 +184,15 @@ const chains = {
       decimals: 8,
     },
   },
+  bera: {
+    chainName: "Berachain",
+    chainIcon: "/chains/berachain.png",
+    chainIconGray: "/chains/berachain-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 80094,
+    blockExplorerUrl: "https://berascan.com/tx/",
+    primaryColor: "#F37325",
+  },
 };
 
 export default chains;

@@ -76,6 +76,11 @@ export const usdtChains = {
     ...chains.aptos,
     services: [Service.OneClick],
   },
+  bera: {
+    assetId: "nep141:bera-0x779ded0c9e1022225f8e0630b35a9b54be713736.omft.near",
+    contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    ...chains.bera,
+  },
 };
 
 export const usdtSol = {
