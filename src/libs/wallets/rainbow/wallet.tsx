@@ -216,7 +216,8 @@ export default class RainbowWallet {
       refundTo,
       multiHopComposer,
       isMultiHopComposer,
-      isBothOUpgradeable,
+      isOriginLegacy,
+      isDestinationLegacy,
     } = params;
 
     const result: any = {
@@ -318,8 +319,9 @@ export default class RainbowWallet {
     const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
-    if (!isBothOUpgradeable) {
+    if (!isOriginLegacy && isDestinationLegacy) {
       result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).times(USDT0_LEGACY_FEE).toFixed(fromToken.decimals));
+      result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
     }
     try {
       const gasLimit = await oftContract.send.estimateGas(...result.sendParam.param);
