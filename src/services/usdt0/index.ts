@@ -69,6 +69,7 @@ class Usdt0Service {
       refundTo,
       recipient,
       fromToken,
+      toToken,
       slippageTolerance,
       prices,
     } = params;
@@ -93,29 +94,25 @@ class Usdt0Service {
       }
       const isBothLegacy = isOriginLegacy && isDestinationLegacy;
       const isBothOUpgradeable = !isOriginLegacy && !isDestinationLegacy;
-      console.log("isBothLegacy: %o", isBothLegacy);
-      console.log("isBothOUpgradeable: %o", isBothOUpgradeable);
-
-      // one is legacy, and one is upgradeable
-      // should use multi hop composer
-      // and special extraOptions & composeMsg
-      if (!isBothLegacy && !isBothOUpgradeable) {
-        dstEid = USDT0_CONFIG["Arbitrum"].eid;
-        destinationLayerzeroAddress = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
-      }
+      const isMultiHopComposer = !isBothLegacy && !isBothOUpgradeable;
+      console.log("isMultiHopComposer: %o", isMultiHopComposer);
 
       const result = await wallet.quoteOFT({
         abi: OFT_ABI,
         dstEid,
+        refundTo,
         recipient,
         amountWei,
         slippageTolerance,
         payInLzToken: PayInLzToken,
         fromToken,
+        toToken,
         prices,
         originLayerzeroAddress,
         destinationLayerzeroAddress,
         excludeFees,
+        multiHopComposer: USDT0_CONFIG["Arbitrum"],
+        isMultiHopComposer,
       });
 
       result.estimateTime = estimateTime;
@@ -123,23 +120,24 @@ class Usdt0Service {
       return result;
     }
 
+    // source chain must be legacy
+    const isOriginLegacy = true;
+    originLayerzeroAddress = originLayerzero.oftLegacy;
+    destinationLayerzeroAddress = destinationLayerzero.oftLegacy || destinationLayerzero.oft;
+    const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
+    const isBothLegacy = isOriginLegacy && isDestinationLegacy;
+    const isMultiHopComposer = !isBothLegacy;
+    console.log("isMultiHopComposer: %o", isMultiHopComposer);
+
+    // one is legacy, and one is upgradeable
+    // should use multi hop composer
+    // and special extraOptions & composeMsg
+    if (isMultiHopComposer) {
+      dstEid = USDT0_CONFIG["Arbitrum"].eid;
+      destinationLayerzeroAddress = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
+    }
+
     if (fromToken.chainType === "tron") {
-      // source chain must be legacy
-      const isOriginLegacy = true;
-      originLayerzeroAddress = originLayerzero.oftLegacy;
-      destinationLayerzeroAddress = destinationLayerzero.oftLegacy || destinationLayerzero.oft;
-      const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
-      const isBothLegacy = isOriginLegacy && isDestinationLegacy;
-      console.log("isBothLegacy: %o", isBothLegacy);
-
-      // one is legacy, and one is upgradeable
-      // should use multi hop composer
-      // and special extraOptions & composeMsg
-      if (!isBothLegacy) {
-        dstEid = USDT0_CONFIG["Arbitrum"].eid;
-        destinationLayerzeroAddress = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
-      }
-
       const result = await wallet.quoteOFT({
         abi: OFT_ABI,
         dstEid: destinationLayerzero.eid,
@@ -149,10 +147,13 @@ class Usdt0Service {
         slippageTolerance,
         payInLzToken: PayInLzToken,
         fromToken,
+        toToken,
         prices,
         originLayerzeroAddress,
         destinationLayerzeroAddress,
         excludeFees,
+        multiHopComposer: USDT0_CONFIG["Arbitrum"],
+        isMultiHopComposer,
       });
 
       result.estimateTime = estimateTime;
@@ -161,21 +162,6 @@ class Usdt0Service {
     }
 
     if (fromToken.chainType === "sol") {
-      // source chain must be legacy
-      const isOriginLegacy = true;
-      originLayerzeroAddress = originLayerzero.oftLegacy;
-      destinationLayerzeroAddress = destinationLayerzero.oftLegacy || destinationLayerzero.oft;
-      const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
-      const isBothLegacy = isOriginLegacy && isDestinationLegacy;
-      console.log("isBothLegacy: %o", isBothLegacy);
-
-      // one is legacy, and one is upgradeable
-      // should use multi hop composer
-      // and special extraOptions & composeMsg
-      if (!isBothLegacy) {
-        dstEid = USDT0_CONFIG["Arbitrum"].eid;
-        destinationLayerzeroAddress = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
-      }
     }
   }
 
