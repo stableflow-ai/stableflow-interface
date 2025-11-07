@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs from "@/libs/dayjs";
 import { useState, useEffect } from "react";
 
 const MaintenanceDuration = 60; // minutes
@@ -8,6 +8,20 @@ export default function MaintenanceBanner() {
   const TEST_MODE = false;
 
   const [isVisible, setIsVisible] = useState(false);
+
+  const formatDuration = (minutes: number) => {
+    const dur = dayjs.duration(minutes, "minutes");
+    const hours = dur.hours();
+    const mins = dur.minutes();
+
+    if (hours > 0 && mins > 0) {
+      return `${hours} ${hours === 1 ? "hour" : "hours"} ${mins} ${mins === 1 ? "minute" : "minutes"}`;
+    }
+    if (hours > 0) {
+      return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+    }
+    return `${mins} ${mins === 1 ? "minute" : "minutes"}`;
+  };
 
   useEffect(() => {
 
@@ -44,7 +58,7 @@ export default function MaintenanceBanner() {
       <div className="max-w-[1200px] mx-auto px-[15px] py-[8px]">
         <div className="flex items-center justify-center gap-[12px] text-[13px] md:text-[14px]">
           <span className="text-center">
-            1Click Services will undergo scheduled maintenance on <strong>{dayjs(MaintenanceStart).format("YYYY-MM-DD HH:mm")} - {dayjs(MaintenanceStart).add(MaintenanceDuration, "minutes").format("YYYY-MM-DD HH:mm")}</strong> | Duration: <strong>{MaintenanceDuration} minutes</strong>
+            1Click Services will undergo scheduled maintenance on <strong>{dayjs(MaintenanceStart).format("YYYY-MM-DD HH:mm")} - {dayjs(MaintenanceStart).add(MaintenanceDuration, "minutes").format("YYYY-MM-DD HH:mm")}</strong> | Duration: <strong>{formatDuration(MaintenanceDuration)}</strong>
           </span>
 
           <a
