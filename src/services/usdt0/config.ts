@@ -68,3 +68,5 @@ export const USDT0_CONFIG: Record<string, any> = {
 
 // USDT0 DVN count (fixed value)
 export const USDT0_DVN_COUNT = 2;
+
+export const USDT0_LEGACY_FEE = 0.0001; // 0.01%, 10000 usdt cost 1 usdt

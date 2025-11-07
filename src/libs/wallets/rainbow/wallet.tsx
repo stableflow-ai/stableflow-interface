@@ -5,6 +5,7 @@ import Big from "big.js";
 import { ethers } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { addressToBytes32 } from "@/utils/address-validation";
+import { USDT0_LEGACY_FEE } from "@/services/usdt0/config";
 
 export default class RainbowWallet {
   provider: any;
@@ -215,6 +216,7 @@ export default class RainbowWallet {
       refundTo,
       multiHopComposer,
       isMultiHopComposer,
+      isBothOUpgradeable,
     } = params;
 
     const result: any = {
@@ -294,6 +296,7 @@ export default class RainbowWallet {
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
 
     const msgFee = await oftContract.quoteSend.staticCall(sendParam, payInLzToken);
+    result.estimateSourceGas = msgFee[0];
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
     result.sendParam = {
@@ -315,16 +318,18 @@ export default class RainbowWallet {
     const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
+    if (!isBothOUpgradeable) {
+      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).times(USDT0_LEGACY_FEE).toFixed(fromToken.decimals));
+    }
     try {
       const gasLimit = await oftContract.send.estimateGas(...result.sendParam.param);
-      debugger
       const { usd, wei } = await this.getEstimateGas({
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
       });
       result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = wei;
+      result.estimateSourceGas += wei;
       result.estimateSourceGasUsd = usd;
     } catch (error) {
       console.log("usdt0 estimate gas failed: %o", error);
