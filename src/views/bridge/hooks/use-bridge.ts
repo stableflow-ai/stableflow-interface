@@ -187,6 +187,7 @@ export default function useBridge(props?: any) {
         data: quoteRes,
       };
     } catch (error: any) {
+      console.log("quoteUsdt0 failed: %o", error);
       const _quoteData = {
         type: Service.Usdt0,
         errMsg: error.message,

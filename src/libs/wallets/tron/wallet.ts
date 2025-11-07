@@ -1,5 +1,8 @@
+import { addressToBytes32 } from "@/utils/address-validation";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
+import { ethers } from "ethers";
 import Big from "big.js";
 
 export default class TronWallet {
@@ -305,11 +308,16 @@ export default class TronWallet {
       slippageTolerance,
       payInLzToken,
       fromToken,
+      toToken,
       prices,
       originLayerzeroAddress,
       destinationLayerzeroAddress,
       excludeFees,
       refundTo,
+      multiHopComposer,
+      isMultiHopComposer,
+      // isOriginLegacy,
+      // isDestinationLegacy,
     } = params;
 
     const result: any = {
@@ -358,30 +366,55 @@ export default class TronWallet {
     }
 
     // 2. quote send
-    const sendParam = [
+    const sendParam: any = [
       // dstEid
       dstEid,
       // to
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      // "0x0000000000000000000000000000000000000000000000000000000000000000",
+      addressToBytes32(toToken.chainType, recipient),
       // amountLD
       amountWei,
       // minAmountLD
-      0n,
+      "0",
       // extraOptions
-      "0x0003",
+      "0x",
       // composeMsg
       "0x",
       // oftCmd
       "0x",
     ];
 
+    if (isMultiHopComposer) {
+      // multiHopComposer: Arbitrum legacy mesh MultiHopComposer, eid = 30110
+      sendParam[0] = multiHopComposer.eid; // dstEid
+      sendParam[1] = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer); // to
+    }
+
     const oftData = await oftContract.quoteOFT(sendParam).call();
     console.log("oftData: %o", oftData);
     const [, , oftReceipt] = oftData;
     sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
-    sendParam[1] = this.toBytes32(recipient);
 
     const msgFee = await oftContract.quoteSend(sendParam, payInLzToken).call();
+    result.estimateSourceGas = msgFee[0]["nativeFee"];
+
+    if (isMultiHopComposer) {
+      //                                                             gas_limt,   msg_value
+      sendParam[4] = Options.newOptions().addExecutorLzReceiveOption(250000000n, 0n).toHex();
+      const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+      sendParam[5] = abiCoder.encode(
+        ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
+        [[
+          dstEid,
+          addressToBytes32(toToken.chainType, recipient),
+          sendParam[2], // amountLD
+          sendParam[3], // minAmountLD
+          "0x",
+          "0x",
+          "0x"
+        ]]
+      );
+    }
 
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
@@ -393,22 +426,28 @@ export default class TronWallet {
         // feeParam
         [
           // nativeFee
-          msgFee[0]["nativeFee"],
+          msgFee[0]["nativeFee"].toString(),
           // lzTokenFee
-          msgFee[0]["lzTokenFee"],
+          msgFee[0]["lzTokenFee"].toString(),
         ],
         // refundAddress
-        recipient,
+        refundTo,
       ],
-      options: { callValue: msgFee[0]["nativeFee"] },
+      options: { callValue: msgFee[0]["nativeFee"].toString() },
     };
+
+    console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
 
     // 3. estimate gas
     const nativeFeeUsd = Big(msgFee[0]["nativeFee"]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[0]["lzTokenFee"]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
+    // if (!isOriginLegacy && isDestinationLegacy) {
+    //   result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).times(USDT0_LEGACY_FEE).toFixed(fromToken.decimals));
+    //   result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
+    // }
     try {
-      const energyUsed = msgFee[0]["nativeFee"]?.toNumber() || 1_500_000;
+      const energyUsed = msgFee[0]["nativeFee"] || 1_500_000;
       const usd = numberRemoveEndZero(Big(energyUsed || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
       result.fees.estimateGasUsd = usd;
       result.estimateSourceGas = energyUsed;
