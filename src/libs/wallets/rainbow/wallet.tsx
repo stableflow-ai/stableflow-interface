@@ -2,7 +2,9 @@ import erc20Abi from "@/config/abi/erc20";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
 import Big from "big.js";
-import { ethers, zeroPadValue } from "ethers";
+import { ethers } from "ethers";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
+import { addressToBytes32 } from "@/utils/address-validation";
 
 export default class RainbowWallet {
   provider: any;
@@ -205,15 +207,18 @@ export default class RainbowWallet {
       slippageTolerance,
       payInLzToken,
       fromToken,
+      toToken,
       prices,
       originLayerzeroAddress,
       destinationLayerzeroAddress,
       excludeFees,
       refundTo,
+      multiHopComposer,
+      isMultiHopComposer,
     } = params;
 
     const result: any = {
-      needApprove: true,
+      needApprove: false,
       approveSpender: originLayerzeroAddress,
       sendParam: void 0,
       quoteParam: {
@@ -233,7 +238,7 @@ export default class RainbowWallet {
 
     // 1. check if need approve
     const approvalRequired = await oftContract.approvalRequired();
-    console.log("%cApprovalRequired: %o", "background:blue;color:white;", result.needApprove);
+    console.log("%cApprovalRequired: %o", "background:blue;color:white;", approvalRequired);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -252,9 +257,9 @@ export default class RainbowWallet {
     }
 
     // 2. quote send
-    const sendParam = {
+    const sendParam: any = {
       dstEid: dstEid,
-      to: zeroPadValue(recipient, 32),
+      to: addressToBytes32(toToken.chainType, recipient),
       amountLD: amountWei,
       minAmountLD: 0n,
       extraOptions: "0x0003",
@@ -262,12 +267,33 @@ export default class RainbowWallet {
       oftCmd: "0x"
     };
 
+    if (isMultiHopComposer) {
+      // multiHopComposer: Arbitrum legacy mesh MultiHopComposer, eid = 30110
+      sendParam.dstEid = multiHopComposer.eid;
+      sendParam.to = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer);
+
+      //                                                                       gas_limt,   msg_value
+      sendParam.extraOptions = Options.newOptions().addExecutorLzReceiveOption(250000000n, 0n).toHex();
+      const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+      sendParam.composeMsg = abiCoder.encode(
+        ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
+        [[
+          dstEid,
+          addressToBytes32(toToken.chainType, recipient),
+          sendParam.amountLD,
+          sendParam.minAmountLD,
+          "0x",
+          "0x",
+          "0x"
+        ]]
+      );
+    }
+
     const oftData = await oftContract.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
 
     const msgFee = await oftContract.quoteSend.staticCall(sendParam, payInLzToken);
-
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
     result.sendParam = {
@@ -278,25 +304,20 @@ export default class RainbowWallet {
           nativeFee: msgFee[0],
           lzTokenFee: msgFee[1],
         },
-        recipient,
+        refundTo,
         { value: msgFee[0] }
       ],
     };
+
+    console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
 
     // 3. estimate gas
     const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
     try {
-      const gasLimit = await oftContract.send.estimateGas(
-        sendParam,
-        {
-          nativeFee: msgFee[0],
-          lzTokenFee: msgFee[1],
-        },
-        recipient,
-        { value: msgFee[0] }
-      );
+      const gasLimit = await oftContract.send.estimateGas(...result.sendParam.param);
+      debugger
       const { usd, wei } = await this.getEstimateGas({
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
@@ -327,6 +348,7 @@ export default class RainbowWallet {
       param,
     } = params;
 
+    console.log("sendOFT param: %o", param);
     const tx = await contract.send(...param);
 
     const txReceipt = await tx.wait();
