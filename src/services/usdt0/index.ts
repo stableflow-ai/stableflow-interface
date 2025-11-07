@@ -113,6 +113,7 @@ class Usdt0Service {
         excludeFees,
         multiHopComposer: USDT0_CONFIG["Arbitrum"],
         isMultiHopComposer,
+        isBothOUpgradeable,
       });
 
       result.estimateTime = estimateTime;
@@ -154,6 +155,7 @@ class Usdt0Service {
         excludeFees,
         multiHopComposer: USDT0_CONFIG["Arbitrum"],
         isMultiHopComposer,
+        isBothOUpgradeable: false,
       });
 
       result.estimateTime = estimateTime;

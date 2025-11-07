@@ -33,20 +33,20 @@ const ResultOneClick = (props: any) => {
       || Big(_quoteData?.quote?.amountOutFormatted).lte(0)
     ) {
       setFees({
-        netFee: 0,
+        totalFee: 0,
         bridgeFee: "0.01%",
         bridgeFeeValue: 0,
-        gasFee: 0,
+        netFee: 0,
         slippage,
       });
       return;
     }
 
     setFees({
-      netFee: _quoteData?.totalFeesUsd,
+      totalFee: _quoteData?.totalFeesUsd,
       bridgeFee: "0.01%",
       bridgeFeeValue: Big(bridgeStore.amount).times(Big(1).div(10000)),
-      gasFee: _quoteData?.fees?.destinationGasFeeUsd,
+      netFee: _quoteData?.fees?.destinationGasFeeUsd,
       slippage,
     });
   }, { wait: 500 });
@@ -83,13 +83,6 @@ const ResultOneClick = (props: any) => {
               isDelete
             >
               {fees?.bridgeFeeValue}
-            </ResultFeeItem>
-            <ResultFeeItem
-              label="Gas fee"
-              precision={2}
-              loading={bridgeStore.quotingMap.get(Service.OneClick)}
-            >
-              {fees?.gasFee}
             </ResultFeeItem>
             {/* <ResultFeeItem 
             label="Swap Slippage"

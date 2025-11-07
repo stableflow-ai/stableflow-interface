@@ -26,7 +26,7 @@ const ResultUsdt0 = (props: any) => {
       || Big(_quoteData?.outputAmount).lte(0)
     ) {
       setFees({
-        netFee: 0,
+        totalFee: 0,
         messagingFee: 0,
         legacyMeshFee: 0,
         estimatedSourceGas: 0,
@@ -36,9 +36,9 @@ const ResultUsdt0 = (props: any) => {
     }
 
     setFees({
-      netFee: _quoteData?.totalFeesUsd,
+      totalFee: _quoteData?.totalFeesUsd,
       messagingFee: _quoteData?.fees?.nativeFeeUsd,
-      legacyMeshFee: 0,
+      legacyMeshFee: _quoteData?.fees?.legacyMeshFeeUsd,
       estimatedSourceGas: _quoteData?.fees?.estimateGasUsd,
       slippage,
     });
@@ -60,10 +60,10 @@ const ResultUsdt0 = (props: any) => {
             exit={{ height: 0, opacity: 0 }}
           >
             <ResultFeeItem
-              label="Net fee"
+              label="Legacy Mesh Fee"
               loading={bridgeStore.quotingMap.get(Service.Usdt0)}
             >
-              {fees?.netFee}
+              {fees?.legacyMeshFee}
             </ResultFeeItem>
             <ResultFeeItem
               label="Messaging Fee"

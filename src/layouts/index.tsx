@@ -2,10 +2,12 @@ import { Outlet } from "react-router-dom";
 import Wallet from "@/sections/wallet";
 import UserActions from "./user-actions";
 import useUpdateTxns from "@/hooks/use-update-txns";
-import MaintenanceBanner from "@/components/maintenance-banner";
 import ZendeskWidget from "@/components/zendesk-widget";
+import { lazy, Suspense } from "react";
 // import SupportButton from "@/components/support-button";
 // import { AuroraBackground } from "./bg";
+
+const MaintenanceBanner = lazy(() => import("@/components/maintenance-banner"));
 
 export default function Layout() {
   useUpdateTxns();
@@ -26,7 +28,9 @@ export default function Layout() {
       {/* <AuroraBackground /> */}
 
       {/* Maintenance Banner */}
-      <MaintenanceBanner />
+      <Suspense fallback={null}>
+        <MaintenanceBanner />
+      </Suspense>
 
       {/* Content Layer */}
       <div className="relative z-10 w-full h-full overflow-y-auto">

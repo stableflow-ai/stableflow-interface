@@ -356,7 +356,7 @@ export default function useBridge(props?: any) {
         console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
 
         // Check if balance is sufficient
-        if (Big(nativeBalance).lt(estimateGas)) {
+        if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
           bridgeStore.set({ transferring: false });
           bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
             errMsg: "Insufficient native token balance",
@@ -551,7 +551,7 @@ export default function useBridge(props?: any) {
       if (bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg) {
         return bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg;
       }
-      if (liquidityErrorMssage) {
+      if (liquidityErrorMssage && bridgeStore.quoteDataService === Service.OneClick) {
         return "Amount exceeds max";
       }
       if (
@@ -608,7 +608,6 @@ export default function useBridge(props?: any) {
     }
     const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
     if (!quoteList.length) {
-      bridgeStore.set({ quoteDataService: null });
       return;
     }
     if (quoteList.length < 2) {
