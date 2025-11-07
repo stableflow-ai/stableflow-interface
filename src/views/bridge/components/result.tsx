@@ -38,7 +38,6 @@ export default function Result() {
         netFee: 0,
         bridgeFee: "0.01%",
         bridgeFeeValue: 0,
-        gasFee: 0,
         slippage,
       });
       return;
@@ -48,12 +47,11 @@ export default function Result() {
       return acc.plus(Big(bridgeStore.amount).times(Big(item.fee).div(10000)));
     }, Big(0));
 
-    const gasFee = Big(netFee).minus(bridgeFeeValue);
+    const realNetFee = Big(netFee).minus(bridgeFeeValue);
     setFees({
-      netFee: netFee,
+      netFee: realNetFee,
       bridgeFee: "0.01%",
       bridgeFeeValue: Big(bridgeStore.amount).times(Big(1).div(10000)),
-      gasFee,
       slippage,
     });
   }, { wait: 500 });
@@ -157,9 +155,6 @@ export default function Result() {
                 isDelete
               >
                 {fees?.bridgeFeeValue}
-              </FeeItem>
-              <FeeItem label="Gas fee" precision={2} loading={bridgeStore.quoting}>
-                {fees?.gasFee}
               </FeeItem>
               {/* <FeeItem label="Swap Slippage" precision={2} loading={bridgeStore.quoting} isFormat={false}>
                 {fees?.slippage}
