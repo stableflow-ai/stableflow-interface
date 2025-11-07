@@ -2,10 +2,11 @@ import erc20Abi from "@/config/abi/erc20";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
 import Big from "big.js";
-import { ethers } from "ethers";
+import { ethers, zeroPadValue } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { addressToBytes32 } from "@/utils/address-validation";
 import { USDT0_LEGACY_FEE } from "@/services/usdt0/config";
+import { quoteSignature } from "../utils/cctp";
 
 export default class RainbowWallet {
   provider: any;
@@ -302,6 +303,7 @@ export default class RainbowWallet {
 
     result.sendParam = {
       contract: oftContract,
+      method: "send",
       param: [
         sendParam,
         {
@@ -349,19 +351,157 @@ export default class RainbowWallet {
     return result;
   }
 
-  async sendOFT(params: any) {
+  async sendTransaction(params: any) {
     const {
+      method,
       contract,
       param,
     } = params;
 
-    console.log("sendOFT param: %o", param);
-    const tx = await contract.send(...param);
+    console.log("sendTransaction param: %o", param);
+    const tx = await contract[method](...param);
 
     const txReceipt = await tx.wait();
     if (txReceipt.status !== 1) {
       throw new Error("Transaction failed");
     }
     return txReceipt.hash;
+  }
+
+  async quoteCCTP(params: any) {
+    const {
+      proxyAddress,
+      abi,
+      refundTo,
+      recipient,
+      amountWei,
+      // slippageTolerance,
+      fromToken,
+      // toToken,
+      prices,
+      excludeFees,
+      destinationDomain,
+      sourceDomain,
+    } = params;
+
+    const result: any = {
+      needApprove: false,
+      approveSpender: proxyAddress,
+      sendParam: void 0,
+      quoteParam: {
+        sourceDomain,
+        destinationDomain,
+        proxyAddress,
+        ...params,
+      },
+      fees: {},
+      totalFeesUsd: void 0,
+      estimateSourceGas: void 0,
+      estimateSourceGasUsd: void 0,
+      estimateTime: 0,
+      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
+    };
+
+    const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
+
+    // 1. get user nonce
+    let userNonce = await proxyContract.userNonces(refundTo);
+
+    // 2. quote signature
+    const signatureRes = await quoteSignature({
+      address: refundTo,
+      amount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
+      destination_domain_id: destinationDomain,
+      receipt_address: recipient,
+      source_domain_id: sourceDomain,
+      user_nonce: Number(userNonce),
+    });
+    const {
+      bridge_fee,
+      finality_threshold,
+      max_fee,
+      mint_fee,
+      receipt_amount,
+      signature,
+    } = signatureRes;
+    result.fees.estimateMintGasUsd = numberRemoveEndZero(Big(mint_fee || 0).div(10 ** fromToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+    result.fees.bridgeFeeUsd = numberRemoveEndZero(Big(bridge_fee || 0).div(10 ** fromToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+    const chargedAmount = BigInt(amountWei) - BigInt(mint_fee);
+    result.outputAmount = numberRemoveEndZero(Big(receipt_amount || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0));
+
+    const depositParam = [
+      // originalAmount
+      amountWei,
+      // chargedAmount = originalAmount - gas fee
+      chargedAmount,
+      // destinationDomain
+      destinationDomain,
+      // mintRecipient
+      zeroPadValue(recipient, 32),
+      // burnToken
+      fromToken.contractAddress,
+      // destinationCaller
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      // maxFee
+      max_fee,
+      // minFinalityThreshold
+      finality_threshold,
+      // signature
+      signature,
+    ];
+    result.sendParam = {
+      method: "depositWithFee",
+      contract: proxyContract,
+      param: depositParam,
+    };
+
+    // 3. estimate deposit gas
+    try {
+      const gasLimit = await proxyContract.depositWithFee.estimateGas(...depositParam);
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+      });
+      result.fees.estimateDepositGasUsd = usd;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    } catch (error) {
+      console.log("cctp estimate deposit gas failed: %o", error);
+    }
+
+    // 4. check approve
+    const allowance = await this.allowance({
+      contractAddress: fromToken.contractAddress,
+      address: refundTo,
+      spender: proxyAddress,
+      amountWei,
+    });
+    result.needApprove = allowance.needApprove;
+    // get approve gas cost
+    if (result.needApprove) {
+      try {
+        const gasLimit = await allowance.contract.approve.estimateGas(proxyAddress, amountWei);
+        const { usd } = await this.getEstimateGas({
+          gasLimit,
+          price: getPrice(prices, fromToken.nativeToken.symbol),
+          nativeToken: fromToken.nativeToken,
+        });
+        result.fees.estimateApproveGasUsd = usd;
+      } catch (error) {
+        console.log("cctp estimate approve gas failed: %o", error);
+      }
+    }
+
+    // 5. calculate total fees
+    for (const feeKey in result.fees) {
+      if (excludeFees.includes(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
+    return result;
   }
 }

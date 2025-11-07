@@ -175,7 +175,7 @@ class Usdt0Service {
       ...rest
     } = params;
 
-    return wallet.sendOFT(rest);
+    return wallet.sendTransaction(rest);
   }
 
   public async getStatus(params: any) {

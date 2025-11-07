@@ -491,7 +491,7 @@ export default class TronWallet {
     return result;
   }
 
-  async sendOFT(params: any) {
+  async sendTransaction(params: any) {
     const {
       tx,
     } = params;

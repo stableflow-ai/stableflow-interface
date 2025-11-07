@@ -11,7 +11,7 @@ export const CCTP_TOKEN_MESSENGER: Record<string, string> = {
 
 // https://wool-gouda-88a.notion.site/cctp-2a14970e0e4d80f08f0ce3010d625516
 export const CCTP_TOKEN_PROXY: Record<string, string> = {
-  ["Ethereum"]: "",
+  ["Ethereum"]: "0x54Cf68aB8f68813F2a2dF20Af72D19c44485a0b2",
   ["Arbitrum"]: "0x54Cf68aB8f68813F2a2dF20Af72D19c44485a0b2",
   ["Polygon"]: "",
   ["Optimism"]: "0x54Cf68aB8f68813F2a2dF20Af72D19c44485a0b2",
@@ -101,6 +101,25 @@ export const CCTP_TOKEN_PROXY_ABI = [
     "stateMutability": "nonpayable",
     "type": "function"
   },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "userNonces",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ];
 
 export const CCTP_TOKEN_PROXY_GAS_USED: Record<string, BigInt> = {

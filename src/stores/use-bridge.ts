@@ -11,6 +11,7 @@ interface BridgeState {
   errorTips: string;
   showFee: boolean;
   showRoutes: boolean;
+  shouldAutoSelect: boolean;
   set: (params: any) => void;
   setQuoteData: (key: string, value: any) => void;
   modifyQuoteData: (key: string, value: any) => void;
@@ -27,7 +28,8 @@ const useBridgeStore = create<BridgeState>((set) => ({
   transferring: false,
   errorTips: "",
   showFee: false,
-  showRoutes: false,
+  showRoutes: true,
+  shouldAutoSelect: false,
   set: (params) => set(() => ({ ...params })),
   setQuoteData: (key, value) => {
     set((state) => {

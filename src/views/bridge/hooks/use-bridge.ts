@@ -239,6 +239,11 @@ export default function useBridge(props?: any) {
       bridgeStore.clearQuoteData();
     }
 
+    // Only set auto-select flag when quote({ dry: false }, false | undefined)
+    if (params.dry === false && (isSync === false || isSync === undefined)) {
+      bridgeStore.set({ shouldAutoSelect: true });
+    }
+
     if (
       !walletStore.toToken ||
       !walletStore.fromToken ||
@@ -441,7 +446,32 @@ export default function useBridge(props?: any) {
 
       // cctp transfer
       if (bridgeStore.quoteDataService === Service.CCTP) {
-        throw new Error("CCTP transfer not supported yet");
+        const hash = await ServiceMap[Service.CCTP].send({
+          ..._quote?.data?.sendParam,
+          wallet: wallet.wallet,
+        });
+        const uniqueId = uuidV4();
+        historyStore.addHistory({
+          type: Service.CCTP,
+          despoitAddress: uniqueId,
+          amount: bridgeStore.amount,
+          fromToken: walletStore.fromToken,
+          toToken: walletStore.toToken,
+          fromAddress: wallet.account,
+          toAddress: _quote.data.quoteParam.recipient,
+          time: Date.now(),
+          txHash: hash,
+          toChainTxHash: hash,
+          timeEstimate: _quote.data.estimateTime,
+        });
+        historyStore.updateStatus(uniqueId, "PENDING_DEPOSIT");
+        report({
+          project: "cctp",
+          address: wallet.account,
+          amount: bridgeStore.amount,
+          deposit_address: hash,
+          receive_address: _quote.data.quoteParam.recipient,
+        });
       }
 
       bridgeStore.set({ transferring: false });
@@ -607,15 +637,28 @@ export default function useBridge(props?: any) {
     if (bridgeStore.transferring) {
       return;
     }
+    // Only auto-select best quoteDataService when shouldAutoSelect is true
+    if (!bridgeStore.shouldAutoSelect) {
+      return;
+    }
     const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
     if (!quoteList.length) {
       return;
     }
-    if (quoteList.length < 2) {
+    // Check if all quote requests are completed
+    const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
+    
+    // Auto-select the best quote as soon as any quote is available
+    // This allows immediate selection when first request completes, and updates when better quotes arrive
+    if (quoteList.length === 1) {
       bridgeStore.set({ quoteDataService: quoteList[0][0] });
+      // Reset flag when all requests are completed
+      if (!isQuoting) {
+        bridgeStore.set({ shouldAutoSelect: false });
+      }
       return;
     }
-    // sort
+    // sort and select the best one
     const sortedQuoteData = quoteList.sort((a: any, b: any) => {
       const [_serviceA, dataA] = a;
       const [_serviceB, dataB] = b;
@@ -632,9 +675,15 @@ export default function useBridge(props?: any) {
     });
     console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
     bridgeStore.set({ quoteDataService: sortedQuoteData[0][0] });
+    // Reset flag when all requests are completed
+    if (!isQuoting) {
+      bridgeStore.set({ shouldAutoSelect: false });
+    }
   }, [
     bridgeStore.transferring,
     bridgeStore.quoteDataMap,
+    bridgeStore.quotingMap,
+    bridgeStore.shouldAutoSelect,
   ]);
 
   return {

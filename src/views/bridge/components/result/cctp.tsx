@@ -28,6 +28,7 @@ const ResultCCTP = (props: any) => {
       setFees({
         totalFee: 0,
         mintGasFee: 0,
+        bridgeFee: 0,
         slippage,
       });
       return;
@@ -36,6 +37,7 @@ const ResultCCTP = (props: any) => {
     setFees({
       totalFee: _quoteData?.totalFeesUsd,
       mintGasFee: _quoteData?.fees?.estimateMintGasUsd,
+      bridgeFee: _quoteData?.fees?.bridgeFeeUsd,
       slippage,
     });
   }, { wait: 500 });
@@ -55,12 +57,12 @@ const ResultCCTP = (props: any) => {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
           >
-            {/* <ResultFeeItem
-              label="Net fee"
+            <ResultFeeItem
+              label="Bridge fee"
               loading={bridgeStore.quotingMap.get(Service.CCTP)}
             >
-              {fees?.netFee}
-            </ResultFeeItem> */}
+              {fees?.bridgeFee}
+            </ResultFeeItem>
             <ResultFeeItem
               label="Mint Gas fee"
               precision={2}
