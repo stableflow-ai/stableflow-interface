@@ -504,4 +504,61 @@ export default class RainbowWallet {
 
     return result;
   }
+
+  async quoteOneClickProxy(params: any) {
+    const {
+      proxyAddress,
+      abi,
+      fromToken,
+      refundTo,
+      recipient,
+      amountWei,
+      prices,
+    } = params;
+
+    const result: any = { fees: {}};
+
+    try {
+      const allowance = await this.allowance({
+        contractAddress: fromToken.contractAddress,
+        address: refundTo,
+        spender: proxyAddress,
+        amountWei: amountWei,
+      });
+      result.needApprove = allowance.needApprove;
+      result.approveSpender = proxyAddress;
+    } catch (error) {
+      console.log("oneclick check allowance failed: %o", error);
+    }
+
+    const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
+    const proxyParam: any = [
+      // tokenAddress
+      fromToken.contractAddress,
+      // recipient
+      recipient,
+      // amount
+      amountWei,
+    ];
+    result.sendParam = {
+      method: "proxyTransfer",
+      contract: proxyContract,
+      param: proxyParam,
+    };
+    try {
+      const gasLimit = await proxyContract.proxyTransfer.estimateGas(...proxyParam);
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+      });
+      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+    } catch (error) {
+      console.log("onclick estimate proxy failed: %o", error);
+    }
+
+    return result;
+  }
 }
