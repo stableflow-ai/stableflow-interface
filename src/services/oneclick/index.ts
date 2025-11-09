@@ -137,47 +137,27 @@ class OneClickService {
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
       if (proxyAddress) {
-        try {
-          const allowance = await params.wallet.allowance({
-            contractAddress: params.fromToken.contractAddress,
-            address: params.refundTo,
-            spender: proxyAddress,
-            amountWei: params.amount,
-          });
-          res.data.needApprove = allowance.needApprove;
-          res.data.approveSpender = proxyAddress;
-        } catch (error) {
-          console.log("oneclick check allowance failed: %o", error);
-        }
-
-        const proxyContract = params.wallet.getContract({
-          contractAddress: proxyAddress,
+        const proxyResult = await params.wallet.quoteOneClickProxy({
+          proxyAddress,
           abi: ONECLICK_PROXY_ABI,
+          fromToken: params.fromToken,
+          refundTo: params.refundTo,
+          recipient: params.recipient,
+          amountWei: params.amount,
+          prices: params.prices,
         });
-        const proxyParam: any = [
-          // tokenAddress
-          params.fromToken.contractAddress,
-          // recipient
-          params.recipient,
-          // amount
-          params.amount,
-        ];
-        res.data.sendParam = {
-          contract: proxyContract,
-          param: proxyParam,
-        };
-        try {
-          const gasLimit = await proxyContract.proxyTransfer.estimateGas(...proxyParam);
-          const { usd, wei } = await params.wallet.getEstimateGas({
-            gasLimit,
-            price: getPrice(params.prices, params.fromToken.nativeToken.symbol),
-            nativeToken: params.fromToken.nativeToken,
-          });
-          res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-          res.data.estimateSourceGas = wei;
-          res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-        } catch (error) {
-          console.log("onclick estimate proxy failed: %o", error);
+
+        for (const proxyKey in proxyResult) {
+          if (proxyKey === "fees") {
+            for (const feeKey in proxyResult.fees) {
+              if (excludeFees.includes(feeKey)) {
+                continue;
+              }
+              res.data.fees[feeKey] = proxyResult.fees[feeKey];
+            }
+            continue;
+          }
+          res.data[proxyKey] = proxyResult[proxyKey];
         }
       }
     }
@@ -196,7 +176,7 @@ class OneClickService {
 
     // proxy transfer
     if (sendParam) {
-      const tx = await sendParam.contract.proxyTransfer(...sendParam.param);
+      const tx = await wallet.sendTransaction(sendParam);
       return tx;
     }
 
