@@ -54,13 +54,16 @@ export default function Token({
                   key={chain.chainName}
                   className="p-[10px] duration-300 flex justify-between items-center cursor-pointer hover:bg-[#FAFBFF]"
                   onClick={async () => {
+                    // Prevent selecting the same chain and token combination
+                    // But allow selecting different tokens (USDT vs USDC) on the same chain
+                    const otherToken = walletStore.isTo 
+                      ? walletStore.fromToken 
+                      : walletStore.toToken;
+                    
                     if (
-                      (walletStore.isTo &&
-                        walletStore.fromToken?.contractAddress ===
-                          chain.contractAddress) ||
-                      (!walletStore.isTo &&
-                        walletStore.toToken?.contractAddress ===
-                          chain.contractAddress)
+                      otherToken &&
+                      otherToken.contractAddress === chain.contractAddress &&
+                      otherToken.symbol === token.symbol
                     ) {
                       return;
                     }
@@ -78,6 +81,7 @@ export default function Token({
 
                     walletStore.set({
                       [walletStore.isTo ? "toToken" : "fromToken"]: mergedToken,
+                      selectedToken: token.symbol,
                       showWallet: false
                     });
                   }}

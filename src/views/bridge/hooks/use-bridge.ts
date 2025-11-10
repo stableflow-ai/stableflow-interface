@@ -555,6 +555,13 @@ export default function useBridge(props?: any) {
   }, [walletStore.fromToken, bridgeStore.amount, balancesStore]);
 
   useEffect(() => {
+    // Only trigger quote if both tokens have selected a specific chain (have chainType)
+    // Don't trigger quote when just switching token type (USDT/USDC) without selecting a chain
+    if (!walletStore.fromToken?.chainType || !walletStore.toToken?.chainType) {
+      cancelQuote();
+      bridgeStore.clearQuoteData();
+      return;
+    }
     cancelQuote();
     debouncedQuote({ dry: true });
   }, [
