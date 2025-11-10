@@ -7,7 +7,8 @@ import {
   base,
   avalanche,
   optimism,
-  gnosis
+  gnosis,
+  berachain
 } from "wagmi/chains";
 import {
   WagmiProvider,
@@ -33,7 +34,7 @@ import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
 import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet } from "@rainbow-me/rainbowkit/wallets";
-import { createClient } from "viem";
+import { createClient, fallback } from "viem";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 export const metadata = {
@@ -43,13 +44,35 @@ export const metadata = {
   url: "https://app.stableflow.ai",
   icons: ["/logo.svg"]
 };
+
+const AnkrRpcUrls: any = {
+  [mainnet.id]: fallback([http("https://rpc.ankr.com/eth/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
+  [polygon.id]: fallback([http("https://rpc.ankr.com/polygon/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
+  [arbitrum.id]: fallback([http("https://rpc.ankr.com/arbitrum/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
+  [bsc.id]: fallback([http("https://rpc.ankr.com/bsc/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
+  [base.id]: fallback([http("https://rpc.ankr.com/base/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
+  [avalanche.id]: fallback([http("https://rpc.ankr.com/avalanche/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
+  [gnosis.id]: fallback([http("https://rpc.ankr.com/gnosis/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
+};
+
 const config = getDefaultConfig({
   appName: metadata.name,
   appDescription: metadata.description,
   appUrl: metadata.url,
   appIcon: metadata.icons[0],
   projectId,
-  chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis],
+  chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis, berachain],
+  transports: {
+    [mainnet.id]: AnkrRpcUrls[mainnet.id] || http(),
+    [polygon.id]: AnkrRpcUrls[polygon.id] || http(),
+    [arbitrum.id]: AnkrRpcUrls[arbitrum.id] || http(),
+    [bsc.id]: AnkrRpcUrls[bsc.id] || http(),
+    [base.id]: AnkrRpcUrls[base.id] || http(),
+    [avalanche.id]: AnkrRpcUrls[avalanche.id] || http(),
+    [optimism.id]: AnkrRpcUrls[optimism.id] || http(),
+    [gnosis.id]: AnkrRpcUrls[gnosis.id] || http(),
+    [berachain.id]: AnkrRpcUrls[berachain.id] || http(),
+  },
 });
 const connectors: any = connectorsForWallets(
   [
@@ -73,6 +96,12 @@ const wagmiConfig = createConfig({
   ...config,
   connectors,
   client: ({ chain }) => {
+    if (AnkrRpcUrls[chain.id]) {
+      return createClient({
+        chain,
+        transport: AnkrRpcUrls[chain.id],
+      })
+    }
     return createClient({
       chain,
       transport: http()
