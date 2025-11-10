@@ -7,7 +7,8 @@ import {
   base,
   avalanche,
   optimism,
-  gnosis
+  gnosis,
+  berachain
 } from "wagmi/chains";
 import {
   WagmiProvider,
@@ -49,7 +50,7 @@ const config = getDefaultConfig({
   appUrl: metadata.url,
   appIcon: metadata.icons[0],
   projectId,
-  chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis],
+  chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis, berachain],
 });
 const connectors: any = connectorsForWallets(
   [
