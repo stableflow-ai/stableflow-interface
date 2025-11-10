@@ -356,7 +356,7 @@ export default function useBridge(props?: any) {
       try {
         const estimateGas = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService)?.estimateSourceGas;
         // get native token balance
-        const nativeBalance = await wallet.wallet.getBalance("native", wallet.account);
+        const nativeBalance = await wallet.wallet.getBalance({  symbol: "native"}, wallet.account);
         const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
 
         console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
