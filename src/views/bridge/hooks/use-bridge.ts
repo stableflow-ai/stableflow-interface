@@ -249,7 +249,7 @@ export default function useBridge(props?: any) {
       !walletStore.fromToken ||
       !fromWalletAddress ||
       !(bridgeStore.recipientAddress || toWalletAddress) ||
-      Big(bridgeStore.amount).lt(TRANSFER_MIN_AMOUNT)
+      Big(bridgeStore.amount || 0).lt(TRANSFER_MIN_AMOUNT)
     ) {
       bridgeStore.clearQuoteData();
       return;
