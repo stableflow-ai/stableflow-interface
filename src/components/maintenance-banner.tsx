@@ -2,7 +2,7 @@ import dayjs from "@/libs/dayjs";
 import { useState, useEffect } from "react";
 
 const MaintenanceDuration = 60; // minutes
-const MaintenanceStart = "2025-11-07T07:30:00Z";
+const MaintenanceStart = "2025-11-10T08:00:00Z";
 
 export default function MaintenanceBanner() {
   const TEST_MODE = false;
