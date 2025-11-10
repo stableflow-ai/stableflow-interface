@@ -11,21 +11,13 @@ export default function Chain({ token, isTo }: any) {
   const openWallet = () => {
     // Determine which token is currently selected for this side
     const currentToken = isTo ? walletStore.toToken : walletStore.fromToken;
-    const tokenSymbol = currentToken?.symbol || "USDT";
+    const tokenSymbol = currentToken?.symbol || (isTo ? walletStore.fromToken?.symbol : walletStore.toToken?.symbol) || "USDT";
     
     const params: Record<string, any> = {
       showWallet: true,
       isTo,
       selectedToken: tokenSymbol
     };
-    if (tokenSymbol === "USDT") {
-      params.usdtExpand = true;
-      params.usdcExpand = false;
-    }
-    if (tokenSymbol === "USDC") {
-      params.usdtExpand = false;
-      params.usdcExpand = true;
-    }
 
     walletStore.set(params);
   };
