@@ -19,14 +19,16 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
       setLoading(true);
 
       const balance = await wallet.wallet?.balanceOf(
-        token.contractAddress,
+        token,
         wallet.account
       );
 
+      console.log("%cGetBalance %s balance: %o", "background:#f00;color:#fff;",  token.chainName + "-" + token.symbol, balance);
+
       const _balance = balance
         ? Big(balance)
-            .div(10 ** token.decimals)
-            .toString()
+          .div(10 ** token.decimals)
+          .toString()
         : "-";
       setBalance(_balance);
 
@@ -40,7 +42,7 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
       });
     } catch (error) {
       console.error(error);
-      setBalance("-");
+      setBalance("0");
     } finally {
       setLoading(false);
     }

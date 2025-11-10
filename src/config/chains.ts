@@ -31,6 +31,22 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
   },
 };
 
+export const chainsRpcUrls: Record<string, string> = {
+  "Ethereum": "https://eth-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Arbitrum": "https://arb-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "BNB Chain": "https://bnb-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Avalanche": "https://avax-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Base": "https://base-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Polygon": "https://polygon-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Gnosis": "https://gnosis-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Optimism": "https://opt-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Berachain": "https://berachain-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Tron": "https://tron-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Aptos": "https://aptos-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Solana": "https://solana-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Near": "",
+};
+
 const chains = {
   near: {
     chainName: "Near",
@@ -43,6 +59,7 @@ const chains = {
       symbol: "NEAR",
       decimals: 24,
     },
+    rpcUrl: chainsRpcUrls["Near"],
   },
   sol: {
     chainName: "Solana",
@@ -55,6 +72,7 @@ const chains = {
       symbol: "SOL",
       decimals: 9,
     },
+    rpcUrl: chainsRpcUrls["Solana"],
   },
   eth: {
     chainName: "Ethereum",
@@ -68,6 +86,7 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
+    rpcUrl: chainsRpcUrls["Ethereum"],
   },
   arb: {
     chainName: "Arbitrum",
@@ -81,6 +100,7 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
+    rpcUrl: chainsRpcUrls["Arbitrum"],
   },
   bsc: {
     chainName: "BNB Chain",
@@ -94,6 +114,7 @@ const chains = {
       symbol: "BNB",
       decimals: 18,
     },
+    rpcUrl: chainsRpcUrls["BNB Chain"],
   },
   avax: {
     chainName: "Avalanche",
@@ -107,6 +128,7 @@ const chains = {
       symbol: "AVAX",
       decimals: 18,
     },
+    rpcUrl: chainsRpcUrls["Avalanche"],
   },
   base: {
     chainName: "Base",
@@ -120,6 +142,7 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
+    rpcUrl: chainsRpcUrls["Base"],
   },
   pol: {
     chainName: "Polygon",
@@ -133,6 +156,7 @@ const chains = {
       symbol: "POL",
       decimals: 18,
     },
+    rpcUrl: chainsRpcUrls["Polygon"],
   },
   gnosis: {
     chainName: "Gnosis",
@@ -146,6 +170,7 @@ const chains = {
       symbol: "XDAI",
       decimals: 18,
     },
+    rpcUrl: chainsRpcUrls["Gnosis"],
   },
   op: {
     chainName: "Optimism",
@@ -159,6 +184,7 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
+    rpcUrl: chainsRpcUrls["Optimism"],
   },
   tron: {
     chainName: "Tron",
@@ -171,6 +197,7 @@ const chains = {
       symbol: "TRX",
       decimals: 6,
     },
+    rpcUrl: chainsRpcUrls["Tron"],
   },
   aptos: {
     chainName: "Aptos",
@@ -183,6 +210,7 @@ const chains = {
       symbol: "APT",
       decimals: 8,
     },
+    rpcUrl: chainsRpcUrls["Aptos"],
   },
   bera: {
     chainName: "Berachain",
@@ -192,6 +220,11 @@ const chains = {
     chainId: 80094,
     blockExplorerUrl: "https://berascan.com/tx/",
     primaryColor: "#F37325",
+    nativeToken: {
+      symbol: "BERA",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Berachain"],
   },
 };
 

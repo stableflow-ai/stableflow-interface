@@ -52,13 +52,12 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
   const balancesStore = useBalancesStore();
   const { loading } = useTokenBalance(token, true);
 
-  console.log("%s loading: %o", token.chainName + "-" + token.symbol, loading);
-
   const key = `${token.chainType}Balances` as keyof BalancesState;
   const balance = useMemo(() => {
     const _balance = balancesStore[key][token.contractAddress];
     return _balance ? formatNumber(_balance, 2, true) : "0.00";
   }, [token, balancesStore[key]?.[token.contractAddress]]);
+
   return (
     <div
       className={clsx(

@@ -35,6 +35,7 @@ import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
 import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet } from "@rainbow-me/rainbowkit/wallets";
 import { createClient, fallback } from "viem";
+import { chainsRpcUrls } from "@/config/chains";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 export const metadata = {
@@ -45,14 +46,16 @@ export const metadata = {
   icons: ["/logo.svg"]
 };
 
-const AnkrRpcUrls: any = {
-  [mainnet.id]: fallback([http("https://rpc.ankr.com/eth/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
-  [polygon.id]: fallback([http("https://rpc.ankr.com/polygon/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
-  [arbitrum.id]: fallback([http("https://rpc.ankr.com/arbitrum/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
-  [bsc.id]: fallback([http("https://rpc.ankr.com/bsc/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
-  [base.id]: fallback([http("https://rpc.ankr.com/base/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
-  [avalanche.id]: fallback([http("https://rpc.ankr.com/avalanche/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
-  [gnosis.id]: fallback([http("https://rpc.ankr.com/gnosis/78c9da106f55940c1fd58fe5a24417c082721cf76ba372706b59194224b6758a")]),
+const RpcUrls: any = {
+  [mainnet.id]: fallback([http(chainsRpcUrls["Ethereum"])]),
+  [polygon.id]: fallback([http(chainsRpcUrls["Polygon"])]),
+  [arbitrum.id]: fallback([http(chainsRpcUrls["Arbitrum"])]),
+  [optimism.id]: fallback([http(chainsRpcUrls["Optimism"])]),
+  [bsc.id]: fallback([http(chainsRpcUrls["BNB Chain"])]),
+  [base.id]: fallback([http(chainsRpcUrls["Base"])]),
+  [avalanche.id]: fallback([http(chainsRpcUrls["Avalanche"])]),
+  [gnosis.id]: fallback([http(chainsRpcUrls["Gnosis"])]),
+  [berachain.id]: fallback([http(chainsRpcUrls["Berachain"])]),
 };
 
 const config = getDefaultConfig({
@@ -63,15 +66,15 @@ const config = getDefaultConfig({
   projectId,
   chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis, berachain],
   transports: {
-    [mainnet.id]: AnkrRpcUrls[mainnet.id] || http(),
-    [polygon.id]: AnkrRpcUrls[polygon.id] || http(),
-    [arbitrum.id]: AnkrRpcUrls[arbitrum.id] || http(),
-    [bsc.id]: AnkrRpcUrls[bsc.id] || http(),
-    [base.id]: AnkrRpcUrls[base.id] || http(),
-    [avalanche.id]: AnkrRpcUrls[avalanche.id] || http(),
-    [optimism.id]: AnkrRpcUrls[optimism.id] || http(),
-    [gnosis.id]: AnkrRpcUrls[gnosis.id] || http(),
-    [berachain.id]: AnkrRpcUrls[berachain.id] || http(),
+    [mainnet.id]: RpcUrls[mainnet.id] || http(),
+    [polygon.id]: RpcUrls[polygon.id] || http(),
+    [arbitrum.id]: RpcUrls[arbitrum.id] || http(),
+    [bsc.id]: RpcUrls[bsc.id] || http(),
+    [base.id]: RpcUrls[base.id] || http(),
+    [avalanche.id]: RpcUrls[avalanche.id] || http(),
+    [optimism.id]: RpcUrls[optimism.id] || http(),
+    [gnosis.id]: RpcUrls[gnosis.id] || http(),
+    [berachain.id]: RpcUrls[berachain.id] || http(),
   },
 });
 const connectors: any = connectorsForWallets(
@@ -96,10 +99,10 @@ const wagmiConfig = createConfig({
   ...config,
   connectors,
   client: ({ chain }) => {
-    if (AnkrRpcUrls[chain.id]) {
+    if (RpcUrls[chain.id]) {
       return createClient({
         chain,
-        transport: AnkrRpcUrls[chain.id],
+        transport: RpcUrls[chain.id],
       })
     }
     return createClient({

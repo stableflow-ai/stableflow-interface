@@ -61,9 +61,9 @@ export default function Networks({ addressValidation }: any) {
         </div>
         <div className="w-full mt-[6px]">
           <div className="p-[6px] pt-0 flex items-center relative">
-            <Chain token={walletStore.fromToken} isTo={false} />
+            <Chain key="from" token={walletStore.fromToken} isTo={false} />
             <Input />
-            <Chain token={walletStore.toToken} isTo={true} />
+            <Chain key="to" token={walletStore.toToken} isTo={true} />
             <ExchangeButton
               onClick={toggleChain}
             />
