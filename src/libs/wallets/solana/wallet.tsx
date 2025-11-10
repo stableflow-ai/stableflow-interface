@@ -2,9 +2,11 @@ import {
   Connection,
   PublicKey,
   Transaction,
+  VersionedTransaction,
   SystemProgram,
   LAMPORTS_PER_SOL
 } from "@solana/web3.js";
+import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
@@ -15,7 +17,7 @@ import {
 } from "@solana/spl-token";
 
 export default class SolanaWallet {
-  connection: any;
+  connection: Connection;
   private publicKey: PublicKey | null;
   private signTransaction: any;
 
@@ -231,12 +233,11 @@ export default class SolanaWallet {
       try {
         const tx = await this.connection.getTransaction(signature, {
           commitment: "finalized",
-          encoding: "json",
           maxSupportedTransactionVersion: 0,
         });
 
         if (tx) {
-          if (tx.meta.err === null) {
+          if (tx.meta && tx.meta.err === null) {
             return true;
           } else {
             return false;
@@ -258,5 +259,151 @@ export default class SolanaWallet {
 
     console.log("checkTransactionStatus failed: timeout");
     return false;
+  }
+
+  async simulateIx(ix: any) {
+    const tx = new Transaction().add(ix);
+
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = this.publicKey!;
+
+    // Convert Transaction to VersionedTransaction to use config options
+    const message = tx.compileMessage();
+    const versionedTx = new VersionedTransaction(message);
+
+    const sim = await this.connection.simulateTransaction(versionedTx, {
+      commitment: "confirmed",
+      sigVerify: false,
+    });
+
+    if (sim.value.err) console.error('Error:', sim.value.err);
+
+    console.log("sim: %o", sim);
+
+    return sim.value;
+  }
+
+  async quoteOFT(params: any) {
+    const {
+      idl,
+      originLayerzeroAddress,
+      fromToken,
+    } = params;
+
+    console.log("params: %o", params);
+
+    if (!this.publicKey) {
+      throw new Error("Wallet not connected");
+    }
+
+    // Create a wallet object that conforms to the Anchor Wallet interface
+    const wallet = {
+      publicKey: this.publicKey,
+      signTransaction: this.signTransaction,
+      signAllTransactions: async <T extends Transaction | VersionedTransaction>(txs: T[]): Promise<T[]> => {
+        const signedTxs: T[] = [];
+        for (const tx of txs) {
+          const signedTx = await this.signTransaction(tx);
+          signedTxs.push(signedTx as T);
+        }
+        return signedTxs;
+      }
+    };
+
+    // Create AnchorProvider
+    const provider = new AnchorProvider(
+      this.connection,
+      wallet,
+      {
+        commitment: "confirmed"
+      }
+    );
+
+    const creditsPubkey = new PublicKey("6zcTrmdkiQp6dZHYUxVr6A2XVDSYi44X1rcPtvwNcrXi");
+    const peerPubkey = new PublicKey("5FEMXXjueR7y6Z1uVDxTm4ZZXFp6XnxR1Xu1WmvwjxBF");
+    const oftStorePubkey = new PublicKey("HyXJcgYpURfDhgzuyRL7zxP4FhLg7LZQMeDrR4MXZcMN");
+    const mint = new PublicKey(fromToken.contractAddress);
+    const programId = new PublicKey(originLayerzeroAddress);
+
+    // Handle IDL format - if it has extracted_idl, use that, otherwise use idl directly
+    const idlToUse = (idl as any)?.extracted_idl || idl;
+
+    // Ensure IDL has address field set to programId
+    if (idlToUse && !idlToUse.address) {
+      idlToUse.address = programId.toBase58();
+    }
+
+    // Create Program - Anchor will use the address from IDL or we can pass programId
+    const program = new Program(idlToUse, provider);
+
+    console.log("program.methods: %o", program.methods);
+
+    // Build instruction
+    const quoteOftIx = await program.methods.quoteOft()
+      .accounts({
+        oftStore: oftStorePubkey,
+        credits: creditsPubkey,
+        peer: peerPubkey,
+      })
+      .instruction();
+    const quoteOftResult = await this.simulateIx(quoteOftIx);
+    console.log("quoteOftIxResult: %o", JSON.stringify(quoteOftResult));
+
+    const quoteSendIx = await program.methods.quoteSend()
+      .accounts({
+        oftStore: oftStorePubkey,
+        credits: creditsPubkey,
+        peer: peerPubkey,
+      })
+      .instruction();
+    const quoteSendResult = await this.simulateIx(quoteSendIx);
+    console.log("quoteSendResult: %o", JSON.stringify(quoteSendResult));
+
+    // Parse return data
+    // let messagingFee = null;
+    // let legacyMeshFee = null;
+    // let estimatedSourceGas = null;
+
+    // if (simulation.value?.returnData?.data) {
+    //   const returnDataBase64 = simulation.value.returnData.data[0];
+    //   try {
+    //     // Decode base64 to buffer
+    //     const buffer = Buffer.from(returnDataBase64, "base64");
+
+    //     // Parse the data structure (assuming little-endian u64 values)
+    //     // Based on the example: "AAAAAAAAAACIupfmRwAAAAAAAABAQg8AAAAAABRBDwAAAAAA"
+    //     // This appears to be 32 bytes (4 u64 values)
+    //     if (buffer.length >= 32) {
+    //       // Read u64 values (8 bytes each, little-endian)
+    //       const readU64 = (offset: number) => {
+    //         const slice = buffer.slice(offset, offset + 8);
+    //         return slice.readBigUInt64LE(0);
+    //       };
+
+    //       // First 8 bytes might be a status/flag (skip)
+    //       // Next 8 bytes: Messaging Fee (in lamports, convert to SOL)
+    //       const messagingFeeLamports = readU64(8);
+    //       messagingFee = Number(messagingFeeLamports) / LAMPORTS_PER_SOL;
+
+    //       // Next 8 bytes: Legacy Mesh Fee (in token smallest unit, convert based on decimals)
+    //       const legacyMeshFeeRaw = readU64(16);
+    //       // Assuming 6 decimals for USDT
+    //       legacyMeshFee = Number(legacyMeshFeeRaw) / 1_000_000;
+
+    //       // Next 8 bytes: Estimated Source Gas
+    //       estimatedSourceGas = Number(readU64(24));
+    //     }
+    //   } catch (error) {
+    //     console.error("Failed to parse return data:", error);
+    //   }
+    // }
+
+    return {
+      // messagingFee,
+      // legacyMeshFee,
+      // estimatedSourceGas,
+      // simulation,
+    };
   }
 }

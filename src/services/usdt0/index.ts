@@ -1,5 +1,5 @@
 import { USDT0_CONFIG, USDT0_DVN_COUNT } from "./config";
-import { OFT_ABI } from "./contract";
+import { OFT_ABI, SOLANA_IDL } from "./contract";
 import axios from "axios";
 
 export const PayInLzToken = false;
@@ -166,6 +166,27 @@ class Usdt0Service {
     }
 
     if (fromToken.chainType === "sol") {
+      const result = await wallet.quoteOFT({
+        idl: SOLANA_IDL,
+        dstEid: destinationLayerzero.eid,
+        refundTo,
+        recipient,
+        amountWei,
+        slippageTolerance,
+        payInLzToken: PayInLzToken,
+        fromToken,
+        toToken,
+        prices,
+        originLayerzeroAddress,
+        destinationLayerzeroAddress,
+        excludeFees,
+        multiHopComposer: USDT0_CONFIG["Arbitrum"],
+        isMultiHopComposer,
+        isOriginLegacy,
+        isDestinationLegacy,
+      });
+
+      return result;
     }
   }
 

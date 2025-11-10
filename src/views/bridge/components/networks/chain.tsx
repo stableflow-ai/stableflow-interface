@@ -9,15 +9,20 @@ import Loading from "@/components/loading/icon";
 export default function Chain({ token, isTo }: any) {
   const walletStore = useWalletStore();
   const openWallet = () => {
+    // Determine which token is currently selected for this side
+    const currentToken = isTo ? walletStore.toToken : walletStore.fromToken;
+    const tokenSymbol = currentToken?.symbol || "USDT";
+    
     const params: Record<string, any> = {
       showWallet: true,
-      isTo
+      isTo,
+      selectedToken: tokenSymbol
     };
-    if (walletStore.selectedToken === "USDT") {
+    if (tokenSymbol === "USDT") {
       params.usdtExpand = true;
       params.usdcExpand = false;
     }
-    if (walletStore.selectedToken === "USDC") {
+    if (tokenSymbol === "USDC") {
       params.usdtExpand = false;
       params.usdcExpand = true;
     }
