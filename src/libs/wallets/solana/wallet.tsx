@@ -15,6 +15,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync
 } from "@solana/spl-token";
+import { chainsRpcUrls } from "@/config/chains";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -24,8 +25,12 @@ export default class SolanaWallet {
   constructor(options: { publicKey: PublicKey | null; signTransaction: any }) {
     // https://api.mainnet-beta.solana.com
     // https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170
+    // this.connection = new Connection(
+    //   "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
+    //   "confirmed"
+    // );
     this.connection = new Connection(
-      "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
+      chainsRpcUrls["Solana"],
       "confirmed"
     );
     this.publicKey = options.publicKey;
@@ -166,14 +171,14 @@ export default class SolanaWallet {
     }
   }
 
-  async getBalance(token: string, account: string) {
-    if (token === "SOL" || token === "sol" || token === "native") {
+  async getBalance(token: any, account: string) {
+    if (token.symbol === "SOL" || token.symbol === "sol" || token.symbol === "native") {
       return await this.getSOLBalance(account);
     }
-    return await this.getTokenBalance(token, account);
+    return await this.getTokenBalance(token.contractAddress, account);
   }
 
-  async balanceOf(token: string, account: string) {
+  async balanceOf(token: any, account: string) {
     return await this.getBalance(token, account);
   }
 
