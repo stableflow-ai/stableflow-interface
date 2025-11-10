@@ -100,17 +100,17 @@ export default class NearWallet {
     return "";
   }
 
-  async getBalance(token: string, _account: string) {
-    if (token === "near" || token === "NEAR" || token === "native") {
+  async getBalance(token: any, _account: string) {
+    if (token.symbol === "near" || token.symbol === "NEAR" || token.symbol === "native") {
       return this.getNearBalance(_account);
     }
-    const balance = await this.query(token, "ft_balance_of", {
+    const balance = await this.query(token.contractAddress, "ft_balance_of", {
       account_id: _account
     });
     return balance || "0";
   }
 
-  async balanceOf(token: string, account: string) {
+  async balanceOf(token: any, account: string) {
     return await this.getBalance(token, account);
   }
 

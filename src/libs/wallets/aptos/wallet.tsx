@@ -154,14 +154,14 @@ export default class AptosWallet {
     }
   }
 
-  async getBalance(token: string, account: string) {
-    if (token === "APT" || token === "apt" || token === "native") {
+  async getBalance(token: any, account: string) {
+    if (token.symbol === "APT" || token.symbol === "apt" || token.symbol === "native") {
       return await this.getAPTBalance(account);
     }
-    return await this.getTokenBalance(token, account);
+    return await this.getTokenBalance(token.contractAddress, account);
   }
 
-  async balanceOf(token: string, account: string) {
+  async balanceOf(token: any, account: string) {
     return await this.getBalance(token, account);
   }
 
