@@ -2,7 +2,7 @@ import dayjs from "@/libs/dayjs";
 import { useState, useEffect } from "react";
 
 const MaintenanceDuration = 60; // minutes
-const MaintenanceStart = "2025-11-10T08:00:00Z";
+const MaintenanceStart = "2025-11-10T14:00:00Z";
 
 export default function MaintenanceBanner() {
   const TEST_MODE = false;
@@ -62,7 +62,7 @@ export default function MaintenanceBanner() {
           </span>
 
           <a
-            href="https://status.near-intents.org/posts/details/PMQ4BWC"
+            href="https://status.near-intents.org/posts/dashboard"
             target="_blank"
             rel="noopener noreferrer"
             className="shrink-0 inline-flex items-center gap-[4px] bg-white text-[#FF6B35] px-[12px] py-[4px] rounded-[6px] font-[600] text-[12px] hover:bg-opacity-90 transition-all duration-300 whitespace-nowrap"
