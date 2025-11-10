@@ -4,7 +4,6 @@ import { usdt } from "@/config/tokens/usdt";
 
 interface WalletState {
   showWallet: boolean;
-  usdcExpand: boolean;
   usdtExpand: boolean;
   selectedToken: "USDT" | "USDC";
   fromToken: any;
@@ -17,7 +16,6 @@ const useWalletStore = create<WalletState>()(
   persist(
     (set) => ({
       showWallet: false,
-      usdcExpand: false,
       usdtExpand: false,
       selectedToken: "USDT",
       fromToken: usdt,
@@ -30,7 +28,6 @@ const useWalletStore = create<WalletState>()(
       version: 0.1,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        usdcExpand: state.usdcExpand,
         usdtExpand: state.usdtExpand,
         selectedToken: state.selectedToken
       })

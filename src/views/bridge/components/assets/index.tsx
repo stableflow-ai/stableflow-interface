@@ -6,11 +6,8 @@ import useWalletStore from "@/stores/use-wallet";
 
 export default function Assets() {
   const walletStore = useWalletStore();
-  
-  // Determine which token is currently selected based on isTo
-  const currentToken = walletStore.isTo 
-    ? walletStore.toToken?.symbol || null
-    : walletStore.fromToken?.symbol || null;
+
+  const currentToken = walletStore.selectedToken;
 
   return (
     <div className="w-full px-[10px] mt-[8px]">
@@ -22,43 +19,43 @@ export default function Assets() {
             const updateParams: any = {
               selectedToken: "USDT"
             };
-            if (walletStore.isTo) {
-              // Only update toToken if it doesn't have a specific chain selected
-              // If it has a chain, preserve it but update the symbol
-              if (walletStore.toToken?.chainType) {
-                // Keep the existing chain selection, just update the token info
-                updateParams.toToken = {
-                  ...walletStore.toToken,
-                  symbol: usdt.symbol,
-                  decimals: usdt.decimals,
-                  icon: usdt.icon
-                };
-              } else {
-                updateParams.toToken = usdt;
-              }
-              // Preserve fromToken when updating toToken
-              if (walletStore.fromToken) {
-                updateParams.fromToken = walletStore.fromToken;
-              }
-            } else {
-              // Only update fromToken if it doesn't have a specific chain selected
-              // If it has a chain, preserve it but update the token info
-              if (walletStore.fromToken?.chainType) {
-                // Keep the existing chain selection, just update the token info
-                updateParams.fromToken = {
-                  ...walletStore.fromToken,
-                  symbol: usdt.symbol,
-                  decimals: usdt.decimals,
-                  icon: usdt.icon
-                };
-              } else {
-                updateParams.fromToken = usdt;
-              }
-              // Preserve toToken when updating fromToken
-              if (walletStore.toToken) {
-                updateParams.toToken = walletStore.toToken;
-              }
-            }
+            // if (walletStore.isTo) {
+            //   // Only update toToken if it doesn't have a specific chain selected
+            //   // If it has a chain, preserve it but update the symbol
+            //   if (walletStore.toToken?.chainType) {
+            //     // Keep the existing chain selection, just update the token info
+            //     updateParams.toToken = {
+            //       ...walletStore.toToken,
+            //       symbol: usdt.symbol,
+            //       decimals: usdt.decimals,
+            //       icon: usdt.icon
+            //     };
+            //   } else {
+            //     updateParams.toToken = usdt;
+            //   }
+            //   // Preserve fromToken when updating toToken
+            //   if (walletStore.fromToken) {
+            //     updateParams.fromToken = walletStore.fromToken;
+            //   }
+            // } else {
+            //   // Only update fromToken if it doesn't have a specific chain selected
+            //   // If it has a chain, preserve it but update the token info
+            //   if (walletStore.fromToken?.chainType) {
+            //     // Keep the existing chain selection, just update the token info
+            //     updateParams.fromToken = {
+            //       ...walletStore.fromToken,
+            //       symbol: usdt.symbol,
+            //       decimals: usdt.decimals,
+            //       icon: usdt.icon
+            //     };
+            //   } else {
+            //     updateParams.fromToken = usdt;
+            //   }
+            //   // Preserve toToken when updating fromToken
+            //   if (walletStore.toToken) {
+            //     updateParams.toToken = walletStore.toToken;
+            //   }
+            // }
             walletStore.set(updateParams);
           }}
         />
@@ -70,43 +67,43 @@ export default function Assets() {
             const updateParams: any = {
               selectedToken: "USDC"
             };
-            if (walletStore.isTo) {
-              // Only update toToken if it doesn't have a specific chain selected
-              // If it has a chain, preserve it but update the symbol
-              if (walletStore.toToken?.chainType) {
-                // Keep the existing chain selection, just update the token info
-                updateParams.toToken = {
-                  ...walletStore.toToken,
-                  symbol: usdc.symbol,
-                  decimals: usdc.decimals,
-                  icon: usdc.icon
-                };
-              } else {
-                updateParams.toToken = usdc;
-              }
-              // Preserve fromToken when updating toToken
-              if (walletStore.fromToken) {
-                updateParams.fromToken = walletStore.fromToken;
-              }
-            } else {
-              // Only update fromToken if it doesn't have a specific chain selected
-              // If it has a chain, preserve it but update the token info
-              if (walletStore.fromToken?.chainType) {
-                // Keep the existing chain selection, just update the token info
-                updateParams.fromToken = {
-                  ...walletStore.fromToken,
-                  symbol: usdc.symbol,
-                  decimals: usdc.decimals,
-                  icon: usdc.icon
-                };
-              } else {
-                updateParams.fromToken = usdc;
-              }
-              // Preserve toToken when updating fromToken
-              if (walletStore.toToken) {
-                updateParams.toToken = walletStore.toToken;
-              }
-            }
+            // if (walletStore.isTo) {
+            //   // Only update toToken if it doesn't have a specific chain selected
+            //   // If it has a chain, preserve it but update the symbol
+            //   if (walletStore.toToken?.chainType) {
+            //     // Keep the existing chain selection, just update the token info
+            //     updateParams.toToken = {
+            //       ...walletStore.toToken,
+            //       symbol: usdc.symbol,
+            //       decimals: usdc.decimals,
+            //       icon: usdc.icon
+            //     };
+            //   } else {
+            //     updateParams.toToken = usdc;
+            //   }
+            //   // Preserve fromToken when updating toToken
+            //   if (walletStore.fromToken) {
+            //     updateParams.fromToken = walletStore.fromToken;
+            //   }
+            // } else {
+            //   // Only update fromToken if it doesn't have a specific chain selected
+            //   // If it has a chain, preserve it but update the token info
+            //   if (walletStore.fromToken?.chainType) {
+            //     // Keep the existing chain selection, just update the token info
+            //     updateParams.fromToken = {
+            //       ...walletStore.fromToken,
+            //       symbol: usdc.symbol,
+            //       decimals: usdc.decimals,
+            //       icon: usdc.icon
+            //     };
+            //   } else {
+            //     updateParams.fromToken = usdc;
+            //   }
+            //   // Preserve toToken when updating fromToken
+            //   if (walletStore.toToken) {
+            //     updateParams.toToken = walletStore.toToken;
+            //   }
+            // }
             walletStore.set(updateParams);
           }}
         />
