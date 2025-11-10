@@ -11,13 +11,16 @@ export default function Chain({ token, isTo }: any) {
   const openWallet = () => {
     // Determine which token is currently selected for this side
     const currentToken = isTo ? walletStore.toToken : walletStore.fromToken;
-    const tokenSymbol = currentToken?.symbol || (isTo ? walletStore.fromToken?.symbol : walletStore.toToken?.symbol) || "USDT";
+    const tokenSymbol = currentToken?.symbol || (isTo ? walletStore.fromToken?.symbol : walletStore.toToken?.symbol);
     
     const params: Record<string, any> = {
       showWallet: true,
       isTo,
-      selectedToken: tokenSymbol
     };
+
+    if (tokenSymbol) {
+      params.selectedToken = tokenSymbol;
+    }
 
     walletStore.set(params);
   };
@@ -49,6 +52,8 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
   const balancesStore = useBalancesStore();
   const { loading } = useTokenBalance(token, true);
 
+  console.log("%s loading: %o", token.chainName + "-" + token.symbol, loading);
+
   const key = `${token.chainType}Balances` as keyof BalancesState;
   const balance = useMemo(() => {
     const _balance = balancesStore[key][token.contractAddress];
@@ -73,7 +78,7 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
       </div>
 
       <div className="text-[14px] flex items-center gap-[8px] mt-[6px]">
-        <div className="flex items-center gap-[4px] leading-[100%]">
+        <div className="flex items-center gap-[4px] leading-[100%] whitespace-nowrap">
           <div className="text-[#444C59] text-[16px] font-[500]">{token.symbol}</div>
           <div className="text-[#0E3616] text-[12px] font-[400]">{token.chainName}</div>
         </div>
