@@ -34,6 +34,10 @@ export function validateAddress(
       return validateSolanaAddress(trimmedAddress);
     case "evm":
       return validateEthereumAddress(trimmedAddress);
+    case "aptos":
+      return validateAptosAddress(trimmedAddress);
+    case "tron":
+      return validateTronAddress(trimmedAddress);
     default:
       return {
         isValid: false,
@@ -136,6 +140,46 @@ function validateEthereumAddress(address: string): AddressValidationResult {
 }
 
 /**
+ * Validates an Aptos address
+ * Aptos addresses are 32 bytes (64 hex characters), optionally prefixed with 0x
+ */
+function validateAptosAddress(address: string): AddressValidationResult {
+  // Aptos address can be with or without 0x prefix
+  // With 0x: 0x + 64 hex characters = 66 characters total
+  // Without 0x: 64 hex characters
+  const aptosPatternWithPrefix = /^0x[a-fA-F0-9]{64}$/;
+  const aptosPatternWithoutPrefix = /^[a-fA-F0-9]{64}$/;
+
+  if (!aptosPatternWithPrefix.test(address) && !aptosPatternWithoutPrefix.test(address)) {
+    return {
+      isValid: false,
+      error: "Invalid Aptos address"
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Validates a Tron address
+ * Tron addresses are Base58 encoded, starting with T, and 34 characters long
+ */
+function validateTronAddress(address: string): AddressValidationResult {
+  // Tron address pattern: Base58 encoded, starts with T, 34 characters long
+  // Base58 alphabet: 123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz (no 0, O, I, l)
+  const tronPattern = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+
+  if (!tronPattern.test(address)) {
+    return {
+      isValid: false,
+      error: "Invalid Tron address"
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
  * Gets a placeholder text for the address input based on the target blockchain
  */
 export function getAddressPlaceholder(blockchain: string): string {
@@ -146,6 +190,10 @@ export function getAddressPlaceholder(blockchain: string): string {
       return "Enter Solana wallet address (e.g., 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM)";
     case "arb":
       return "Enter Ethereum/Arbitrum wallet address (e.g., 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6)";
+    case "aptos":
+      return "Enter Aptos wallet address (e.g., 0x93493b07d031c4f18ad1e874575761be7e47d4cea5c81d538600e8ec72d6ab1c)";
+    case "tron":
+      return "Enter Tron wallet address (e.g., TG4cfJGzvmpWxYyQKSosCWTacKCxEwSiKw)";
     default:
       return "Enter recipient wallet address";
   }
