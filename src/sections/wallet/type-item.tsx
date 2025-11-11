@@ -20,7 +20,11 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
     <div
       className="button mx-[10px] py-[6px] flex justify-between items-center"
       onClick={() => {
-        if (!wallet.account || type === "evm" || !token) {
+        if (type === "evm" || !token) {
+          return;
+        }
+
+        if (!walletStore.isTo && !wallet.account) {
           return;
         }
 

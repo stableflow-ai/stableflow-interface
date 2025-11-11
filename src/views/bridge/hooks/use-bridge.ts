@@ -42,9 +42,9 @@ export default function useBridge(props?: any) {
     const _fromWalletAddress =
       _fromWallet?.account || BridgeDefaultWallets[_fromChainType];
     const _toWalletAddress =
-      _toWallet?.account || BridgeDefaultWallets[_toChainType];
+      bridgeStore.recipientAddress || _toWallet?.account || BridgeDefaultWallets[_toChainType];
     return [_fromWalletAddress, _toWalletAddress];
-  }, [wallets, walletStore]);
+  }, [wallets, walletStore, bridgeStore.recipientAddress]);
 
   // Recipient address state
   const [addressValidation, setAddressValidation] =
@@ -420,7 +420,7 @@ export default function useBridge(props?: any) {
         return "Refund wallet not connected";
       }
       if (Object.values(BridgeDefaultWallets).includes(toWalletAddress || "")) {
-        return "Recipient wallet not connected";
+        return "Recipient address is empty";
       }
       if (!addressValidation.isValid) {
         return addressValidation.error;
