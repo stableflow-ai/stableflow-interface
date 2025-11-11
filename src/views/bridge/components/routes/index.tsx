@@ -34,9 +34,9 @@ const QuoteRoutes = (props: any) => {
   return (
     <div className="w-full px-[5px] mt-[15px] flex flex-col gap-[6px] overflow-hidden">
       {
-        displayedList?.length > 0 ? displayedList.map((data, index) => (
+        displayedList?.length > 0 ? displayedList.map((data) => (
           <QuoteRoute
-            key={index}
+            key={data.service}
             service={data.service}
             data={data}
             selected={quoteDataService === data.service}
