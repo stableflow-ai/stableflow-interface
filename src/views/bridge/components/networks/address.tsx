@@ -21,7 +21,7 @@ export default function Address({ token, isTo, addressValidation }: any) {
 const WithChain = ({ token, isTo, addressValidation }: any) => {
   const wallet = useWalletsStore()[token.chainType as WalletType];
 
-  if (!wallet.account)
+  if (!wallet.account && !isTo)
     return (
       <div
         className="text-[12px] text-[#0E3616] button"
