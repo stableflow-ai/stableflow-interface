@@ -16,6 +16,7 @@ import {
   getAssociatedTokenAddressSync
 } from "@solana/spl-token";
 import { chainsRpcUrls } from "@/config/chains";
+import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -294,6 +295,11 @@ export default class SolanaWallet {
       idl,
       originLayerzeroAddress,
       fromToken,
+      toToken,
+      dstEid,
+      recipient,
+      amountWei,
+      payInLzToken,
     } = params;
 
     console.log("params: %o", params);
@@ -331,27 +337,34 @@ export default class SolanaWallet {
     const mint = new PublicKey(fromToken.contractAddress);
     const programId = new PublicKey(originLayerzeroAddress);
 
-    // Handle IDL format - if it has extracted_idl, use that, otherwise use idl directly
-    const idlToUse = (idl as any)?.extracted_idl || idl;
-
     // Ensure IDL has address field set to programId
-    if (idlToUse && !idlToUse.address) {
-      idlToUse.address = programId.toBase58();
+    if (idl && !idl.address) {
+      idl.address = programId.toBase58();
     }
 
     // Create Program - Anchor will use the address from IDL or we can pass programId
-    const program = new Program(idlToUse, provider);
+    const program = new Program(idl, provider);
 
-    console.log("program.methods: %o", program.methods);
+    // 2. quote send
+    const sendParam: any = {
+      dst_eid: dstEid,
+      to: Buffer.from(addressToBytes32(recipient)),
+      amount_ld: amountWei,
+      min_amount_ld: "0",
+      extra_options: "0x0003",
+      compose_msg: "0x",
+      pay_in_lz_token: payInLzToken,
+    };
 
     // Build instruction
-    const quoteOftIx = await program.methods.quoteOft()
+    const quoteOftIx = await program.methods.quoteOft(sendParam)
       .accounts({
         oftStore: oftStorePubkey,
         credits: creditsPubkey,
         peer: peerPubkey,
       })
       .instruction();
+    console.log("quoteOftIx: %o", quoteOftIx);
     const quoteOftResult = await this.simulateIx(quoteOftIx);
     console.log("quoteOftIxResult: %o", JSON.stringify(quoteOftResult));
 
