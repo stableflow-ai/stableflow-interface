@@ -45,7 +45,7 @@ export default function useEvmBalances(auto = false) {
           if (usdtAddresses.includes(sl.address)) {
             usdtBalance = usdtBalance.plus(_balance);
           }
-          _balances[sl.address] = _balance.toString();
+          _balances[sl.address.toLowerCase()] = _balance.toString();
         });
       });
 
