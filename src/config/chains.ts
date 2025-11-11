@@ -41,9 +41,9 @@ export const chainsRpcUrls: Record<string, string> = {
   "Gnosis": "https://gnosis-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
   "Optimism": "https://opt-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
   "Berachain": "https://berachain-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "Tron": "https://tron-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Tron": "https://api.trongrid.io",
   "Aptos": "https://aptos-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "Solana": "https://solana-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Solana": "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
   "Near": "",
 };
 

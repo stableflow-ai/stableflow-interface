@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     nodePolyfills({
-      include: ["buffer", "process"],
+      include: ["buffer", "process", "stream", "util"],
       globals: {
         Buffer: true,
         global: true,
@@ -39,7 +39,7 @@ export default defineConfig({
         "process.browser": "true"
       }
     },
-    include: ["buffer", "process"],
+    include: ["buffer", "process", "stream", "util"],
     // Force pre-bundling of problematic dependencies
     force: true
   },

@@ -154,7 +154,6 @@ export const OFT_ABI = [
 ];
 
 export const SOLANA_IDL = {
-  "address": "Fuww9mfc8ntAwxPUzFia7VJFAdvLppyZwhPJoXySZXf7",
   "metadata": {
     "name": "oft",
     "version": "0.1.0",
