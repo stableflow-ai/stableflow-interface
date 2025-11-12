@@ -246,9 +246,10 @@ export default class RainbowWallet {
     };
 
     const oftContract = new ethers.Contract(originLayerzeroAddress, abi, this.signer);
+    const oftContractRead = new ethers.Contract(originLayerzeroAddress, abi, this.provider);
 
     // 1. check if need approve
-    const approvalRequired = await oftContract.approvalRequired();
+    const approvalRequired = await oftContractRead.approvalRequired();
     console.log("%cApprovalRequired: %o", "background:blue;color:white;", approvalRequired);
 
     // If approval is required, check actual allowance
@@ -300,11 +301,11 @@ export default class RainbowWallet {
       );
     }
 
-    const oftData = await oftContract.quoteOFT.staticCall(sendParam);
+    const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
 
-    const msgFee = await oftContract.quoteSend.staticCall(sendParam, payInLzToken);
+    const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     result.estimateSourceGas = msgFee[0];
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
@@ -410,9 +411,10 @@ export default class RainbowWallet {
     };
 
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
+    const proxyContractRead = new ethers.Contract(proxyAddress, abi, this.provider);
 
     // 1. get user nonce
-    let userNonce = await proxyContract.userNonces(refundTo);
+    let userNonce = await proxyContractRead.userNonces(refundTo);
 
     // 2. quote signature
     const signatureRes = await quoteSignature({
