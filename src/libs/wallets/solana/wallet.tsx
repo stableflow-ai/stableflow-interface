@@ -16,32 +16,55 @@ import {
 } from "@solana/spl-token";
 import { chainsRpcUrls } from "@/config/chains";
 import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
+import { ethers } from "ethers";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { publicKey, transactionBuilder, type AddressLookupTableInput, type Umi } from "@metaplex-foundation/umi";
-import { fromWeb3JsPublicKey, toWeb3JsPublicKey, toWeb3JsTransaction } from "@metaplex-foundation/umi-web3js-adapters";
-import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
 import {
-  fetchAddressLookupTable,
-} from "@metaplex-foundation/mpl-toolbox";
+  publicKey,
+  transactionBuilder,
+  type AddressLookupTableInput,
+  type Umi
+} from "@metaplex-foundation/umi";
+import {
+  fromWeb3JsPublicKey,
+  toWeb3JsPublicKey,
+  toWeb3JsTransaction
+} from "@metaplex-foundation/umi-web3js-adapters";
+import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
+import { fetchAddressLookupTable } from "@metaplex-foundation/mpl-toolbox";
+import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 
-const getAddressLookupTable = async (_lookupTableAddress: string | PublicKey, connection: Connection, umi: Umi) => {
-  const lookupTableAddress = publicKey(_lookupTableAddress)
-  const addressLookupTableInput: AddressLookupTableInput = await fetchAddressLookupTable(umi, lookupTableAddress)
+const getAddressLookupTable = async (
+  _lookupTableAddress: string | PublicKey,
+  connection: Connection,
+  umi: Umi
+) => {
+  const lookupTableAddress = publicKey(_lookupTableAddress);
+  const addressLookupTableInput: AddressLookupTableInput =
+    await fetchAddressLookupTable(umi, lookupTableAddress);
   if (!addressLookupTableInput) {
-      throw new Error(`No address lookup table found for ${lookupTableAddress}`)
+    throw new Error(`No address lookup table found for ${lookupTableAddress}`);
   }
-  const { value: lookupTableAccount } = await connection.getAddressLookupTable(toWeb3JsPublicKey(lookupTableAddress))
+  const { value: lookupTableAccount } = await connection.getAddressLookupTable(
+    toWeb3JsPublicKey(lookupTableAddress)
+  );
   if (!lookupTableAccount) {
-      throw new Error(`No address lookup table account found for ${lookupTableAddress}`)
+    throw new Error(
+      `No address lookup table account found for ${lookupTableAddress}`
+    );
   }
-  return { lookupTableAddress, addressLookupTableInput, lookupTableAccount }
-}
+  return { lookupTableAddress, addressLookupTableInput, lookupTableAccount };
+};
 
-const getDefaultAddressLookupTable = async (connection: Connection, umi: Umi) => {
+const getDefaultAddressLookupTable = async (
+  connection: Connection,
+  umi: Umi
+) => {
   // Lookup Table Address and Priority Fee Calculation
-  const lookupTableAddress = publicKey("AokBxha6VMLLgf97B5VYHEtqztamWmYERBmmFvjuTzJB");
+  const lookupTableAddress = publicKey(
+    "AokBxha6VMLLgf97B5VYHEtqztamWmYERBmmFvjuTzJB"
+  );
   return getAddressLookupTable(lookupTableAddress, connection, umi);
-}
+};
 
 export default class SolanaWallet {
   connection: Connection;
@@ -55,10 +78,7 @@ export default class SolanaWallet {
     //   "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
     //   "confirmed"
     // );
-    this.connection = new Connection(
-      chainsRpcUrls["Solana"],
-      "confirmed"
-    );
+    this.connection = new Connection(chainsRpcUrls["Solana"], "confirmed");
     this.publicKey = options.publicKey;
     this.signTransaction = options.signTransaction;
   }
@@ -198,7 +218,11 @@ export default class SolanaWallet {
   }
 
   async getBalance(token: any, account: string) {
-    if (token.symbol === "SOL" || token.symbol === "sol" || token.symbol === "native") {
+    if (
+      token.symbol === "SOL" ||
+      token.symbol === "sol" ||
+      token.symbol === "native"
+    ) {
       return await this.getSOLBalance(account);
     }
     return await this.getTokenBalance(token.contractAddress, account);
@@ -251,7 +275,7 @@ export default class SolanaWallet {
     return {
       gasLimit: estimatedFee,
       gasPrice: 1n,
-      estimateGas: estimatedFee,
+      estimateGas: estimatedFee
     };
   }
 
@@ -264,7 +288,7 @@ export default class SolanaWallet {
       try {
         const tx = await this.connection.getTransaction(signature, {
           commitment: "finalized",
-          maxSupportedTransactionVersion: 0,
+          maxSupportedTransactionVersion: 0
         });
 
         if (tx) {
@@ -274,7 +298,9 @@ export default class SolanaWallet {
             return false;
           }
         } else {
-          console.log(`polling attempt ${attempt}/${maxAttempts}: transaction not confirmed...`);
+          console.log(
+            `polling attempt ${attempt}/${maxAttempts}: transaction not confirmed...`
+          );
         }
       } catch (error: any) {
         console.log("checkTransactionStatus failed:", error.message);
@@ -304,11 +330,11 @@ export default class SolanaWallet {
     const versionedTx = new VersionedTransaction(message);
 
     const sim = await this.connection.simulateTransaction(versionedTx, {
-      commitment: "confirmed",
-      sigVerify: false,
+      // commitment: "confirmed",
+      sigVerify: false
     });
 
-    if (sim.value.err) console.error('Error:', sim.value.err);
+    if (sim.value.err) console.error("Error:", sim.value.err);
 
     console.log("sim: %o", sim);
 
@@ -318,12 +344,16 @@ export default class SolanaWallet {
   async quoteOFT(params: any) {
     const {
       originLayerzeroAddress,
+      destinationLayerzeroAddress,
       fromToken,
+      toToken,
       dstEid,
       recipient,
       amountWei,
       payInLzToken,
       slippageTolerance,
+      multiHopComposer,
+      isMultiHopComposer
     } = params;
 
     console.log("params: %o", params);
@@ -336,9 +366,9 @@ export default class SolanaWallet {
     const umi = createUmi(this.connection.rpcEndpoint);
 
     // Create signer from wallet
-    const signerPublicKey = fromWeb3JsPublicKey(this.publicKey);
+
     const signer = {
-      publicKey: signerPublicKey,
+      publicKey: this.publicKey!,
       signMessage: async () => {
         throw new Error("signMessage not implemented");
       },
@@ -349,7 +379,9 @@ export default class SolanaWallet {
       },
       signAllTransactions: async (transactions: any[]) => {
         const web3Txs = transactions.map(toWeb3JsTransaction);
-        const signed = await Promise.all(web3Txs.map(tx => this.signTransaction(tx)));
+        const signed = await Promise.all(
+          web3Txs.map((tx) => this.signTransaction(tx))
+        );
         return signed;
       }
     } as any;
@@ -357,76 +389,254 @@ export default class SolanaWallet {
     const mint = new PublicKey(fromToken.contractAddress);
     const programId = new PublicKey(originLayerzeroAddress);
 
+    console.log("programId: %o", originLayerzeroAddress);
+
+    const provider = new AnchorProvider(this.connection, signer, {
+      commitment: "confirmed"
+    });
+
+    const amountLd = BigInt(amountWei);
+    const slippage = slippageTolerance || 0.01; // Default 1% slippage
+    const minAmountLd =
+      amountLd - (amountLd * BigInt(Math.floor(slippage * 10000))) / 10000n;
+
+    const oftProgram = new Program(
+      { address: programId, ...params.idl },
+      provider
+    );
+
+    console.log("oftProgram: %o", oftProgram);
+
+    const anchorAccounts = oftProgram.account as any;
+    const oftStore = await anchorAccounts.oftStore.all();
+
+    const oftStoreAccount = oftStore.find(({ account }: { account: any }) => {
+      return account.tokenMint.equals(mint);
+    });
+    console.log("oftStoreAccount: %o", oftStoreAccount.publicKey.toString());
+
+    const creditsAccounts = (await anchorAccounts.credits.all()) ?? [];
+    const recipientBytes = Buffer.from(addressToBytes32(recipient));
+
+    let targetDstEid = dstEid;
+    let targetToBuffer = recipientBytes;
+    let peerAddressBytes = addressToBytes32(destinationLayerzeroAddress);
+
+    const peerAccounts = await anchorAccounts.peerConfig.all();
+    let expectedPeerAddress = Buffer.from(peerAddressBytes);
+
+    const legacyExecutorGasLimit = 250_000n;
+    const multiHopExecutorGasLimit = 250_000_000n;
+
+    let executorOptions = Options.newOptions().addExecutorLzReceiveOption(
+      legacyExecutorGasLimit,
+      0n
+    );
+    let extraOptionsBytes = Buffer.from(executorOptions.toBytes());
+    let composeMsgBuffer: Buffer | null = null;
+
+    if (isMultiHopComposer) {
+      console.log("Entering Multi-Hop branch");
+      if (
+        !multiHopComposer?.eid ||
+        !multiHopComposer?.oftMultiHopComposer ||
+        !toToken
+      ) {
+        throw new Error("Missing multiHopComposer configuration");
+      }
+
+      targetDstEid = multiHopComposer.eid;
+      targetToBuffer = Buffer.from(
+        addressToBytes32(multiHopComposer.oftMultiHopComposer)
+      );
+      peerAddressBytes = addressToBytes32(multiHopComposer.oftMultiHopComposer);
+      expectedPeerAddress = Buffer.from(peerAddressBytes);
+
+      executorOptions = Options.newOptions().addExecutorLzReceiveOption(
+        multiHopExecutorGasLimit,
+        0n
+      );
+      extraOptionsBytes = Buffer.from(executorOptions.toBytes());
+
+      const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+      const originalRecipientHex = recipientBytes.toString("hex");
+      const innerExecutorOptions = Options.newOptions()
+        .addExecutorLzReceiveOption(legacyExecutorGasLimit, 0n)
+        .toHex();
+
+      const encodedCompose = abiCoder.encode(
+        [
+          "tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"
+        ],
+        [
+          [
+            dstEid,
+            `0x${originalRecipientHex}`,
+            amountLd,
+            minAmountLd,
+            innerExecutorOptions,
+            "0x",
+            "0x"
+          ]
+        ]
+      );
+      composeMsgBuffer = Buffer.from(encodedCompose.slice(2), "hex");
+    }
+
+    const composeMsg =
+      composeMsgBuffer && composeMsgBuffer.length > 0
+        ? composeMsgBuffer
+        : Buffer.from("0x");
+    const composeMsgUint8 =
+      composeMsgBuffer && composeMsgBuffer.length > 0
+        ? new Uint8Array(composeMsgBuffer)
+        : undefined;
+
+    const creditsAccount = creditsAccounts.find(
+      ({ account }: { account: any }) =>
+        Array.isArray(account.entries) &&
+        account.entries.some((entry: any) => {
+          const eidValue =
+            typeof entry.eid === "number" ? entry.eid : Number(entry.eid);
+          return eidValue === targetDstEid;
+        })
+    );
+    if (!creditsAccount) {
+      throw new Error(`No credits account found for dstEid ${targetDstEid}`);
+    }
+    console.log("creditsAccount: %o", creditsAccount.publicKey.toString());
+
+    const peerAccount = peerAccounts.find(({ account }: { account: any }) => {
+      const onChainAddress = Buffer.from(account.peerAddress);
+      return onChainAddress.equals(expectedPeerAddress);
+    });
+    if (!peerAccount) {
+      throw new Error(
+        `No peer account found for address ${expectedPeerAddress.toString(
+          "hex"
+        )}`
+      );
+    }
+
+    const args = {
+      dstEid: targetDstEid,
+      to: targetToBuffer,
+      amountLd: new BN(amountLd.toString()),
+      minAmountLd: new BN(minAmountLd.toString()),
+      extraOptions: extraOptionsBytes,
+      composeMsg: composeMsg,
+      payInLzToken: Boolean(payInLzToken)
+    };
+
+    console.log("args: %o", args);
+
+    try {
+      const feeInstruction = await oftProgram.methods
+        .quoteSend(args)
+        .accounts({
+          oftStore: oftStoreAccount.publicKey,
+          credits: creditsAccount.publicKey,
+          peer: peerAccount.publicKey
+        })
+        .instruction();
+
+      const simulation = await this.simulateIx(feeInstruction);
+      console.log("quoteSend simulation: %o", simulation);
+
+      return {};
+    } catch (error: any) {
+      throw error;
+    }
+
+    return {};
+
+    // if (!msgFee?.nativeFee || !msgFee?.lzTokenFee) {
+    //   throw new Error("No fee");
+    // }
+
+    // const sendArgs = {
+    //   dstEid: new BN(dstEid.toString()),
+    //   to: addressToBytes32(recipient),
+    //   amountLd: new BN(amountLd.toString()),
+    //   minAmountLd: new BN(minAmountLd.toString()),
+    //   extraOptions: null,
+    //   compose_msg: null,
+    //   nativeFee: msgFee.nativeFee,
+    //   lzTokenFee: msgFee.lzTokenFee
+    // };
+
+    // const sendAccounts = {
+    //   signer: this.publicKey!,
+    //   oftStore: oftStoreAccount.publicKey,
+    //   credits: creditsAccount.publicKey,
+    //   peer: peerAccount.publicKey,
+    //   tokenSource: getAssociatedTokenAddressSync(mint, this.publicKey!),
+    //   tokenEscrow: oftStoreAccount.account.tokenEscrow,
+    //   tokenMint: mint,
+    //   tokenProgram: TOKEN_PROGRAM_ID,
+    //   eventAuthority: oftStoreAccount.account.eventAuthority,
+    //   program: programId
+    // };
+
+    // const sendInstruction = await oftProgram.methods
+    //   .send(sendArgs)
+    //   .accounts(sendAccounts)
+    //   .instruction();
+
+    // const sendTx = new Transaction().add(sendInstruction);
+    // sendTx.feePayer = this.publicKey!;
+    // const { blockhash: sendBlockhash } =
+    //   await this.connection.getLatestBlockhash();
+    // sendTx.recentBlockhash = sendBlockhash;
+    // const sendSimulation = await this.connection.simulateTransaction(sendTx);
+    // // @ts-ignore
+    // const sendMsgFee = sendSimulation.value.fee;
+    // console.log("sendMsgFee: %o", sendMsgFee);
+    // return {};
+
     // Get token escrow (OFT store escrow)
     // Priority: 1. params.tokenEscrow 2. Fetch from OFT store dynamically
     // Fetch OFT store account to get the actual tokenEscrow
-    const oftStoreInfo = await oft.accounts.fetchOFTStore(umi, publicKey("5FEMXXjueR7y6Z1uVDxTm4ZZXFp6XnxR1Xu1WmvwjxBF"));
-    console.log("Fetch OFT store account to get the actual tokenEscrow: %o", oftStoreInfo);
-    const mintPk = new PublicKey(oftStoreInfo.tokenMint)
-    const escrowPk = new PublicKey(oftStoreInfo.tokenEscrow)
-    console.log("Fetched tokenEscrow from OFT store mintPk:", mintPk.toBase58());
-    console.log("Fetched tokenEscrow from OFT store escrowPk:", escrowPk.toBase58());
+    // const oftStoreInfo = await oft.accounts.fetchOFTStore(
+    //   umi,
+    //   oftStoreAccount.publicKey
+    // );
+    // console.log(
+    //   "Fetch OFT store account to get the actual tokenEscrow: %o",
+    //   oftStoreInfo
+    // );
+    const mintPk = new PublicKey(oftStoreAccount.account.tokenMint);
+    const escrowPk = new PublicKey(oftStoreAccount.account.tokenEscrow);
+    console.log(
+      "Fetched tokenEscrow from OFT store mintPk:",
+      mintPk.toBase58()
+    );
+    console.log(
+      "Fetched tokenEscrow from OFT store escrowPk:",
+      escrowPk.toBase58()
+    );
 
     // Get token source (user's token account)
-    const tokenSource = getAssociatedTokenAddressSync(mint, this.publicKey);
-
-    // Convert recipient address to bytes32
-    // recipient could be EVM address (0x...), Tron address (T...), or Solana address
-    // const recipientBytes32Hex: any = addressToBytes32(params.toToken.chainType, recipient);
-    // console.log("recipientBytes32Hex:", recipientBytes32Hex);
-
-    // if (recipient.startsWith('0x')) {
-    //   // EVM address - pad to 32 bytes (left-pad with zeros)
-    //   recipientBytes32Hex = zeroPadValue(recipient, 32);
-    // } else if (recipient.startsWith('T') && recipient.length >= 34) {
-    //   // Tron address - convert using tronAddressToBytes32
-    //   recipientBytes32Hex = tronAddressToBytes32(recipient);
-    // } else {
-    //   // Assume Solana address - convert using solanaAddressToBytes32
-    //   try {
-    //     recipientBytes32Hex = solanaAddressToBytes32(recipient);
-    //   } catch (error) {
-    //     // If it fails, try to use addressToBytes32 with toToken chainType if available
-    //     if (params.toToken?.chainType) {
-    //       const converted = addressToBytes32(params.toToken.chainType, recipient);
-    //       if (converted) {
-    //         recipientBytes32Hex = converted;
-    //       } else {
-    //         throw new Error(`Invalid recipient address format: ${recipient}. Expected EVM (0x...), Tron (T...), or Solana address.`);
-    //       }
-    //     } else {
-    //       throw new Error(`Invalid recipient address format: ${recipient}. Expected EVM (0x...), Tron (T...), or Solana address.`);
-    //     }
-    //   }
-    // }
-
-    // const recipientBytes32 = Buffer.from(
-    //   recipientBytes32Hex.slice(2),
-    //   'hex'
-    // );
-    // console.log("recipientBytes32:", recipientBytes32);
-
-    // Calculate minAmountLd based on slippage tolerance
-    const amountLd = BigInt(amountWei);
-    const slippage = slippageTolerance || 0.01; // Default 1% slippage
-    const minAmountLd = amountLd - (amountLd * BigInt(Math.floor(slippage * 10000)) / 10000n);
-
-    // Create Options if needed
-    const options = Options.newOptions();
-    const optionsBytes = options.toBytes();
+    const tokenSource = getAssociatedTokenAddressSync(mint, this.publicKey!);
 
     const sendParam = {
-      dstEid,
-      to: Buffer.from(addressToBytes32(recipient)),
+      dstEid: targetDstEid,
+      to: targetToBuffer,
       amountLd: amountLd,
       minAmountLd: minAmountLd,
-      options: optionsBytes,
-      composeMsg: undefined,
-    }
+      options: undefined,
+      composeMsg: undefined
+    };
 
-    const lookupTableAddresses = [(await getDefaultAddressLookupTable(this.connection, umi)).lookupTableAddress];
-    console.log("lookupTableAddresses: %o", lookupTableAddresses);
-    console.log("this.publicKey: %o", this.publicKey.toBase58());
+    const lookupTableAddresses = [
+      (await getDefaultAddressLookupTable(this.connection, umi))
+        .lookupTableAddress
+    ];
+    console.log("lookupTableAddresses: %o", sendParam);
+
+    console.log("oft", oft);
+
+    console.log("oft program id", oft.programs.OFT_PROGRAM_ID);
 
     // Get MessagingFee using quote
     // Note: peerAddr will be automatically fetched from peer config by the SDK
@@ -434,22 +644,27 @@ export default class SolanaWallet {
     const { nativeFee, lzTokenFee } = await oft.quote(
       umi.rpc,
       {
-        payer: fromWeb3JsPublicKey(this.publicKey),
+        payer: fromWeb3JsPublicKey(this.publicKey!),
         tokenMint: fromWeb3JsPublicKey(mintPk),
-        tokenEscrow: fromWeb3JsPublicKey(escrowPk),
+        tokenEscrow: fromWeb3JsPublicKey(escrowPk)
       },
       {
         ...sendParam,
-        payInLzToken,
+        payInLzToken
       },
       {
-        oft: publicKey(programId),
+        oft: publicKey(programId)
       },
       [],
       lookupTableAddresses
     );
 
-    console.log("MessagingFee - nativeFee:", nativeFee.toString(), "lzTokenFee:", lzTokenFee.toString());
+    console.log(
+      "MessagingFee - nativeFee:",
+      nativeFee.toString(),
+      "lzTokenFee:",
+      lzTokenFee.toString()
+    );
 
     // Create send transaction
     // Note: peerAddr will be automatically fetched from peer config by the SDK
@@ -459,11 +674,11 @@ export default class SolanaWallet {
         payer: signer as any,
         tokenMint: fromWeb3JsPublicKey(mintPk),
         tokenEscrow: fromWeb3JsPublicKey(escrowPk),
-        tokenSource: fromWeb3JsPublicKey(tokenSource),
+        tokenSource: fromWeb3JsPublicKey(tokenSource)
       },
       {
         nativeFee,
-        ...sendParam,
+        ...sendParam
       },
       {
         oft: fromWeb3JsPublicKey(programId),
@@ -479,7 +694,7 @@ export default class SolanaWallet {
       transaction,
       nativeFee: nativeFee.toString(),
       lzTokenFee: lzTokenFee.toString(),
-      wrappedInstruction,
+      wrappedInstruction
     };
   }
 
@@ -505,7 +720,7 @@ export default class SolanaWallet {
       signedTransaction.serialize(),
       {
         skipPreflight: false,
-        maxRetries: 3,
+        maxRetries: 3
       }
     );
 
@@ -518,7 +733,9 @@ export default class SolanaWallet {
     );
 
     if (confirmation.value.err) {
-      throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      throw new Error(
+        `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
+      );
     }
 
     return signature;
