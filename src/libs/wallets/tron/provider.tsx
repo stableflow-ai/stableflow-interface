@@ -122,7 +122,7 @@ const Content = () => {
       setWallets({
         tron: {
           account: null,
-          wallet: null,
+          wallet: walletRef.current,
           ...params,
           walletIcon: null
         }
