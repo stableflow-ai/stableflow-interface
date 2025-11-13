@@ -64,9 +64,12 @@ const Content = () => {
   }, []);
 
   useEffect(() => {
+    walletRef.current = new TronWallet();
+
     if (!adapter) {
       setWallets({
         tron: {
+          wallet: walletRef.current,
           connect: () => {
             onOpen();
           }
@@ -74,8 +77,6 @@ const Content = () => {
       });
       return;
     }
-
-    walletRef.current = new TronWallet();
 
     configStore.set({
       tronWalletAdapter: adapter.name

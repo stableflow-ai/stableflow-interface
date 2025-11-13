@@ -4,6 +4,9 @@ import { getPrice } from "@/utils/format/price";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { ethers } from "ethers";
 import Big from "big.js";
+import { TronWeb } from "tronweb";
+import { chainsRpcUrls } from "@/config/chains";
+import { BridgeDefaultWallets } from "@/config";
 
 export default class TronWallet {
   private tronWeb: any;
@@ -31,7 +34,14 @@ export default class TronWallet {
       checkTronWeb();
 
       setTimeout(() => {
-        reject(new Error("TronWeb initialization timeout"));
+        this.tronWeb = new TronWeb({
+          fullHost: chainsRpcUrls["Tron"],
+          headers: {},
+          privateKey: "",
+        });
+        this.tronWeb.setAddress(BridgeDefaultWallets["tron"]);
+        resolve(this.tronWeb);
+        console.log(new Error("TronWeb initialization timeout"));
       }, 10000);
     });
   }

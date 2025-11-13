@@ -136,7 +136,7 @@ class OneClickService {
       }
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
-      if (proxyAddress) {
+      if (proxyAddress && params.wallet.account) {
         const proxyResult = await params.wallet.quoteOneClickProxy({
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
