@@ -24,9 +24,9 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
           return;
         }
 
-        if (!walletStore.isTo && !wallet.account) {
-          return;
-        }
+        // if (!walletStore.isTo && !wallet.account) {
+        //   return;
+        // }
 
         if (
           (walletStore.isTo &&
