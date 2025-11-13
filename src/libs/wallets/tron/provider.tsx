@@ -69,6 +69,7 @@ const Content = () => {
     if (!adapter) {
       setWallets({
         tron: {
+          wallet: walletRef.current,
           connect: () => {
             onOpen();
           }
