@@ -21,6 +21,7 @@ export default function Layout() {
           muted
           loop
           playsInline
+          preload="none"
         >
           <source src="/bg.mp4" type="video/mp4" />
         </video>
