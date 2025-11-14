@@ -4,7 +4,7 @@ import {
   Transaction,
   VersionedTransaction,
   SystemProgram,
-  LAMPORTS_PER_SOL
+  LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
@@ -32,6 +32,13 @@ import {
 import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
 import { fetchAddressLookupTable } from "@metaplex-foundation/mpl-toolbox";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
+import Big from "big.js";
+import { numberRemoveEndZero } from "@/utils/format/number";
+import { getPrice } from "@/utils/format/price";
+import stableflowProxyIdl from "@/services/oneclick/stableflow-proxy.json";
+import cctpProxyIdl from "@/services/cctp/stableflow.json";
+import { quoteSignature } from "../utils/cctp";
+import { ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const getAddressLookupTable = async (
   _lookupTableAddress: string | PublicKey,
@@ -70,8 +77,9 @@ export default class SolanaWallet {
   connection: Connection;
   private publicKey: PublicKey | null;
   private signTransaction: any;
+  private signer: any;
 
-  constructor(options: { publicKey: PublicKey | null; signTransaction: any }) {
+  constructor(options: { publicKey: PublicKey | null; signer: any }) {
     // https://api.mainnet-beta.solana.com
     // https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170
     // this.connection = new Connection(
@@ -80,7 +88,8 @@ export default class SolanaWallet {
     // );
     this.connection = new Connection(chainsRpcUrls["Solana"], "confirmed");
     this.publicKey = options.publicKey;
-    this.signTransaction = options.signTransaction;
+    this.signTransaction = options.signer.signTransaction;
+    this.signer = options.signer;
   }
 
   // Transfer SOL
@@ -358,40 +367,15 @@ export default class SolanaWallet {
 
     console.log("params: %o", params);
 
-    if (!this.publicKey) {
-      throw new Error("Wallet not connected");
-    }
-
     // Create UMI instance
     const umi = createUmi(this.connection.rpcEndpoint);
-
-    // Create signer from wallet
-
-    const signer = {
-      publicKey: this.publicKey!,
-      signMessage: async () => {
-        throw new Error("signMessage not implemented");
-      },
-      signTransaction: async (transaction: any) => {
-        const web3Tx = toWeb3JsTransaction(transaction);
-        const signed = await this.signTransaction(web3Tx);
-        return signed;
-      },
-      signAllTransactions: async (transactions: any[]) => {
-        const web3Txs = transactions.map(toWeb3JsTransaction);
-        const signed = await Promise.all(
-          web3Txs.map((tx) => this.signTransaction(tx))
-        );
-        return signed;
-      }
-    } as any;
 
     const mint = new PublicKey(fromToken.contractAddress);
     const programId = new PublicKey(originLayerzeroAddress);
 
     console.log("programId: %o", originLayerzeroAddress);
 
-    const provider = new AnchorProvider(this.connection, signer, {
+    const provider = new AnchorProvider(this.connection, this.signer, {
       commitment: "confirmed"
     });
 
@@ -400,10 +384,7 @@ export default class SolanaWallet {
     const minAmountLd =
       amountLd - (amountLd * BigInt(Math.floor(slippage * 10000))) / 10000n;
 
-    const oftProgram = new Program(
-      { address: programId, ...params.idl },
-      provider
-    );
+    const oftProgram = new Program(params.idl, programId, provider);
 
     console.log("oftProgram: %o", oftProgram);
 
@@ -671,7 +652,7 @@ export default class SolanaWallet {
     const wrappedInstruction = await oft.send(
       umi.rpc,
       {
-        payer: signer as any,
+        payer: this.signer as any,
         tokenMint: fromWeb3JsPublicKey(mintPk),
         tokenEscrow: fromWeb3JsPublicKey(escrowPk),
         tokenSource: fromWeb3JsPublicKey(tokenSource)
@@ -709,8 +690,18 @@ export default class SolanaWallet {
       throw new Error("Transaction is required");
     }
 
-    // Convert UMI transaction to Web3.js transaction
-    const web3Tx = toWeb3JsTransaction(transaction);
+    // Check if transaction is already a Web3.js Transaction
+    let web3Tx: Transaction | VersionedTransaction;
+    if (transaction instanceof Transaction) {
+      // Already a Web3.js Transaction
+      web3Tx = transaction;
+    } else if (transaction instanceof VersionedTransaction) {
+      // Already a VersionedTransaction
+      web3Tx = transaction;
+    } else {
+      // Convert UMI transaction to Web3.js transaction
+      web3Tx = toWeb3JsTransaction(transaction);
+    }
 
     // Sign the transaction
     const signedTransaction = await this.signTransaction(web3Tx);
@@ -739,5 +730,317 @@ export default class SolanaWallet {
     }
 
     return signature;
+  }
+
+  async quoteOneClickProxy(params: any) {
+    const {
+      proxyAddress,
+      fromToken,
+      amountWei,
+      prices,
+      depositAddress,
+    } = params;
+
+    try {
+      const result: any = { fees: {} };
+
+      const PROGRAM_ID = new PublicKey(proxyAddress);
+      const STATE_PDA = new PublicKey("9E8az3Y9sdXvM2f3CCH6c9N3iFyNfDryQCZhqDxRYGUw");
+      const MINT = new PublicKey(fromToken.contractAddress);
+      const AMOUNT = new BN(amountWei);
+      const RECIPIENT = new PublicKey(depositAddress);
+      const sender = this.publicKey!;
+
+      // Create AnchorProvider
+      const provider = new AnchorProvider(this.connection, this.signer, {
+        commitment: "confirmed"
+      });
+
+      // Create Program instance
+      const program = new Program<any>(stableflowProxyIdl, PROGRAM_ID, provider
+      );
+
+      // Get user's token account (ATA)
+      const userTokenAccount = getAssociatedTokenAddressSync(MINT, sender);
+
+      // Get recipient's token account (ATA)
+      const toTokenAccount = getAssociatedTokenAddressSync(MINT, RECIPIENT);
+
+      // Check if recipient's token account exists, create if not
+      const transaction = new Transaction();
+      try {
+        await getAccount(this.connection, toTokenAccount);
+      } catch (error) {
+        // If token account doesn't exist, create it
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            sender, // payer
+            toTokenAccount, // ata
+            RECIPIENT, // owner
+            MINT // mint
+          )
+        );
+      }
+
+      // Build transfer instruction
+      const transferInstruction = await program.methods
+        .transfer(AMOUNT)
+        .accounts({
+          stableFlowState: STATE_PDA,
+          tokenMint: MINT,
+          userTokenAccount: userTokenAccount,
+          toTokenAccount: toTokenAccount,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          user: sender,
+          toUser: RECIPIENT,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
+      // Add transfer instruction to transaction
+      transaction.add(transferInstruction);
+
+      // Set transaction blockhash and feePayer before simulation
+      const { blockhash } = await this.connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = sender;
+
+      // Simulate entire transaction (including account creation if needed) to estimate fees
+      const message = transaction.compileMessage();
+      const versionedTx = new VersionedTransaction(message);
+      const simulation = await this.connection.simulateTransaction(versionedTx, {
+        sigVerify: false
+      });
+
+      result.sendParam = {
+        transaction,
+      };
+
+      // @ts-ignore Calculate estimated fee
+      const estimatedFee = simulation.value.fee || 5000n; // Base fee per signature
+
+      // Convert fee to USD
+      const estimateGasUsd = Big(estimatedFee.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+
+      const usd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+      const wei = estimatedFee;
+
+      // Assign fee values to result
+      result.fees.sourceGasFeeUsd = usd;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+
+      return result;
+    } catch (error: any) {
+      console.log("error: %o", error);
+      return { errMsg: error.message };
+    }
+  }
+
+  async quoteCCTP(params: any) {
+    const {
+      proxyAddress,
+      refundTo,
+      recipient,
+      amountWei,
+      fromToken,
+      prices,
+      excludeFees,
+      destinationDomain,
+      sourceDomain,
+    } = params;
+
+    try {
+      const result: any = {
+        needApprove: false,
+        approveSpender: proxyAddress,
+        sendParam: void 0,
+        quoteParam: {
+          sourceDomain,
+          destinationDomain,
+          proxyAddress,
+          ...params,
+        },
+        fees: {},
+        totalFeesUsd: void 0,
+        estimateSourceGas: void 0,
+        estimateSourceGasUsd: void 0,
+        estimateTime: 0,
+        outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
+      };
+
+      const PROGRAM_ID = new PublicKey(proxyAddress);
+      const STATE_PDA = new PublicKey("coNkR1719kohnaxQrVPwvaGdVrqPTps6NFUZic3hGJb");
+      const PROTOCOL_FEE_ACCOUNT = new PublicKey("DGNLzBUrn18LC3CuStGAQrRLuzfKtw3vDoHLjEp7UtPA");
+      const MINT = new PublicKey(fromToken.contractAddress);
+      const sender = this.publicKey!;
+      const userPubkey = new PublicKey(refundTo || sender.toString());
+
+      // Create AnchorProvider
+      const provider = new AnchorProvider(this.connection, this.signer, {
+        commitment: "confirmed"
+      });
+
+      // Create Program instance
+      const program = new Program<any>(cctpProxyIdl, PROGRAM_ID, provider);
+
+      // Derive UserState PDA
+      const [userStatePda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("user_state"), userPubkey.toBuffer()],
+        PROGRAM_ID
+      );
+
+      // Get user nonce from UserState account
+      let userNonce = 0;
+      try {
+        const accountInfo = await this.connection.getAccountInfo(userStatePda);
+        if (accountInfo && accountInfo.data) {
+          // UserState structure: user (32 bytes) + nonce (8 bytes) + bump (1 byte)
+          // Skip user (32 bytes) and read nonce (8 bytes, little-endian)
+          const nonceBuffer = accountInfo.data.slice(32, 40);
+          userNonce = Number(new BN(nonceBuffer, "le").toString());
+        }
+      } catch (error) {
+        // If UserState doesn't exist, nonce is 0
+        console.log("UserState not found, using nonce 0");
+      }
+
+      // Quote signature
+      const signatureRes = await quoteSignature({
+        address: userPubkey.toString(),
+        amount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
+        destination_domain_id: destinationDomain,
+        receipt_address: recipient,
+        source_domain_id: sourceDomain,
+        user_nonce: userNonce,
+      });
+
+      const {
+        bridge_fee,
+        finality_threshold,
+        max_fee,
+        mint_fee,
+        receipt_amount,
+        signature,
+      } = signatureRes;
+
+      result.fees.estimateMintGasUsd = numberRemoveEndZero(
+        Big(mint_fee || 0)
+          .div(10 ** fromToken.decimals)
+          .times(getPrice(prices, fromToken.nativeToken.symbol))
+          .toFixed(20)
+      );
+      result.fees.bridgeFeeUsd = numberRemoveEndZero(
+        Big(bridge_fee || 0)
+          .div(10 ** fromToken.decimals)
+          .times(getPrice(prices, fromToken.nativeToken.symbol))
+          .toFixed(20)
+      );
+      const chargedAmount = BigInt(amountWei) - BigInt(mint_fee);
+      result.outputAmount = numberRemoveEndZero(
+        Big(receipt_amount || 0)
+          .div(10 ** fromToken.decimals)
+          .toFixed(fromToken.decimals, 0)
+      );
+
+      // Convert recipient address to bytes32 (32 bytes)
+      const recipientBytes32 = Buffer.alloc(32);
+      if (recipient.startsWith("0x")) {
+        Buffer.from(recipient.slice(2), "hex").copy(recipientBytes32);
+      } else {
+        // Assume it's a Solana address, convert to bytes
+        const recipientPubkey = new PublicKey(recipient);
+        recipientPubkey.toBuffer().copy(recipientBytes32, 0);
+      }
+
+      // Convert destinationCaller to bytes32 (zero-padded)
+      const destinationCallerBytes32 = Buffer.alloc(32, 0);
+
+      // Get user's token account (ATA)
+      const userTokenAccount = getAssociatedTokenAddressSync(MINT, sender);
+
+      // Build depositWithFee instruction
+      const depositInstruction = await program.methods
+        .depositWithFee(
+          new BN(amountWei.toString()),
+          new BN(chargedAmount.toString()),
+          destinationDomain,
+          Array.from(recipientBytes32),
+          MINT,
+          Array.from(destinationCallerBytes32),
+          new BN(max_fee.toString()),
+          finality_threshold
+        )
+        .accounts({
+          stableFlowState: STATE_PDA,
+          userState: userStatePda,
+          tokenMint: MINT,
+          userTokenAccount: userTokenAccount,
+          protocolFeeAccount: PROTOCOL_FEE_ACCOUNT,
+          eventRentPayer: sender,
+          senderAuthorityPda: sender, // This might need to be a PDA, check IDL
+          messageTransmitter: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"), // CCTP Token Messenger
+          tokenMessenger: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
+          remoteTokenMessenger: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
+          tokenMinter: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
+          localToken: MINT,
+          messageSentEventData: sender, // This should be a new account, might need to derive
+          cctpMessageTransmitterProgram: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
+          cctpTokenMessengerMinterProgram: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          user: sender,
+          operator: sender, // This might need to be from state
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
+      // Build transaction
+      const transaction = new Transaction();
+      transaction.add(depositInstruction);
+      const { blockhash } = await this.connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = sender;
+
+      // Simulate entire transaction (including account creation if needed) to estimate fees
+      const message = transaction.compileMessage();
+      const versionedTx = new VersionedTransaction(message);
+      const simulation = await this.connection.simulateTransaction(versionedTx, {
+        sigVerify: false
+      });
+      console.log("depositWithFee simulation: %o", simulation.value);
+      console.log("depositWithFee simulation: %o", JSON.stringify(simulation.value));
+
+      // Estimate gas cost (Solana fees are typically fixed, but we can use simulation)
+      // @ts-ignore Solana base fee is 5000 lamports per signature
+      const estimatedFee = simulation.value.fee || 5000n; // Base fee per signature
+      const estimateGasUsd = Big(estimatedFee.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+      result.fees.estimateDepositGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+      result.estimateSourceGas = estimatedFee;
+      result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+
+      result.sendParam = {
+        transaction: transaction,
+        signature: signature, // Store signature for later use if needed
+      };
+
+      // Calculate total fees
+      for (const feeKey in result.fees) {
+        if (excludeFees && excludeFees.includes(feeKey)) {
+          continue;
+        }
+        result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+      }
+      result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
+
+      return result;
+    } catch (error: any) {
+      console.log("quoteCCTP failed: %o", error);
+      return { errMsg: error.message };
+    }
   }
 }

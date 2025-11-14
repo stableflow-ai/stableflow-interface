@@ -1,8 +1,4 @@
-import { zeroPadValue } from "ethers";
-import { CCTP_TOKEN_PROXY, CCTP_TOKEN_PROXY_ABI, CCTP_TOKEN_PROXY_GAS_USED } from "./contract";
-import Big from "big.js";
-import { numberRemoveEndZero } from "@/utils/format/number";
-import { getPrice } from "@/utils/format/price";
+import { CCTP_TOKEN_PROXY, CCTP_TOKEN_PROXY_ABI } from "./contract";
 import axios, { type AxiosInstance } from "axios";
 import { CCTP_DOMAINS, IRIS_API_URL } from "./config";
 

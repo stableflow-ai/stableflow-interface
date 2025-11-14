@@ -16,7 +16,7 @@ export const CCTP_TOKEN_PROXY: Record<string, string> = {
   ["Polygon"]: "",
   ["Optimism"]: "0x54Cf68aB8f68813F2a2dF20Af72D19c44485a0b2",
   ["Avalanche"]: "0xB6E3a1165aC3E0c370e316C27E959482460dBeDD",
-  ["Solana"]: "",
+  ["Solana"]: "8whUZNSbjJXC2UDRpo3PXo5MHzhptwVTTwpSYuTgQJNY",
 };
 
 export const CCTP_TOKEN_MESSENGER_ABI = [
