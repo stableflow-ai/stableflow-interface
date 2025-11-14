@@ -520,7 +520,7 @@ export default class RainbowWallet {
       abi,
       fromToken,
       refundTo,
-      recipient,
+      depositAddress,
       amountWei,
       prices,
     } = params;
@@ -545,7 +545,7 @@ export default class RainbowWallet {
       // tokenAddress
       fromToken.contractAddress,
       // recipient
-      recipient,
+      depositAddress,
       // amount
       amountWei,
     ];

@@ -7,6 +7,7 @@ export const ONECLICK_PROXY: Record<string, string> = {
   ["Ethereum"]: "0xc8dB1175132C64e311D01258dD05D4e2e75fD7b8",
   ["Bera"]: "0x1766A6B8453c7dbcA8c70d17980B6EA87ACA4F60",
   ["Tron"]: "TMqM35eVd3D9d7JbShRrMzMPyWLFweKYvW",
+  ["Solana"]: "HWk6MsFEGzXxpe9B4mfEHpvVoCwNeVVMFxb5Mi7qNTM",
 };
 
 export const ONECLICK_PROXY_ABI = [

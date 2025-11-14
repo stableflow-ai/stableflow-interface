@@ -136,7 +136,7 @@ class OneClickService {
       }
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
-      if (proxyAddress && params.wallet.account) {
+      if (proxyAddress) {
         const proxyResult = await params.wallet.quoteOneClickProxy({
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
@@ -145,6 +145,7 @@ class OneClickService {
           recipient: params.recipient,
           amountWei: params.amount,
           prices: params.prices,
+          depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         });
 
         for (const proxyKey in proxyResult) {

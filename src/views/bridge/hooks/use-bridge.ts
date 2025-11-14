@@ -379,7 +379,7 @@ export default function useBridge(props?: any) {
           throw new Error("Failed to get quote");
         }
 
-        if (_quote?.data?.sendParam) {
+        if (_quote?.data?.sendParam?.param) {
           // proxyTransfer.recipient = depositAddress
           _quote.data.sendParam.param[1] = _quote.data.quote.depositAddress;
         }
