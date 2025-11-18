@@ -12,7 +12,7 @@ export default function Chain({ token, isTo }: any) {
     // Determine which token is currently selected for this side
     const currentToken = isTo ? walletStore.toToken : walletStore.fromToken;
     const tokenSymbol = currentToken?.symbol || (isTo ? walletStore.fromToken?.symbol : walletStore.toToken?.symbol);
-    
+
     const params: Record<string, any> = {
       showWallet: true,
       isTo,
@@ -54,7 +54,7 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
 
   const key = `${token.chainType}Balances` as keyof BalancesState;
   const balance = useMemo(() => {
-    const _balance = balancesStore[key]?.[token.contractAddress];
+    const _balance = balancesStore[key]?.[token.contractAddress.toLowerCase()];
     return _balance ? formatNumber(_balance, 2, true) : "0.00";
   }, [token, balancesStore[key]?.[token.contractAddress]]);
 
