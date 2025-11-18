@@ -502,7 +502,6 @@ export default class TronWallet {
   }
 
   async sendTransaction(params: any) {
-    debugger
     const {
       tx,
     } = params;
