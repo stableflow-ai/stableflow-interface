@@ -31,6 +31,22 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
   },
 };
 
+export const chainsRpcUrls: Record<string, string> = {
+  "Ethereum": "https://eth.merkle.io",
+  "Arbitrum": "https://arb1.arbitrum.io/rpc",
+  "BNB Chain": "https://56.rpc.thirdweb.com",
+  "Avalanche": "https://api.avax.network/ext/bc/C/rpc",
+  "Base": "https://mainnet.base.org",
+  "Polygon": "https://polygon-rpc.com",
+  "Gnosis": "https://rpc.gnosischain.com",
+  "Optimism": "https://mainnet.optimism.io",
+  "Berachain": "https://rpc.berachain.com",
+  "Tron": "https://api.trongrid.io",
+  "Aptos": "https://api.mainnet.aptoslabs.com/v1",
+  "Solana": "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
+  "Near": "",
+};
+
 const chains = {
   near: {
     chainName: "Near",
@@ -39,6 +55,11 @@ const chains = {
     chainType: chainTypes.near.value,
     blockExplorerUrl: "https://nearblocks.io/txns",
     primaryColor: "#76EA9E",
+    nativeToken: {
+      symbol: "NEAR",
+      decimals: 24,
+    },
+    rpcUrl: chainsRpcUrls["Near"],
   },
   sol: {
     chainName: "Solana",
@@ -47,6 +68,11 @@ const chains = {
     chainType: chainTypes.sol.value,
     blockExplorerUrl: "https://solscan.io/tx",
     primaryColor: "#B93EF0",
+    nativeToken: {
+      symbol: "SOL",
+      decimals: 9,
+    },
+    rpcUrl: chainsRpcUrls["Solana"],
   },
   eth: {
     chainName: "Ethereum",
@@ -56,6 +82,11 @@ const chains = {
     chainId: 1,
     blockExplorerUrl: "https://etherscan.io/tx",
     primaryColor: "#7083ee",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Ethereum"],
   },
   arb: {
     chainName: "Arbitrum",
@@ -65,6 +96,11 @@ const chains = {
     chainId: 42161,
     blockExplorerUrl: "https://arbiscan.io/tx",
     primaryColor: "#4763A7",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Arbitrum"],
   },
   bsc: {
     chainName: "BNB Chain",
@@ -74,6 +110,11 @@ const chains = {
     chainId: 56,
     blockExplorerUrl: "https://bscscan.com/tx",
     primaryColor: "#F1C144",
+    nativeToken: {
+      symbol: "BNB",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["BNB Chain"],
   },
   avax: {
     chainName: "Avalanche",
@@ -83,6 +124,11 @@ const chains = {
     chainId: 43114,
     blockExplorerUrl: "https://snowtrace.io/tx",
     primaryColor: "#9D2620",
+    nativeToken: {
+      symbol: "AVAX",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Avalanche"],
   },
   base: {
     chainName: "Base",
@@ -92,6 +138,11 @@ const chains = {
     chainId: 8453,
     blockExplorerUrl: "https://basescan.org/tx",
     primaryColor: "#3137F6",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Base"],
   },
   pol: {
     chainName: "Polygon",
@@ -101,6 +152,11 @@ const chains = {
     chainId: 137,
     blockExplorerUrl: "https://polygonscan.com/tx",
     primaryColor: "#5A2AD1",
+    nativeToken: {
+      symbol: "POL",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Polygon"],
   },
   gnosis: {
     chainName: "Gnosis",
@@ -110,6 +166,11 @@ const chains = {
     chainId: 100,
     blockExplorerUrl: "https://gnosisscan.io/tx",
     primaryColor: "#285230",
+    nativeToken: {
+      symbol: "XDAI",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Gnosis"],
   },
   op: {
     chainName: "Optimism",
@@ -119,6 +180,11 @@ const chains = {
     chainId: 10,
     blockExplorerUrl: "https://optimistic.etherscan.io/tx",
     primaryColor: "#B5271D",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Optimism"],
   },
   tron: {
     chainName: "Tron",
@@ -127,6 +193,11 @@ const chains = {
     chainType: chainTypes.tron.value,
     blockExplorerUrl: "https://tronscan.org/tx",
     primaryColor: "#BC3221",
+    nativeToken: {
+      symbol: "TRX",
+      decimals: 6,
+    },
+    rpcUrl: chainsRpcUrls["Tron"],
   },
   aptos: {
     chainName: "Aptos",
@@ -135,6 +206,11 @@ const chains = {
     chainType: chainTypes.aptos.value,
     blockExplorerUrl: "https://aptoscan.com/transaction",
     primaryColor: "#000000",
+    nativeToken: {
+      symbol: "APT",
+      decimals: 8,
+    },
+    rpcUrl: chainsRpcUrls["Aptos"],
   },
   bera: {
     chainName: "Berachain",
@@ -144,6 +220,11 @@ const chains = {
     chainId: 80094,
     blockExplorerUrl: "https://berascan.com/tx/",
     primaryColor: "#F37325",
+    nativeToken: {
+      symbol: "BERA",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Berachain"],
   },
 };
 
