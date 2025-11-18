@@ -11,6 +11,7 @@ import {
 import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
 import { setupIntearWallet } from "@near-wallet-selector/intear-wallet";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
+import { setupMeteorWalletApp } from "@near-wallet-selector/meteor-wallet-app";
 import { setupHotWallet } from "@near-wallet-selector/hot-wallet";
 import useWalletsStore from "@/stores/use-wallets";
 
@@ -56,7 +57,8 @@ export default function NEARProvider({
             setupMyNearWallet(),
             setupHotWallet() as unknown as any,
             setupMeteorWallet(),
-            setupIntearWallet()
+            setupIntearWallet(),
+            setupMeteorWalletApp({ contractId: "" })
           ]
         });
 
