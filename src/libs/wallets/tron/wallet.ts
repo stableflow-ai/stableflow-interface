@@ -518,7 +518,7 @@ export default class TronWallet {
       abi,
       fromToken,
       refundTo,
-      recipient,
+      depositAddress,
       amountWei,
       prices,
     } = params;
@@ -546,7 +546,7 @@ export default class TronWallet {
       // tokenAddress
       fromToken.contractAddress,
       // recipient
-      recipient,
+      depositAddress,
       // amount
       amountWei,
     ];
