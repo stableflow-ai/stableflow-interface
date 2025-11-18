@@ -10,9 +10,10 @@ import { TronWeb } from "tronweb";
 import { useWatchOKXConnect } from "../okxconnect";
 import { OkxWalletAdapter, TronLinkAdapter } from "@tronweb3/tronwallet-adapters";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
+import { chainsRpcUrls } from "@/config/chains";
 
 const tronWeb = new TronWeb({
-  fullHost: "https://api.trongrid.io",
+  fullHost: chainsRpcUrls["Tron"],
   headers: {},
   privateKey: "",
 });

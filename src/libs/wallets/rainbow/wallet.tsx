@@ -34,14 +34,21 @@ export default class RainbowWallet {
     return result.hash;
   }
 
-  async getBalance(token: string, account: string) {
+  async getBalance(token: any, account: string) {
     try {
-      if (token === "eth") {
-        const balance = await this.provider.getBalance(account);
+      // Use token's rpcUrl if available, otherwise fall back to current provider
+      let provider = this.provider;
+      if (token.rpcUrl) {
+        provider = new ethers.JsonRpcProvider(token.rpcUrl);
+      }
+
+      if (token.symbol === "eth" || token.symbol === "ETH" || token.symbol === "native") {
+        const balance = await provider.getBalance(account);
         return balance.toString();
       }
 
-      const contract = new ethers.Contract(token, erc20Abi, this.signer);
+      // Use provider instead of signer for read-only operations
+      const contract = new ethers.Contract(token.contractAddress, erc20Abi, provider);
 
       const balance = await contract.balanceOf(account);
 
@@ -52,7 +59,7 @@ export default class RainbowWallet {
     }
   }
 
-  async balanceOf(token: string, account: string) {
+  async balanceOf(token: any, account: string) {
     return await this.getBalance(token, account);
   }
 

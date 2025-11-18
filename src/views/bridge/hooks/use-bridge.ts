@@ -212,7 +212,7 @@ export default function useBridge(props?: any) {
           const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
           gasCost = Big(gasLimit.toString()).times(gasPrice.toString()).div(1e18);
 
-          nativeBalance = await wallet.wallet.getBalance("eth", wallet.account);
+          nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
           nativeBalance = Big(nativeBalance).div(1e18).toString();
         } else if (chainType === "sol") {
           // Solana: gas limit is already in lamports
@@ -227,7 +227,7 @@ export default function useBridge(props?: any) {
           // Tron gas is usually free, but we need some TRX for potential fees (0.1 TRX as safety)
           gasCost = Big("0.1");
 
-          nativeBalance = await wallet.wallet.getBalance("TRX", wallet.account);
+          nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
           nativeBalance = Big(nativeBalance).div(1e6).toString();
         } else if (chainType === "aptos") {
           // Aptos: estimate gas cost
