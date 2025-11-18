@@ -98,7 +98,7 @@ export default function Token({
                     <Loading size={14} />
                   ) : (
                     <Amount
-                      amount={balances[chain.contractAddress.toLowerCase()]}
+                      amount={balances[chain.contractAddress]}
                     />
                   )}
                 </div>
