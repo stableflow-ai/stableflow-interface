@@ -264,6 +264,7 @@ export default class TronWallet {
       const result = await contract.approve(spender, _amountWei).send({
         feeLimit: 100_000_000
       });
+      debugger;
 
       // Extract transaction hash/txid from result
       // TronWeb contract.send() may return different formats
@@ -277,11 +278,12 @@ export default class TronWallet {
       }
 
       // Check transaction result
-      if (txHash) {
-        // Wait for transaction confirmation
-        const txInfo = await this.checkTransactionStatus(txHash);
-        return txInfo;
-      }
+      // this check is async, so we need to wait for the transaction to be confirmed
+      // if (txHash) {
+      //   // Wait for transaction confirmation
+      //   const txInfo = await this.checkTransactionStatus(txHash);
+      //   return txInfo;
+      // }
 
       // If we can't extract txid, assume success if result exists
       return !!result;
