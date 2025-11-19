@@ -433,7 +433,8 @@ export default class RainbowWallet {
       receipt_amount,
       signature,
     } = signatureRes;
-    result.fees.estimateMintGasUsd = numberRemoveEndZero(Big(mint_fee || 0).div(10 ** fromToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+
+    result.fees.estimateMintGasUsd = numberRemoveEndZero(Big(mint_fee || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
     result.fees.bridgeFeeUsd = numberRemoveEndZero(Big(bridge_fee || 0).div(10 ** fromToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
     const chargedAmount = BigInt(amountWei) - BigInt(mint_fee);
     result.outputAmount = numberRemoveEndZero(Big(receipt_amount || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0));
@@ -504,7 +505,7 @@ export default class RainbowWallet {
 
     // 5. calculate total fees
     for (const feeKey in result.fees) {
-      if (excludeFees.includes(feeKey)) {
+      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
         continue;
       }
       result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
