@@ -13,6 +13,7 @@ import { setupIntearWallet } from "@near-wallet-selector/intear-wallet";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupMeteorWalletApp } from "@near-wallet-selector/meteor-wallet-app";
 import { setupHotWallet } from "@near-wallet-selector/hot-wallet";
+import { setupWalletConnect } from "@near-wallet-selector/wallet-connect";
 import useWalletsStore from "@/stores/use-wallets";
 
 import "@near-wallet-selector/modal-ui/styles.css";
@@ -32,6 +33,8 @@ const NEARContext = React.createContext<NEARContextType>({
   accounts: [],
   accountId: null
 });
+
+const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 
 export default function NEARProvider({
   children
@@ -58,7 +61,16 @@ export default function NEARProvider({
             setupHotWallet() as unknown as any,
             setupMeteorWallet(),
             setupIntearWallet(),
-            setupMeteorWalletApp({ contractId: "" })
+            setupMeteorWalletApp({ contractId: "" }),
+            setupWalletConnect({
+              projectId,
+              metadata: {
+                name: "StableFlow.ai",
+                description: "Stablecoins to any chain, with one click.",
+                url: "https://app.stableflow.ai",
+                icons: ["/logo.svg"]
+              },
+            }),
           ]
         });
 
