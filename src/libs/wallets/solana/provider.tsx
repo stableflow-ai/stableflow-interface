@@ -9,6 +9,7 @@ import {
 } from "@solana/wallet-adapter-react-ui";
 import {
   PhantomWalletAdapter,
+  SolflareWalletAdapter,
   // WalletConnectWalletAdapter
 } from "@solana/wallet-adapter-wallets";
 import "@solana/wallet-adapter-react-ui/styles.css";
@@ -23,6 +24,7 @@ import { PublicKey, Transaction } from "@solana/web3.js";
 import { useWatchOKXConnect } from "../okxconnect";
 
 export const adapters = [
+  new SolflareWalletAdapter(),
   new PhantomWalletAdapter(),
   // new WalletConnectWalletAdapter({
   //   // @ts-ignore
