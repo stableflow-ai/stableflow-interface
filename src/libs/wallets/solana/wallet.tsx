@@ -924,6 +924,7 @@ export default class SolanaWallet {
         mint_fee,
         receipt_amount,
         signature,
+        destination_caller,
       } = signatureRes;
 
       result.fees.estimateMintGasUsd = numberRemoveEndZero(

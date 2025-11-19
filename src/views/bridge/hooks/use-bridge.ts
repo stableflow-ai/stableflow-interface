@@ -472,6 +472,8 @@ export default function useBridge(props?: any) {
           deposit_address: hash,
           receive_address: _quote.data.quoteParam.recipient,
           fee: _quote.data.fees.estimateMintGasUsd,
+          source_domain_id: _quote.data.quoteParam.sourceDomain,
+          destination_domain_id: _quote.data.quoteParam.destinationDomain,
         });
       }
 
