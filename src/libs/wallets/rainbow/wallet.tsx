@@ -432,6 +432,7 @@ export default class RainbowWallet {
       mint_fee,
       receipt_amount,
       signature,
+      destination_caller,
     } = signatureRes;
 
     result.fees.estimateMintGasUsd = numberRemoveEndZero(Big(mint_fee || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
@@ -451,7 +452,7 @@ export default class RainbowWallet {
       // burnToken
       fromToken.contractAddress,
       // destinationCaller
-      zeroPadValue("0xfA5351F408e7ABD6c78009fb3222A84d0fd3248C", 32),
+      zeroPadValue(destination_caller, 32),
       // maxFee
       max_fee,
       // minFinalityThreshold
