@@ -451,7 +451,7 @@ export default class RainbowWallet {
       // burnToken
       fromToken.contractAddress,
       // destinationCaller
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      zeroPadValue("0xfA5351F408e7ABD6c78009fb3222A84d0fd3248C", 32),
       // maxFee
       max_fee,
       // minFinalityThreshold
