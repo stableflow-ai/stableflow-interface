@@ -4,7 +4,7 @@ import Big from "big.js";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 
 export default function useTokenBalance(token: any, isAuto: boolean = true) {
-  const [balance, setBalance] = useState("-");
+  const [balance, setBalance] = useState("0");
   const [loading, setLoading] = useState(false);
   const wallets = useWalletsStore();
   const balancesStore = useBalancesStore();
@@ -23,13 +23,11 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
         wallet.account
       );
 
-      console.log("%cGetBalance %s balance: %o", "background:#f00;color:#fff;",  token.chainName + "-" + token.symbol, balance);
-
       const _balance = balance
         ? Big(balance)
           .div(10 ** token.decimals)
           .toString()
-        : "-";
+        : "0";
       setBalance(_balance);
 
       const key = `${token.chainType}Balances`;

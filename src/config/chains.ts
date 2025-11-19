@@ -32,17 +32,17 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
 };
 
 export const chainsRpcUrls: Record<string, string> = {
-  "Ethereum": "https://eth-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "Arbitrum": "https://arb-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "BNB Chain": "https://bnb-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "Avalanche": "https://avax-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "Base": "https://base-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "Polygon": "https://polygon-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "Gnosis": "https://gnosis-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "Optimism": "https://opt-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
-  "Berachain": "https://berachain-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Ethereum": "https://eth.merkle.io",
+  "Arbitrum": "https://arb1.arbitrum.io/rpc",
+  "BNB Chain": "https://56.rpc.thirdweb.com",
+  "Avalanche": "https://api.avax.network/ext/bc/C/rpc",
+  "Base": "https://mainnet.base.org",
+  "Polygon": "https://polygon-rpc.com",
+  "Gnosis": "https://rpc.gnosischain.com",
+  "Optimism": "https://mainnet.optimism.io",
+  "Berachain": "https://rpc.berachain.com",
   "Tron": "https://api.trongrid.io",
-  "Aptos": "https://aptos-mainnet.g.alchemy.com/v2/z1pBmXy7Ag7b1WvOQ5O-r",
+  "Aptos": "https://api.mainnet.aptoslabs.com/v1",
   "Solana": "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
   "Near": "",
 };
