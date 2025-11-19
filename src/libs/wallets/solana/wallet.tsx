@@ -929,8 +929,7 @@ export default class SolanaWallet {
       result.fees.estimateMintGasUsd = numberRemoveEndZero(
         Big(mint_fee || 0)
           .div(10 ** fromToken.decimals)
-          .times(getPrice(prices, fromToken.nativeToken.symbol))
-          .toFixed(20)
+          .toFixed(fromToken.decimals)
       );
       result.fees.bridgeFeeUsd = numberRemoveEndZero(
         Big(bridge_fee || 0)
@@ -1030,7 +1029,7 @@ export default class SolanaWallet {
 
       // Calculate total fees
       for (const feeKey in result.fees) {
-        if (excludeFees && excludeFees.includes(feeKey)) {
+        if (excludeFees && excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
           continue;
         }
         result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
