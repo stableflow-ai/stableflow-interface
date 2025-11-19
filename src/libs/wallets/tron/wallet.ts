@@ -264,7 +264,6 @@ export default class TronWallet {
       const result = await contract.approve(spender, _amountWei).send({
         feeLimit: 100_000_000
       });
-      debugger;
 
       // Extract transaction hash/txid from result
       // TronWeb contract.send() may return different formats
