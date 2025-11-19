@@ -664,12 +664,12 @@ export class OKXTronWallet {
     return result;
   }
 
-  async getBalance(token: string, account: string) {
-    if (token === "TRX" || token === "trx" || token === "native") {
+  async getBalance(token: any, account: string) {
+    if (token.symbol === "TRX" || token.symbol === "trx" || token.symbol === "native") {
       return await this.getTRXBalance(account);
     }
 
-    return await this.getTokenBalance(token, account);
+    return await this.getTokenBalance(token.contractAddress, account);
   }
 
   async getTRXBalance(account: string) {
@@ -697,7 +697,7 @@ export class OKXTronWallet {
     }
   }
 
-  async balanceOf(token: string, account: string) {
+  async balanceOf(token: any, account: string) {
     return await this.getBalance(token, account);
   }
 
