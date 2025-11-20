@@ -122,7 +122,7 @@ export default function Bottom({ token }: { token: any }) {
               _quoteData.outputAmount,
               2,
               true,
-              { isShort: false }
+              { isShort: false, round: Big.roundDown }
             )}
           </div>
         ) : (
