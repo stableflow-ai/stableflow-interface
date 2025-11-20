@@ -22,7 +22,7 @@ export default function Bottom({ token }: { token: any }) {
 
   const mergedBalance =
     balancesStore[`${token?.chainType}Balances` as keyof BalancesState]?.[
-      token?.contractAddress
+    token?.contractAddress
     ];
 
   const balance = useMemo(() => {
@@ -103,9 +103,12 @@ export default function Bottom({ token }: { token: any }) {
             className={clsx(
               "text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis",
               getAmountNumberFontSize(
-                formatNumber(_quoteData?.outputAmount, 2, true, {
-                  isShort: false
-                }),
+                formatNumber(
+                  _quoteData.outputAmount,
+                  2,
+                  true,
+                  { isShort: false, round: Big.roundDown }
+                ),
                 0
               )
             )}
@@ -115,9 +118,12 @@ export default function Bottom({ token }: { token: any }) {
                 amount={bridgeStore.quoteData.quote.amountOutFormatted}
                 className="!text-[#4DCF5E]"
               /> */}
-            {formatNumber(_quoteData?.outputAmount, 2, true, {
-              isShort: false
-            })}
+            {formatNumber(
+              _quoteData.outputAmount,
+              2,
+              true,
+              { isShort: false }
+            )}
           </div>
         ) : (
           <div className="w-[38px] h-[12px] rounded-[6px] bg-[#EDF0F7]" />

@@ -935,8 +935,7 @@ export default class SolanaWallet {
       result.fees.bridgeFeeUsd = numberRemoveEndZero(
         Big(bridge_fee || 0)
           .div(10 ** fromToken.decimals)
-          .times(getPrice(prices, fromToken.nativeToken.symbol))
-          .toFixed(20)
+          .toFixed(fromToken.decimals)
       );
       const chargedAmount = BigInt(amountWei) - BigInt(mint_fee);
       result.outputAmount = numberRemoveEndZero(
