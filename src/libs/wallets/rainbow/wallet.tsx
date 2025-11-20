@@ -8,6 +8,8 @@ import { addressToBytes32 } from "@/utils/address-validation";
 import { USDT0_LEGACY_FEE } from "@/services/usdt0/config";
 import { quoteSignature } from "../utils/cctp";
 
+const DEFAULT_GAS_LIMIT = 100000n;
+
 export default class RainbowWallet {
   provider: any;
   signer: any;
@@ -345,7 +347,7 @@ export default class RainbowWallet {
       result.estimateSourceGasUsd = usd;
     } catch (error) {
       const { usd, wei } = await this.getEstimateGas({
-        gasLimit: 400000n,
+        gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
       });
@@ -486,7 +488,7 @@ export default class RainbowWallet {
       result.estimateSourceGasUsd = usd;
     } catch (error) {
       const { usd, wei } = await this.getEstimateGas({
-        gasLimit: 400000n,
+        gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
       });
@@ -583,7 +585,7 @@ export default class RainbowWallet {
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
     } catch (error) {
       const { usd, wei } = await this.getEstimateGas({
-        gasLimit: 400000n,
+        gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
       });
