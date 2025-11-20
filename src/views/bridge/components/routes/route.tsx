@@ -4,6 +4,7 @@ import { ServiceLogoMap, type ServiceType } from "@/services";
 import useWalletStore from "@/stores/use-wallet";
 import { formatNumber } from "@/utils/format/number";
 import { formatDuration } from "@/utils/format/time";
+import Big from "big.js";
 import clsx from "clsx";
 import { motion } from "framer-motion";
 
@@ -43,7 +44,7 @@ const QuoteRoute = (props: any) => {
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />
           <div className="">
-            {formatNumber(data.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true })}
+            {formatNumber(data.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })}
           </div>
         </div>
         <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
@@ -65,7 +66,7 @@ const QuoteRoute = (props: any) => {
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />
           <div className="">
-            {formatNumber(data.outputAmount, 2, true, { prefix: "~", isShort: true, isShortUppercase: true })}
+            {formatNumber(data.outputAmount, 2, true, { prefix: "~", isShort: true, isShortUppercase: true, round: Big.roundDown })}
           </div>
         </div>
       </div>

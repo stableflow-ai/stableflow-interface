@@ -13,20 +13,24 @@ const QuoteRoutes = (props: any) => {
     showRoutes,
   } = useBridgeStore();
 
-  const isQuoting = Array.from(quotingMap.values()).some(Boolean);
+  const isQuoting = useMemo(() => {
+    return Array.from(quotingMap.values()).some(Boolean);
+  }, [quotingMap]);
+
   const quoteDataList = useMemo(() => {
     quoteDataMap.forEach((data, service) => {
       data.service = service;
     });
     const list = Array.from(quoteDataMap.values()).filter((data) => !data.errMsg);
     // Sort selected item to the first position
-    return list.sort((a, b) => {
-      const aSelected = quoteDataService === a.service;
-      const bSelected = quoteDataService === b.service;
-      if (aSelected && !bSelected) return -1;
-      if (!aSelected && bSelected) return 1;
-      return 0;
-    });
+    // return list.sort((a, b) => {
+    //   const aSelected = quoteDataService === a.service;
+    //   const bSelected = quoteDataService === b.service;
+    //   if (aSelected && !bSelected) return -1;
+    //   if (!aSelected && bSelected) return 1;
+    //   return 0;
+    // });
+    return list;
   }, [quoteDataMap, quoteDataService]);
 
   const displayedList = showRoutes ? quoteDataList : quoteDataList.slice(0, 1);

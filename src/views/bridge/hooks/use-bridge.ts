@@ -239,11 +239,6 @@ export default function useBridge(props?: any) {
       bridgeStore.clearQuoteData();
     }
 
-    // Only set auto-select flag when quote({ dry: false }, false | undefined)
-    if (params.dry === false && (isSync === false || isSync === undefined)) {
-      bridgeStore.set({ shouldAutoSelect: true });
-    }
-
     if (
       !walletStore.toToken ||
       !walletStore.fromToken ||
@@ -644,28 +639,19 @@ export default function useBridge(props?: any) {
   ]);
 
   useEffect(() => {
-    if (bridgeStore.transferring) {
-      return;
-    }
-    // Only auto-select best quoteDataService when shouldAutoSelect is true
-    if (!bridgeStore.shouldAutoSelect) {
+    const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
+    if (bridgeStore.transferring || isQuoting) {
       return;
     }
     const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
     if (!quoteList.length) {
       return;
     }
-    // Check if all quote requests are completed
-    const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
-    
+
     // Auto-select the best quote as soon as any quote is available
     // This allows immediate selection when first request completes, and updates when better quotes arrive
     if (quoteList.length === 1) {
       bridgeStore.set({ quoteDataService: quoteList[0][0] });
-      // Reset flag when all requests are completed
-      if (!isQuoting) {
-        bridgeStore.set({ shouldAutoSelect: false });
-      }
       return;
     }
     // sort and select the best one
@@ -673,8 +659,19 @@ export default function useBridge(props?: any) {
       const [_serviceA, dataA] = a;
       const [_serviceB, dataB] = b;
 
-      const netA = Big(dataA.outputAmount || 0).minus(dataA.totalFeesUsd || 0);
-      const netB = Big(dataB.outputAmount || 0).minus(dataB.totalFeesUsd || 0);
+      let netA = Big(dataA.outputAmount || 0);
+      let netB = Big(dataB.outputAmount || 0);
+
+      // Usdt0 should minus message fee
+      if (_serviceA === Service.Usdt0) {
+        netA = netA.minus(dataA.fees?.nativeFeeUsd || 0);
+      }
+      if (_serviceB === Service.Usdt0) {
+        netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
+      }
+
+      console.log("%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));
+      console.log("%s data: %o,  output amount: %o", _serviceB, dataB, netB.toFixed(6, 0));
 
       if (netB.gt(netA)) return 1;
       if (netA.gt(netB)) return -1;
@@ -685,15 +682,10 @@ export default function useBridge(props?: any) {
     });
     console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
     bridgeStore.set({ quoteDataService: sortedQuoteData[0][0] });
-    // Reset flag when all requests are completed
-    if (!isQuoting) {
-      bridgeStore.set({ shouldAutoSelect: false });
-    }
   }, [
     bridgeStore.transferring,
     bridgeStore.quoteDataMap,
     bridgeStore.quotingMap,
-    bridgeStore.shouldAutoSelect,
   ]);
 
   return {

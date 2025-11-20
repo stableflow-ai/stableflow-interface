@@ -22,7 +22,7 @@ export default function Bottom({ token }: { token: any }) {
 
   const mergedBalance =
     balancesStore[`${token?.chainType}Balances` as keyof BalancesState]?.[
-      token?.contractAddress
+    token?.contractAddress
     ];
 
   const balance = useMemo(() => {
@@ -107,7 +107,7 @@ export default function Bottom({ token }: { token: any }) {
                   _quoteData.outputAmount,
                   2,
                   true,
-                  { isShort: false }
+                  { isShort: false, round: Big.roundDown }
                 ),
                 0
               )

@@ -344,7 +344,14 @@ export default class RainbowWallet {
       result.estimateSourceGas += wei;
       result.estimateSourceGasUsd = usd;
     } catch (error) {
-      console.log("usdt0 estimate gas failed: %o", error);
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: 400000n,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+      });
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas += wei;
+      result.estimateSourceGasUsd = usd;
     }
 
     // calculate total fees
@@ -436,7 +443,7 @@ export default class RainbowWallet {
     } = signatureRes;
 
     result.fees.estimateMintGasUsd = numberRemoveEndZero(Big(mint_fee || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
-    result.fees.bridgeFeeUsd = numberRemoveEndZero(Big(bridge_fee || 0).div(10 ** fromToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+    result.fees.bridgeFeeUsd = numberRemoveEndZero(Big(bridge_fee || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
     const chargedAmount = BigInt(amountWei) - BigInt(mint_fee);
     result.outputAmount = numberRemoveEndZero(Big(receipt_amount || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0));
 
@@ -478,7 +485,14 @@ export default class RainbowWallet {
       result.estimateSourceGas = wei;
       result.estimateSourceGasUsd = usd;
     } catch (error) {
-      console.log("cctp estimate deposit gas failed: %o", error);
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: 400000n,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+      });
+      result.fees.estimateDepositGasUsd = usd;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
     }
 
     // 4. check approve
@@ -556,6 +570,7 @@ export default class RainbowWallet {
       contract: proxyContract,
       param: proxyParam,
     };
+
     try {
       const gasLimit = await proxyContract.proxyTransfer.estimateGas(...proxyParam);
       const { usd, wei } = await this.getEstimateGas({
@@ -567,7 +582,14 @@ export default class RainbowWallet {
       result.estimateSourceGas = wei;
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
     } catch (error) {
-      console.log("onclick estimate proxy failed: %o", error);
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: 400000n,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+      });
+      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
     }
 
     return result;
