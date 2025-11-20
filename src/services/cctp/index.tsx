@@ -1,6 +1,7 @@
 import { CCTP_TOKEN_PROXY, CCTP_TOKEN_PROXY_ABI } from "./contract";
 import axios, { type AxiosInstance } from "axios";
 import { CCTP_DOMAINS, IRIS_API_URL } from "./config";
+import { BASE_API_URL } from "@/config/api";
 
 export const PayInLzToken = false;
 
@@ -87,7 +88,10 @@ class CCTPService {
 
   public async getStatus(params: any) {
     return axios({
-      url: `https://scan.layerzero-api.com/v1/messages/tx/${params.hash}`,
+      url: `${BASE_API_URL}/v1/trade`,
+      params: {
+        deposit_address: params.hash,
+      },
       method: "GET",
       timeout: 30000,
       headers: {
