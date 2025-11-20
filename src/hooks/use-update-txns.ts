@@ -53,6 +53,26 @@ export default function useUpdateTxns() {
         } catch (error) {
         }
       }
+
+      // cctp transfer
+      if (historyType === Service.CCTP) {
+        try {
+          const response = await ServiceMap[Service.CCTP].getStatus({
+            hash: currentHistory?.txHash,
+          });
+          const result = response.data.data;
+          // status: 1 = minted, 3 = burned
+          // to_tx_hash: minted tx hash
+          historyStore.updateHistory(address, {
+            toChainTxHash: result.to_tx_hash,
+          });
+          const status = result.status;
+          if (status === 1) {
+            historyStore.updateStatus(address, "SUCCESS");
+          }
+        } catch (error) {
+        }
+      }
     }
 
     window.updateTxnTimer = setTimeout(() => {

@@ -406,7 +406,7 @@ export default class RainbowWallet {
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
       estimateSourceGasUsd: void 0,
-      estimateTime: 0,
+      estimateTime: Math.floor(Math.random() * 8) + 3,
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
     };
 
