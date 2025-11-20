@@ -13,7 +13,7 @@ import { setupIntearWallet } from "@near-wallet-selector/intear-wallet";
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupMeteorWalletApp } from "@near-wallet-selector/meteor-wallet-app";
 import { setupHotWallet } from "@near-wallet-selector/hot-wallet";
-import { setupWalletConnect } from "@near-wallet-selector/wallet-connect";
+import { setupWalletConnect } from "rhea-wallet-connect";
 import useWalletsStore from "@/stores/use-wallets";
 
 import "@near-wallet-selector/modal-ui/styles.css";
@@ -70,6 +70,7 @@ export default function NEARProvider({
                 url: "https://app.stableflow.ai",
                 icons: ["/logo.svg"]
               },
+              chainId: "near:mainnet"
             }),
           ]
         });
