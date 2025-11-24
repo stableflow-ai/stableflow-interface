@@ -251,7 +251,7 @@ export default class NearWallet {
         throw new Error("No account found");
       }
 
-      const tokenContract = fromToken.contractAddress || "wrap.near";
+      const tokenContract = fromToken.contractAddress;
       // proxyAddress should be stableflowstg.near, use default if not provided
       const STABLEFLOW_CONTRACT = proxyAddress || "stableflowstg.near";
 
