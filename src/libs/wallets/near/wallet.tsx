@@ -1,4 +1,7 @@
 import { Buffer } from "buffer";
+import Big from "big.js";
+import { getPrice } from "@/utils/format/price";
+import { numberRemoveEndZero } from "@/utils/format/number";
 
 export default class NearWallet {
   private selector: any;
@@ -225,5 +228,184 @@ export default class NearWallet {
     } catch (error) {
       console.log("fetch rpc failed: %o", error);
     }
+  }
+
+  async quoteOneClickProxy(params: any) {
+    const {
+      proxyAddress,
+      fromToken,
+      refundTo,
+      depositAddress,
+      amountWei,
+      prices,
+    } = params;
+
+    const result: any = { fees: {} };
+
+    try {
+      const wallet = await this.selector.wallet();
+      const accounts = await wallet.getAccounts();
+      const userAccountId = refundTo || accounts[0]?.accountId;
+
+      if (!userAccountId) {
+        throw new Error("No account found");
+      }
+
+      const tokenContract = fromToken.contractAddress;
+      // proxyAddress should be stableflowstg.near, use default if not provided
+      const STABLEFLOW_CONTRACT = proxyAddress || "stableflowstg.near";
+
+      if (!depositAddress) {
+        throw new Error("depositAddress is required");
+      }
+
+      // Check and register token: register for intents address (depositAddress) and stableflowstg.near contract
+      const transactions: any[] = [];
+
+      // Check if depositAddress (intents address) is registered
+      const checkStorageDepositAddress = await this.query(
+        tokenContract,
+        "storage_balance_of",
+        {
+          account_id: depositAddress
+        }
+      );
+
+      if (!checkStorageDepositAddress?.available) {
+        transactions.push({
+          receiverId: tokenContract,
+          actions: [
+            {
+              type: "FunctionCall",
+              params: {
+                methodName: "storage_deposit",
+                args: {
+                  account_id: depositAddress,
+                  registration_only: true
+                },
+                gas: "15000000000000",
+                deposit: "1250000000000000000000"
+              }
+            }
+          ]
+        });
+      }
+
+      // Check if stableflowstg.near is registered
+      const checkStorageStableflow = await this.query(
+        tokenContract,
+        "storage_balance_of",
+        {
+          account_id: STABLEFLOW_CONTRACT
+        }
+      );
+
+      if (!checkStorageStableflow?.available) {
+        transactions.push({
+          receiverId: tokenContract,
+          actions: [
+            {
+              type: "FunctionCall",
+              params: {
+                methodName: "storage_deposit",
+                args: {
+                  account_id: STABLEFLOW_CONTRACT,
+                  registration_only: true
+                },
+                gas: "15000000000000",
+                deposit: "1250000000000000000000"
+              }
+            }
+          ]
+        });
+      }
+
+      // Build ft_transfer_call transaction
+      transactions.push({
+        receiverId: tokenContract,
+        actions: [
+          {
+            type: "FunctionCall" as const,
+            params: {
+              methodName: "ft_transfer_call",
+              args: {
+                receiver_id: STABLEFLOW_CONTRACT,
+                amount: amountWei,
+                msg: depositAddress
+              },
+              gas: "50000000000000", // ft_transfer_call requires more gas
+              deposit: "1"
+            }
+          }
+        ]
+      });
+
+      // Calculate gas fees
+      let totalGasLimit = BigInt("50000000000000"); // ft_transfer_call gas
+      if (!checkStorageDepositAddress?.available) {
+        totalGasLimit += BigInt("15000000000000"); // storage_deposit gas
+      }
+      if (!checkStorageStableflow?.available) {
+        totalGasLimit += BigInt("15000000000000"); // storage_deposit gas
+      }
+
+      // Add 20% buffer
+      totalGasLimit = (totalGasLimit * 120n) / 100n;
+
+      // NEAR gas price: 100000000 yoctoNEAR per gas unit
+      const gasPrice = BigInt("100000000");
+      const estimateGas = totalGasLimit * gasPrice;
+
+      // Calculate USD fees
+      const estimateGasUsd = Big(estimateGas.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+
+      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+      result.estimateSourceGas = estimateGas.toString();
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+
+      // Set sendParam for subsequent transaction sending
+      result.sendParam = {
+        transactions,
+        callbackUrl: "/"
+      };
+
+    } catch (error) {
+      console.log("oneclick quote proxy failed: %o", error);
+      // Use default gas estimation
+      const defaultGasLimit = BigInt("80000000000000"); // default gas limit
+      const gasPrice = BigInt("100000000");
+      const estimateGas = defaultGasLimit * gasPrice;
+      const estimateGasUsd = Big(estimateGas.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+
+      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+      result.estimateSourceGas = estimateGas.toString();
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+    }
+
+    return result;
+  }
+
+  async sendTransaction(params: any) {
+    const { transactions, callbackUrl } = params;
+
+    if (!transactions || !Array.isArray(transactions)) {
+      throw new Error("Invalid sendParam: transactions array is required");
+    }
+
+    const wallet = await this.selector.wallet();
+    const result = await wallet.signAndSendTransactions({
+      transactions,
+      callbackUrl: callbackUrl || "/"
+    });
+
+    if (result.slice(-1).length) {
+      return result.slice(-1)[0].transaction.hash;
+    }
+
+    return "";
   }
 }
