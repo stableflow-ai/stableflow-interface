@@ -4,10 +4,6 @@ import {
   WalletProvider
 } from "@solana/wallet-adapter-react";
 import {
-  WalletModalProvider,
-  useWalletModal
-} from "@solana/wallet-adapter-react-ui";
-import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
   // WalletConnectWalletAdapter
@@ -22,6 +18,7 @@ import { useDebounceFn } from "ahooks";
 import { OKXSolanaProvider } from "@okxconnect/solana-provider";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import { useWatchOKXConnect } from "../okxconnect";
+import SolanaWalletSelectorProvider, { useSolanaWalletModal } from "./wallet-selector";
 
 export const adapters = [
   new SolflareWalletAdapter(),
@@ -48,12 +45,15 @@ export default function SolanaProvider({
 }) {
   const isMobile = useIsMobile();
 
+  // Wallet order configuration: Solflare first, Phantom second
+  const walletOrder = ["Solflare", "Phantom"];
+
   return (
     <ConnectionProvider endpoint="https://rpc.ankr.com/solana">
       <WalletProvider wallets={adapters} autoConnect={false}>
-        <WalletModalProvider>
+        <SolanaWalletSelectorProvider walletOrder={walletOrder}>
           {children} {isMobile ? <MobileContent /> : <Content />}
-        </WalletModalProvider>
+        </SolanaWalletSelectorProvider>
       </WalletProvider>
     </ConnectionProvider>
   );
@@ -63,7 +63,7 @@ const Content = () => {
   const [mounted, setMounted] = useState(false);
   const setWallets = useWalletsStore((state) => state.set);
   const { publicKey, disconnect, connect, wallet, signTransaction } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { setVisible } = useSolanaWalletModal();
   const setBalancesStore = useBalancesStore((state) => state.set);
 
   const { run: connect2SolanaWallets } = useDebounceFn(() => {
@@ -78,7 +78,7 @@ const Content = () => {
           if (wallet) {
             connect();
           } else {
-            setVisible(true);
+            setVisible?.(true);
           }
         },
         disconnect: () => {
