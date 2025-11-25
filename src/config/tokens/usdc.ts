@@ -70,7 +70,7 @@ export const usdcChains = {
     assetId: "nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near",
     contractAddress: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     ...chains.sol,
-    services: [Service.OneClick],
+    services: [Service.OneClick, Service.CCTP],
   }
 };
 
