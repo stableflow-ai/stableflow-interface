@@ -394,7 +394,7 @@ export default class RainbowWallet {
       amountWei,
       // slippageTolerance,
       fromToken,
-      // toToken,
+      toToken,
       prices,
       excludeFees,
       destinationDomain,
@@ -457,11 +457,11 @@ export default class RainbowWallet {
       // destinationDomain
       destinationDomain,
       // mintRecipient
-      zeroPadValue(recipient, 32),
+      addressToBytes32(toToken.chainType, recipient),
       // burnToken
       fromToken.contractAddress,
       // destinationCaller
-      zeroPadValue(destination_caller, 32),
+      destination_caller ? addressToBytes32(toToken.chainType, destination_caller) : "0x0000000000000000000000000000000000000000000000000000000000000000",
       // maxFee
       max_fee,
       // minFinalityThreshold
