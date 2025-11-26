@@ -33,7 +33,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
-import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet } from "@rainbow-me/rainbowkit/wallets";
+import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
 import { createClient } from "viem";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
@@ -62,6 +62,7 @@ const connectors: any = connectorsForWallets(
         coinbaseWallet,
         bitgetWallet,
         binanceWallet,
+        walletConnectWallet,
       ],
     },
   ],
