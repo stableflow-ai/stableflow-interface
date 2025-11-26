@@ -126,11 +126,11 @@ const Card = (props: any) => {
   const { children, img, name, title, link } = props;
 
   return (
-    <a
-      href={link}
+    <div
       className="relative w-[350px] shrink-0 h-[192px] p-[35px_12px_20px_18px] flex flex-col justify-between rounded-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] font-[SpaceGrotesk] text-[16px] font-[400] leading-[120%] text-black"
-      rel="noreferrer noopener nofollow"
-      target="_blank"
+      onClick={() => {
+        window.open(link, "_blank");
+      }}
     >
       <div className="absolute z-0 left-[11px] top-[10px] text-[90px] text-[#D7E1F1] leading-[100%]">
         “
@@ -157,6 +157,6 @@ const Card = (props: any) => {
           }
         </div>
       </div>
-    </a>
+    </div>
   );
 };
