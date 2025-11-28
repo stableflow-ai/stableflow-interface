@@ -395,11 +395,9 @@ export default class AptosWallet {
 
       const typeArgument = `0x1::fungible_asset::Metadata`;
 
-      // Build transaction for proxy_transfer
-      // Function: {proxyAddress}::stableflow_proxy::proxy_transfer
-      // Type args: token type (e.g., 0x1::aptos_coin::AptosCoin)
-      // Args: recipient address, amount
-      const functionId = `${proxyAddress}::stableflow_proxy::proxy_transfer` as `${string}::${string}::${string}`;
+      // const functionId = `${proxyAddress}::stableflow_proxy::proxy_transfer` as `${string}::${string}::${string}`;
+      const functionId = `${proxyAddress}::stableflow_proxy::proxy_transfer_fa` as `${string}::${string}::${string}`;
+      const functionArguments = [fromToken.contractAddress, depositAddress, amountWei];
 
       let rawTxn;
       if (this.isMobile) {
@@ -408,7 +406,7 @@ export default class AptosWallet {
           data: {
             function: functionId,
             typeArguments: [typeArgument],
-            functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
+            functionArguments: functionArguments,
           },
         });
       } else {
@@ -417,7 +415,7 @@ export default class AptosWallet {
           data: {
             function: functionId,
             typeArguments: [typeArgument],
-            functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
+            functionArguments: functionArguments,
           },
         });
       }
@@ -454,7 +452,7 @@ export default class AptosWallet {
         result.sendParam = {
           function: functionId,
           typeArguments: [typeArgument],
-          functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
+          functionArguments: functionArguments,
           isMobile: this.isMobile,
         };
 
@@ -478,7 +476,7 @@ export default class AptosWallet {
         result.sendParam = {
           function: functionId,
           typeArguments: [typeArgument],
-          functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
+          functionArguments: functionArguments,
           isMobile: this.isMobile,
         };
 
@@ -504,7 +502,7 @@ export default class AptosWallet {
       result.sendParam = {
         function: functionId,
         typeArguments: [typeArgument],
-        functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
+        functionArguments: functionArguments,
         isMobile: this.isMobile,
       };
 
