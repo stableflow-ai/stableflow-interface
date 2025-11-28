@@ -9,7 +9,7 @@ export const ONECLICK_PROXY: Record<string, string> = {
   ["Tron"]: "TMqM35eVd3D9d7JbShRrMzMPyWLFweKYvW",
   ["Solana"]: "HWk6MsFEGzXxpe9B4mfEHpvVoCwNeVVMFxb5Mi7qNTM",
   ["Near"]: "stbflow.near",
-  ["Aptos"]: "0xd57d01d81be33bd770074fd25a89018222cf198ebee6219c067d67e71b6defa4",
+  ["Aptos"]: "0x3000ceb3211d23ef73ad1b602a7a99b72020c9ce9537f580ac5bba556ec3bff9",
 };
 
 export const ONECLICK_PROXY_ABI = [
