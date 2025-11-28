@@ -393,7 +393,7 @@ export default class AptosWallet {
         throw new Error("Unable to get signer public key");
       }
 
-      const typeArgument = fromToken.contractAddress;
+      const typeArgument = `0x1::fungible_asset::Metadata`;
 
       // Build transaction for proxy_transfer
       // Function: {proxyAddress}::stableflow_proxy::proxy_transfer
@@ -408,7 +408,7 @@ export default class AptosWallet {
           data: {
             function: functionId,
             typeArguments: [typeArgument],
-            functionArguments: [depositAddress, amountWei],
+            functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
           },
         });
       } else {
@@ -417,7 +417,7 @@ export default class AptosWallet {
           data: {
             function: functionId,
             typeArguments: [typeArgument],
-            functionArguments: [depositAddress, amountWei],
+            functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
           },
         });
       }
@@ -454,7 +454,7 @@ export default class AptosWallet {
         result.sendParam = {
           function: functionId,
           typeArguments: [typeArgument],
-          functionArguments: [depositAddress, amountWei],
+          functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
           isMobile: this.isMobile,
         };
 
@@ -478,7 +478,7 @@ export default class AptosWallet {
         result.sendParam = {
           function: functionId,
           typeArguments: [typeArgument],
-          functionArguments: [depositAddress, amountWei],
+          functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
           isMobile: this.isMobile,
         };
 
@@ -504,7 +504,7 @@ export default class AptosWallet {
       result.sendParam = {
         function: functionId,
         typeArguments: [typeArgument],
-        functionArguments: [depositAddress, amountWei],
+        functionArguments: [fromToken.contractAddress, depositAddress, amountWei],
         isMobile: this.isMobile,
       };
 
