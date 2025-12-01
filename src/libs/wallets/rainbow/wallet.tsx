@@ -303,6 +303,12 @@ export default class RainbowWallet {
       );
     }
 
+    if (isDestinationLegacy) {
+      // get Legacy Mesh Fee
+      // 0.0003
+      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).times(0.0003).toFixed(params.fromToken.decimals));
+    }
+
     const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
@@ -543,7 +549,7 @@ export default class RainbowWallet {
       prices,
     } = params;
 
-    const result: any = { fees: {}};
+    const result: any = { fees: {} };
 
     try {
       const allowance = await this.allowance({
