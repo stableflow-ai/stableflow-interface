@@ -38,6 +38,7 @@ export default function useBridge(props?: any) {
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
   const [liquidityErrorMssage, setLiquidityErrorMessage] = useState<boolean>();
+  const prevToTokenRef = useRef<any>(null);
 
   const [fromWalletAddress, toWalletAddress] = useMemo(() => {
     const _fromChainType: WalletType = walletStore.fromToken?.chainType;
@@ -494,6 +495,27 @@ export default function useBridge(props?: any) {
       });
     }
   };
+
+  // Clear recipient address when target chain changes
+  useEffect(() => {
+    if (prevToTokenRef.current && walletStore.toToken) {
+      // Check if the target chain actually changed (compare by chainName or chainId)
+      const prevChainId = prevToTokenRef.current?.chainId;
+      const currentChainId = walletStore.toToken?.chainId;
+      const prevChainName = prevToTokenRef.current?.chainName;
+      const currentChainName = walletStore.toToken?.chainName;
+      
+      if (
+        (prevChainId && currentChainId && prevChainId !== currentChainId) ||
+        (prevChainName && currentChainName && prevChainName !== currentChainName)
+      ) {
+        // Target chain changed, clear recipient address
+        bridgeStore.set({ recipientAddress: "" });
+      }
+    }
+    // Update ref to current toToken
+    prevToTokenRef.current = walletStore.toToken;
+  }, [walletStore.toToken]);
 
   // Validate address when recipient address or target chain changes
   useEffect(() => {
