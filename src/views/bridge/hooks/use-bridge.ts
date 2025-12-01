@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { ServiceMap } from "@/services";
 import {
   validateAddress,
@@ -234,6 +234,7 @@ export default function useBridge(props?: any) {
     }
   };
 
+  const isAutoSelect = useRef(false);
   const quote = async (params: { dry: boolean; }, isSync?: boolean) => {
     if (!isSync) {
       bridgeStore.clearQuoteData();
@@ -295,9 +296,14 @@ export default function useBridge(props?: any) {
       return currentQuoteService.quote(quoteParams);
     }
 
-    for (const quoteService of quoteServices) {
+    for (let i = 0; i < quoteServices.length; i++) {
+      const quoteService = quoteServices[i];
       quoteService.quote(quoteParams).then((_quoteRes: any) => {
         console.log("%c[%s]Quote Result: %o", "background:#f00;color:#fff;", quoteService.service, _quoteRes);
+
+        if (i >= quoteServices.length - 1) {
+          isAutoSelect.current = true;
+        }
       });
     }
   };
@@ -477,6 +483,8 @@ export default function useBridge(props?: any) {
       toast.success({
         title: "Transfer submitted"
       });
+      // reload quotes
+      debouncedQuote({ dry: true });
 
     } catch (error) {
       console.error(error);
@@ -640,7 +648,7 @@ export default function useBridge(props?: any) {
 
   useEffect(() => {
     const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
-    if (bridgeStore.transferring || isQuoting) {
+    if (bridgeStore.transferring || isQuoting || !isAutoSelect.current) {
       return;
     }
     const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
@@ -652,6 +660,7 @@ export default function useBridge(props?: any) {
     // This allows immediate selection when first request completes, and updates when better quotes arrive
     if (quoteList.length === 1) {
       bridgeStore.set({ quoteDataService: quoteList[0][0] });
+      isAutoSelect.current = false;
       return;
     }
     // sort and select the best one
@@ -682,6 +691,7 @@ export default function useBridge(props?: any) {
     });
     console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
     bridgeStore.set({ quoteDataService: sortedQuoteData[0][0] });
+    isAutoSelect.current = false;
   }, [
     bridgeStore.transferring,
     bridgeStore.quoteDataMap,

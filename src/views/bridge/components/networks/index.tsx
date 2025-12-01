@@ -1,16 +1,18 @@
 import Address from "./address";
 import useWalletStore from "@/stores/use-wallet";
 import Chain from "./chain";
-import Input from "./input";
 import Bottom from "./bottom";
 import { useSwitchChain } from "wagmi";
 import { lazy, useEffect, useRef, useState } from "react";
 import Loading from "@/components/loading/icon";
+import InputNumber from "@/components/input-number";
+import useBridgeStore from "@/stores/use-bridge";
 
 const Setting = lazy(() => import("@/sections/setting"));
 
 export default function Networks({ addressValidation }: any) {
   const walletStore = useWalletStore();
+  const bridgeStore = useBridgeStore();
   const { switchChain } = useSwitchChain();
   const timer = useRef<any>(null);
   const [toggleLoading, setToggleLoading] = useState(false);
@@ -63,7 +65,15 @@ export default function Networks({ addressValidation }: any) {
         <div className="w-full mt-[6px]">
           <div className="p-[6px] pt-0 flex items-center relative">
             <Chain key="from" token={walletStore.fromToken} isTo={false} />
-            <Input />
+            <InputNumber
+              className="md:min-w-[100px] relative z-[2] grow text-[32px] font-[500] border-none outline-none text-center w-full text-black"
+              value={bridgeStore.amount}
+              onNumberChange={(value) => {
+                bridgeStore.set({ amount: value });
+              }}
+              decimals={walletStore.fromToken?.decimals || 6}
+              placeholder="0"
+            />
             <Chain key="to" token={walletStore.toToken} isTo={true} />
             <ExchangeButton
               onClick={toggleChain}

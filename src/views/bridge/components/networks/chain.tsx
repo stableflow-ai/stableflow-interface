@@ -5,6 +5,7 @@ import { formatNumber } from "@/utils/format/number";
 import { useMemo } from "react";
 import useTokenBalance from "@/hooks/use-token-balance";
 import Loading from "@/components/loading/icon";
+import Big from "big.js";
 
 export default function Chain({ token, isTo }: any) {
   const walletStore = useWalletStore();
@@ -55,7 +56,7 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
   const key = `${token.chainType}Balances` as keyof BalancesState;
   const balance = useMemo(() => {
     const _balance = balancesStore[key]?.[token.contractAddress];
-    return _balance ? formatNumber(_balance, 2, true) : "0.00";
+    return _balance ? formatNumber(_balance, 2, true, { round: Big.roundDown }) : "0.00";
   }, [token, balancesStore[key]?.[token.contractAddress]]);
 
   return (
