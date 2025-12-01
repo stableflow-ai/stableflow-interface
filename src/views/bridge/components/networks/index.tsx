@@ -72,6 +72,7 @@ export default function Networks({ addressValidation }: any) {
                 bridgeStore.set({ amount: value });
               }}
               decimals={walletStore.fromToken?.decimals || 6}
+              placeholder="0"
             />
             <Chain key="to" token={walletStore.toToken} isTo={true} />
             <ExchangeButton
