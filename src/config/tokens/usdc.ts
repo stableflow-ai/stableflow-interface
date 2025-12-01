@@ -26,13 +26,13 @@ export const usdcChains = {
     ...chains.base,
     services: [Service.OneClick],
   },
-  gnosis: {
-    assetId:
-      "nep141:gnosis-0x2a22f9c3b484c3629090feed35f17ff8f88f76f0.omft.near",
-    contractAddress: "0x2a22f9c3b484c3629090feed35f17ff8f88f76f0",
-    ...chains.gnosis,
-    services: [Service.OneClick],
-  },
+  // gnosis: {
+  //   assetId:
+  //     "nep141:gnosis-0x2a22f9c3b484c3629090feed35f17ff8f88f76f0.omft.near",
+  //   contractAddress: "0x2a22f9c3b484c3629090feed35f17ff8f88f76f0",
+  //   ...chains.gnosis,
+  //   services: [Service.OneClick],
+  // },
   pol: {
     assetId: "nep245:v2_1.omni.hot.tg:137_qiStmoQJDQPTebaPjgx5VBxZv6L",
     contractAddress: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
