@@ -20,12 +20,12 @@ export const usdcChains = {
     ...chains.arb,
     services: [Service.OneClick, Service.CCTP],
   },
-  base: {
-    assetId: "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
-    contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-    ...chains.base,
-    services: [Service.OneClick],
-  },
+  // base: {
+  //   assetId: "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+  //   contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  //   ...chains.base,
+  //   services: [Service.OneClick],
+  // },
   // gnosis: {
   //   assetId:
   //     "nep141:gnosis-0x2a22f9c3b484c3629090feed35f17ff8f88f76f0.omft.near",
