@@ -5,6 +5,7 @@ import { useState } from "react";
 import useBridgeStore from "@/stores/use-bridge";
 import Popover from "@/components/popover";
 import clsx from "clsx";
+import { Service } from "@/services";
 
 export default function Address({ token, isTo, addressValidation }: any) {
   if (!token?.chainType)
@@ -101,7 +102,7 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
             Cancel
           </button>
         ) : (
-          !(bridgeStore.recipientAddress && !!addressValidation) && (
+          !(bridgeStore.recipientAddress && !!addressValidation) && !(bridgeStore.quoteDataService === Service.CCTP && isTo && token.chainType === "sol") && (
             <Popover
               content={
                 <div className="w-[142px] h-[42px] text-[14px] text-center leading-[42px] rounded-[8px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
