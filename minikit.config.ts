@@ -4,9 +4,9 @@ const ROOT_URL = "https://test.stableflow.ai";
 export const minikitConfig = {
   // get from https://farcaster.xyz/~/developers/mini-apps/manifest
   "accountAssociation": {
-    "header": "",
-    "payload": "",
-    "signature": ""
+    "header": "eyJmaWQiOjE1NTA1NDMsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhjMEVFRkY5MDIwMjA2M0EwN2QyQzg5YmE3MkQ5Yjk2MjcwNjQ1ZDkwIn0",
+    "payload": "eyJkb21haW4iOiJ0ZXN0LnN0YWJsZWZsb3cuYWkifQ",
+    "signature": "50nd4qvGtfIT3OsYtDxi5bfZOLw/bOPQHYG3yUFuf2pZ/XODoReWqcDBm9QSgeGX87aXenUI0pm7mv0Zg9aXwhs="
   },
   "baseBuilder": {
     "ownerAddress": ""
