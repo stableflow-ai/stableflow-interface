@@ -5,6 +5,7 @@ import {
   VersionedTransaction,
   SystemProgram,
   LAMPORTS_PER_SOL,
+  Keypair,
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
@@ -12,7 +13,8 @@ import {
   TOKEN_PROGRAM_ID,
   getAccount,
   createAssociatedTokenAccountInstruction,
-  getAssociatedTokenAddressSync
+  getAssociatedTokenAddressSync,
+  createApproveInstruction
 } from "@solana/spl-token";
 import { chainsRpcUrls } from "@/config/chains";
 import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
@@ -680,7 +682,7 @@ export default class SolanaWallet {
   }
 
   async sendTransaction(params: any) {
-    const { transaction } = params;
+    const { transaction, signers } = params;
 
     if (!this.publicKey) {
       throw new Error("Wallet not connected");
@@ -704,7 +706,19 @@ export default class SolanaWallet {
     }
 
     // Sign the transaction
-    const signedTransaction = await this.signTransaction(web3Tx);
+    let signedTransaction = await this.signTransaction(web3Tx);
+
+    if (signers && signers.length > 0) {
+      if (web3Tx instanceof Transaction) {
+        // For Transaction type, we can partially sign with the additional keypair
+        for (const signer of signers) {
+          signedTransaction.partialSign(signer);
+        }
+      } else if (web3Tx instanceof VersionedTransaction) {
+        // For VersionedTransaction, we need to sign with all signers
+        signedTransaction.sign(signers);
+      }
+    }
 
     // Send the transaction
     const signature = await this.connection.sendRawTransaction(
@@ -888,7 +902,7 @@ export default class SolanaWallet {
 
       // Derive UserState PDA
       const [userStatePda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("user_state"), userPubkey.toBuffer()],
+        [Buffer.from("user"), userPubkey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -960,6 +974,59 @@ export default class SolanaWallet {
       // Get user's token account (ATA)
       const userTokenAccount = getAssociatedTokenAddressSync(MINT, sender);
 
+      const messageTransmitterProgram = new PublicKey("CCTPV2Sm4AdWt5296sk4P66VBZ7bEhcARwFaaS9YPbeC");
+      const tokenMessengerMinterProgram = new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe");
+
+      const [messageTransmitterAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("message_transmitter")],
+        messageTransmitterProgram
+      );
+      const [tokenMessengerAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("token_messenger")],
+        tokenMessengerMinterProgram
+      );
+      const [tokenMinterAccount] = PublicKey.findProgramAddressSync(
+        [Buffer.from("token_minter")],
+        tokenMessengerMinterProgram
+      );
+      const [localToken] = PublicKey.findProgramAddressSync(
+        [Buffer.from("local_token"), MINT.toBuffer()],
+        tokenMessengerMinterProgram
+      );
+      const domainBuffer = Buffer.alloc(4);
+      domainBuffer.writeUInt32LE(destinationDomain, 0);
+      const [remoteTokenMessengerKey] = PublicKey.findProgramAddressSync(
+        [Buffer.from("remote_token_messenger"), domainBuffer],
+        tokenMessengerMinterProgram
+      );
+      const [authorityPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("sender_authority")],
+        tokenMessengerMinterProgram
+      );
+
+      // Generate a new keypair for the MessageSent event account (as per official example)
+      const messageSentEventAccountKeypair = Keypair.generate();
+
+      console.log("messageTransmitterProgram: %o", messageTransmitterProgram.toBase58());
+      console.log("tokenMessengerMinterProgram: %o", tokenMessengerMinterProgram.toBase58());
+      console.log("messageTransmitterAccount: %o", messageTransmitterAccount.toBase58());
+      console.log("tokenMessengerAccount: %o", tokenMessengerAccount.toBase58());
+      console.log("tokenMinterAccount: %o", tokenMinterAccount.toBase58());
+      console.log("localToken: %o", localToken.toBase58());
+      console.log("remoteTokenMessengerKey: %o", remoteTokenMessengerKey.toBase58());
+      console.log("authorityPda: %o", authorityPda.toBase58());
+      console.log("messageSentEventAccountKeypair: %o", messageSentEventAccountKeypair.publicKey.toBase58());
+      console.log("messageSentEventAccountKeypair: %o", messageSentEventAccountKeypair.secretKey);
+
+      const approveInstruction = createApproveInstruction(
+        userTokenAccount,
+        authorityPda,
+        sender,
+        BigInt(amountWei.toString()),
+        [],
+        TOKEN_PROGRAM_ID
+      );
+
       // Build depositWithFee instruction
       const depositInstruction = await program.methods
         .depositWithFee(
@@ -979,15 +1046,15 @@ export default class SolanaWallet {
           userTokenAccount: userTokenAccount,
           protocolFeeAccount: PROTOCOL_FEE_ACCOUNT,
           eventRentPayer: sender,
-          senderAuthorityPda: sender, // This might need to be a PDA, check IDL
-          messageTransmitter: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"), // CCTP Token Messenger
-          tokenMessenger: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
-          remoteTokenMessenger: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
-          tokenMinter: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
-          localToken: MINT,
-          messageSentEventData: sender, // This should be a new account, might need to derive
-          cctpMessageTransmitterProgram: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
-          cctpTokenMessengerMinterProgram: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
+          senderAuthorityPda: authorityPda, // pdas.authorityPda.publicKey
+          messageTransmitter: messageTransmitterAccount, // pdas.messageTransmitterAccount.publicKey
+          tokenMessenger: tokenMessengerAccount, // pdas.tokenMessengerAccount.publicKey
+          remoteTokenMessenger: remoteTokenMessengerKey, // pdas.remoteTokenMessengerKey.publicKey
+          tokenMinter: tokenMinterAccount, // pdas.tokenMinterAccount.publicKey
+          localToken: localToken, // pdas.localToken.publicKey
+          messageSentEventData: sender, // messageSentEventAccountKeypair.publicKey
+          cctpMessageTransmitterProgram: messageTransmitterProgram, // messageTransmitterProgram.programId
+          cctpTokenMessengerMinterProgram: tokenMessengerMinterProgram, // tokenMessengerMinterProgram.programId
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           user: sender,
@@ -998,6 +1065,7 @@ export default class SolanaWallet {
 
       // Build transaction
       const transaction = new Transaction();
+      transaction.add(approveInstruction);
       transaction.add(depositInstruction);
       const { blockhash } = await this.connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
@@ -1009,7 +1077,6 @@ export default class SolanaWallet {
       const simulation = await this.connection.simulateTransaction(versionedTx, {
         sigVerify: false
       });
-      console.log("depositWithFee simulation: %o", simulation.value);
       console.log("depositWithFee simulation: %o", JSON.stringify(simulation.value));
 
       // Estimate gas cost (Solana fees are typically fixed, but we can use simulation)
@@ -1024,6 +1091,7 @@ export default class SolanaWallet {
 
       result.sendParam = {
         transaction: transaction,
+        signers: [],
       };
 
       // Calculate total fees
