@@ -7,8 +7,9 @@ import { ToastContainer } from "react-toastify";
 import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
-import { lazy } from "react";
+import { lazy, useEffect } from "react";
 import Developer from "./views/developer";
+import { sdk } from "@farcaster/miniapp-sdk";
 
 const History = lazy(() => import("./views/history"));
 const LearnMore = lazy(() => import("./views/learn-more"));
@@ -48,6 +49,10 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
+  useEffect(() => {
+    sdk.actions.ready();
+  }, []);
+
   return (
     <WalletsProvider>
       <RouterProvider router={router} />
