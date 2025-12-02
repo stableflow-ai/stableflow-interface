@@ -31,8 +31,31 @@ export function generateFarcasterJson(): Plugin {
       const farcasterJson = deepCopyConfig(minikitConfig)
       const outputPath = join(outputDir, 'farcaster.json')
       writeFileSync(outputPath, JSON.stringify(farcasterJson, null, 2), 'utf-8')
-      
+
       console.log('✓ Generated farcaster.json at', outputPath)
+    },
+    transformIndexHtml(html) {
+      const miniappMeta = {
+        version: minikitConfig.miniapp.version,
+        imageUrl: minikitConfig.miniapp.heroImageUrl,
+        button: {
+          title: "Stablecoins to any chain",
+          action: {
+            type: "launch_frame",
+            name: "Launch Stableflow"
+          }
+        }
+      }
+
+      const metaContent = JSON.stringify(miniappMeta)
+      const metaTag = `<meta name="fc:miniapp" content='${metaContent}' />`
+
+      const existingMetaRegex = /<meta\s+name=["']fc:miniapp["'][^>]*>/i
+      if (existingMetaRegex.test(html)) {
+        return html.replace(existingMetaRegex, metaTag)
+      }
+
+      return html.replace('</head>', `    ${metaTag}\n  </head>`)
     },
   }
 }
