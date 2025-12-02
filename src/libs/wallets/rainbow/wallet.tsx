@@ -7,6 +7,9 @@ import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { addressToBytes32 } from "@/utils/address-validation";
 import { USDT0_LEGACY_FEE } from "@/services/usdt0/config";
 import { quoteSignature } from "../utils/cctp";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { chainsRpcUrls } from "@/config/chains";
+import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -428,6 +431,25 @@ export default class RainbowWallet {
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
     const proxyContractRead = new ethers.Contract(proxyAddress, abi, this.provider);
 
+    let realRecipient = recipient;
+    // get ATA address
+    if (toToken.chainType === "sol") {
+      const connection = new Connection(chainsRpcUrls.Solana);
+
+      const wallet = new PublicKey(recipient);
+      const USDC_MINT = new PublicKey(toToken.contractAddress);
+
+      const ata = getAssociatedTokenAddressSync(USDC_MINT, wallet);
+
+      const accountInfo = await connection.getAccountInfo(ata);
+
+      if (!accountInfo) {
+        result.needCreateTokenAccount = true;
+      } else {
+        realRecipient = ata.toBase58(); 
+      }
+    }
+
     // 1. get user nonce
     let userNonce = await proxyContractRead.userNonces(refundTo);
 
@@ -436,7 +458,7 @@ export default class RainbowWallet {
       address: refundTo,
       amount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
       destination_domain_id: destinationDomain,
-      receipt_address: recipient,
+      receipt_address: realRecipient,
       source_domain_id: sourceDomain,
       user_nonce: Number(userNonce),
     });
@@ -463,7 +485,7 @@ export default class RainbowWallet {
       // destinationDomain
       destinationDomain,
       // mintRecipient
-      addressToBytes32(toToken.chainType, recipient),
+      addressToBytes32(toToken.chainType, realRecipient),
       // burnToken
       fromToken.contractAddress,
       // destinationCaller

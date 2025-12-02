@@ -1024,7 +1024,6 @@ export default class SolanaWallet {
 
       result.sendParam = {
         transaction: transaction,
-        signature: signature, // Store signature for later use if needed
       };
 
       // Calculate total fees
@@ -1041,5 +1040,58 @@ export default class SolanaWallet {
       console.log("quoteCCTP failed: %o", error);
       return { errMsg: error.message };
     }
+  }
+
+  async createAssociatedTokenAddress(params: any) {
+    const {
+      tokenMint,
+    } = params;
+
+    if (!this.publicKey) {
+      throw new Error("Wallet not connected");
+    }
+
+    const ownerPubkey = this.publicKey;
+    const mint = new PublicKey(tokenMint);
+    const associatedTokenAccount = getAssociatedTokenAddressSync(mint, ownerPubkey);
+
+    console.log("associatedTokenAccount: %o", associatedTokenAccount);
+
+    const createTokenAccount = async () => {
+      const transaction = new Transaction();
+
+      transaction.add(
+        createAssociatedTokenAccountInstruction(
+          ownerPubkey,
+          associatedTokenAccount,
+          ownerPubkey,
+          mint
+        )
+      );
+
+      const { blockhash } = await this.connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = ownerPubkey;
+
+      const signedTransaction = await this.signTransaction(transaction);
+
+      const signature = await this.connection.sendRawTransaction(
+        signedTransaction.serialize()
+      );
+
+      await this.checkTransactionStatus(signature);
+
+      return associatedTokenAccount;
+    };
+
+    try {
+      const accountRes = await getAccount(this.connection, associatedTokenAccount);
+      console.log("associatedTokenAccount account: %o", accountRes);
+      return associatedTokenAccount;
+    } catch (error) {
+      console.log("get ata failed: %o", error);
+    }
+
+    return createTokenAccount();
   }
 }

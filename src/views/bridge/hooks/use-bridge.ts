@@ -327,6 +327,8 @@ export default function useBridge(props?: any) {
 
       // @ts-ignore
       const wallet = wallets[walletStore.fromToken.chainType];
+      // @ts-ignore
+      const toWallet = wallets[walletStore.toToken.chainType];
       const _amount = Big(bridgeStore.amount)
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
@@ -350,6 +352,27 @@ export default function useBridge(props?: any) {
         });
         bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
           needApprove: false,
+        });
+        return;
+      }
+
+      // create solana usdc account
+      if (_quote?.data?.needCreateTokenAccount) {
+        const createResult = await toWallet.wallet?.createAssociatedTokenAddress?.({
+          tokenMint: walletStore.toToken.contractAddress,
+        });
+        bridgeStore.set({ transferring: false });
+        if (!createResult) {
+          toast.fail({
+            title: `Initialize Solana ${walletStore.toToken.symbol} Account failed`,
+          });
+          return;
+        }
+        toast.success({
+          title: `Initialize Solana ${walletStore.toToken.symbol} Account success`,
+        });
+        bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+          needCreateTokenAccount: false,
         });
         return;
       }
