@@ -5,7 +5,6 @@ import {
   VersionedTransaction,
   SystemProgram,
   LAMPORTS_PER_SOL,
-  Keypair,
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
@@ -14,7 +13,6 @@ import {
   getAccount,
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync,
-  createApproveInstruction
 } from "@solana/spl-token";
 import { chainsRpcUrls } from "@/config/chains";
 import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
@@ -38,9 +36,7 @@ import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
 import stableflowProxyIdl from "@/services/oneclick/stableflow-proxy.json";
-import cctpProxyIdl from "@/services/cctp/stableflow.json";
 import { quoteSignature } from "../utils/cctp";
-import { ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const getAddressLookupTable = async (
   _lookupTableAddress: string | PublicKey,
@@ -682,7 +678,7 @@ export default class SolanaWallet {
   }
 
   async sendTransaction(params: any) {
-    const { transaction, signers } = params;
+    const { transaction } = params;
 
     if (!this.publicKey) {
       throw new Error("Wallet not connected");
@@ -706,19 +702,7 @@ export default class SolanaWallet {
     }
 
     // Sign the transaction
-    let signedTransaction = await this.signTransaction(web3Tx);
-
-    if (signers && signers.length > 0) {
-      if (web3Tx instanceof Transaction) {
-        // For Transaction type, we can partially sign with the additional keypair
-        for (const signer of signers) {
-          signedTransaction.partialSign(signer);
-        }
-      } else if (web3Tx instanceof VersionedTransaction) {
-        // For VersionedTransaction, we need to sign with all signers
-        signedTransaction.sign(signers);
-      }
-    }
+    const signedTransaction = await this.signTransaction(web3Tx);
 
     // Send the transaction
     const signature = await this.connection.sendRawTransaction(
@@ -886,19 +870,9 @@ export default class SolanaWallet {
       };
 
       const PROGRAM_ID = new PublicKey(proxyAddress);
-      const STATE_PDA = new PublicKey("coNkR1719kohnaxQrVPwvaGdVrqPTps6NFUZic3hGJb");
-      const PROTOCOL_FEE_ACCOUNT = new PublicKey("DGNLzBUrn18LC3CuStGAQrRLuzfKtw3vDoHLjEp7UtPA");
       const MINT = new PublicKey(fromToken.contractAddress);
       const sender = this.publicKey!;
       const userPubkey = new PublicKey(refundTo || sender.toString());
-
-      // Create AnchorProvider
-      const provider = new AnchorProvider(this.connection, this.signer, {
-        commitment: "confirmed"
-      });
-
-      // Create Program instance
-      const program = new Program<any>(cctpProxyIdl, PROGRAM_ID, provider);
 
       // Derive UserState PDA
       const [userStatePda] = PublicKey.findProgramAddressSync(
@@ -921,6 +895,9 @@ export default class SolanaWallet {
         console.log("UserState not found, using nonce 0");
       }
 
+      // Get user's token account (ATA)
+      const userTokenAccount = getAssociatedTokenAddressSync(MINT, sender);
+
       // Quote signature
       const signatureRes = await quoteSignature({
         address: userPubkey.toString(),
@@ -929,16 +906,14 @@ export default class SolanaWallet {
         receipt_address: recipient,
         source_domain_id: sourceDomain,
         user_nonce: userNonce,
+        ata_address: userTokenAccount,
       });
 
       const {
         bridge_fee,
-        finality_threshold,
-        max_fee,
         mint_fee,
         receipt_amount,
         signature,
-        destination_caller,
       } = signatureRes;
 
       result.fees.estimateMintGasUsd = numberRemoveEndZero(
@@ -951,128 +926,22 @@ export default class SolanaWallet {
           .div(10 ** fromToken.decimals)
           .toFixed(fromToken.decimals)
       );
-      const chargedAmount = BigInt(amountWei) - BigInt(mint_fee);
       result.outputAmount = numberRemoveEndZero(
         Big(receipt_amount || 0)
           .div(10 ** fromToken.decimals)
           .toFixed(fromToken.decimals, 0)
       );
 
-      // Convert recipient address to bytes32 (32 bytes)
-      const recipientBytes32 = Buffer.alloc(32);
-      if (recipient.startsWith("0x")) {
-        Buffer.from(recipient.slice(2), "hex").copy(recipientBytes32);
+      const operatorTx = Transaction.from(Buffer.from(signature, 'base64'));
+
+      if (!operatorTx.verifySignatures(false)) {
+        console.log('❌ Signature verification failed');
       } else {
-        // Assume it's a Solana address, convert to bytes
-        const recipientPubkey = new PublicKey(recipient);
-        recipientPubkey.toBuffer().copy(recipientBytes32, 0);
+        console.log('✅ Signature verification success');
       }
 
-      // Convert destinationCaller to bytes32 (zero-padded)
-      const destinationCallerBytes32 = Buffer.alloc(32, 0);
-
-      // Get user's token account (ATA)
-      const userTokenAccount = getAssociatedTokenAddressSync(MINT, sender);
-
-      const messageTransmitterProgram = new PublicKey("CCTPV2Sm4AdWt5296sk4P66VBZ7bEhcARwFaaS9YPbeC");
-      const tokenMessengerMinterProgram = new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe");
-
-      const [messageTransmitterAccount] = PublicKey.findProgramAddressSync(
-        [Buffer.from("message_transmitter")],
-        messageTransmitterProgram
-      );
-      const [tokenMessengerAccount] = PublicKey.findProgramAddressSync(
-        [Buffer.from("token_messenger")],
-        tokenMessengerMinterProgram
-      );
-      const [tokenMinterAccount] = PublicKey.findProgramAddressSync(
-        [Buffer.from("token_minter")],
-        tokenMessengerMinterProgram
-      );
-      const [localToken] = PublicKey.findProgramAddressSync(
-        [Buffer.from("local_token"), MINT.toBuffer()],
-        tokenMessengerMinterProgram
-      );
-      const domainBuffer = Buffer.alloc(4);
-      domainBuffer.writeUInt32LE(destinationDomain, 0);
-      const [remoteTokenMessengerKey] = PublicKey.findProgramAddressSync(
-        [Buffer.from("remote_token_messenger"), domainBuffer],
-        tokenMessengerMinterProgram
-      );
-      const [authorityPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("sender_authority")],
-        tokenMessengerMinterProgram
-      );
-
-      // Generate a new keypair for the MessageSent event account (as per official example)
-      const messageSentEventAccountKeypair = Keypair.generate();
-
-      console.log("messageTransmitterProgram: %o", messageTransmitterProgram.toBase58());
-      console.log("tokenMessengerMinterProgram: %o", tokenMessengerMinterProgram.toBase58());
-      console.log("messageTransmitterAccount: %o", messageTransmitterAccount.toBase58());
-      console.log("tokenMessengerAccount: %o", tokenMessengerAccount.toBase58());
-      console.log("tokenMinterAccount: %o", tokenMinterAccount.toBase58());
-      console.log("localToken: %o", localToken.toBase58());
-      console.log("remoteTokenMessengerKey: %o", remoteTokenMessengerKey.toBase58());
-      console.log("authorityPda: %o", authorityPda.toBase58());
-      console.log("messageSentEventAccountKeypair: %o", messageSentEventAccountKeypair.publicKey.toBase58());
-      console.log("messageSentEventAccountKeypair: %o", messageSentEventAccountKeypair.secretKey);
-
-      const approveInstruction = createApproveInstruction(
-        userTokenAccount,
-        authorityPda,
-        sender,
-        BigInt(amountWei.toString()),
-        [],
-        TOKEN_PROGRAM_ID
-      );
-
-      // Build depositWithFee instruction
-      const depositInstruction = await program.methods
-        .depositWithFee(
-          new BN(amountWei.toString()),
-          new BN(chargedAmount.toString()),
-          destinationDomain,
-          Array.from(recipientBytes32),
-          MINT,
-          Array.from(destinationCallerBytes32),
-          new BN(max_fee.toString()),
-          finality_threshold
-        )
-        .accounts({
-          stableFlowState: STATE_PDA,
-          userState: userStatePda,
-          tokenMint: MINT,
-          userTokenAccount: userTokenAccount,
-          protocolFeeAccount: PROTOCOL_FEE_ACCOUNT,
-          eventRentPayer: sender,
-          senderAuthorityPda: authorityPda, // pdas.authorityPda.publicKey
-          messageTransmitter: messageTransmitterAccount, // pdas.messageTransmitterAccount.publicKey
-          tokenMessenger: tokenMessengerAccount, // pdas.tokenMessengerAccount.publicKey
-          remoteTokenMessenger: remoteTokenMessengerKey, // pdas.remoteTokenMessengerKey.publicKey
-          tokenMinter: tokenMinterAccount, // pdas.tokenMinterAccount.publicKey
-          localToken: localToken, // pdas.localToken.publicKey
-          messageSentEventData: sender, // messageSentEventAccountKeypair.publicKey
-          cctpMessageTransmitterProgram: messageTransmitterProgram, // messageTransmitterProgram.programId
-          cctpTokenMessengerMinterProgram: tokenMessengerMinterProgram, // tokenMessengerMinterProgram.programId
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          user: sender,
-          operator: sender, // This might need to be from state
-          systemProgram: SystemProgram.programId,
-        })
-        .instruction();
-
-      // Build transaction
-      const transaction = new Transaction();
-      transaction.add(approveInstruction);
-      transaction.add(depositInstruction);
-      const { blockhash } = await this.connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = sender;
-
       // Simulate entire transaction (including account creation if needed) to estimate fees
-      const message = transaction.compileMessage();
+      const message = operatorTx.compileMessage();
       const versionedTx = new VersionedTransaction(message);
       const simulation = await this.connection.simulateTransaction(versionedTx, {
         sigVerify: false
@@ -1090,8 +959,7 @@ export default class SolanaWallet {
       result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
 
       result.sendParam = {
-        transaction: transaction,
-        signers: [],
+        transaction: operatorTx,
       };
 
       // Calculate total fees
