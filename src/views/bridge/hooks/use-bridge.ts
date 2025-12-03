@@ -87,8 +87,12 @@ export default function useBridge(props?: any) {
   }, { manual: true });
 
 
-  const quoteOneclick = async (params: any): Promise<QuoteData> => {
+  const quoteOneclick = async (params: any, requestId?: number): Promise<QuoteData> => {
     try {
+      // Check request ID, skip setting loading state if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
       bridgeStore.setQuoting(Service.OneClick, true);
       setLiquidityErrorMessage(liquidityError);
 
@@ -107,6 +111,12 @@ export default function useBridge(props?: any) {
         prices,
       });
 
+      // Check request ID again before setting result to ensure it's still the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        bridgeStore.setQuoting(Service.OneClick, false);
+        throw new Error("Request cancelled: outdated request");
+      }
+
       if (quoteRes.data?.quote) {
         if (Big(quoteRes.data.quote.timeEstimate || 0).gt(60)) {
           quoteRes.data.quote.timeEstimate = Math.floor(Math.random() * 6) + 40;
@@ -121,6 +131,16 @@ export default function useBridge(props?: any) {
         data: quoteRes.data,
       };
     } catch (error: any) {
+      // If it's a cancelled request error, return directly without setting error state
+      if (error?.message === "Request cancelled: outdated request") {
+        throw error;
+      }
+
+      // Check request ID, ignore error if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+
       const defaultErrorMessage = "Failed to get quote, please try again later";
       const getQuoteErrorMessage = () => {
         if (
@@ -164,8 +184,12 @@ export default function useBridge(props?: any) {
     }
   };
 
-  const quoteUsdt0 = async (params: any): Promise<QuoteData> => {
+  const quoteUsdt0 = async (params: any, requestId?: number): Promise<QuoteData> => {
     try {
+      // Check request ID, skip setting loading state if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
       bridgeStore.setQuoting(Service.Usdt0, true);
 
       const quoteRes = await ServiceMap[Service.Usdt0].quote({
@@ -181,6 +205,12 @@ export default function useBridge(props?: any) {
         prices,
       });
 
+      // Check request ID again before setting result to ensure it's still the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        bridgeStore.setQuoting(Service.Usdt0, false);
+        throw new Error("Request cancelled: outdated request");
+      }
+
       bridgeStore.setQuoting(Service.Usdt0, false);
       bridgeStore.setQuoteData(Service.Usdt0, quoteRes);
       return {
@@ -188,6 +218,16 @@ export default function useBridge(props?: any) {
         data: quoteRes,
       };
     } catch (error: any) {
+      // If it's a cancelled request error, return directly without setting error state
+      if (error?.message === "Request cancelled: outdated request") {
+        throw error;
+      }
+
+      // Check request ID, ignore error if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+
       console.log("quoteUsdt0 failed: %o", error);
       const _quoteData = {
         type: Service.Usdt0,
@@ -200,8 +240,12 @@ export default function useBridge(props?: any) {
     }
   };
 
-  const quoteCCTP = async (params: any): Promise<QuoteData> => {
+  const quoteCCTP = async (params: any, requestId?: number): Promise<QuoteData> => {
     try {
+      // Check request ID, skip setting loading state if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
       bridgeStore.setQuoting(Service.CCTP, true);
 
       const quoteRes = await ServiceMap[Service.CCTP].quote({
@@ -217,6 +261,12 @@ export default function useBridge(props?: any) {
         prices,
       });
 
+      // Check request ID again before setting result to ensure it's still the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        bridgeStore.setQuoting(Service.CCTP, false);
+        throw new Error("Request cancelled: outdated request");
+      }
+
       bridgeStore.setQuoting(Service.CCTP, false);
       bridgeStore.setQuoteData(Service.CCTP, quoteRes);
       return {
@@ -224,6 +274,16 @@ export default function useBridge(props?: any) {
         data: quoteRes,
       };
     } catch (error: any) {
+      // If it's a cancelled request error, return directly without setting error state
+      if (error?.message === "Request cancelled: outdated request") {
+        throw error;
+      }
+
+      // Check request ID, ignore error if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+
       const _quoteData = {
         type: Service.CCTP,
         errMsg: error.message,
@@ -236,7 +296,10 @@ export default function useBridge(props?: any) {
   };
 
   const isAutoSelect = useRef(false);
-  const quote = async (params: { dry: boolean; }, isSync?: boolean) => {
+  // Request ID counter to ensure only the latest request results are processed
+  const requestIdRef = useRef(0);
+  
+  const quote = async (params: { dry: boolean; }, isSync?: boolean, requestId?: number) => {
     if (!isSync) {
       bridgeStore.clearQuoteData();
     }
@@ -292,19 +355,43 @@ export default function useBridge(props?: any) {
       wallet: wallet.wallet,
     };
 
+    // Use request ID to ensure only the latest request results are processed
+    const currentRequestId = requestId ?? requestIdRef.current;
+
     if (isSync) {
       const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
+      // Sync calls don't need request ID check
       return currentQuoteService.quote(quoteParams);
     }
-
+    
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
-      quoteService.quote(quoteParams).then((_quoteRes: any) => {
+      // Pass request ID to service function
+      quoteService.quote(quoteParams, currentRequestId).then((_quoteRes: any) => {
+        // Check if it's the latest request, ignore result if not
+        if (currentRequestId !== requestIdRef.current) {
+          console.log(`[${quoteService.service}] Ignored outdated quote result, current requestId: ${requestIdRef.current}, result requestId: ${currentRequestId}`);
+          return;
+        }
+        
         console.log("%c[%s]Quote Result: %o", "background:#f00;color:#fff;", quoteService.service, _quoteRes);
 
         if (i >= quoteServices.length - 1) {
           isAutoSelect.current = true;
         }
+      }).catch((error: any) => {
+        // Silently ignore if it's a cancelled request error
+        if (error?.message === "Request cancelled: outdated request") {
+          console.log(`[${quoteService.service}] Request cancelled: outdated request`);
+          return;
+        }
+        // Also check request ID to avoid old request errors overwriting new requests
+        if (currentRequestId !== requestIdRef.current) {
+          console.log(`[${quoteService.service}] Ignored outdated quote error, current requestId: ${requestIdRef.current}, error requestId: ${currentRequestId}`);
+          return;
+        }
+        // Re-throw other errors for the caller to handle
+        console.error(`[${quoteService.service}] Quote error:`, error);
       });
     }
   };
@@ -593,7 +680,15 @@ export default function useBridge(props?: any) {
     return "";
   };
 
-  const { run: debouncedQuote, cancel: cancelQuote } = useDebounceFn(quote, {
+  // Wrap quote function to generate a new request ID on each call
+  const quoteWithRequestId = async (params: { dry: boolean; }, isSync?: boolean) => {
+    // Generate a new request ID
+    requestIdRef.current += 1;
+    const currentRequestId = requestIdRef.current;
+    return quote(params, isSync, currentRequestId);
+  };
+
+  const { run: debouncedQuote, cancel: cancelQuote } = useDebounceFn(quoteWithRequestId, {
     wait: 1000
   });
 
