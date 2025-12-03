@@ -819,8 +819,8 @@ export default function useBridge(props?: any) {
         netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
       }
 
-      console.log("%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));
-      console.log("%s data: %o,  output amount: %o", _serviceB, dataB, netB.toFixed(6, 0));
+      // console.log("%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));
+      // console.log("%s data: %o,  output amount: %o", _serviceB, dataB, netB.toFixed(6, 0));
 
       if (netB.gt(netA)) return 1;
       if (netA.gt(netB)) return -1;
