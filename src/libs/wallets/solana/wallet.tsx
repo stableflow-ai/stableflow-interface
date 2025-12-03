@@ -937,7 +937,7 @@ export default class SolanaWallet {
       if (!operatorTx.verifySignatures(false)) {
         console.log('❌ Signature verification failed');
       } else {
-        console.log('✅ Signature verification success');
+        // console.log('✅ Signature verification success');
       }
 
       // Simulate entire transaction (including account creation if needed) to estimate fees
@@ -946,7 +946,7 @@ export default class SolanaWallet {
       const simulation = await this.connection.simulateTransaction(versionedTx, {
         sigVerify: false
       });
-      console.log("depositWithFee simulation: %o", JSON.stringify(simulation.value));
+      // console.log("depositWithFee simulation: %o", JSON.stringify(simulation.value));
 
       // Estimate gas cost (Solana fees are typically fixed, but we can use simulation)
       // @ts-ignore Solana base fee is 5000 lamports per signature
