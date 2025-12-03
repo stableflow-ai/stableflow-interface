@@ -42,16 +42,19 @@ export default function Result() {
       });
       return;
     }
-    const netFee = Big(bridgeStore.amount).minus(bridgeStore.quoteData?.quote?.amountOutFormatted);
+    const netFee = Big(bridgeStore.quoteData?.quote?.amountInFormatted || 0).minus(bridgeStore.quoteData?.quote?.amountOutFormatted);
     const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
-      return acc.plus(Big(bridgeStore.amount).times(Big(item.fee).div(10000)));
+      return acc.plus(Big(bridgeStore.quoteData?.quote?.amountInFormatted || 0).times(Big(item.fee).div(10000)));
     }, Big(0));
 
-    const realNetFee = Big(netFee).minus(bridgeFeeValue);
+    let realNetFee = Big(netFee).minus(bridgeFeeValue);
+    if (realNetFee.lte(0)) {
+      realNetFee = Big(0);
+    }
     setFees({
       netFee: realNetFee,
       bridgeFee: "0.01%",
-      bridgeFeeValue: Big(bridgeStore.amount).times(Big(1).div(10000)),
+      bridgeFeeValue: Big(bridgeStore.quoteData?.quote?.amountInFormatted || 0).times(Big(1).div(10000)),
       slippage,
     });
   }, { wait: 500 });
