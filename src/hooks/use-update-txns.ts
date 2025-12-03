@@ -67,8 +67,13 @@ export default function useUpdateTxns() {
             toChainTxHash: result.to_tx_hash,
           });
           const status = result.status;
+          // success
           if (status === 1) {
             historyStore.updateStatus(address, "SUCCESS");
+          }
+          // Expired
+          if (status === 2) {
+            historyStore.updateStatus(address, "FAILED");
           }
         } catch (error) {
         }
