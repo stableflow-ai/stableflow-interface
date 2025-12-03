@@ -12,7 +12,7 @@ import {
   TOKEN_PROGRAM_ID,
   getAccount,
   createAssociatedTokenAccountInstruction,
-  getAssociatedTokenAddressSync
+  getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import { chainsRpcUrls } from "@/config/chains";
 import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
@@ -36,9 +36,7 @@ import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
 import stableflowProxyIdl from "@/services/oneclick/stableflow-proxy.json";
-import cctpProxyIdl from "@/services/cctp/stableflow.json";
 import { quoteSignature } from "../utils/cctp";
-import { ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const getAddressLookupTable = async (
   _lookupTableAddress: string | PublicKey,
@@ -872,23 +870,13 @@ export default class SolanaWallet {
       };
 
       const PROGRAM_ID = new PublicKey(proxyAddress);
-      const STATE_PDA = new PublicKey("coNkR1719kohnaxQrVPwvaGdVrqPTps6NFUZic3hGJb");
-      const PROTOCOL_FEE_ACCOUNT = new PublicKey("DGNLzBUrn18LC3CuStGAQrRLuzfKtw3vDoHLjEp7UtPA");
       const MINT = new PublicKey(fromToken.contractAddress);
       const sender = this.publicKey!;
       const userPubkey = new PublicKey(refundTo || sender.toString());
 
-      // Create AnchorProvider
-      const provider = new AnchorProvider(this.connection, this.signer, {
-        commitment: "confirmed"
-      });
-
-      // Create Program instance
-      const program = new Program<any>(cctpProxyIdl, PROGRAM_ID, provider);
-
       // Derive UserState PDA
       const [userStatePda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("user_state"), userPubkey.toBuffer()],
+        [Buffer.from("user"), userPubkey.toBuffer()],
         PROGRAM_ID
       );
 
@@ -907,6 +895,9 @@ export default class SolanaWallet {
         console.log("UserState not found, using nonce 0");
       }
 
+      // Get user's token account (ATA)
+      const userTokenAccount = getAssociatedTokenAddressSync(MINT, sender);
+
       // Quote signature
       const signatureRes = await quoteSignature({
         address: userPubkey.toString(),
@@ -915,16 +906,14 @@ export default class SolanaWallet {
         receipt_address: recipient,
         source_domain_id: sourceDomain,
         user_nonce: userNonce,
+        ata_address: userTokenAccount,
       });
 
       const {
         bridge_fee,
-        finality_threshold,
-        max_fee,
         mint_fee,
         receipt_amount,
         signature,
-        destination_caller,
       } = signatureRes;
 
       result.fees.estimateMintGasUsd = numberRemoveEndZero(
@@ -937,79 +926,26 @@ export default class SolanaWallet {
           .div(10 ** fromToken.decimals)
           .toFixed(fromToken.decimals)
       );
-      const chargedAmount = BigInt(amountWei) - BigInt(mint_fee);
       result.outputAmount = numberRemoveEndZero(
         Big(receipt_amount || 0)
           .div(10 ** fromToken.decimals)
           .toFixed(fromToken.decimals, 0)
       );
 
-      // Convert recipient address to bytes32 (32 bytes)
-      const recipientBytes32 = Buffer.alloc(32);
-      if (recipient.startsWith("0x")) {
-        Buffer.from(recipient.slice(2), "hex").copy(recipientBytes32);
+      const operatorTx = Transaction.from(Buffer.from(signature, 'base64'));
+
+      if (!operatorTx.verifySignatures(false)) {
+        console.log('❌ Signature verification failed');
       } else {
-        // Assume it's a Solana address, convert to bytes
-        const recipientPubkey = new PublicKey(recipient);
-        recipientPubkey.toBuffer().copy(recipientBytes32, 0);
+        console.log('✅ Signature verification success');
       }
 
-      // Convert destinationCaller to bytes32 (zero-padded)
-      const destinationCallerBytes32 = Buffer.alloc(32, 0);
-
-      // Get user's token account (ATA)
-      const userTokenAccount = getAssociatedTokenAddressSync(MINT, sender);
-
-      // Build depositWithFee instruction
-      const depositInstruction = await program.methods
-        .depositWithFee(
-          new BN(amountWei.toString()),
-          new BN(chargedAmount.toString()),
-          destinationDomain,
-          Array.from(recipientBytes32),
-          MINT,
-          Array.from(destinationCallerBytes32),
-          new BN(max_fee.toString()),
-          finality_threshold
-        )
-        .accounts({
-          stableFlowState: STATE_PDA,
-          userState: userStatePda,
-          tokenMint: MINT,
-          userTokenAccount: userTokenAccount,
-          protocolFeeAccount: PROTOCOL_FEE_ACCOUNT,
-          eventRentPayer: sender,
-          senderAuthorityPda: sender, // This might need to be a PDA, check IDL
-          messageTransmitter: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"), // CCTP Token Messenger
-          tokenMessenger: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
-          remoteTokenMessenger: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
-          tokenMinter: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
-          localToken: MINT,
-          messageSentEventData: sender, // This should be a new account, might need to derive
-          cctpMessageTransmitterProgram: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
-          cctpTokenMessengerMinterProgram: new PublicKey("CCTPV2vPZJS2u2BBsUoscuikbYjnpFmbFsvVuJdgUMQe"),
-          tokenProgram: TOKEN_PROGRAM_ID,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          user: sender,
-          operator: sender, // This might need to be from state
-          systemProgram: SystemProgram.programId,
-        })
-        .instruction();
-
-      // Build transaction
-      const transaction = new Transaction();
-      transaction.add(depositInstruction);
-      const { blockhash } = await this.connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = sender;
-
       // Simulate entire transaction (including account creation if needed) to estimate fees
-      const message = transaction.compileMessage();
+      const message = operatorTx.compileMessage();
       const versionedTx = new VersionedTransaction(message);
       const simulation = await this.connection.simulateTransaction(versionedTx, {
         sigVerify: false
       });
-      console.log("depositWithFee simulation: %o", simulation.value);
       console.log("depositWithFee simulation: %o", JSON.stringify(simulation.value));
 
       // Estimate gas cost (Solana fees are typically fixed, but we can use simulation)
@@ -1023,7 +959,7 @@ export default class SolanaWallet {
       result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
 
       result.sendParam = {
-        transaction: transaction,
+        transaction: operatorTx,
       };
 
       // Calculate total fees
