@@ -63,10 +63,11 @@ export default class RainbowWallet {
       const contract = new ethers.Contract(token.contractAddress, erc20Abi, provider);
 
       const balance = await contract.balanceOf(account);
+      // console.log("Success getting %s token balance: %o", token.contractAddress, balance);
 
       return balance.toString();
     } catch (err) {
-      console.error("Error getting token balance:", err);
+      console.log("Error getting token balance: %o", err);
       return "0";
     }
   }
@@ -451,7 +452,7 @@ export default class RainbowWallet {
     }
 
     // 1. get user nonce
-    let userNonce = await proxyContractRead.userNonces(refundTo);
+    const userNonce = await proxyContract.userNonces(refundTo);
 
     // 2. quote signature
     const signatureRes = await quoteSignature({
