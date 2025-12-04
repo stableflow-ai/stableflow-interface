@@ -880,7 +880,7 @@ export default class SolanaWallet {
         PROGRAM_ID
       );
 
-      // Get user nonce from UserState account
+      // Get user nonce from UserState account, useless
       let userNonce = 0;
       try {
         const accountInfo = await this.connection.getAccountInfo(userStatePda);
@@ -905,7 +905,7 @@ export default class SolanaWallet {
         destination_domain_id: destinationDomain,
         receipt_address: recipient,
         source_domain_id: sourceDomain,
-        user_nonce: userNonce,
+        // user_nonce: userNonce,
         ata_address: userTokenAccount,
       });
 
