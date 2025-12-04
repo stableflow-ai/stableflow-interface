@@ -446,7 +446,7 @@ export default class RainbowWallet {
       if (!accountInfo) {
         result.needCreateTokenAccount = true;
       } else {
-        realRecipient = ata.toBase58(); 
+        realRecipient = ata.toBase58();
       }
     }
 
@@ -497,15 +497,12 @@ export default class RainbowWallet {
       // signature
       signature,
     ];
-    result.sendParam = {
-      method: "depositWithFee",
-      contract: proxyContract,
-      param: depositParam,
-    };
 
     // 3. estimate deposit gas
+    let depositWithFeeGasLimit = 4000000n;
     try {
       const gasLimit = await proxyContract.depositWithFee.estimateGas(...depositParam);
+      depositWithFeeGasLimit = gasLimit;
       const { usd, wei } = await this.getEstimateGas({
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
@@ -524,6 +521,15 @@ export default class RainbowWallet {
       result.estimateSourceGas = wei;
       result.estimateSourceGasUsd = usd;
     }
+
+    result.sendParam = {
+      method: "depositWithFee",
+      contract: proxyContract,
+      param: [
+        ...depositParam,
+        { gasLimit: depositWithFeeGasLimit }
+      ],
+    };
 
     // 4. check approve
     const allowance = await this.allowance({
@@ -595,14 +601,11 @@ export default class RainbowWallet {
       // amount
       amountWei,
     ];
-    result.sendParam = {
-      method: "proxyTransfer",
-      contract: proxyContract,
-      param: proxyParam,
-    };
 
+    let proxyTransferGasLimit = 4000000n;
     try {
       const gasLimit = await proxyContract.proxyTransfer.estimateGas(...proxyParam);
+      proxyTransferGasLimit = gasLimit;
       const { usd, wei } = await this.getEstimateGas({
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
@@ -621,6 +624,15 @@ export default class RainbowWallet {
       result.estimateSourceGas = wei;
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
     }
+
+    result.sendParam = {
+      method: "proxyTransfer",
+      contract: proxyContract,
+      param: [
+        ...proxyParam,
+        { gasLimit: proxyTransferGasLimit }
+      ],
+    };
 
     return result;
   }
