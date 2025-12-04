@@ -23,6 +23,7 @@ import { v4 as uuidV4 } from "uuid";
 import { BASE_API_URL } from "@/config/api";
 
 const TRANSFER_MIN_AMOUNT = 1;
+const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
 
 export default function useBridge(props?: any) {
   const { liquidityError } = props ?? {};
@@ -298,6 +299,10 @@ export default function useBridge(props?: any) {
   const isAutoSelect = useRef(false);
   // Request ID counter to ensure only the latest request results are processed
   const requestIdRef = useRef(0);
+  // Auto requote timer ref for CCTP from Solana USDC
+  const autoRequoteTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Track previous quoting state to detect when quote completes
+  const prevQuotingRef = useRef<boolean>(false);
   
   const quote = async (params: { dry: boolean; }, isSync?: boolean, requestId?: number) => {
     if (!isSync) {
@@ -836,6 +841,75 @@ export default function useBridge(props?: any) {
     bridgeStore.transferring,
     bridgeStore.quoteDataMap,
     bridgeStore.quotingMap,
+  ]);
+
+  // Auto requote for CCTP from Solana USDC to any chain USDC
+  useEffect(() => {
+    // Check conditions: from Solana USDC to any chain USDC
+    const isFromSolanaUSDC = 
+      walletStore.fromToken?.chainType === "sol" && 
+      walletStore.fromToken?.symbol === "USDC";
+    const isToUSDC = walletStore.toToken?.symbol === "USDC";
+
+    // Check if quote is completed (not quoting and has quote data)
+    const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
+    const hasQuoteData = bridgeStore.quoteDataMap.size > 0;
+
+    // Check if quote just completed (was quoting, now not quoting)
+    const quoteJustCompleted = prevQuotingRef.current && !isQuoting;
+    
+    // Update previous quoting state
+    prevQuotingRef.current = isQuoting;
+
+    // Clear existing timer if conditions no longer met
+    if (
+      !isFromSolanaUSDC ||
+      !isToUSDC ||
+      bridgeStore.transferring ||
+      isQuoting ||
+      !hasQuoteData
+    ) {
+      if (autoRequoteTimerRef.current) {
+        clearTimeout(autoRequoteTimerRef.current);
+        autoRequoteTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Only start timer when quote just completed (not on every render)
+    if (quoteJustCompleted && !autoRequoteTimerRef.current) {
+      // Start timer to auto requote after CCTP_AUTO_REQUOTE_DURATION
+      autoRequoteTimerRef.current = setTimeout(() => {
+        // Only requote if still not transferring and conditions still met
+        if (
+          !bridgeStore.transferring &&
+          walletStore.fromToken?.chainType === "sol" &&
+          walletStore.fromToken?.symbol === "USDC" &&
+          walletStore.toToken?.symbol === "USDC"
+        ) {
+          console.log("Auto requoting after", CCTP_AUTO_REQUOTE_DURATION, "ms");
+          debouncedQuote({ dry: true });
+        }
+        // Clear timer ref after execution
+        autoRequoteTimerRef.current = null;
+      }, CCTP_AUTO_REQUOTE_DURATION);
+    }
+
+    // Cleanup timer on unmount
+    return () => {
+      if (autoRequoteTimerRef.current) {
+        clearTimeout(autoRequoteTimerRef.current);
+        autoRequoteTimerRef.current = null;
+      }
+    };
+  }, [
+    bridgeStore.transferring,
+    bridgeStore.quotingMap,
+    bridgeStore.quoteDataMap,
+    walletStore.fromToken?.chainType,
+    walletStore.fromToken?.symbol,
+    walletStore.toToken?.symbol,
+    debouncedQuote,
   ]);
 
   return {
