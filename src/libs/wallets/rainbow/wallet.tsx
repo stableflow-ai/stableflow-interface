@@ -452,7 +452,11 @@ export default class RainbowWallet {
     }
 
     // 1. get user nonce
-    const userNonce = await proxyContract.userNonces(refundTo);
+    let userNonce = 0n;
+    try {
+      userNonce = await proxyContract.userNonces(refundTo);
+    } catch (error) {
+    }
 
     // 2. quote signature
     const signatureRes = await quoteSignature({
