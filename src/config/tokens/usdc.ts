@@ -20,12 +20,12 @@ export const usdcChains = {
     ...chains.arb,
     services: [Service.OneClick, Service.CCTP],
   },
-  // base: {
-  //   assetId: "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
-  //   contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-  //   ...chains.base,
-  //   services: [Service.OneClick],
-  // },
+  base: {
+    assetId: "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+    contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    ...chains.base,
+    services: [Service.OneClick, Service.CCTP],
+  },
   // gnosis: {
   //   assetId:
   //     "nep141:gnosis-0x2a22f9c3b484c3629090feed35f17ff8f88f76f0.omft.near",
@@ -37,7 +37,7 @@ export const usdcChains = {
     assetId: "nep245:v2_1.omni.hot.tg:137_qiStmoQJDQPTebaPjgx5VBxZv6L",
     contractAddress: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
     ...chains.pol,
-    services: [Service.OneClick],
+    services: [Service.OneClick, Service.CCTP],
   },
   bsc: {
     assetId: "nep245:v2_1.omni.hot.tg:56_2w93GqMcEmQFDru84j3HZZWt557r",

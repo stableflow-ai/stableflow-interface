@@ -13,10 +13,11 @@ export const CCTP_TOKEN_MESSENGER: Record<string, string> = {
 export const CCTP_TOKEN_PROXY: Record<string, string> = {
   ["Ethereum"]: "0x54Cf68aB8f68813F2a2dF20Af72D19c44485a0b2",
   ["Arbitrum"]: "0x54Cf68aB8f68813F2a2dF20Af72D19c44485a0b2",
-  ["Polygon"]: "",
+  ["Polygon"]: "0x7A18854b695BA7efB7229c17D0E1Cd2679481D28",
   ["Optimism"]: "0x54Cf68aB8f68813F2a2dF20Af72D19c44485a0b2",
   ["Avalanche"]: "0xB6E3a1165aC3E0c370e316C27E959482460dBeDD",
   ["Solana"]: "8whUZNSbjJXC2UDRpo3PXo5MHzhptwVTTwpSYuTgQJNY",
+  ["Base"]: "0x7092B8E5445Fca836B0f9780c77C38C7cbb9A43D",
 };
 
 export const CCTP_TOKEN_MESSENGER_ABI = [
