@@ -5,6 +5,7 @@ import { useState } from "react";
 import useBridgeStore from "@/stores/use-bridge";
 import Popover from "@/components/popover";
 import clsx from "clsx";
+import { Service } from "@/services";
 
 export default function Address({ token, isTo, addressValidation }: any) {
   if (!token?.chainType)
@@ -46,7 +47,12 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
   const [edit, setEdit] = useState(false);
   const bridgeStore = useBridgeStore();
   return (
-    <div className="flex items-center gap-[8px] w-full md:w-[unset]">
+    <div
+      className={clsx(
+        "flex items-center gap-[8px] w-full md:w-[unset]",
+        isTo ? "justify-end" : "justify-start",
+      )}
+    >
       {edit ? (
         <input
           type="text"
@@ -79,7 +85,7 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
               <img className="w-[12px] h-[12px]" src={wallet.walletIcon} />
             )
           )}
-          <span className="text-[14px] font-[500]">
+          <span className="text-[12px] text-[#0E3616] font-[400]">
             {formatAddress(wallet.account, 5, 4)}
           </span>
         </>
@@ -96,7 +102,7 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
             Cancel
           </button>
         ) : (
-          !(bridgeStore.recipientAddress && !!addressValidation) && (
+          !(bridgeStore.recipientAddress && !!addressValidation) && !(bridgeStore.quoteDataService === Service.CCTP && isTo && token.chainType === "sol") && (
             <Popover
               content={
                 <div className="w-[142px] h-[42px] text-[14px] text-center leading-[42px] rounded-[8px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">

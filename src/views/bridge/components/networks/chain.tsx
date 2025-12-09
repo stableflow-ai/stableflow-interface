@@ -5,21 +5,22 @@ import { formatNumber } from "@/utils/format/number";
 import { useMemo } from "react";
 import useTokenBalance from "@/hooks/use-token-balance";
 import Loading from "@/components/loading/icon";
+import Big from "big.js";
 
 export default function Chain({ token, isTo }: any) {
   const walletStore = useWalletStore();
   const openWallet = () => {
+    // Determine which token is currently selected for this side
+    const currentToken = isTo ? walletStore.toToken : walletStore.fromToken;
+    const tokenSymbol = currentToken?.symbol || (isTo ? walletStore.fromToken?.symbol : walletStore.toToken?.symbol);
+    
     const params: Record<string, any> = {
       showWallet: true,
-      isTo
+      isTo,
     };
-    if (walletStore.selectedToken === "USDT") {
-      params.usdtExpand = true;
-      params.usdcExpand = false;
-    }
-    if (walletStore.selectedToken === "USDC") {
-      params.usdtExpand = false;
-      params.usdcExpand = true;
+
+    if (tokenSymbol) {
+      params.selectedToken = tokenSymbol;
     }
 
     walletStore.set(params);
@@ -28,12 +29,12 @@ export default function Chain({ token, isTo }: any) {
     return (
       <div
         className={clsx(
-          "button h-[100px] shrink-0 flex flex-col justify-center rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
+          "button h-[100px] shrink-0 flex flex-col justify-start rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
           isTo ? "items-end" : "items-start"
         )}
         onClick={openWallet}
       >
-        <div className="w-[50px] h-[50px] rounded-[12px] bg-[#EDF0F7]" />
+        <div className="w-[50px] h-[50px] rounded-full bg-[#EDF0F7]" />
         <div
           className={clsx(
             "text-[14px] text-[#9FA7BA] mt-[6px]",
@@ -55,22 +56,32 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
   const key = `${token.chainType}Balances` as keyof BalancesState;
   const balance = useMemo(() => {
     const _balance = balancesStore[key]?.[token.contractAddress];
-    return _balance ? formatNumber(_balance, 2, true) : "0.00";
+    return _balance ? formatNumber(_balance, 2, true, { round: Big.roundDown }) : "0.00";
   }, [token, balancesStore[key]?.[token.contractAddress]]);
+
   return (
     <div
       className={clsx(
-        "button w-[120px] h-[100px] shrink-0 flex flex-col justify-center rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
+        "button w-[130px] h-[100px] shrink-0 flex flex-col justify-start rounded-[13px] px-[14px] pt-[6px] hover:bg-[#FAFBFF] button duration-300",
         isTo ? "items-end" : "items-start"
       )}
       onClick={openWallet}
     >
-      <img
-        src={token.chainIcon}
-        className="w-[50px] h-[50px] rounded-[12px] bg-[#EDF0F7]"
-      />
+      <div
+        className="relative w-[50px] h-[50px] rounded-full shrink-0 bg-no-repeat bg-center bg-cover"
+        style={{ backgroundImage: `url(${token.icon})` }}
+      >
+        <img
+          src={token.chainIcon}
+          className="absolute right-[-5px] bottom-[-5px] w-[24px] h-[24px] rounded-[6px] border border-white object-center object-contain shrink-0"
+        />
+      </div>
+
       <div className="text-[14px] flex items-center gap-[8px] mt-[6px]">
-        <div className="text-[#444C59]">{token.chainName}</div>
+        <div className="flex items-center gap-[4px] leading-[100%] whitespace-nowrap">
+          <div className="text-[#444C59] text-[16px] font-[500]">{token.symbol}</div>
+          <div className="text-[#0E3616] text-[12px] font-[400]">{token.chainName}</div>
+        </div>
         <img
           src="/icon-arrow-down.svg"
           className="w-[10px] h-[5px] shrink-0 object-center object-contain"

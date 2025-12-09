@@ -4,6 +4,7 @@ import Loading from "@/components/loading/icon";
 import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
 import { useSwitchChain } from "wagmi";
+import { isChainDisabled } from "@/config/token-restrictions";
 
 export default function Token({
   token,
@@ -49,60 +50,84 @@ export default function Token({
                 <span>Network</span>
                 <span>{token.symbol} Balance</span>
               </div>
-              {token.chains.map((chain: any) => (
-                <div
-                  key={chain.chainName}
-                  className="p-[10px] duration-300 flex justify-between items-center cursor-pointer hover:bg-[#FAFBFF]"
-                  onClick={async () => {
-                    if (
-                      (walletStore.isTo &&
-                        walletStore.fromToken?.contractAddress ===
-                          chain.contractAddress) ||
-                      (!walletStore.isTo &&
+              {token.chains.map((chain: any) => {
+                // Check if chain is disabled: when selecting to token, check if from token causes this chain to be disabled
+                const isDisabled = walletStore.isTo
+                  ? isChainDisabled(
+                      walletStore.fromToken?.symbol,
+                      token.symbol,
+                      chain.chainName
+                    )
+                  : false;
+
+                return (
+                  <div
+                    key={chain.chainName}
+                    className={`p-[10px] duration-300 flex justify-between items-center ${
+                      isDisabled
+                        ? "opacity-50 cursor-not-allowed"
+                        : "cursor-pointer hover:bg-[#FAFBFF]"
+                    }`}
+                    onClick={async () => {
+                      // Prevent click if disabled
+                      if (isDisabled) {
+                        return;
+                      }
+
+                      // Prevent selecting the same chain and token combination
+                      // But allow selecting different tokens (USDT vs USDC) on the same chain
+                      const otherToken = walletStore.isTo 
+                        ? walletStore.fromToken 
+                        : walletStore.toToken;
+                      
+                      if (
+                        otherToken &&
+                        otherToken.contractAddress === chain.contractAddress &&
+                        otherToken.symbol === token.symbol
+                      ) {
+                        return;
+                      }
+
+                      const mergedToken = {
+                        symbol: token.symbol,
+                        decimals: token.decimals,
+                        icon: token.icon,
+                        ...chain
+                      };
+
+                      if (!walletStore.isTo) {
+                        await switchChain({ chainId: chain.chainId });
+                      }
+
+                      walletStore.set({
+                        [walletStore.isTo ? "toToken" : "fromToken"]: mergedToken,
+                        selectedToken: token.symbol,
+                        showWallet: false
+                      });
+                    }}
+                  >
+                    <div className="flex items-center gap-[8px]">
+                      <img src={chain.chainIcon} className="w-[24px] h-[24px]" />
+                      <span className="text-[14px] text-[#444C59]">
+                        {chain.chainName}
+                      </span>
+                      {(walletStore.fromToken?.contractAddress ===
+                        chain.contractAddress ||
                         walletStore.toToken?.contractAddress ===
-                          chain.contractAddress)
-                    ) {
-                      return;
-                    }
-
-                    const mergedToken = {
-                      symbol: token.symbol,
-                      decimals: token.decimals,
-                      icon: token.icon,
-                      ...chain
-                    };
-
-                    if (!walletStore.isTo) {
-                      await switchChain({ chainId: chain.chainId });
-                    }
-
-                    walletStore.set({
-                      [walletStore.isTo ? "toToken" : "fromToken"]: mergedToken,
-                      showWallet: false
-                    });
-                  }}
-                >
-                  <div className="flex items-center gap-[8px]">
-                    <img src={chain.chainIcon} className="w-[24px] h-[24px]" />
-                    <span className="text-[14px] text-[#444C59]">
-                      {chain.chainName}
-                    </span>
-                    {(walletStore.fromToken?.contractAddress ===
-                      chain.contractAddress ||
-                      walletStore.toToken?.contractAddress ===
-                        chain.contractAddress) && (
-                      <CheckIcon circleColor={"#fff"} />
+                          chain.contractAddress) && (
+                        <CheckIcon circleColor={"#fff"} />
+                      )}
+                    </div>
+                    {loading ? (
+                      <Loading size={14} />
+                    ) : (
+                      <Amount
+                        amount={balances[chain.contractAddress]}
+                      />
                     )}
                   </div>
-                  {loading ? (
-                    <Loading size={14} />
-                  ) : (
-                    <Amount
-                      amount={balances[chain.contractAddress]}
-                    />
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </motion.div>
         )}

@@ -1,5 +1,4 @@
 import clsx from "clsx";
-import { motion } from "framer-motion";
 import React, {
   useState,
   useRef,
@@ -19,10 +18,11 @@ export default function Bottom({ token }: { token: any }) {
   const progressBarRef = useRef<HTMLDivElement>(null);
   const bridgeStore = useBridgeStore();
   const balancesStore = useBalancesStore();
+  const _quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
 
   const mergedBalance =
     balancesStore[`${token?.chainType}Balances` as keyof BalancesState]?.[
-      token?.contractAddress
+    token?.contractAddress
     ];
 
   const balance = useMemo(() => {
@@ -96,18 +96,18 @@ export default function Bottom({ token }: { token: any }) {
         progressBarRef={progressBarRef}
       />
       <div className="shrink-0 w-[100px] flex justify-end">
-        {bridgeStore.quoting ? (
+        {bridgeStore.quotingMap.get(bridgeStore.quoteDataService) ? (
           <Loading size={12} />
-        ) : bridgeStore.quoteData?.quote?.amountOutFormatted ? (
+        ) : _quoteData?.outputAmount ? (
           <div
             className={clsx(
               "text-[#4DCF5E] whitespace-nowrap overflow-hidden text-ellipsis",
               getAmountNumberFontSize(
                 formatNumber(
-                  bridgeStore.quoteData.quote.amountOutFormatted,
+                  _quoteData.outputAmount,
                   2,
                   true,
-                  { isShort: false }
+                  { isShort: false, round: Big.roundDown }
                 ),
                 0
               )
@@ -119,10 +119,10 @@ export default function Bottom({ token }: { token: any }) {
                 className="!text-[#4DCF5E]"
               /> */}
             {formatNumber(
-              bridgeStore.quoteData.quote.amountOutFormatted,
+              _quoteData.outputAmount,
               2,
               true,
-              { isShort: false }
+              { isShort: false, round: Big.roundDown }
             )}
           </div>
         ) : (
@@ -177,7 +177,7 @@ const Progress = ({
       onTouchStart={handleProgressBarTouch}
     >
       <div
-        className="h-[8px] rounded-[12px] bg-linear-to-r from-[#B7CCBA00] to-[#B7CCBA] relative max-w-full"
+        className="h-[8px] rounded-[12px] bg-linear-to-r from-[#B7CCBA00] to-[#6284F5] relative max-w-full"
         style={{ width: `${progress}%` }}
       >
         {token && (
@@ -192,7 +192,7 @@ const Progress = ({
           />
         )}
       </div>
-      <div className="absolute left-[0px] bottom-[-20px] w-full flex items-center text-[#9FA7BA] text-[10px]">
+      <div className="absolute left-[0px] bottom-[-25px] w-full flex items-center text-[#9FA7BA] text-[10px]">
         {[25, 50, 75, 100].map((item) => (
           <div key={item} className="w-1/4 text-right">
             <span
@@ -213,8 +213,8 @@ const Progress = ({
 
 const Pointer = ({
   disabled,
-  token,
-  progress,
+  // token,
+  // progress,
   onProgressChange,
   isDragging,
   setIsDragging,
@@ -299,14 +299,14 @@ const Pointer = ({
 
   return (
     <div
-      className="w-[26px] h-[26px] absolute top-[-8px] right-[-6px] cursor-pointer select-none"
+      className="w-[32px] h-[32px] flex justify-center items-center absolute top-[-11px] right-[-9px] cursor-pointer select-none bg-[#EDF0F7] backdrop-blur-[5px] rounded-full"
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onClick={(e) => {
         e.stopPropagation();
       }}
     >
-      {!disabled && (
+      {/* {!disabled && (
         <>
           <motion.div
             className="absolute inset-0 rounded-full border-2 border-[#39A883] opacity-30"
@@ -334,14 +334,14 @@ const Pointer = ({
             }}
           />
         </>
-      )}
+      )} */}
 
       <img
-        src={token?.icon}
+        src="/logo.svg"
         className={clsx(
-          "w-[26px] h-[26px] relative z-10",
+          "w-[26px] h-[26px] relative z-10 object-center object-contain shrink-0",
           disabled ? "grayscale" : "cursor-pointer",
-          progress > 0 && "rotate-90",
+          // progress > 0 && "rotate-90",
           isDragging && "scale-110"
         )}
         draggable={false}

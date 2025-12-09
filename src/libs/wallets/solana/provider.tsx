@@ -62,13 +62,17 @@ export default function SolanaProvider({
 const Content = () => {
   const [mounted, setMounted] = useState(false);
   const setWallets = useWalletsStore((state) => state.set);
-  const { publicKey, disconnect, connect, wallet, signTransaction } = useWallet();
+  const walletAdapter = useWallet();
+  const { publicKey, disconnect, connect, wallet } = walletAdapter;
   const { setVisible } = useSolanaWalletModal();
   const setBalancesStore = useBalancesStore((state) => state.set);
 
   const { run: connect2SolanaWallets } = useDebounceFn(() => {
     if (!mounted) return;
-    const solanaWallet = new SolanaWallet({ publicKey, signTransaction });
+    const solanaWallet = new SolanaWallet({
+      publicKey,
+      signer: walletAdapter,
+    });
     setWallets({
       sol: {
         account: publicKey?.toString() || null,
@@ -129,8 +133,12 @@ const MobileContent = () => {
     const account = provider.getAccount()?.address || null;
     const solanaWallet = new SolanaWallet({
       publicKey: account ? new PublicKey(account) : null,
-      signTransaction: (transaction: Transaction) => {
-        return provider.signTransaction(transaction, "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp");
+      signer: {
+        ...provider,
+        publicKey: account ? new PublicKey(account) : null,
+        signTransaction: (transaction: Transaction) => {
+          return provider.signTransaction(transaction, "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp");
+        },
       },
     });
 

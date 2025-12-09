@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import oneClickService from "@/services/oneclick";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { ServiceMap } from "@/services";
 import {
   validateAddress,
   type AddressValidationResult
@@ -10,18 +10,25 @@ import { useDebounceFn, useRequest } from "ahooks";
 import { useHistoryStore } from "@/stores/use-history";
 import { useConfigStore } from "@/stores/use-config";
 import useWalletStore from "@/stores/use-wallet";
-import useBridgeStore from "@/stores/use-bridge";
+import useBridgeStore, { type QuoteData } from "@/stores/use-bridge";
 import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
-import { BridgeDefaultWallets } from "../config";
+import { BridgeDefaultWallets } from "@/config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
+import { Service } from "@/services";
+import usePricesStore from "@/stores/use-prices";
+import { v4 as uuidV4 } from "uuid";
 import { BASE_API_URL } from "@/config/api";
+
+const TRANSFER_MIN_AMOUNT = 1;
+const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
 
 export default function useBridge(props?: any) {
   const { liquidityError } = props ?? {};
 
+  const prices = usePricesStore((state) => state.prices);
   const wallets = useWalletsStore();
   const historyStore = useHistoryStore();
   const configStore = useConfigStore();
@@ -32,6 +39,7 @@ export default function useBridge(props?: any) {
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
   const [liquidityErrorMssage, setLiquidityErrorMessage] = useState<boolean>();
+  const prevToTokenRef = useRef<any>(null);
 
   const [fromWalletAddress, toWalletAddress] = useMemo(() => {
     const _fromChainType: WalletType = walletStore.fromToken?.chainType;
@@ -79,36 +87,36 @@ export default function useBridge(props?: any) {
     }
   }, { manual: true });
 
-  const quote = async (dry: boolean) => {
-    if (
-      !walletStore.toToken ||
-      !walletStore.fromToken ||
-      !fromWalletAddress ||
-      !(bridgeStore.recipientAddress || toWalletAddress) ||
-      Number(bridgeStore.amount) < 1
-    ) {
-      bridgeStore.set({ quoteData: null });
-      return;
-    }
 
+  const quoteOneclick = async (params: any, requestId?: number): Promise<QuoteData> => {
     try {
-      bridgeStore.set({ quoting: true });
+      // Check request ID, skip setting loading state if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+      bridgeStore.setQuoting(Service.OneClick, true);
       setLiquidityErrorMessage(liquidityError);
 
-      const _amount = Big(bridgeStore.amount)
-        .times(10 ** walletStore.fromToken.decimals)
-        .toFixed(0);
-
-      const quoteRes = await oneClickService.quote({
-        dry: dry,
+      const quoteRes = await ServiceMap[Service.OneClick].quote({
+        dry: params.dry,
         slippageTolerance: configStore.slippage * 100,
         originAsset: walletStore.fromToken.assetId,
         destinationAsset: walletStore.toToken.assetId,
-        amount: _amount,
-        refundTo: fromWalletAddress,
+        amount: params.amountWei,
+        refundTo: fromWalletAddress || "",
         refundType: "ORIGIN_CHAIN",
-        recipient: bridgeStore.recipientAddress || toWalletAddress || ""
+        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
+        wallet: params.wallet,
+        fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        prices,
       });
+
+      // Check request ID again before setting result to ensure it's still the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        bridgeStore.setQuoting(Service.OneClick, false);
+        throw new Error("Request cancelled: outdated request");
+      }
 
       if (quoteRes.data?.quote) {
         if (Big(quoteRes.data.quote.timeEstimate || 0).gt(60)) {
@@ -116,10 +124,24 @@ export default function useBridge(props?: any) {
         }
       }
 
-      bridgeStore.set({ quoteData: quoteRes.data, quoting: false });
+      bridgeStore.setQuoting(Service.OneClick, false);
+      bridgeStore.setQuoteData(Service.OneClick, quoteRes.data);
       setLiquidityErrorMessage(false);
-      return quoteRes.data;
+      return {
+        type: Service.OneClick,
+        data: quoteRes.data,
+      };
     } catch (error: any) {
+      // If it's a cancelled request error, return directly without setting error state
+      if (error?.message === "Request cancelled: outdated request") {
+        throw error;
+      }
+
+      // Check request ID, ignore error if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+
       const defaultErrorMessage = "Failed to get quote, please try again later";
       const getQuoteErrorMessage = () => {
         if (
@@ -143,12 +165,12 @@ export default function useBridge(props?: any) {
         return defaultErrorMessage;
       };
 
-      bridgeStore.set({
-        quoting: false,
-        quoteData: {
-          errMsg: getQuoteErrorMessage(),
-        }
-      });
+      const _quoteData = {
+        type: Service.OneClick,
+        errMsg: getQuoteErrorMessage(),
+      };
+      bridgeStore.setQuoting(Service.OneClick, false);
+      bridgeStore.setQuoteData(Service.OneClick, _quoteData);
       setLiquidityErrorMessage(false);
       // report error
       onReportError({
@@ -158,6 +180,223 @@ export default function useBridge(props?: any) {
         symbol: walletStore.fromToken.symbol,
         to_chain: walletStore.toToken.chainName,
         to_symbol: walletStore.toToken.symbol,
+      });
+      return _quoteData;
+    }
+  };
+
+  const quoteUsdt0 = async (params: any, requestId?: number): Promise<QuoteData> => {
+    try {
+      // Check request ID, skip setting loading state if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+      bridgeStore.setQuoting(Service.Usdt0, true);
+
+      const quoteRes = await ServiceMap[Service.Usdt0].quote({
+        slippageTolerance: configStore.slippage,
+        originChain: walletStore.fromToken.chainName,
+        destinationChain: walletStore.toToken.chainName,
+        amountWei: params.amountWei,
+        refundTo: fromWalletAddress || "",
+        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
+        wallet: params.wallet,
+        fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        prices,
+      });
+
+      // Check request ID again before setting result to ensure it's still the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        bridgeStore.setQuoting(Service.Usdt0, false);
+        throw new Error("Request cancelled: outdated request");
+      }
+
+      bridgeStore.setQuoting(Service.Usdt0, false);
+      bridgeStore.setQuoteData(Service.Usdt0, quoteRes);
+      return {
+        type: Service.Usdt0,
+        data: quoteRes,
+      };
+    } catch (error: any) {
+      // If it's a cancelled request error, return directly without setting error state
+      if (error?.message === "Request cancelled: outdated request") {
+        throw error;
+      }
+
+      // Check request ID, ignore error if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+
+      console.log("quoteUsdt0 failed: %o", error);
+      const _quoteData = {
+        type: Service.Usdt0,
+        errMsg: error.message,
+      };
+      bridgeStore.setQuoting(Service.Usdt0, false);
+      bridgeStore.setQuoteData(Service.Usdt0, _quoteData);
+      setLiquidityErrorMessage(false);
+      return _quoteData;
+    }
+  };
+
+  const quoteCCTP = async (params: any, requestId?: number): Promise<QuoteData> => {
+    try {
+      // Check request ID, skip setting loading state if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+      bridgeStore.setQuoting(Service.CCTP, true);
+
+      const quoteRes = await ServiceMap[Service.CCTP].quote({
+        slippageTolerance: configStore.slippage,
+        originChain: walletStore.fromToken.chainName,
+        destinationChain: walletStore.toToken.chainName,
+        amountWei: params.amountWei,
+        refundTo: fromWalletAddress || "",
+        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
+        wallet: params.wallet,
+        fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        prices,
+      });
+
+      // Check request ID again before setting result to ensure it's still the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        bridgeStore.setQuoting(Service.CCTP, false);
+        throw new Error("Request cancelled: outdated request");
+      }
+
+      bridgeStore.setQuoting(Service.CCTP, false);
+      bridgeStore.setQuoteData(Service.CCTP, quoteRes);
+      return {
+        type: Service.CCTP,
+        data: quoteRes,
+      };
+    } catch (error: any) {
+      // If it's a cancelled request error, return directly without setting error state
+      if (error?.message === "Request cancelled: outdated request") {
+        throw error;
+      }
+
+      // Check request ID, ignore error if not the latest request
+      if (requestId !== undefined && requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+
+      const _quoteData = {
+        type: Service.CCTP,
+        errMsg: error.message,
+      };
+      bridgeStore.setQuoting(Service.CCTP, false);
+      bridgeStore.setQuoteData(Service.CCTP, _quoteData);
+      setLiquidityErrorMessage(false);
+      return _quoteData;
+    }
+  };
+
+  const isAutoSelect = useRef(false);
+  // Request ID counter to ensure only the latest request results are processed
+  const requestIdRef = useRef(0);
+  // Auto requote timer ref for CCTP from Solana USDC
+  const autoRequoteTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Track previous quoting state to detect when quote completes
+  const prevQuotingRef = useRef<boolean>(false);
+  
+  const quote = async (params: { dry: boolean; }, isSync?: boolean, requestId?: number) => {
+    if (!isSync) {
+      bridgeStore.clearQuoteData();
+    }
+
+    if (
+      !walletStore.toToken ||
+      !walletStore.fromToken ||
+      !fromWalletAddress ||
+      !(bridgeStore.recipientAddress || toWalletAddress) ||
+      Big(bridgeStore.amount || 0).lt(TRANSFER_MIN_AMOUNT)
+    ) {
+      bridgeStore.clearQuoteData();
+      return;
+    }
+
+    // @ts-ignore
+    const wallet = wallets[walletStore.fromToken.chainType];
+    const amountWei = Big(bridgeStore.amount)
+      .times(10 ** walletStore.fromToken.decimals)
+      .toFixed(0);
+
+    const quoteServices: any = [];
+    for (const service of Object.values(Service)) {
+      if (walletStore.fromToken.services.includes(service) && walletStore.toToken.services.includes(service)) {
+        switch (service) {
+          case Service.OneClick:
+            quoteServices.push({
+              service: Service.OneClick,
+              quote: quoteOneclick
+            });
+            break;
+          case Service.Usdt0:
+            quoteServices.push({
+              service: Service.Usdt0,
+              quote: quoteUsdt0,
+            });
+            break;
+          case Service.CCTP:
+            quoteServices.push({
+              service: Service.CCTP,
+              quote: quoteCCTP,
+            });
+            break;
+          default:
+            break;
+        }
+      }
+    }
+
+    const quoteParams = {
+      ...params,
+      amountWei,
+      wallet: wallet.wallet,
+    };
+
+    // Use request ID to ensure only the latest request results are processed
+    const currentRequestId = requestId ?? requestIdRef.current;
+
+    if (isSync) {
+      const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
+      // Sync calls don't need request ID check
+      return currentQuoteService.quote(quoteParams);
+    }
+    
+    for (let i = 0; i < quoteServices.length; i++) {
+      const quoteService = quoteServices[i];
+      // Pass request ID to service function
+      quoteService.quote(quoteParams, currentRequestId).then((_quoteRes: any) => {
+        // Check if it's the latest request, ignore result if not
+        if (currentRequestId !== requestIdRef.current) {
+          console.log(`[${quoteService.service}] Ignored outdated quote result, current requestId: ${requestIdRef.current}, result requestId: ${currentRequestId}`);
+          return;
+        }
+        
+        console.log("%c[%s]Quote Result: %o", "background:#f00;color:#fff;", quoteService.service, _quoteRes);
+
+        if (i >= quoteServices.length - 1) {
+          isAutoSelect.current = true;
+        }
+      }).catch((error: any) => {
+        // Silently ignore if it's a cancelled request error
+        if (error?.message === "Request cancelled: outdated request") {
+          console.log(`[${quoteService.service}] Request cancelled: outdated request`);
+          return;
+        }
+        // Also check request ID to avoid old request errors overwriting new requests
+        if (currentRequestId !== requestIdRef.current) {
+          console.log(`[${quoteService.service}] Ignored outdated quote error, current requestId: ${requestIdRef.current}, error requestId: ${currentRequestId}`);
+          return;
+        }
+        // Re-throw other errors for the caller to handle
+        console.error(`[${quoteService.service}] Quote error:`, error);
       });
     }
   };
@@ -176,124 +415,193 @@ export default function useBridge(props?: any) {
     if (!walletStore.fromToken) return;
     try {
       bridgeStore.set({ transferring: true });
-      const _quote = await quote(false);
+      const _quote = await quote({ dry: false }, true);
 
       // @ts-ignore
       const wallet = wallets[walletStore.fromToken.chainType];
+      // @ts-ignore
+      const toWallet = wallets[walletStore.toToken.chainType];
       const _amount = Big(bridgeStore.amount)
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
-      // Check quote result
-      if (!_quote?.quote?.depositAddress) {
-        throw new Error("Failed to get quote");
-      }
-
-      // Estimate gas and check native token balance
-      if (wallet.wallet.estimateGas) {
-        const gasLimitRes = await wallet.wallet.estimateGas({
-          originAsset: walletStore.fromToken.contractAddress,
-          depositAddress: _quote.quote.depositAddress,
-          amount: _amount
+      // approve
+      if (_quote?.data?.needApprove) {
+        const approveResult = await wallet.wallet.approve({
+          contractAddress: walletStore.fromToken.contractAddress,
+          spender: _quote?.data?.approveSpender,
+          amountWei: _amount,
         });
-
-        const gasLimit = gasLimitRes.gasLimit;
-        let nativeBalance: string = "0";
-        let gasCost: Big = Big(0);
-        let nativeTokenName = "";
-
-        // Get native token balance and calculate gas cost based on chain type
-        const chainType = walletStore.fromToken.chainType;
-
-        if (chainType === "evm") {
-          // EVM chains: get ETH balance and calculate gas cost
-          nativeTokenName = "ETH";
-          const feeData = await wallet.wallet.provider.getFeeData();
-          const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
-          gasCost = Big(gasLimit.toString()).times(gasPrice.toString()).div(1e18);
-
-          nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
-          nativeBalance = Big(nativeBalance).div(1e18).toString();
-        } else if (chainType === "sol") {
-          // Solana: gas limit is already in lamports
-          nativeTokenName = "SOL";
-          gasCost = Big(gasLimit.toString()).div(1e9);
-
-          nativeBalance = await wallet.wallet.getSOLBalance(wallet.account);
-          nativeBalance = Big(nativeBalance).toString();
-        } else if (chainType === "tron") {
-          // Tron: typically free if account has bandwidth/energy, but check TRX balance anyway
-          nativeTokenName = "TRX";
-          // Tron gas is usually free, but we need some TRX for potential fees (0.1 TRX as safety)
-          gasCost = Big("0.1");
-
-          nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
-          nativeBalance = Big(nativeBalance).div(1e6).toString();
-        } else if (chainType === "aptos") {
-          // Aptos: estimate gas cost
-          nativeTokenName = "APT";
-          // Assume default gas price of 100 octas per gas unit
-          gasCost = Big(gasLimit.toString()).times(100).div(1e8);
-
-          nativeBalance = await wallet.wallet.getAPTBalance(wallet.account);
-          nativeBalance = Big(nativeBalance).div(1e8).toString();
-        } else if (chainType === "near") {
-          // Near: convert gas to NEAR (1 TGas = 1e12 gas units, typical price ~1 TGas = 0.0001 NEAR)
-          nativeTokenName = "NEAR";
-          // Near gas price is very low, roughly 1 TGas = 0.0001 NEAR
-          gasCost = Big(gasLimit.toString()).div(1e16); // Rough estimate
-
-          // Get NEAR balance using wallet method
-          const nearBalanceYocto = await wallet.wallet.getNearBalance(wallet.account);
-          nativeBalance = Big(nearBalanceYocto).div(1e24).toString();
-        }
-
-        console.log(`estimate ${nativeTokenName} balance. Required: ${formatNumber(gasCost.toString(), 6, true)} ${nativeTokenName}, Available: ${formatNumber(nativeBalance, 6, true)} ${nativeTokenName}`);
-
-        // Check if balance is sufficient
-        if (Big(nativeBalance).lt(gasCost)) {
-          bridgeStore.set({ transferring: false });
-          bridgeStore.set({
-            quoting: false,
-            quoteData: {
-              errMsg: "Insufficient native token balance",
-            }
+        bridgeStore.set({ transferring: false });
+        if (!approveResult) {
+          toast.fail({
+            title: "Approve failed"
           });
           return;
         }
+        toast.success({
+          title: "Approve success"
+        });
+        bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+          needApprove: false,
+        });
+        return;
       }
 
-      const hash = await wallet.wallet.transfer({
-        originAsset: walletStore.fromToken.contractAddress,
-        depositAddress: _quote.quote.depositAddress,
-        amount: _amount
-      });
+      // create solana usdc account
+      if (_quote?.data?.needCreateTokenAccount) {
+        const createResult = await toWallet.wallet?.createAssociatedTokenAddress?.({
+          tokenMint: walletStore.toToken.contractAddress,
+        });
+        bridgeStore.set({ transferring: false });
+        if (!createResult) {
+          toast.fail({
+            title: `Initialize Solana ${walletStore.toToken.symbol} Account failed`,
+          });
+          return;
+        }
+        toast.success({
+          title: `Initialize Solana ${walletStore.toToken.symbol} Account success`,
+        });
+        bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+          needCreateTokenAccount: false,
+        });
+        return;
+      }
 
-      historyStore.addHistory({
-        despoitAddress: _quote.quote.depositAddress,
-        amount: bridgeStore.amount,
-        fromToken: walletStore.fromToken,
-        toToken: walletStore.toToken,
-        fromAddress: wallet.account,
-        toAddress: _quote.quoteRequest.recipient,
-        time: Date.now(),
-        txHash: hash,
-        timeEstimate: _quote.quote.timeEstimate,
-      });
-      report({
-        project: "nearintents",
-        address: wallet.account,
-        amount: bridgeStore.amount,
-        deposit_address: _quote.quote.depositAddress,
-        receive_address: _quote.quoteRequest.recipient,
-      });
+      // Estimate transfer gas and check native token balance
+      try {
+        const estimateGas = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService)?.estimateSourceGas;
+        // get native token balance
+        const nativeBalance = await wallet.wallet.getBalance({  symbol: "native"}, wallet.account);
+        const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
 
-      historyStore.updateStatus(_quote.quote.depositAddress, "PENDING_DEPOSIT");
+        console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
+
+        // Check if balance is sufficient
+        if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
+          bridgeStore.set({ transferring: false });
+          bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+            errMsg: "Insufficient native token balance",
+          });
+          return;
+        }
+      } catch (error) {
+        console.log("check estimate gas failed: %o", error);
+      }
+
+      // 1click transfer
+      if (bridgeStore.quoteDataService === Service.OneClick) {
+        if (!_quote?.data?.quote?.depositAddress) {
+          throw new Error("Failed to get quote");
+        }
+
+        if (_quote?.data?.sendParam?.param) {
+          // proxyTransfer.recipient = depositAddress
+          _quote.data.sendParam.param[1] = _quote.data.quote.depositAddress;
+        }
+        const hash = await ServiceMap[Service.OneClick].send({
+          sendParam: _quote?.data?.sendParam,
+          wallet: wallet.wallet,
+          fromToken: walletStore.fromToken,
+          depositAddress: _quote.data.quote.depositAddress,
+          amountWei: _amount,
+        });
+
+        historyStore.addHistory({
+          type: Service.OneClick,
+          despoitAddress: _quote.data.quote.depositAddress,
+          amount: bridgeStore.amount,
+          fromToken: walletStore.fromToken,
+          toToken: walletStore.toToken,
+          fromAddress: wallet.account,
+          toAddress: _quote.data.quoteRequest.recipient,
+          time: Date.now(),
+          txHash: hash,
+          timeEstimate: _quote.data.quote.timeEstimate,
+        });
+        report({
+          project: "nearintents",
+          address: wallet.account,
+          amount: bridgeStore.amount,
+          deposit_address: _quote.data.quote.depositAddress,
+          receive_address: _quote.data.quoteRequest.recipient,
+        });
+
+        historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
+      }
+
+      // usdt0 transfer
+      if (bridgeStore.quoteDataService === Service.Usdt0) {
+        const hash = await ServiceMap[Service.Usdt0].send({
+          ..._quote?.data?.sendParam,
+          wallet: wallet.wallet,
+        });
+        const uniqueId = uuidV4();
+        historyStore.addHistory({
+          type: Service.Usdt0,
+          despoitAddress: uniqueId,
+          amount: bridgeStore.amount,
+          fromToken: walletStore.fromToken,
+          toToken: walletStore.toToken,
+          fromAddress: wallet.account,
+          toAddress: _quote.data.quoteParam.recipient,
+          time: Date.now(),
+          txHash: hash,
+          toChainTxHash: hash,
+          timeEstimate: _quote.data.estimateTime,
+        });
+        historyStore.updateStatus(uniqueId, "PENDING_DEPOSIT");
+        report({
+          project: "layerzero",
+          address: wallet.account,
+          amount: bridgeStore.amount,
+          deposit_address: hash,
+          receive_address: _quote.data.quoteParam.recipient,
+        });
+      }
+
+      // cctp transfer
+      if (bridgeStore.quoteDataService === Service.CCTP) {
+        const hash = await ServiceMap[Service.CCTP].send({
+          ..._quote?.data?.sendParam,
+          wallet: wallet.wallet,
+        });
+        const uniqueId = uuidV4();
+        historyStore.addHistory({
+          type: Service.CCTP,
+          despoitAddress: uniqueId,
+          amount: bridgeStore.amount,
+          fromToken: walletStore.fromToken,
+          toToken: walletStore.toToken,
+          fromAddress: wallet.account,
+          toAddress: _quote.data.quoteParam.recipient,
+          time: Date.now(),
+          txHash: hash,
+          toChainTxHash: hash,
+          timeEstimate: _quote.data.estimateTime,
+        });
+        historyStore.updateStatus(uniqueId, "PENDING_DEPOSIT");
+        report({
+          project: "cctp",
+          address: wallet.account,
+          amount: bridgeStore.amount,
+          deposit_address: hash,
+          receive_address: _quote.data.quoteParam.recipient,
+          fee: _quote.data.fees.estimateMintGasUsd,
+          source_domain_id: _quote.data.quoteParam.sourceDomain,
+          destination_domain_id: _quote.data.quoteParam.destinationDomain,
+        });
+      }
+
       bridgeStore.set({ transferring: false });
       getBalance();
       toast.success({
         title: "Transfer submitted"
       });
+      // reload quotes
+      debouncedQuote({ dry: true });
+
     } catch (error) {
       console.error(error);
       bridgeStore.set({ transferring: false });
@@ -302,6 +610,27 @@ export default function useBridge(props?: any) {
       });
     }
   };
+
+  // Clear recipient address when target chain changes
+  useEffect(() => {
+    if (prevToTokenRef.current && walletStore.toToken) {
+      // Check if the target chain actually changed (compare by chainName or chainId)
+      const prevChainId = prevToTokenRef.current?.chainId;
+      const currentChainId = walletStore.toToken?.chainId;
+      const prevChainName = prevToTokenRef.current?.chainName;
+      const currentChainName = walletStore.toToken?.chainName;
+      
+      if (
+        (prevChainId && currentChainId && prevChainId !== currentChainId) ||
+        (prevChainName && currentChainName && prevChainName !== currentChainName)
+      ) {
+        // Target chain changed, clear recipient address
+        bridgeStore.set({ recipientAddress: "" });
+      }
+    }
+    // Update ref to current toToken
+    prevToTokenRef.current = walletStore.toToken;
+  }, [walletStore.toToken]);
 
   // Validate address when recipient address or target chain changes
   useEffect(() => {
@@ -326,7 +655,7 @@ export default function useBridge(props?: any) {
       return "Please enter a valid number";
     }
 
-    if (numValue < 1) {
+    if (Big(numValue).lt(TRANSFER_MIN_AMOUNT)) {
       return "Amount is too low, at least 1";
     }
 
@@ -356,7 +685,15 @@ export default function useBridge(props?: any) {
     return "";
   };
 
-  const { run: debouncedQuote } = useDebounceFn(quote, {
+  // Wrap quote function to generate a new request ID on each call
+  const quoteWithRequestId = async (params: { dry: boolean; }, isSync?: boolean) => {
+    // Generate a new request ID
+    requestIdRef.current += 1;
+    const currentRequestId = requestIdRef.current;
+    return quote(params, isSync, currentRequestId);
+  };
+
+  const { run: debouncedQuote, cancel: cancelQuote } = useDebounceFn(quoteWithRequestId, {
     wait: 1000
   });
 
@@ -369,15 +706,24 @@ export default function useBridge(props?: any) {
   }, [walletStore.fromToken, bridgeStore.amount, balancesStore]);
 
   useEffect(() => {
-    debouncedQuote(true);
+    // Only trigger quote if both tokens have selected a specific chain (have chainType)
+    // Don't trigger quote when just switching token type (USDT/USDC) without selecting a chain
+    if (!walletStore.fromToken?.chainType || !walletStore.toToken?.chainType) {
+      cancelQuote();
+      bridgeStore.clearQuoteData();
+      return;
+    }
+    cancelQuote();
+    debouncedQuote({ dry: true });
   }, [
     walletStore.fromToken,
     walletStore.toToken,
     bridgeStore.amount,
+    bridgeStore.recipientAddress,
     amountError,
     addressValidation,
     fromWalletAddress,
-    toWalletAddress
+    toWalletAddress,
   ]);
 
   useEffect(() => {
@@ -391,10 +737,10 @@ export default function useBridge(props?: any) {
       if (!bridgeStore.amount) {
         return "Please enter amount";
       }
-      if (bridgeStore.quoteData?.errMsg) {
-        return bridgeStore.quoteData.errMsg;
+      if (bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg) {
+        return bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg;
       }
-      if (liquidityErrorMssage) {
+      if (liquidityErrorMssage && bridgeStore.quoteDataService === Service.OneClick) {
         return "Amount exceeds max";
       }
       if (
@@ -437,11 +783,133 @@ export default function useBridge(props?: any) {
     walletStore.fromToken,
     bridgeStore.amount,
     walletStore.toToken,
-    bridgeStore.quoteData,
+    bridgeStore.quoteDataMap,
+    bridgeStore.quoteDataService,
     fromWalletAddress,
     toWalletAddress,
     wallets.evm?.chainId,
     liquidityErrorMssage
+  ]);
+
+  useEffect(() => {
+    const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
+    if (bridgeStore.transferring || isQuoting || !isAutoSelect.current) {
+      return;
+    }
+    const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
+    if (!quoteList.length) {
+      return;
+    }
+
+    // Auto-select the best quote as soon as any quote is available
+    // This allows immediate selection when first request completes, and updates when better quotes arrive
+    if (quoteList.length === 1) {
+      bridgeStore.set({ quoteDataService: quoteList[0][0] });
+      isAutoSelect.current = false;
+      return;
+    }
+    // sort and select the best one
+    const sortedQuoteData = quoteList.sort((a: any, b: any) => {
+      const [_serviceA, dataA] = a;
+      const [_serviceB, dataB] = b;
+
+      let netA = Big(dataA.outputAmount || 0);
+      let netB = Big(dataB.outputAmount || 0);
+
+      // Usdt0 should minus message fee
+      if (_serviceA === Service.Usdt0) {
+        netA = netA.minus(dataA.fees?.nativeFeeUsd || 0);
+      }
+      if (_serviceB === Service.Usdt0) {
+        netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
+      }
+
+      // console.log("%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));
+      // console.log("%s data: %o,  output amount: %o", _serviceB, dataB, netB.toFixed(6, 0));
+
+      if (netB.gt(netA)) return 1;
+      if (netA.gt(netB)) return -1;
+
+      if (netA.eq(netB)) return 0;
+
+      return 0;
+    });
+    console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
+    bridgeStore.set({ quoteDataService: sortedQuoteData[0][0] });
+    isAutoSelect.current = false;
+  }, [
+    bridgeStore.transferring,
+    bridgeStore.quoteDataMap,
+    bridgeStore.quotingMap,
+  ]);
+
+  // Auto requote for CCTP from Solana USDC to any chain USDC
+  useEffect(() => {
+    // Check conditions: from Solana USDC to any chain USDC
+    const isFromSolanaUSDC = 
+      walletStore.fromToken?.chainType === "sol" && 
+      walletStore.fromToken?.symbol === "USDC";
+    const isToUSDC = walletStore.toToken?.symbol === "USDC";
+
+    // Check if quote is completed (not quoting and has quote data)
+    const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
+    const hasQuoteData = bridgeStore.quoteDataMap.size > 0;
+
+    // Check if quote just completed (was quoting, now not quoting)
+    const quoteJustCompleted = prevQuotingRef.current && !isQuoting;
+    
+    // Update previous quoting state
+    prevQuotingRef.current = isQuoting;
+
+    // Clear existing timer if conditions no longer met
+    if (
+      !isFromSolanaUSDC ||
+      !isToUSDC ||
+      bridgeStore.transferring ||
+      isQuoting ||
+      !hasQuoteData
+    ) {
+      if (autoRequoteTimerRef.current) {
+        clearTimeout(autoRequoteTimerRef.current);
+        autoRequoteTimerRef.current = null;
+      }
+      return;
+    }
+
+    // Only start timer when quote just completed (not on every render)
+    if (quoteJustCompleted && !autoRequoteTimerRef.current) {
+      // Start timer to auto requote after CCTP_AUTO_REQUOTE_DURATION
+      autoRequoteTimerRef.current = setTimeout(() => {
+        // Only requote if still not transferring and conditions still met
+        if (
+          !bridgeStore.transferring &&
+          walletStore.fromToken?.chainType === "sol" &&
+          walletStore.fromToken?.symbol === "USDC" &&
+          walletStore.toToken?.symbol === "USDC"
+        ) {
+          console.log("Auto requoting after", CCTP_AUTO_REQUOTE_DURATION, "ms");
+          debouncedQuote({ dry: true });
+        }
+        // Clear timer ref after execution
+        autoRequoteTimerRef.current = null;
+      }, CCTP_AUTO_REQUOTE_DURATION);
+    }
+
+    // Cleanup timer on unmount
+    return () => {
+      if (autoRequoteTimerRef.current) {
+        clearTimeout(autoRequoteTimerRef.current);
+        autoRequoteTimerRef.current = null;
+      }
+    };
+  }, [
+    bridgeStore.transferring,
+    bridgeStore.quotingMap,
+    bridgeStore.quoteDataMap,
+    walletStore.fromToken?.chainType,
+    walletStore.fromToken?.symbol,
+    walletStore.toToken?.symbol,
+    debouncedQuote,
   ]);
 
   return {

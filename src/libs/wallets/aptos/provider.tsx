@@ -55,9 +55,6 @@ const Content = () => {
     notDetectedWallets,
   } = useWallet();
 
-  console.log("wallets: %o", wallets);
-  console.log("notDetectedWallets: %o", notDetectedWallets);
-
   const setBalancesStore = useBalancesStore((state) => state.set);
 
   // Wallet selector
@@ -76,7 +73,7 @@ const Content = () => {
   const { run: connect2AptosWallets } = useDebounceFn(() => {
     if (!mounted) return;
     const aptosWallet = new AptosWallet({
-      account: account?.address.toString() || null,
+      account: account || null,
       signAndSubmitTransaction,
     });
     setWallets({
@@ -147,7 +144,7 @@ const MobileContent = () => {
   useWatchOKXConnect((okxConnect: any) => {
     const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
     const provider = new OKXAptosProvider(okxUniversalProvider);
-    const account = provider.getAccount("aptos:mainnet")?.address || null;
+    const account = provider.getAccount("aptos:mainnet") || null;
     const aptosWallet = new AptosWallet({
       isMobile: true,
       account: account,

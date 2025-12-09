@@ -34,7 +34,8 @@ import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
 import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
-import { createClient } from "viem";
+import { createClient, fallback } from "viem";
+import { chainsRpcUrls } from "@/config/chains";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 export const metadata = {
@@ -44,6 +45,19 @@ export const metadata = {
   url: "https://app.stableflow.ai",
   icons: ["/logo.svg"]
 };
+
+const RpcUrls: any = {
+  [mainnet.id]: fallback([http(chainsRpcUrls["Ethereum"])]),
+  [polygon.id]: fallback([http(chainsRpcUrls["Polygon"])]),
+  [arbitrum.id]: fallback([http(chainsRpcUrls["Arbitrum"])]),
+  [optimism.id]: fallback([http(chainsRpcUrls["Optimism"])]),
+  [bsc.id]: fallback([http(chainsRpcUrls["BNB Chain"])]),
+  [base.id]: fallback([http(chainsRpcUrls["Base"])]),
+  [avalanche.id]: fallback([http(chainsRpcUrls["Avalanche"])]),
+  [gnosis.id]: fallback([http(chainsRpcUrls["Gnosis"])]),
+  [berachain.id]: fallback([http(chainsRpcUrls["Berachain"])]),
+};
+
 const config = getDefaultConfig({
   appName: metadata.name,
   appDescription: metadata.description,
@@ -51,6 +65,17 @@ const config = getDefaultConfig({
   appIcon: metadata.icons[0],
   projectId,
   chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis, berachain],
+  transports: {
+    [mainnet.id]: RpcUrls[mainnet.id] || http(),
+    [polygon.id]: RpcUrls[polygon.id] || http(),
+    [arbitrum.id]: RpcUrls[arbitrum.id] || http(),
+    [bsc.id]: RpcUrls[bsc.id] || http(),
+    [base.id]: RpcUrls[base.id] || http(),
+    [avalanche.id]: RpcUrls[avalanche.id] || http(),
+    [optimism.id]: RpcUrls[optimism.id] || http(),
+    [gnosis.id]: RpcUrls[gnosis.id] || http(),
+    [berachain.id]: RpcUrls[berachain.id] || http(),
+  },
 });
 const connectors: any = connectorsForWallets(
   [
@@ -75,6 +100,12 @@ const wagmiConfig = createConfig({
   ...config,
   connectors,
   client: ({ chain }) => {
+    if (RpcUrls[chain.id]) {
+      return createClient({
+        chain,
+        transport: RpcUrls[chain.id],
+      })
+    }
     return createClient({
       chain,
       transport: http()

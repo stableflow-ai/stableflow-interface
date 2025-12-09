@@ -1,4 +1,10 @@
+import { BridgeDefaultWallets } from "@/config";
+import type { WalletType } from "@/stores/use-wallets";
+import { numberRemoveEndZero } from "@/utils/format/number";
+import { getPrice } from "@/utils/format/price";
 import axios, { type AxiosInstance } from "axios";
+import Big from "big.js";
+import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 
 export const BridgeFee = [
   {
@@ -7,6 +13,8 @@ export const BridgeFee = [
     fee: 0, // 100=1% 1=0.01%
   },
 ];
+
+const excludeFees: string[] = ["sourceGasFeeUsd"];
 
 class OneClickService {
   private api: AxiosInstance;
@@ -21,6 +29,9 @@ class OneClickService {
     });
   }
   public async quote(params: {
+    wallet: any,
+    fromToken: any,
+    toToken: any,
     dry: boolean;
     slippageTolerance: number;
     originAsset: string;
@@ -30,8 +41,9 @@ class OneClickService {
     refundType: "ORIGIN_CHAIN";
     recipient: string;
     connectedWallets?: string[];
+    prices: Record<string, string>;
   }) {
-    return await this.api.post("/quote", {
+    const res = await this.api.post("/quote", {
       depositMode: "SIMPLE",
       swapType: "EXACT_INPUT",
       depositType: "ORIGIN_CHAIN",
@@ -43,8 +55,111 @@ class OneClickService {
       quoteWaitingTimeMs: 3000,
       appFees: BridgeFee,
       referral: "stableflow",
-      ...params
+      ...params,
+      // delete params
+      wallet: void 0,
+      fromToken: void 0,
+      toToken: void 0,
+      prices: void 0,
     });
+
+    if (res.data) {
+      res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
+      res.data.outputAmount = numberRemoveEndZero(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
+
+      try {
+        // const bridgeFee = BridgeFee.reduce((acc, item) => {
+        //   return acc.plus(Big(item.fee).div(100));
+        // }, Big(0)).toFixed(2) + "%";
+        const netFee = Big(params.amount).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
+        const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
+          return acc.plus(Big(params.amount).div(10 ** params.fromToken.decimals).times(Big(item.fee).div(10000)));
+        }, Big(0));
+        const destinationGasFee = Big(netFee).minus(bridgeFeeValue);
+        res.data.fees = {
+          bridgeFeeUsd: numberRemoveEndZero(Big(bridgeFeeValue).toFixed(20)),
+          destinationGasFeeUsd: numberRemoveEndZero(Big(destinationGasFee).toFixed(20)),
+        };
+
+        try {
+          const sourceGasFee = await params.wallet.estimateTransferGas({
+            originAsset: params.fromToken.contractAddress,
+            depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+            amount: params.amount,
+          });
+          const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
+          res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+          res.data.estimateSourceGas = sourceGasFee.estimateGas;
+          res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+        } catch (err) {
+          console.log("oneclick estimate gas failed: %o", err);
+        }
+
+        // calculate total fees
+        for (const feeKey in res.data.fees) {
+          if (excludeFees.includes(feeKey)) {
+            continue;
+          }
+          res.data.totalFeesUsd = Big(res.data.totalFeesUsd || 0).plus(res.data.fees[feeKey] || 0);
+        }
+        res.data.totalFeesUsd = numberRemoveEndZero(Big(res.data.totalFeesUsd).toFixed(20));
+
+      } catch (error) {
+        console.log("oneclick estimate failed: %o", error);
+      }
+
+      const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
+      if (proxyAddress) {
+        const proxyResult = await params.wallet.quoteOneClickProxy({
+          proxyAddress,
+          abi: ONECLICK_PROXY_ABI,
+          fromToken: params.fromToken,
+          refundTo: params.refundTo,
+          recipient: params.recipient,
+          amountWei: params.amount,
+          prices: params.prices,
+          depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+        });
+
+        for (const proxyKey in proxyResult) {
+          if (proxyKey === "fees") {
+            for (const feeKey in proxyResult.fees) {
+              if (excludeFees.includes(feeKey)) {
+                continue;
+              }
+              res.data.fees[feeKey] = proxyResult.fees[feeKey];
+            }
+            continue;
+          }
+          res.data[proxyKey] = proxyResult[proxyKey];
+        }
+      }
+    }
+
+    return res;
+  }
+
+  public async send(params: any) {
+    const {
+      wallet,
+      fromToken,
+      depositAddress,
+      amountWei,
+      sendParam,
+    } = params;
+
+    // proxy transfer
+    if (sendParam) {
+      const tx = await wallet.sendTransaction(sendParam);
+      return tx;
+    }
+
+    const hash = await wallet.transfer({
+      originAsset: fromToken.contractAddress,
+      depositAddress: depositAddress,
+      amount: amountWei,
+    });
+    return hash;
   }
 
   public async submitHash(params: { txHash: string; depositAddress: string }) {

@@ -56,17 +56,22 @@ const Content = () => {
   });
 
   useEffect(() => {
+    // Restore previously saved adapter (only exists if user hasn't actively disconnected)
     if (configStore.tronWalletAdapter) {
-      setAdapter(
-        wallets.find((wallet) => wallet.name === configStore.tronWalletAdapter)
-      );
+      const savedAdapter = wallets.find((wallet) => wallet.name === configStore.tronWalletAdapter);
+      if (savedAdapter) {
+        setAdapter(savedAdapter);
+      }
     }
   }, []);
 
   useEffect(() => {
+    walletRef.current = new TronWallet();
+
     if (!adapter) {
       setWallets({
         tron: {
+          wallet: walletRef.current,
           connect: () => {
             onOpen();
           }
@@ -74,8 +79,6 @@ const Content = () => {
       });
       return;
     }
-
-    walletRef.current = new TronWallet();
 
     configStore.set({
       tronWalletAdapter: adapter.name
@@ -92,6 +95,10 @@ const Content = () => {
       disconnect: async () => {
         try {
           await adapter.disconnect();
+          configStore.set({
+            tronWalletAdapter: null
+          });
+          setAdapter(null);
         } catch (error) {
           console.error("Tron wallet disconnect failed:", error);
         }
@@ -122,7 +129,7 @@ const Content = () => {
       setWallets({
         tron: {
           account: null,
-          wallet: null,
+          wallet: walletRef.current,
           ...params,
           walletIcon: null
         }
@@ -130,6 +137,10 @@ const Content = () => {
       setBalancesStore({
         tronBalances: {}
       });
+      configStore.set({
+        tronWalletAdapter: null
+      });
+      setAdapter(null);
     });
 
     adapter.on("accountsChanged", (accounts: any) => {

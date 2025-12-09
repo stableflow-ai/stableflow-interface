@@ -1,25 +1,75 @@
 import { create } from "zustand/index";
+import { Service, type ServiceType } from "@/services";
 
 interface BridgeState {
   amount: string;
   recipientAddress: string;
-  quoteData: any;
-  quoting: boolean;
+  quoteDataService: ServiceType;
+  quoteDataMap: Map<string, any>;
+  quotingMap: Map<string, boolean>;
   transferring: boolean;
   errorTips: string;
   showFee: boolean;
+  showRoutes: boolean;
+  shouldAutoSelect: boolean;
   set: (params: any) => void;
+  setQuoteData: (key: string, value: any) => void;
+  modifyQuoteData: (key: string, value: any) => void;
+  clearQuoteData: () => void;
+  setQuoting: (key: string, value: boolean) => void;
 }
 
 const useBridgeStore = create<BridgeState>((set) => ({
   amount: "",
   recipientAddress: "",
-  quoteData: null,
-  quoting: false,
+  quoteDataService: Service.OneClick,
+  quoteDataMap: new Map(),
+  quotingMap: new Map(),
   transferring: false,
   errorTips: "",
   showFee: false,
-  set: (params) => set(() => ({ ...params }))
+  showRoutes: true,
+  shouldAutoSelect: false,
+  set: (params) => set(() => ({ ...params })),
+  setQuoteData: (key, value) => {
+    set((state) => {
+      const _quoteDataMap = new Map(state.quoteDataMap);
+      _quoteDataMap.set(key, value);
+      return { ...state, quoteDataMap: _quoteDataMap };
+    });
+  },
+  modifyQuoteData: (key, value) => {
+    set((state) => {
+      const _quoteDataMap = new Map(state.quoteDataMap);
+      _quoteDataMap.set(key, {
+        ..._quoteDataMap.get(key),
+        ...value,
+      });
+      return { ...state, quoteDataMap: _quoteDataMap };
+    });
+  },
+  clearQuoteData: () => {
+    set((state) => {
+      return {
+        ...state,
+        quoteDataMap: new Map(),
+      };
+    });
+  },
+  setQuoting: (key, value) => {
+    set((state) => {
+      const _quotingMap = new Map(state.quotingMap);
+      _quotingMap.set(key, value);
+      return { ...state, quotingMap: _quotingMap };
+    });
+  },
 }));
 
 export default useBridgeStore;
+
+
+export interface QuoteData {
+  type: ServiceType;
+  errMsg?: string;
+  data?: any;
+}

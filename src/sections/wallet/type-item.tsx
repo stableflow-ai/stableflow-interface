@@ -52,13 +52,16 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
           />
         )}
 
-        <span className="text-[16px] font-[500]">{LABEL[type]}</span>
-        {(!!token &&
-          (walletStore.fromToken?.contractAddress === token.contractAddress ||
-            walletStore.toToken?.contractAddress === token.contractAddress)) ||
-          ((walletStore.fromToken?.chainType === "evm" ||
-            walletStore.toToken?.chainType === "evm") &&
-            type === "evm" && <CheckIcon circleColor="#fff" />)}
+        <span className="text-[16px] font-[500] flex items-center gap-[5px]">
+          <span>{LABEL[type]}</span>
+          {
+            (walletStore.fromToken?.chainType === type || walletStore.toToken?.chainType === type)
+              ? (
+                <CheckIcon circleColor="#fff" />
+              )
+              : null
+          }
+        </span>
       </div>
       {wallet.account ? (
         <Address type={type} />
