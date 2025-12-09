@@ -85,7 +85,7 @@ function App() {
           className="w-[26px] h-[26px] bg-[url('/logo-x.svg')] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
         />
         <a
-          href="https://t.me/c/2000578322/28766/29381"
+          href="https://t.me/+zrkwWSCczrxhNzg0"
           target="_blank"
           rel="noopener noreferrer nofollow"
           className="w-[26px] h-[26px] bg-[url('/logo-telegram.svg')] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
