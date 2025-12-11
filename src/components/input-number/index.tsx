@@ -1,7 +1,7 @@
 import type { ChangeEvent, DetailedHTMLProps, InputHTMLAttributes } from 'react';
 
 const InputNumber = (props: Props) => {
-  const { onChange, onNumberChange, decimals } = props;
+  const { onChange, onNumberChange, decimals, ...restProps } = props;
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     let temp = e.target.value;
@@ -35,7 +35,7 @@ const InputNumber = (props: Props) => {
 
   return (
     <input
-      {...props}
+      {...restProps}
       type="text"
       inputMode="decimal"
       onChange={handleChange}
