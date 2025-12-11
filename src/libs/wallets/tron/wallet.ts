@@ -525,7 +525,7 @@ export default class TronWallet {
     console.log("%cTron send transaction result: %o, %s", "background:#f00;color:#fff;", result, result);
     if (typeof result === "object" && result.message) {
       console.log("%cTron send transaction message: %o", "background:#f00;color:#fff;", result.message);
-      if (/user rejected the transaction/.test(result.message)) {
+      if (/user rejected the transaction/i.test(result.message)) {
         throw new Error("User rejected the transaction");
       }
     }
