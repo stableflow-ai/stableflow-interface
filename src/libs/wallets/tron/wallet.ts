@@ -522,6 +522,8 @@ export default class TronWallet {
     // const broadcast = await this.tronWeb.trx.sendRawTransaction(signedTx);
     const result = await this.signAndSendTransaction(tx.transaction);
 
+    console.log("%cTron send transaction result: %o", "background:#f00;color:#fff;", result);
+
     if (typeof result === "string") {
       return result;
     }
