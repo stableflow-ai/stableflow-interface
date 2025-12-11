@@ -196,6 +196,7 @@ const ChainsButton = ({
         Object.entries(stablecoinWithChains).map(([chain, _tokens], index) => {
           return (
             <ChainIcon
+              key={index}
               chain={chain}
               connected={!!walletsStore?.[chain as WalletType]?.account}
               className={clsx(index > 0 && "ml-[-8px]")}
