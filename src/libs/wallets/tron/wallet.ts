@@ -269,9 +269,6 @@ export default class TronWallet {
     await this.waitForTronWeb();
 
     try {
-      // Get contract instance
-      const contract = await this.tronWeb.contract().at(contractAddress);
-
       // Determine approval amount
       let _amountWei = amountWei;
       if (isApproveMax) {
@@ -279,32 +276,27 @@ export default class TronWallet {
         _amountWei = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
       }
 
-      // Call approve function
-      const result = await contract.approve(spender, _amountWei).send({
-        feeLimit: 100_000_000
-      });
+      // Build approve transaction using triggerSmartContract
+      const functionSelector = 'approve(address,uint256)';
+      const parameter = [
+        { type: 'address', value: spender },
+        { type: 'uint256', value: _amountWei }
+      ];
+      const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(
+        contractAddress,
+        functionSelector,
+        {},
+        parameter
+      );
 
-      // Extract transaction hash/txid from result
-      // TronWeb contract.send() may return different formats
-      let txHash: string | undefined;
+      // Sign and send transaction
+      const result = await this.signAndSendTransaction(tx.transaction);
+
       if (typeof result === "string") {
-        txHash = result;
-      } else if (result && result.txid) {
-        txHash = result.txid;
-      } else if (result && result.transaction && result.transaction.txID) {
-        txHash = result.transaction.txID;
+        return result;
       }
 
-      // Check transaction result
-      // this check is async, so we need to wait for the transaction to be confirmed
-      // if (txHash) {
-      //   // Wait for transaction confirmation
-      //   const txInfo = await this.checkTransactionStatus(txHash);
-      //   return txInfo;
-      // }
-
-      // If we can't extract txid, assume success if result exists
-      return !!result;
+      return result.txid;
     } catch (error) {
       console.log("Error approve: %o", error);
       return false;
