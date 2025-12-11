@@ -5,6 +5,8 @@ import { getPrice } from "@/utils/format/price";
 import axios, { type AxiosInstance } from "axios";
 import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
+import { SendType } from "@/libs/wallets/types";
+import { Service } from "@/services";
 
 export const BridgeFee = [
   {
@@ -110,7 +112,7 @@ class OneClickService {
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
       if (proxyAddress) {
-        const proxyResult = await params.wallet.quoteOneClickProxy({
+        const proxyResult = await params.wallet.quote(Service.OneClick, {
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
           fromToken: params.fromToken,
@@ -150,11 +152,11 @@ class OneClickService {
 
     // proxy transfer
     if (sendParam) {
-      const tx = await wallet.sendTransaction(sendParam);
+      const tx = await wallet.send(SendType.SEND, sendParam);
       return tx;
     }
 
-    const hash = await wallet.transfer({
+    const hash = await wallet.send(SendType.TRANSFER, {
       originAsset: fromToken.contractAddress,
       depositAddress: depositAddress,
       amount: amountWei,

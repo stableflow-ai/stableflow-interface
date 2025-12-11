@@ -2,6 +2,8 @@ import { CCTP_TOKEN_PROXY, CCTP_TOKEN_PROXY_ABI } from "./contract";
 import axios, { type AxiosInstance } from "axios";
 import { CCTP_DOMAINS, IRIS_API_URL } from "./config";
 import { BASE_API_URL } from "@/config/api";
+import { SendType } from "@/libs/wallets/types";
+import { Service } from "@/services";
 
 export const PayInLzToken = false;
 
@@ -61,7 +63,7 @@ class CCTPService {
     const destinationDomain = CCTP_DOMAINS[toToken.chainName];
     const proxyAddress = CCTP_TOKEN_PROXY[fromToken.chainName];
 
-    return wallet.quoteCCTP({
+    return wallet.quote(Service.CCTP, {
       proxyAddress,
       abi: CCTP_TOKEN_PROXY_ABI,
       amountWei,
@@ -80,10 +82,10 @@ class CCTPService {
   public async send(params: any) {
     const {
       wallet,
-      ...rest
+      sendParam,
     } = params;
 
-    return wallet.sendTransaction(rest);
+    return wallet.send(SendType.SEND, sendParam);
   }
 
   public async getStatus(params: any) {

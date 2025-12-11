@@ -1,6 +1,6 @@
 import useWalletsStore from "@/stores/use-wallets";
 import { useEffect, useRef, useState } from "react";
-import TronWallet, { OKXTronWallet } from "./wallet";
+import TronWallet from "./wallet";
 import WalletSelector from "../components/wallet-selector";
 import { useConfigStore } from "@/stores/use-config";
 import useBalancesStore from "@/stores/use-balances";
@@ -66,7 +66,14 @@ const Content = () => {
   }, []);
 
   useEffect(() => {
-    walletRef.current = new TronWallet();
+    const windowTronWeb = (window as any).tronWeb;
+    walletRef.current = new TronWallet({
+      signAndSendTransaction: async (transaction: any) => {
+        const signedTransaction = await windowTronWeb.trx.sign(transaction);
+        return windowTronWeb.trx.sendRawTransaction(signedTransaction);
+      },
+      tronWeb: windowTronWeb,
+    });
 
     if (!adapter) {
       setWallets({
@@ -182,11 +189,8 @@ const MobileWallet = () => {
 
     // @ts-ignore
     const account = provider.getAccount()?.address || null;
-    const tronWallet = new OKXTronWallet({
-      account: account,
-      signTransaction: (transaction: any) => {
-        return provider.signTransaction(transaction, "tron:mainnet");
-      },
+    account && tronWeb.setAddress(account);
+    const tronWallet = new TronWallet({
       signAndSendTransaction: (transaction: any) => {
         return provider.signAndSendTransaction(transaction, "tron:mainnet");
       },
