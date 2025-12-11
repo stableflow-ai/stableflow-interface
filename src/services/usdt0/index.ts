@@ -195,10 +195,10 @@ class Usdt0Service {
   public async send(params: any) {
     const {
       wallet,
-      sendParam,
+      ...rest
     } = params;
 
-    return wallet.send(SendType.SEND, sendParam);
+    return wallet.send(SendType.SEND, rest);
   }
 
   public async getStatus(params: any) {
