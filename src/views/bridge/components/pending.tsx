@@ -54,7 +54,7 @@ const PendingTransfer = (props: any) => {
       >
         {
           latestHistories.slice(0, 1).map((pending, index) => !!history[pending] ? (
-            <SwiperSlide key={index} style={{ width: "100%" }}>
+            <SwiperSlide key={index} style={{ width: "100%", maxWidth: "100dvw" }}>
               <PendingItem
                 className=""
                 data={history[pending]}
