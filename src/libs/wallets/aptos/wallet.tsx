@@ -2,15 +2,16 @@ import { Aptos, AptosConfig, Network, parseTypeTag, TypeTagAddress, TypeTagU64, 
 import Big from "big.js";
 import { getPrice } from "@/utils/format/price";
 import { numberRemoveEndZero } from "@/utils/format/number";
+import { SendType } from "../types";
+import { Service, type ServiceType } from "@/services";
 
 export default class AptosWallet {
   connection: any;
   private account: any | null;
   private aptos: Aptos;
   private signAndSubmitTransaction: any;
-  private isMobile: boolean;
 
-  constructor(options: { account: any | null; signAndSubmitTransaction: any; isMobile?: boolean; }) {
+  constructor(options: { account: any | null; signAndSubmitTransaction: any; }) {
     const config = new AptosConfig({
       network: Network.MAINNET,
     });
@@ -19,7 +20,6 @@ export default class AptosWallet {
     this.aptos = aptos;
     this.signAndSubmitTransaction = options.signAndSubmitTransaction;
     this.account = options.account;
-    this.isMobile = options.isMobile || false;
   }
 
   // Transfer APT
@@ -32,27 +32,14 @@ export default class AptosWallet {
       // Convert amount to octas (1 APT = 10^8 octas)
       const amountInOctas = Math.floor(parseFloat(amount) * 100000000);
 
-      let result: any;
-      if (this.isMobile) {
-        const transaction = await this.aptos.transaction.build.simple({
-          sender: this.account?.address?.toString(),
-          data: {
-            function: "0x1::coin::transfer",
-            typeArguments: ["0x1::aptos_coin::AptosCoin"],
-            functionArguments: [to, amountInOctas.toString()],
-          },
-        });
-        result = await this.signAndSubmitTransaction(transaction);
-      } else {
-        // Sign and submit transaction
-        result = await this.signAndSubmitTransaction({
-          data: {
-            function: "0x1::coin::transfer",
-            typeArguments: ["0x1::aptos_coin::AptosCoin"],
-            functionArguments: [to, amountInOctas.toString()],
-          },
-        });
-      }
+      // Sign and submit transaction
+      const result = await this.signAndSubmitTransaction({
+        data: {
+          function: "0x1::coin::transfer",
+          typeArguments: ["0x1::aptos_coin::AptosCoin"],
+          functionArguments: [to, amountInOctas.toString()],
+        },
+      });
 
       const executedTransaction = await this.aptos.waitForTransaction({ transactionHash: typeof result === "string" ? result : result.hash });
       if (executedTransaction.success !== true) {
@@ -74,28 +61,14 @@ export default class AptosWallet {
     }
 
     try {
-      let result: any;
-      if (this.isMobile) {
-        const transaction = await this.aptos.transaction.build.simple({
-          sender: this.account?.address?.toString(),
-          data: {
-            function: "0x1::primary_fungible_store::transfer",
-            typeArguments: ["0x1::fungible_asset::Metadata"],
-            functionArguments: [contractAddress, to, amount],
-            abi: faTransferAbi,
-          },
-        });
-        result = await this.signAndSubmitTransaction(transaction);
-      } else {
-        result = await this.signAndSubmitTransaction({
-          data: {
-            function: "0x1::primary_fungible_store::transfer",
-            typeArguments: ["0x1::fungible_asset::Metadata"],
-            functionArguments: [contractAddress, to, amount],
-            abi: faTransferAbi,
-          },
-        });
-      }
+      const result = await this.signAndSubmitTransaction({
+        data: {
+          function: "0x1::primary_fungible_store::transfer",
+          typeArguments: ["0x1::fungible_asset::Metadata"],
+          functionArguments: [contractAddress, to, amount],
+          abi: faTransferAbi,
+        },
+      });
 
       const executedTransaction = await this.aptos.waitForTransaction({ transactionHash: typeof result === "string" ? result : result.hash });
       if (executedTransaction.success !== true) {
@@ -399,26 +372,14 @@ export default class AptosWallet {
       const functionId = `${proxyAddress}::stableflow_proxy::proxy_transfer_fa` as `${string}::${string}::${string}`;
       const functionArguments = [fromToken.contractAddress, depositAddress, amountWei];
 
-      let rawTxn;
-      if (this.isMobile) {
-        rawTxn = await this.aptos.transaction.build.simple({
-          sender,
-          data: {
-            function: functionId,
-            typeArguments: [typeArgument],
-            functionArguments: functionArguments,
-          },
-        });
-      } else {
-        rawTxn = await this.aptos.transaction.build.simple({
-          sender,
-          data: {
-            function: functionId,
-            typeArguments: [typeArgument],
-            functionArguments: functionArguments,
-          },
-        });
-      }
+      const rawTxn = await this.aptos.transaction.build.simple({
+        sender,
+        data: {
+          function: functionId,
+          typeArguments: [typeArgument],
+          functionArguments: functionArguments,
+        },
+      });
 
       // Simulate transaction to estimate gas
       let simulation: any;
@@ -453,7 +414,6 @@ export default class AptosWallet {
           function: functionId,
           typeArguments: [typeArgument],
           functionArguments: functionArguments,
-          isMobile: this.isMobile,
         };
 
         return result;
@@ -477,7 +437,6 @@ export default class AptosWallet {
           function: functionId,
           typeArguments: [typeArgument],
           functionArguments: functionArguments,
-          isMobile: this.isMobile,
         };
 
         return result;
@@ -503,7 +462,6 @@ export default class AptosWallet {
         function: functionId,
         typeArguments: [typeArgument],
         functionArguments: functionArguments,
-        isMobile: this.isMobile,
       };
 
     } catch (error) {
@@ -530,7 +488,7 @@ export default class AptosWallet {
       throw new Error("Wallet not connected");
     }
 
-    const { function: functionId, typeArguments, functionArguments, isMobile } = params;
+    const { function: functionId, typeArguments, functionArguments } = params;
 
     if (!functionId || !typeArguments || !functionArguments) {
       throw new Error("Invalid sendParam: function, typeArguments, and functionArguments are required");
@@ -542,31 +500,18 @@ export default class AptosWallet {
         throw new Error("Invalid sender address");
       }
 
-      let result: any;
-      if (isMobile || this.isMobile) {
-        const transaction = await this.aptos.transaction.build.simple({
-          sender,
-          data: {
-            function: functionId as `${string}::${string}::${string}`,
-            typeArguments,
-            functionArguments,
-          },
-        });
-        result = await this.signAndSubmitTransaction(transaction);
-      } else {
-        result = await this.signAndSubmitTransaction({
-          data: {
-            function: functionId as `${string}::${string}::${string}`,
-            typeArguments,
-            functionArguments,
-          },
-        });
-      }
-
-      const executedTransaction = await this.aptos.waitForTransaction({ 
-        transactionHash: typeof result === "string" ? result : result.hash 
+      const result = await this.signAndSubmitTransaction({
+        data: {
+          function: functionId as `${string}::${string}::${string}`,
+          typeArguments,
+          functionArguments,
+        },
       });
-      
+
+      const executedTransaction = await this.aptos.waitForTransaction({
+        transactionHash: typeof result === "string" ? result : result.hash
+      });
+
       if (executedTransaction.success !== true) {
         console.log("Proxy transfer failed: %o", executedTransaction);
         throw new Error("Proxy transfer failed");
@@ -576,6 +521,36 @@ export default class AptosWallet {
     } catch (error) {
       console.log("Send transaction failed:", error);
       throw error;
+    }
+  }
+
+  /**
+  * Unified quote method that routes to specific quote methods based on type
+  * @param type Service type from ServiceType
+  * @param params Parameters for the quote
+  */
+  async quote(type: ServiceType, params: any) {
+    switch (type) {
+      case Service.OneClick:
+        return await this.quoteOneClickProxy(params);
+      default:
+        throw new Error(`Unsupported quote type: ${type}`);
+    }
+  }
+
+  /**
+   * Unified send method that routes to specific send methods based on type
+   * @param type Send type from SendTypeSENDm
+   * @param params Parameters for the send transaction
+   */
+  async send(type: SendType, params: any) {
+    switch (type) {
+      case SendType.SEND:
+        return await this.sendTransaction(params);
+      case SendType.TRANSFER:
+        return await this.transfer(params);
+      default:
+        throw new Error(`Unsupported send type: ${type}`);
     }
   }
 }
