@@ -7,12 +7,16 @@ import Big from "big.js";
 import { TronWeb } from "tronweb";
 import { chainsRpcUrls } from "@/config/chains";
 import { BridgeDefaultWallets } from "@/config";
+import { SendType } from "../types";
+import { Service, type ServiceType } from "@/services";
 
 export default class TronWallet {
+  private signAndSendTransaction: any;
   private tronWeb: any;
 
-  constructor() {
-    this.tronWeb = (window as any).tronWeb;
+  constructor(options: any) {
+    this.signAndSendTransaction = options.signAndSendTransaction;
+    this.tronWeb = options.tronWeb;
   }
 
   async waitForTronWeb() {
@@ -71,8 +75,11 @@ export default class TronWallet {
       this.tronWeb.toSun(amount)
     );
 
-    const signedTransaction = await this.tronWeb.trx.sign(transaction);
-    const result = await this.tronWeb.trx.sendRawTransaction(signedTransaction);
+    const result = await this.signAndSendTransaction(transaction);
+
+    if (typeof result === "string") {
+      return result;
+    }
 
     return result.txid;
   }
@@ -80,15 +87,27 @@ export default class TronWallet {
   async transferToken(contractAddress: string, to: string, amount: string) {
     await this.waitForTronWeb();
 
-    // Get contract instance
-    const contract = await this.tronWeb.contract().at(contractAddress);
+    const functionSelector = 'transfer(address,uint256)';
+    const parameter = [{ type: 'address', value: to }, { type: 'uint256', value: amount }];
+    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(contractAddress, functionSelector, {}, parameter);
 
-    // Call transfer function
-    const transaction = await contract.transfer(to, amount).send({
-      feeLimit: 100_000_000
-    });
+    const result = await this.signAndSendTransaction(tx.transaction);
 
-    return transaction;
+    if (typeof result === "string") {
+      return result;
+    }
+
+    return result.txid;
+
+    // // Get contract instance
+    // const contract = await this.tronWeb.contract().at(contractAddress);
+
+    // // Call transfer function
+    // const transaction = await contract.transfer(to, amount).send({
+    //   feeLimit: 100_000_000
+    // });
+
+    // return transaction;
   }
 
   async getBalance(token: any, account: string) {
@@ -250,9 +269,6 @@ export default class TronWallet {
     await this.waitForTronWeb();
 
     try {
-      // Get contract instance
-      const contract = await this.tronWeb.contract().at(contractAddress);
-
       // Determine approval amount
       let _amountWei = amountWei;
       if (isApproveMax) {
@@ -260,32 +276,27 @@ export default class TronWallet {
         _amountWei = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
       }
 
-      // Call approve function
-      const result = await contract.approve(spender, _amountWei).send({
-        feeLimit: 100_000_000
-      });
+      // Build approve transaction using triggerSmartContract
+      const functionSelector = 'approve(address,uint256)';
+      const parameter = [
+        { type: 'address', value: spender },
+        { type: 'uint256', value: _amountWei }
+      ];
+      const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(
+        contractAddress,
+        functionSelector,
+        {},
+        parameter
+      );
 
-      // Extract transaction hash/txid from result
-      // TronWeb contract.send() may return different formats
-      let txHash: string | undefined;
+      // Sign and send transaction
+      const result = await this.signAndSendTransaction(tx.transaction);
+
       if (typeof result === "string") {
-        txHash = result;
-      } else if (result && result.txid) {
-        txHash = result.txid;
-      } else if (result && result.transaction && result.transaction.txID) {
-        txHash = result.transaction.txID;
+        return result;
       }
 
-      // Check transaction result
-      // this check is async, so we need to wait for the transaction to be confirmed
-      // if (txHash) {
-      //   // Wait for transaction confirmation
-      //   const txInfo = await this.checkTransactionStatus(txHash);
-      //   return txInfo;
-      // }
-
-      // If we can't extract txid, assume success if result exists
-      return !!result;
+      return result.txid;
     } catch (error) {
       console.log("Error approve: %o", error);
       return false;
@@ -507,10 +518,54 @@ export default class TronWallet {
       tx,
     } = params;
 
-    const signedTx = await this.tronWeb.trx.sign(tx.transaction);
-    const broadcast = await this.tronWeb.trx.sendRawTransaction(signedTx);
+    // const signedTx = await this.tronWeb.trx.sign(tx.transaction);
+    // const broadcast = await this.tronWeb.trx.sendRawTransaction(signedTx);
+    const result = await this.signAndSendTransaction(tx.transaction);
 
-    return broadcast.txid;
+    if (typeof result === "object" && result.message) {
+      console.log("%cTron send transaction message: %o", "background:#f00;color:#fff;", result.message);
+      if (/user rejected the transaction/i.test(result.message)) {
+        throw new Error("User rejected the transaction");
+      }
+    }
+
+    if (typeof result === "string") {
+      return result;
+    }
+
+    return result.txid;
+  }
+
+  /**
+   * Unified quote method that routes to specific quote methods based on type
+   * @param type Service type from ServiceType
+   * @param params Parameters for the quote
+   */
+  async quote(type: ServiceType, params: any) {
+    switch (type) {
+      case Service.Usdt0:
+        return await this.quoteOFT(params);
+      case Service.OneClick:
+        return await this.quoteOneClickProxy(params);
+      default:
+        throw new Error(`Unsupported quote type: ${type}`);
+    }
+  }
+
+  /**
+   * Unified send method that routes to specific send methods based on type
+   * @param type Send type from SendType enum
+   * @param params Parameters for the send transaction
+   */
+  async send(type: SendType, params: any) {
+    switch (type) {
+      case SendType.SEND:
+        return await this.sendTransaction(params);
+      case SendType.TRANSFER:
+        return await this.transfer(params);
+      default:
+        throw new Error(`Unsupported send type: ${type}`);
+    }
   }
 
   async quoteOneClickProxy(params: any) {
@@ -602,171 +657,5 @@ export default class TronWallet {
     result.sendParam.tx = tx;
 
     return result;
-  }
-}
-
-export class OKXTronWallet {
-  private account: string; // Currently connected account address
-  private signAndSendTransaction: any;
-  private tronWeb: any;
-
-  constructor(options: any) {
-    this.signAndSendTransaction = options.signAndSendTransaction;
-    this.account = options.account;
-    this.tronWeb = options.tronWeb;
-  }
-
-  // Get currently connected account address
-  getAccount(): string {
-    return this.account;
-  }
-
-  async transfer(data: {
-    originAsset: string;
-    depositAddress: string;
-    amount: string;
-  }) {
-    const { originAsset, depositAddress, amount } = data;
-
-    if (originAsset === "TRX" || originAsset === "trx") {
-      return this.transferTRX(depositAddress, amount);
-    }
-
-    // Transfer TRC20 token (USDT, USDC, etc.)
-    return await this.transferToken(originAsset, depositAddress, amount);
-  }
-
-  async transferTRX(to: string, amount: string) {
-    // Build TRX transfer transaction
-    const transaction = await this.tronWeb.transactionBuilder.sendTrx(
-      to,
-      this.tronWeb.toSun(amount),
-      this.account
-    );
-
-    // Sign and send transaction using the provided signAndSendTransaction method
-    const result = await this.signAndSendTransaction(transaction);
-
-    return result;
-  }
-
-  async transferToken(contractAddress: string, to: string, amount: string) {
-    // Set the default address for TronWeb
-    this.tronWeb.setAddress(this.account);
-
-    const functionSelector = 'transfer(address,uint256)';
-    const parameter = [{ type: 'address', value: to }, { type: 'uint256', value: amount }];
-    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(contractAddress, functionSelector, {}, parameter);
-
-    // Sign and send transaction using the provided signAndSendTransaction method
-    const result = await this.signAndSendTransaction(tx.transaction);
-
-    return result;
-  }
-
-  async getBalance(token: any, account: string) {
-    if (token.symbol === "TRX" || token.symbol === "trx" || token.symbol === "native") {
-      return await this.getTRXBalance(account);
-    }
-
-    return await this.getTokenBalance(token.contractAddress, account);
-  }
-
-  async getTRXBalance(account: string) {
-    // Get TRX balance using tronWeb
-    const balance = await this.tronWeb.trx.getBalance(account);
-    return balance.toString();
-  }
-
-  async getTokenBalance(contractAddress: string, account: string) {
-    try {
-      // Set the default address for TronWeb
-      this.tronWeb.setAddress(account);
-
-      // Get contract instance
-      const contract = await this.tronWeb.contract().at(contractAddress);
-
-      // Call balanceOf method to get token balance
-      const balance = await contract.balanceOf(account).call();
-
-      // Return balance as string
-      return balance.toString();
-    } catch (error) {
-      console.log("Error getting token balance:", error);
-      return "0";
-    }
-  }
-
-  async balanceOf(token: any, account: string) {
-    return await this.getBalance(token, account);
-  }
-
-  /**
-   * Estimate gas limit for transfer transaction
-   * @param data Transfer data
-   * @returns Gas limit estimate (bandwidth or energy), gas price, and estimated gas cost
-   */
-  async estimateTransferGas(data: {
-    originAsset: string;
-    depositAddress: string;
-    amount: string;
-  }): Promise<{
-    gasLimit: bigint;
-    gasPrice: bigint;
-    estimateGas: bigint;
-  }> {
-    const { originAsset } = data;
-
-    // Tron uses bandwidth for TRX transfers and energy for smart contract calls
-    // TRX transfer: ~268 bandwidth
-    // TRC20 transfer: ~30000 energy (estimated)
-    let gasLimit: bigint;
-
-    if (originAsset === "TRX" || originAsset === "trx") {
-      // TRX transfer uses bandwidth (typically 268)
-      gasLimit = 268n;
-    } else {
-      // TRC20 token transfer uses energy (typically 30000-35000)
-      gasLimit = 30000n;
-    }
-
-    // Increase by 20% to provide buffer
-    gasLimit = (gasLimit * 120n) / 100n;
-
-    // Get current energy price from Tron (in sun)
-    // For bandwidth, it's free if you have bandwidth
-    // For energy, the price varies, typically 420 sun per energy unit
-    let gasPrice: bigint;
-    try {
-      const chainParameters = await this.tronWeb.trx.getChainParameters();
-      const energyPrice = chainParameters?.find((p: any) => p.key === "getEnergyFee")?.value || 420;
-      gasPrice = BigInt(energyPrice);
-    } catch (error) {
-      // Default energy price: 420 sun per energy unit
-      gasPrice = 420n;
-    }
-
-    // Calculate estimated gas cost: gasLimit * gasPrice
-    const estimateGas = gasLimit * gasPrice;
-
-    return {
-      gasLimit,
-      gasPrice,
-      estimateGas
-    };
-  }
-
-  async checkTransactionStatus(txHash: string) {
-    try {
-      const txInfo = await this.tronWeb.trx.getTransactionInfo(txHash);
-
-      if (txInfo && txInfo.receipt) {
-        return txInfo.receipt.result === "SUCCESS";
-      }
-
-      return false;
-    } catch (error) {
-      return false;
-    }
   }
 }

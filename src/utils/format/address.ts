@@ -4,6 +4,7 @@ export const formatAddress = (
   suffixLength = 4
 ) => {
   if (!address) return "-";
+  if (typeof address !== "string") return address + "";
   if (address.length < prefixLength + suffixLength) return address;
   return `${address.slice(0, prefixLength)}...${address.slice(-suffixLength)}`;
 };

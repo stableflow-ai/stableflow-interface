@@ -1,6 +1,8 @@
 import { USDT0_CONFIG, USDT0_DVN_COUNT } from "./config";
 import { OFT_ABI, SOLANA_IDL } from "./contract";
 import axios from "axios";
+import { SendType } from "@/libs/wallets/types";
+import { Service } from "@/services";
 
 export const PayInLzToken = false;
 
@@ -97,7 +99,7 @@ class Usdt0Service {
       const isMultiHopComposer = !isBothLegacy && !isBothOUpgradeable;
       console.log("isMultiHopComposer: %o", isMultiHopComposer);
 
-      const result = await wallet.quoteOFT({
+      const result = await wallet.quote(Service.Usdt0, {
         abi: OFT_ABI,
         dstEid,
         refundTo,
@@ -140,7 +142,7 @@ class Usdt0Service {
     }
 
     if (fromToken.chainType === "tron") {
-      const result = await wallet.quoteOFT({
+      const result = await wallet.quote(Service.Usdt0, {
         abi: OFT_ABI,
         dstEid: destinationLayerzero.eid,
         refundTo,
@@ -166,7 +168,7 @@ class Usdt0Service {
     }
 
     if (fromToken.chainType === "sol") {
-      const result = await wallet.quoteOFT({
+      const result = await wallet.quote(Service.Usdt0, {
         idl: SOLANA_IDL,
         dstEid: destinationLayerzero.eid,
         refundTo,
@@ -196,7 +198,7 @@ class Usdt0Service {
       ...rest
     } = params;
 
-    return wallet.sendTransaction(rest);
+    return wallet.send(SendType.SEND, rest);
   }
 
   public async getStatus(params: any) {

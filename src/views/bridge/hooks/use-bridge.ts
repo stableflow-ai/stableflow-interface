@@ -143,38 +143,45 @@ export default function useBridge(props?: any) {
       }
 
       const defaultErrorMessage = "Failed to get quote, please try again later";
-      const getQuoteErrorMessage = () => {
+      const getQuoteErrorMessage = (): { message: string; sourceMessage: string; } => {
+        const _messageResult = {
+          message: defaultErrorMessage,
+          sourceMessage: error?.response?.data?.message || defaultErrorMessage,
+        };
         if (
           error?.response?.data?.message &&
           error?.response?.data?.message !== "Internal server error"
         ) {
           // quote failed, maybe out of liquidity
           if (error?.response?.data?.message === "Failed to get quote") {
-            return "Amount exceeds max";
+            _messageResult.message = "Amount exceeds max";
+            return _messageResult;
           }
           // Amount is too low for bridge
           if (error?.response?.data?.message?.includes("Amount is too low for bridge, try at least")) {
             const match = error.response.data.message.match(/try at least\s+(\d+(?:\.\d+)?)/i);
             let minimumAmount = match ? match[1] : Big(1).times(10 ** walletStore.fromToken.decimals).toFixed(0);
             minimumAmount = Big(minimumAmount).div(10 ** walletStore.fromToken.decimals);
-            return `Amount is too low, at least ${formatNumber(minimumAmount, walletStore.fromToken.decimals, true)}`;
+            _messageResult.message = `Amount is too low, at least ${formatNumber(minimumAmount, walletStore.fromToken.decimals, true)}`;
+            return _messageResult;
           }
-          return error?.response?.data?.message;
+          return _messageResult;
         }
         // Unknown error
-        return defaultErrorMessage;
+        return _messageResult;
       };
 
+      const _errorMessage = getQuoteErrorMessage();
       const _quoteData = {
         type: Service.OneClick,
-        errMsg: getQuoteErrorMessage(),
+        errMsg: _errorMessage.message,
       };
       bridgeStore.setQuoting(Service.OneClick, false);
       bridgeStore.setQuoteData(Service.OneClick, _quoteData);
       setLiquidityErrorMessage(false);
       // report error
       onReportError({
-        content: getQuoteErrorMessage() === defaultErrorMessage ? error.message : getQuoteErrorMessage(),
+        content: _errorMessage.sourceMessage,
         amount: bridgeStore.amount,
         from_chain: walletStore.fromToken.chainName,
         symbol: walletStore.fromToken.symbol,
@@ -498,9 +505,13 @@ export default function useBridge(props?: any) {
         // Check if balance is sufficient
         if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
           bridgeStore.set({ transferring: false });
-          bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
-            errMsg: "Insufficient native token balance",
+          toast.fail({
+            title: "Transfer failed",
+            text: "Insufficient native token balance"
           });
+          // bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+          //   errMsg: "Insufficient native token balance",
+          // });
           return;
         }
       } catch (error) {

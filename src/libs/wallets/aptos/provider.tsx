@@ -5,7 +5,7 @@ import useBalancesStore from "@/stores/use-balances";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useDebounceFn } from "ahooks";
 import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
-import { Network } from "@aptos-labs/ts-sdk";
+import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import { useWatchOKXConnect } from "../okxconnect";
 import { OKXAptosProvider } from "@okxconnect/aptos-provider";
@@ -145,17 +145,24 @@ const MobileContent = () => {
     const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
     const provider = new OKXAptosProvider(okxUniversalProvider);
     const account = provider.getAccount("aptos:mainnet") || null;
+    const config = new AptosConfig({
+      network: Network.MAINNET,
+    });
+    const aptos = new Aptos(config);
     const aptosWallet = new AptosWallet({
-      isMobile: true,
       account: account,
-      signAndSubmitTransaction: ((transaction: any) => {
+      signAndSubmitTransaction: (async (payloadData: any) => {
+        const transaction = await aptos.transaction.build.simple({
+          sender: account?.address?.toString(),
+          ...payloadData,
+        });
         return provider.signAndSubmitTransaction(transaction, "aptos:mainnet");
       }) as any,
     });
 
     setWallets({
       aptos: {
-        account,
+        account: account?.address?.toString(),
         wallet: aptosWallet,
         walletIcon: icon,
         connect: connect,

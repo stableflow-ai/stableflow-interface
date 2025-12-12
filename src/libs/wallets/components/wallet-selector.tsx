@@ -25,7 +25,7 @@ const WalletSelector = (props: any) => {
           </h2>
           <button
             onClick={onClose}
-            className="w-[32px] h-[32px] rounded-full bg-[#F5F5F5] flex items-center justify-center hover:bg-[#E5E5E5] transition-colors"
+            className="cursor-pointer w-[32px] h-[32px] rounded-full bg-[#F5F5F5] flex items-center justify-center hover:bg-[#E5E5E5] transition-colors"
           >
             <svg
               width="16"

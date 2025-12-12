@@ -37,6 +37,8 @@ import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
 import stableflowProxyIdl from "@/services/oneclick/stableflow-proxy.json";
 import { quoteSignature } from "../utils/cctp";
+import { SendType } from "../types";
+import { Service, type ServiceType } from "@/services";
 
 const getAddressLookupTable = async (
   _lookupTableAddress: string | PublicKey,
@@ -728,6 +730,40 @@ export default class SolanaWallet {
     }
 
     return signature;
+  }
+
+  /**
+   * Unified quote method that routes to specific quote methods based on type
+   * @param type Service type from ServiceType
+   * @param params Parameters for the quote
+   */
+  async quote(type: ServiceType, params: any) {
+    switch (type) {
+      case Service.CCTP:
+        return await this.quoteCCTP(params);
+      case Service.Usdt0:
+        return await this.quoteOFT(params);
+      case Service.OneClick:
+        return await this.quoteOneClickProxy(params);
+      default:
+        throw new Error(`Unsupported quote type: ${type}`);
+    }
+  }
+
+  /**
+   * Unified send method that routes to specific send methods based on type
+   * @param type Send type from SendType enum
+   * @param params Parameters for the send transaction
+   */
+  async send(type: SendType, params: any) {
+    switch (type) {
+      case SendType.SEND:
+        return await this.sendTransaction(params);
+      case SendType.TRANSFER:
+        return await this.transfer(params);
+      default:
+        throw new Error(`Unsupported send type: ${type}`);
+    }
   }
 
   async quoteOneClickProxy(params: any) {
