@@ -310,7 +310,7 @@ export default function useBridge(props?: any) {
   const autoRequoteTimerRef = useRef<NodeJS.Timeout | null>(null);
   // Track previous quoting state to detect when quote completes
   const prevQuotingRef = useRef<boolean>(false);
-  
+
   const quote = async (params: { dry: boolean; }, isSync?: boolean, requestId?: number) => {
     if (!isSync) {
       bridgeStore.clearQuoteData();
@@ -375,7 +375,7 @@ export default function useBridge(props?: any) {
       // Sync calls don't need request ID check
       return currentQuoteService.quote(quoteParams);
     }
-    
+
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
       // Pass request ID to service function
@@ -385,7 +385,7 @@ export default function useBridge(props?: any) {
           console.log(`[${quoteService.service}] Ignored outdated quote result, current requestId: ${requestIdRef.current}, result requestId: ${currentRequestId}`);
           return;
         }
-        
+
         console.log("%c[%s]Quote Result: %o", "background:#f00;color:#fff;", quoteService.service, _quoteRes);
 
         if (i >= quoteServices.length - 1) {
@@ -434,6 +434,23 @@ export default function useBridge(props?: any) {
 
       // approve
       if (_quote?.data?.needApprove) {
+        // check is from ethereum erc20
+        if (walletStore.fromToken.chainName === "Ethereum") {
+          const allowance = await wallet.wallet.allowance({
+            contractAddress: walletStore.fromToken.contractAddress,
+            spender: _quote?.data?.approveSpender,
+            address: fromWalletAddress,
+            amountWei: _amount,
+          });
+          // if allowance is not enough, reset allowance first
+          if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
+            await wallet.wallet.approve({
+              contractAddress: walletStore.fromToken.contractAddress,
+              spender: _quote?.data?.approveSpender,
+              amountWei: "0",
+            });
+          }
+        }
         const approveResult = await wallet.wallet.approve({
           contractAddress: walletStore.fromToken.contractAddress,
           spender: _quote?.data?.approveSpender,
@@ -480,7 +497,7 @@ export default function useBridge(props?: any) {
       try {
         const estimateGas = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService)?.estimateSourceGas;
         // get native token balance
-        const nativeBalance = await wallet.wallet.getBalance({  symbol: "native"}, wallet.account);
+        const nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
         const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
 
         console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
@@ -630,7 +647,7 @@ export default function useBridge(props?: any) {
       const currentChainId = walletStore.toToken?.chainId;
       const prevChainName = prevToTokenRef.current?.chainName;
       const currentChainName = walletStore.toToken?.chainName;
-      
+
       if (
         (prevChainId && currentChainId && prevChainId !== currentChainId) ||
         (prevChainName && currentChainName && prevChainName !== currentChainName)
@@ -857,8 +874,8 @@ export default function useBridge(props?: any) {
   // Auto requote for CCTP from Solana USDC to any chain USDC
   useEffect(() => {
     // Check conditions: from Solana USDC to any chain USDC
-    const isFromSolanaUSDC = 
-      walletStore.fromToken?.chainType === "sol" && 
+    const isFromSolanaUSDC =
+      walletStore.fromToken?.chainType === "sol" &&
       walletStore.fromToken?.symbol === "USDC";
     const isToUSDC = walletStore.toToken?.symbol === "USDC";
 
@@ -868,7 +885,7 @@ export default function useBridge(props?: any) {
 
     // Check if quote just completed (was quoting, now not quoting)
     const quoteJustCompleted = prevQuotingRef.current && !isQuoting;
-    
+
     // Update previous quoting state
     prevQuotingRef.current = isQuoting;
 

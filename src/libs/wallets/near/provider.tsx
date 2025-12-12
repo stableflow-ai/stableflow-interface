@@ -112,16 +112,19 @@ export default function NEARProvider({
         });
 
         _selector.store.observable.subscribe(async (state) => {
-          const wallet = await _selector.wallet();
-          walletsStore.set({
-            near: {
-              ...params,
-              walletIcon: wallet?.metadata.iconUrl,
-              account:
-                state.accounts.find((account) => account.active)?.accountId ||
-                null
-            }
-          });
+          try {
+            const wallet = await _selector.wallet();
+            walletsStore.set({
+              near: {
+                ...params,
+                walletIcon: wallet?.metadata.iconUrl,
+                account:
+                  state.accounts.find((account) => account.active)?.accountId ||
+                  null
+              }
+            });
+          } catch (error) {
+          }
         });
       } catch (error) {
         console.error("init near wallet selector failed:", error);
