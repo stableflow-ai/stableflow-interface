@@ -768,6 +768,7 @@ export default class SolanaWallet {
 
   async quoteOneClickProxy(params: any) {
     const {
+      refundTo,
       proxyAddress,
       fromToken,
       amountWei,
@@ -775,15 +776,15 @@ export default class SolanaWallet {
       depositAddress,
     } = params;
 
+    const result: any = { fees: {} };
     try {
-      const result: any = { fees: {} };
-
       const PROGRAM_ID = new PublicKey(proxyAddress);
       const STATE_PDA = new PublicKey("9E8az3Y9sdXvM2f3CCH6c9N3iFyNfDryQCZhqDxRYGUw");
       const MINT = new PublicKey(fromToken.contractAddress);
       const AMOUNT = new BN(amountWei);
       const RECIPIENT = new PublicKey(depositAddress);
       const sender = this.publicKey!;
+      const userPubkey = new PublicKey(refundTo || sender.toString());
 
       // Create AnchorProvider
       const provider = new AnchorProvider(this.connection, this.signer, {
@@ -791,11 +792,10 @@ export default class SolanaWallet {
       });
 
       // Create Program instance
-      const program = new Program<any>(stableflowProxyIdl, PROGRAM_ID, provider
-      );
+      const program = new Program<any>(stableflowProxyIdl, PROGRAM_ID, provider);
 
       // Get user's token account (ATA)
-      const userTokenAccount = getAssociatedTokenAddressSync(MINT, sender);
+      const userTokenAccount = getAssociatedTokenAddressSync(MINT, userPubkey);
 
       // Get recipient's token account (ATA)
       const toTokenAccount = getAssociatedTokenAddressSync(MINT, RECIPIENT);
@@ -808,7 +808,7 @@ export default class SolanaWallet {
         // If token account doesn't exist, create it
         transaction.add(
           createAssociatedTokenAccountInstruction(
-            sender, // payer
+            userPubkey, // payer
             toTokenAccount, // ata
             RECIPIENT, // owner
             MINT // mint
@@ -825,7 +825,7 @@ export default class SolanaWallet {
           userTokenAccount: userTokenAccount,
           toTokenAccount: toTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
-          user: sender,
+          user: userPubkey,
           toUser: RECIPIENT,
           systemProgram: SystemProgram.programId,
         })
@@ -837,7 +837,7 @@ export default class SolanaWallet {
       // Set transaction blockhash and feePayer before simulation
       const { blockhash } = await this.connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
-      transaction.feePayer = sender;
+      transaction.feePayer = userPubkey;
 
       // Simulate entire transaction (including account creation if needed) to estimate fees
       const message = transaction.compileMessage();
@@ -869,7 +869,7 @@ export default class SolanaWallet {
       return result;
     } catch (error: any) {
       console.log("error: %o", error);
-      return { errMsg: error.message };
+      return result;
     }
   }
 
