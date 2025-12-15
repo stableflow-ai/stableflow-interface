@@ -932,7 +932,7 @@ export default class SolanaWallet {
       }
 
       // Get user's token account (ATA)
-      const userTokenAccount = getAssociatedTokenAddressSync(MINT, sender);
+      const userTokenAccount = getAssociatedTokenAddressSync(MINT, userPubkey);
 
       // Quote signature
       const signatureRes = await quoteSignature({
