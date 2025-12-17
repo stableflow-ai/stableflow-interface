@@ -19,14 +19,14 @@ export default function useUpdateTxns() {
           depositAddress: address
         });
         let status = result.data.status;
-        if (status === "PENDING_DEPOSIT") {
-          if (result.data.quoteResponse?.quote?.deadline) {
-            const isTimeout = Date.now() > new Date(result.data.quoteResponse?.quote?.deadline).getTime();
-            if (isTimeout) {
-              status = "FAILED";
-            }
-          }
-        }
+        // if (status === "PENDING_DEPOSIT") {
+        //   if (result.data.quoteResponse?.quote?.deadline) {
+        //     const isTimeout = Date.now() > new Date(result.data.quoteResponse?.quote?.deadline).getTime();
+        //     if (isTimeout) {
+        //       status = "FAILED";
+        //     }
+        //   }
+        // }
         historyStore.updateStatus(address, status);
         historyStore.updateHistory(address, {
           toChainTxHash: result.data.swapDetails?.destinationChainTxHashes?.[0]?.hash,
