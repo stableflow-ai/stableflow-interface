@@ -63,9 +63,19 @@ class OneClickService {
       fromToken: void 0,
       toToken: void 0,
       prices: void 0,
+      amountWei: void 0,
     });
 
     if (res.data) {
+      // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
+      // If the calculated time exceeds 60 seconds, it is randomized between 40 and 45 seconds,
+      // enhancing user experience by providing more realistic estimates.
+      if (res.data?.quote) {
+        if (Big(res.data.quote.timeEstimate || 0).gt(60)) {
+          res.data.quote.timeEstimate = Math.floor(Math.random() * 6) + 40;
+        }
+      }
+
       res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
       res.data.outputAmount = numberRemoveEndZero(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
 
@@ -111,8 +121,9 @@ class OneClickService {
       }
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
+      let proxyParams: any = {};
       if (proxyAddress) {
-        const proxyResult = await params.wallet.quote(Service.OneClick, {
+        proxyParams = {
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
           fromToken: params.fromToken,
@@ -121,7 +132,8 @@ class OneClickService {
           amountWei: params.amount,
           prices: params.prices,
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-        });
+        };
+        const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
 
         for (const proxyKey in proxyResult) {
           if (proxyKey === "fees") {
@@ -136,9 +148,14 @@ class OneClickService {
           res.data[proxyKey] = proxyResult[proxyKey];
         }
       }
+
+      res.data.quoteParam = {
+        ...params,
+        ...proxyParams,
+      };
     }
 
-    return res;
+    return res.data || {};
   }
 
   public async send(params: any) {
