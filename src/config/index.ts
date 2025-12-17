@@ -8,3 +8,5 @@ export const BridgeDefaultWallets: Record<WalletType, string> = {
   tron: "TG4cfJGzvmpWxYyQKSosCWTacKCxEwSiKw",
   aptos: "0x93493b07d031c4f18ad1e874575761be7e47d4cea5c81d538600e8ec72d6ab1c",
 };
+
+export const PRICE_IMPACT_THRESHOLD = 0.02; // 2%

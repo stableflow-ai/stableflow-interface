@@ -12,11 +12,13 @@ interface BridgeState {
   showFee: boolean;
   showRoutes: boolean;
   shouldAutoSelect: boolean;
+  acceptPriceImpact: boolean;
   set: (params: any) => void;
   setQuoteData: (key: string, value: any) => void;
   modifyQuoteData: (key: string, value: any) => void;
   clearQuoteData: () => void;
   setQuoting: (key: string, value: boolean) => void;
+  setAcceptPriceImpact: (value: boolean) => void;
 }
 
 const useBridgeStore = create<BridgeState>((set) => ({
@@ -30,6 +32,7 @@ const useBridgeStore = create<BridgeState>((set) => ({
   showFee: false,
   showRoutes: true,
   shouldAutoSelect: false,
+  acceptPriceImpact: true,
   set: (params) => set(() => ({ ...params })),
   setQuoteData: (key, value) => {
     set((state) => {
@@ -61,6 +64,11 @@ const useBridgeStore = create<BridgeState>((set) => ({
       const _quotingMap = new Map(state.quotingMap);
       _quotingMap.set(key, value);
       return { ...state, quotingMap: _quotingMap };
+    });
+  },
+  setAcceptPriceImpact: (value) => {
+    set((state) => {
+      return { ...state, acceptPriceImpact: value };
     });
   },
 }));

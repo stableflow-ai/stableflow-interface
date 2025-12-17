@@ -14,7 +14,7 @@ import useBridgeStore, { type QuoteData } from "@/stores/use-bridge";
 import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
-import { BridgeDefaultWallets } from "@/config";
+import { BridgeDefaultWallets, PRICE_IMPACT_THRESHOLD } from "@/config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
 import { Service } from "@/services";
@@ -695,6 +695,13 @@ export default function useBridge(props?: any) {
         return addressValidation.error;
       }
 
+      const priceImpact = bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.priceImpact;
+      if (priceImpact) {
+        if (Big(priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD) && !bridgeStore.acceptPriceImpact) {
+          return "Large Price Impact";
+        }
+      }
+
       return "";
     };
     const error = check();
@@ -708,6 +715,7 @@ export default function useBridge(props?: any) {
     walletStore.toToken,
     bridgeStore.quoteDataMap,
     bridgeStore.quoteDataService,
+    bridgeStore.acceptPriceImpact,
     fromWalletAddress,
     toWalletAddress,
     wallets.evm?.chainId,

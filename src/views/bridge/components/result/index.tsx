@@ -2,18 +2,30 @@ import useBridgeStore from "@/stores/use-bridge";
 import { motion } from "framer-motion";
 import { lazy, Suspense, useMemo } from "react";
 import { Service } from "@/services";
-import ResultUsdt0 from "./usdt0";
-import ResultCCTP from "./cctp";
+import Checkbox from "@/components/checkbox";
+import { formatDuration } from "@/utils/format/time";
+import Big from "big.js";
+import { formatNumber } from "@/utils/format/number";
+import { PRICE_IMPACT_THRESHOLD } from "@/config";
 
 const ResultOneClick = lazy(() => import("./oneclick"));
+const ResultUsdt0 = lazy(() => import("./usdt0"));
+const ResultCCTP = lazy(() => import("./cctp"));
 
 export default function Result() {
   const bridgeStore = useBridgeStore();
-  // const _quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
 
-  // const duration = useMemo(() => {
-  //   return formatDuration(_quoteData?.estimateTime);
-  // }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
+  const quoteData = useMemo(() => {
+    return bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
+  }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
+
+  const [_duration, priceImpact, isLargePriceImpact] = useMemo(() => {
+    return [
+      formatDuration(quoteData?.estimateTime),
+      formatNumber(Big(quoteData?.priceImpact || 0).times(100), 2, true, { prefix: "-" }),
+      Big(quoteData?.priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD)
+    ];
+  }, [quoteData]);
 
   const quoteDataList = useMemo(() => {
     bridgeStore.quoteDataMap.forEach((data, service) => {
@@ -106,6 +118,26 @@ export default function Result() {
           )
         }
       </Suspense>
+      {
+        isLargePriceImpact && (
+          <div className="w-full flex justify-between items-center p-[10px] text-[12px] text-[#FF6A19]">
+            <div className="flex items-center gap-[10px]">
+              <Checkbox
+                checked={bridgeStore.acceptPriceImpact}
+                checkedColor="#FF6A19"
+                onChange={(checked) => {
+                  bridgeStore.setAcceptPriceImpact(checked);
+                }}
+              >
+                I accept the price impact
+              </Checkbox>
+            </div>
+            <div className="">
+              {priceImpact}%
+            </div>
+          </div>
+        )
+      }
     </>
   );
 }

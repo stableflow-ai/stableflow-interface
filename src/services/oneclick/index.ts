@@ -82,6 +82,14 @@ class OneClickService {
           .div(10 ** params.toToken.decimals)
           .toFixed(params.toToken.decimals, 0)
       );
+      let priceImpact = Big(0);
+      try {
+        priceImpact = Big(Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0)).div(res.data?.quote?.amountInUsd || 1);
+        if (Big(priceImpact).lt(0)) {
+          priceImpact = Big(0);
+        }
+      } catch (error) { }
+      res.data.priceImpact = numberRemoveEndZero(Big(priceImpact).toFixed(4));
 
       try {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
