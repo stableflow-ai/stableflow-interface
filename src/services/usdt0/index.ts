@@ -46,18 +46,6 @@ function calculateEstimateTime(originChain: string, destinationChain: string): n
   const destinationTime = destinationBlockTime * (2 + dvnCount);
   const totalTime = Math.ceil(sourceTime + destinationTime);
 
-  console.log(`USDT0 estimate time calculation:`, {
-    originChain,
-    destinationChain,
-    sourceBlockTime,
-    blockConfirmations,
-    destinationBlockTime,
-    dvnCount,
-    sourceTime,
-    destinationTime,
-    totalTime,
-  });
-
   return totalTime;
 }
 
@@ -97,7 +85,6 @@ class Usdt0Service {
       const isBothLegacy = isOriginLegacy && isDestinationLegacy;
       const isBothOUpgradeable = !isOriginLegacy && !isDestinationLegacy;
       const isMultiHopComposer = !isBothLegacy && !isBothOUpgradeable;
-      console.log("isMultiHopComposer: %o", isMultiHopComposer);
 
       const result = await wallet.quote(Service.Usdt0, {
         abi: OFT_ABI,
@@ -131,7 +118,6 @@ class Usdt0Service {
     const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
     const isBothLegacy = isOriginLegacy && isDestinationLegacy;
     const isMultiHopComposer = !isBothLegacy;
-    console.log("isMultiHopComposer: %o", isMultiHopComposer);
 
     // one is legacy, and one is upgradeable
     // should use multi hop composer

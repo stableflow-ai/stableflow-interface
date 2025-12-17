@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { ServiceMap } from "@/services";
+import { ServiceMap, type ServiceType } from "@/services";
 import {
   validateAddress,
   type AddressValidationResult
@@ -87,49 +87,58 @@ export default function useBridge(props?: any) {
     }
   }, { manual: true });
 
-
-  const quoteOneclick = async (params: any, requestId?: number): Promise<QuoteData> => {
+  const quoteRoutes = async (service: ServiceType, params: any, requestId?: number): Promise<QuoteData> => {
     try {
       // Check request ID, skip setting loading state if not the latest request
       if (requestId !== undefined && requestId !== requestIdRef.current) {
         throw new Error("Request cancelled: outdated request");
       }
-      bridgeStore.setQuoting(Service.OneClick, true);
-      setLiquidityErrorMessage(liquidityError);
+      bridgeStore.setQuoting(service, true);
+      if (service === Service.OneClick) {
+        setLiquidityErrorMessage(liquidityError);
+      }
 
-      const quoteRes = await ServiceMap[Service.OneClick].quote({
-        dry: params.dry,
-        slippageTolerance: configStore.slippage * 100,
-        originAsset: walletStore.fromToken.assetId,
-        destinationAsset: walletStore.toToken.assetId,
-        amount: params.amountWei,
-        refundTo: fromWalletAddress || "",
-        refundType: "ORIGIN_CHAIN",
-        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
-        wallet: params.wallet,
-        fromToken: walletStore.fromToken,
-        toToken: walletStore.toToken,
-        prices,
-      });
+      const formatQuoteParams = () => {
+        const _params: any = {
+          amountWei: params.amountWei,
+          refundTo: fromWalletAddress || "",
+          recipient: bridgeStore.recipientAddress || toWalletAddress || "",
+          wallet: params.wallet,
+          fromToken: walletStore.fromToken,
+          toToken: walletStore.toToken,
+          prices,
+          slippageTolerance: configStore.slippage,
+        };
+        if (service === Service.OneClick) {
+          _params.dry = params.dry;
+          _params.slippageTolerance = configStore.slippage * 100;
+          _params.originAsset = walletStore.fromToken.assetId;
+          _params.destinationAsset = walletStore.toToken.assetId;
+          _params.amount = params.amountWei;
+          _params.refundType = "ORIGIN_CHAIN";
+        } else {
+          _params.originChain = walletStore.fromToken.chainName;
+          _params.destinationChain = walletStore.toToken.chainName;
+        }
+
+        return _params;
+      };
+
+      const quoteParams = formatQuoteParams();
+      const quoteRes = await ServiceMap[service].quote(quoteParams);
 
       // Check request ID again before setting result to ensure it's still the latest request
       if (requestId !== undefined && requestId !== requestIdRef.current) {
-        bridgeStore.setQuoting(Service.OneClick, false);
+        bridgeStore.setQuoting(service, false);
         throw new Error("Request cancelled: outdated request");
       }
 
-      if (quoteRes.data?.quote) {
-        if (Big(quoteRes.data.quote.timeEstimate || 0).gt(60)) {
-          quoteRes.data.quote.timeEstimate = Math.floor(Math.random() * 6) + 40;
-        }
-      }
+      bridgeStore.setQuoting(service, false);
+      bridgeStore.setQuoteData(service, quoteRes);
 
-      bridgeStore.setQuoting(Service.OneClick, false);
-      bridgeStore.setQuoteData(Service.OneClick, quoteRes.data);
-      setLiquidityErrorMessage(false);
       return {
-        type: Service.OneClick,
-        data: quoteRes.data,
+        type: service,
+        data: quoteRes,
       };
     } catch (error: any) {
       // If it's a cancelled request error, return directly without setting error state
@@ -143,167 +152,63 @@ export default function useBridge(props?: any) {
       }
 
       const defaultErrorMessage = "Failed to get quote, please try again later";
-      const getQuoteErrorMessage = (): { message: string; sourceMessage: string; } => {
-        const _messageResult = {
-          message: defaultErrorMessage,
-          sourceMessage: error?.response?.data?.message || defaultErrorMessage,
-        };
-        if (
-          error?.response?.data?.message &&
-          error?.response?.data?.message !== "Internal server error"
-        ) {
-          // quote failed, maybe out of liquidity
-          if (error?.response?.data?.message === "Failed to get quote") {
-            _messageResult.message = "Amount exceeds max";
+      let _finalErrorMessage = error?.message || defaultErrorMessage;
+      if (service === Service.OneClick) {
+        const getQuoteErrorMessage = (): { message: string; sourceMessage: string; } => {
+          const _messageResult = {
+            message: defaultErrorMessage,
+            sourceMessage: error?.response?.data?.message || defaultErrorMessage,
+          };
+          if (
+            error?.response?.data?.message &&
+            error?.response?.data?.message !== "Internal server error"
+          ) {
+            // quote failed, maybe out of liquidity
+            if (error?.response?.data?.message === "Failed to get quote") {
+              _messageResult.message = "Amount exceeds max";
+              return _messageResult;
+            }
+            // Amount is too low for bridge
+            if (error?.response?.data?.message?.includes("Amount is too low for bridge, try at least")) {
+              const match = error.response.data.message.match(/try at least\s+(\d+(?:\.\d+)?)/i);
+              let minimumAmount = match ? match[1] : Big(1).times(10 ** walletStore.fromToken.decimals).toFixed(0);
+              minimumAmount = Big(minimumAmount).div(10 ** walletStore.fromToken.decimals);
+              _messageResult.message = `Amount is too low, at least ${formatNumber(minimumAmount, walletStore.fromToken.decimals, true)}`;
+              return _messageResult;
+            }
             return _messageResult;
           }
-          // Amount is too low for bridge
-          if (error?.response?.data?.message?.includes("Amount is too low for bridge, try at least")) {
-            const match = error.response.data.message.match(/try at least\s+(\d+(?:\.\d+)?)/i);
-            let minimumAmount = match ? match[1] : Big(1).times(10 ** walletStore.fromToken.decimals).toFixed(0);
-            minimumAmount = Big(minimumAmount).div(10 ** walletStore.fromToken.decimals);
-            _messageResult.message = `Amount is too low, at least ${formatNumber(minimumAmount, walletStore.fromToken.decimals, true)}`;
-            return _messageResult;
-          }
+          // Unknown error
           return _messageResult;
-        }
-        // Unknown error
-        return _messageResult;
-      };
+        };
 
-      const _errorMessage = getQuoteErrorMessage();
+        const _errorMessage = getQuoteErrorMessage();
+        _finalErrorMessage = _errorMessage.message;
+
+        // report error
+        onReportError({
+          content: _errorMessage.sourceMessage,
+          amount: bridgeStore.amount,
+          from_chain: walletStore.fromToken.chainName,
+          symbol: walletStore.fromToken.symbol,
+          to_chain: walletStore.toToken.chainName,
+          to_symbol: walletStore.toToken.symbol,
+        });
+      }
+
       const _quoteData = {
-        type: Service.OneClick,
-        errMsg: _errorMessage.message,
+        type: service,
+        errMsg: _finalErrorMessage,
       };
-      bridgeStore.setQuoting(Service.OneClick, false);
-      bridgeStore.setQuoteData(Service.OneClick, _quoteData);
+      bridgeStore.setQuoting(service, false);
+      bridgeStore.setQuoteData(service, _quoteData);
       setLiquidityErrorMessage(false);
-      // report error
-      onReportError({
-        content: _errorMessage.sourceMessage,
-        amount: bridgeStore.amount,
-        from_chain: walletStore.fromToken.chainName,
-        symbol: walletStore.fromToken.symbol,
-        to_chain: walletStore.toToken.chainName,
-        to_symbol: walletStore.toToken.symbol,
-      });
+
       return _quoteData;
     }
   };
 
-  const quoteUsdt0 = async (params: any, requestId?: number): Promise<QuoteData> => {
-    try {
-      // Check request ID, skip setting loading state if not the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
-        throw new Error("Request cancelled: outdated request");
-      }
-      bridgeStore.setQuoting(Service.Usdt0, true);
-
-      const quoteRes = await ServiceMap[Service.Usdt0].quote({
-        slippageTolerance: configStore.slippage,
-        originChain: walletStore.fromToken.chainName,
-        destinationChain: walletStore.toToken.chainName,
-        amountWei: params.amountWei,
-        refundTo: fromWalletAddress || "",
-        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
-        wallet: params.wallet,
-        fromToken: walletStore.fromToken,
-        toToken: walletStore.toToken,
-        prices,
-      });
-
-      // Check request ID again before setting result to ensure it's still the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
-        bridgeStore.setQuoting(Service.Usdt0, false);
-        throw new Error("Request cancelled: outdated request");
-      }
-
-      bridgeStore.setQuoting(Service.Usdt0, false);
-      bridgeStore.setQuoteData(Service.Usdt0, quoteRes);
-      return {
-        type: Service.Usdt0,
-        data: quoteRes,
-      };
-    } catch (error: any) {
-      // If it's a cancelled request error, return directly without setting error state
-      if (error?.message === "Request cancelled: outdated request") {
-        throw error;
-      }
-
-      // Check request ID, ignore error if not the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
-        throw new Error("Request cancelled: outdated request");
-      }
-
-      console.log("quoteUsdt0 failed: %o", error);
-      const _quoteData = {
-        type: Service.Usdt0,
-        errMsg: error.message,
-      };
-      bridgeStore.setQuoting(Service.Usdt0, false);
-      bridgeStore.setQuoteData(Service.Usdt0, _quoteData);
-      setLiquidityErrorMessage(false);
-      return _quoteData;
-    }
-  };
-
-  const quoteCCTP = async (params: any, requestId?: number): Promise<QuoteData> => {
-    try {
-      // Check request ID, skip setting loading state if not the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
-        throw new Error("Request cancelled: outdated request");
-      }
-      bridgeStore.setQuoting(Service.CCTP, true);
-
-      const quoteRes = await ServiceMap[Service.CCTP].quote({
-        slippageTolerance: configStore.slippage,
-        originChain: walletStore.fromToken.chainName,
-        destinationChain: walletStore.toToken.chainName,
-        amountWei: params.amountWei,
-        refundTo: fromWalletAddress || "",
-        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
-        wallet: params.wallet,
-        fromToken: walletStore.fromToken,
-        toToken: walletStore.toToken,
-        prices,
-      });
-
-      // Check request ID again before setting result to ensure it's still the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
-        bridgeStore.setQuoting(Service.CCTP, false);
-        throw new Error("Request cancelled: outdated request");
-      }
-
-      bridgeStore.setQuoting(Service.CCTP, false);
-      bridgeStore.setQuoteData(Service.CCTP, quoteRes);
-      return {
-        type: Service.CCTP,
-        data: quoteRes,
-      };
-    } catch (error: any) {
-      // If it's a cancelled request error, return directly without setting error state
-      if (error?.message === "Request cancelled: outdated request") {
-        throw error;
-      }
-
-      // Check request ID, ignore error if not the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
-        throw new Error("Request cancelled: outdated request");
-      }
-
-      const _quoteData = {
-        type: Service.CCTP,
-        errMsg: error.message,
-      };
-      bridgeStore.setQuoting(Service.CCTP, false);
-      bridgeStore.setQuoteData(Service.CCTP, _quoteData);
-      setLiquidityErrorMessage(false);
-      return _quoteData;
-    }
-  };
-
-  const isAutoSelect = useRef(false);
+  const [isAutoSelect, setAutoSelect] = useState(false);
   // Request ID counter to ensure only the latest request results are processed
   const requestIdRef = useRef(0);
   // Auto requote timer ref for CCTP from Solana USDC
@@ -333,39 +238,23 @@ export default function useBridge(props?: any) {
       .times(10 ** walletStore.fromToken.decimals)
       .toFixed(0);
 
-    const quoteServices: any = [];
-    for (const service of Object.values(Service)) {
-      if (walletStore.fromToken.services.includes(service) && walletStore.toToken.services.includes(service)) {
-        switch (service) {
-          case Service.OneClick:
-            quoteServices.push({
-              service: Service.OneClick,
-              quote: quoteOneclick
-            });
-            break;
-          case Service.Usdt0:
-            quoteServices.push({
-              service: Service.Usdt0,
-              quote: quoteUsdt0,
-            });
-            break;
-          case Service.CCTP:
-            quoteServices.push({
-              service: Service.CCTP,
-              quote: quoteCCTP,
-            });
-            break;
-          default:
-            break;
-        }
-      }
-    }
-
     const quoteParams = {
       ...params,
       amountWei,
       wallet: wallet.wallet,
     };
+
+    const quoteServices: any = [];
+    for (const service of Object.values(Service)) {
+      if (walletStore.fromToken.services.includes(service) && walletStore.toToken.services.includes(service)) {
+        quoteServices.push({
+          service,
+          quote: (_requestId?: number) => {
+            return quoteRoutes(service, quoteParams, _requestId);
+          }
+        });
+      }
+    }
 
     // Use request ID to ensure only the latest request results are processed
     const currentRequestId = requestId ?? requestIdRef.current;
@@ -373,24 +262,22 @@ export default function useBridge(props?: any) {
     if (isSync) {
       const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
       // Sync calls don't need request ID check
-      return currentQuoteService.quote(quoteParams);
+      const _quoteRes = await currentQuoteService.quote();
+      console.log("%c[%s]Sync Quote Result: %o", "background:#A3D78A;color:#0D4715;", bridgeStore.quoteDataService, _quoteRes);
+      return _quoteRes;
     }
 
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
       // Pass request ID to service function
-      quoteService.quote(quoteParams, currentRequestId).then((_quoteRes: any) => {
+      quoteService.quote(currentRequestId).then((_quoteRes: any) => {
         // Check if it's the latest request, ignore result if not
         if (currentRequestId !== requestIdRef.current) {
           console.log(`[${quoteService.service}] Ignored outdated quote result, current requestId: ${requestIdRef.current}, result requestId: ${currentRequestId}`);
           return;
         }
 
-        console.log("%c[%s]Quote Result: %o", "background:#f00;color:#fff;", quoteService.service, _quoteRes);
-
-        if (i >= quoteServices.length - 1) {
-          isAutoSelect.current = true;
-        }
+        console.log("%c[%s]Quote Result: %o", "background:#A3D78A;color:#0D4715;", quoteService.service, _quoteRes);
       }).catch((error: any) => {
         // Silently ignore if it's a cancelled request error
         if (error?.message === "Request cancelled: outdated request") {
@@ -404,6 +291,10 @@ export default function useBridge(props?: any) {
         }
         // Re-throw other errors for the caller to handle
         console.error(`[${quoteService.service}] Quote error:`, error);
+      }).finally(() => {
+        if (i >= quoteServices.length - 1) {
+          setAutoSelect(true);
+        }
       });
     }
   };
@@ -630,11 +521,15 @@ export default function useBridge(props?: any) {
       // reload quotes
       debouncedQuote({ dry: true });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       bridgeStore.set({ transferring: false });
+      let _finalErrorMessage = error?.message || "Transfer failed";
+      if (_finalErrorMessage.includes("user rejected action")) {
+        _finalErrorMessage = "User rejected transaction";
+      }
       toast.fail({
-        title: "Transfer failed"
+        title: _finalErrorMessage,
       });
     }
   };
@@ -820,11 +715,13 @@ export default function useBridge(props?: any) {
   ]);
 
   useEffect(() => {
+    const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
     const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
-    if (bridgeStore.transferring || isQuoting || !isAutoSelect.current) {
+
+    if (bridgeStore.transferring || isQuoting || !isAutoSelect) {
       return;
     }
-    const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
+
     if (!quoteList.length) {
       return;
     }
@@ -833,7 +730,7 @@ export default function useBridge(props?: any) {
     // This allows immediate selection when first request completes, and updates when better quotes arrive
     if (quoteList.length === 1) {
       bridgeStore.set({ quoteDataService: quoteList[0][0] });
-      isAutoSelect.current = false;
+      setAutoSelect(false);
       return;
     }
     // sort and select the best one
@@ -864,11 +761,12 @@ export default function useBridge(props?: any) {
     });
     console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
     bridgeStore.set({ quoteDataService: sortedQuoteData[0][0] });
-    isAutoSelect.current = false;
+    setAutoSelect(false);
   }, [
     bridgeStore.transferring,
     bridgeStore.quoteDataMap,
     bridgeStore.quotingMap,
+    isAutoSelect,
   ]);
 
   // Auto requote for CCTP from Solana USDC to any chain USDC

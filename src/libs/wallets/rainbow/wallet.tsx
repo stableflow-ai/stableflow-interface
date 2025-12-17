@@ -258,7 +258,7 @@ export default class RainbowWallet {
 
     // 1. check if need approve
     const approvalRequired = await oftContractRead.approvalRequired();
-    console.log("%cApprovalRequired: %o", "background:blue;color:white;", approvalRequired);
+    // console.log("%cApprovalRequired: %o", "background:blue;color:white;", approvalRequired);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -321,7 +321,7 @@ export default class RainbowWallet {
 
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     result.estimateSourceGas = msgFee[0];
-    console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+    // console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
     result.sendParam = {
       contract: oftContract,
@@ -337,7 +337,7 @@ export default class RainbowWallet {
       ],
     };
 
-    console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
+    // console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
 
     // 3. estimate gas
     const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
