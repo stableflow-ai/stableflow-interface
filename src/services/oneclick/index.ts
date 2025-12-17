@@ -67,6 +67,15 @@ class OneClickService {
     });
 
     if (res.data) {
+      // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
+      // If the calculated time exceeds 60 seconds, it is randomized between 40 and 45 seconds,
+      // enhancing user experience by providing more realistic estimates.
+      if (res.data?.quote) {
+        if (Big(res.data.quote.timeEstimate || 0).gt(60)) {
+          res.data.quote.timeEstimate = Math.floor(Math.random() * 6) + 40;
+        }
+      }
+
       res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
       res.data.outputAmount = numberRemoveEndZero(
         Big(res.data?.quote?.amountOut || 0)
@@ -164,15 +173,6 @@ class OneClickService {
             continue;
           }
           res.data[proxyKey] = proxyResult[proxyKey];
-        }
-      }
-
-      // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
-      // If the calculated time exceeds 60 seconds, it is randomized between 40 and 45 seconds,
-      // enhancing user experience by providing more realistic estimates.
-      if (res.data?.quote) {
-        if (Big(res.data.quote.timeEstimate || 0).gt(60)) {
-          res.data.quote.timeEstimate = Math.floor(Math.random() * 6) + 40;
         }
       }
 
