@@ -136,6 +136,10 @@ export default function useBridge(props?: any) {
       bridgeStore.setQuoting(service, false);
       bridgeStore.setQuoteData(service, quoteRes);
 
+      if (service === Service.OneClick) {
+        setLiquidityErrorMessage(false);
+      }
+
       return {
         type: service,
         data: quoteRes,
@@ -194,6 +198,8 @@ export default function useBridge(props?: any) {
           to_chain: walletStore.toToken.chainName,
           to_symbol: walletStore.toToken.symbol,
         });
+
+        setLiquidityErrorMessage(false);
       }
 
       const _quoteData = {
@@ -202,7 +208,6 @@ export default function useBridge(props?: any) {
       };
       bridgeStore.setQuoting(service, false);
       bridgeStore.setQuoteData(service, _quoteData);
-      setLiquidityErrorMessage(false);
 
       return _quoteData;
     }
