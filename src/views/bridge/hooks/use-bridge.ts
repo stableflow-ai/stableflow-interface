@@ -691,7 +691,7 @@ export default function useBridge(props?: any) {
       if (Object.values(BridgeDefaultWallets).includes(toWalletAddress || "")) {
         return "Recipient address is empty";
       }
-      if (!addressValidation.isValid) {
+      if (!addressValidation.isValid && bridgeStore.recipientAddress && addressValidation.error) {
         return addressValidation.error;
       }
 
