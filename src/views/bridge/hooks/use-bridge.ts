@@ -749,9 +749,11 @@ export default function useBridge(props?: any) {
       // Usdt0 should minus message fee
       if (_serviceA === Service.Usdt0) {
         netA = netA.minus(dataA.fees?.nativeFeeUsd || 0);
+        netA = netA.minus(dataA.fees?.legacyMeshFeeUsd || 0);
       }
       if (_serviceB === Service.Usdt0) {
         netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
+        netB = netB.minus(dataB.fees?.legacyMeshFeeUsd || 0);
       }
 
       // console.log("%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));
