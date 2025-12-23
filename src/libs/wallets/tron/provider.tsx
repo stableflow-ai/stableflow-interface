@@ -66,14 +66,17 @@ const Content = () => {
   }, []);
 
   useEffect(() => {
-    const windowTronWeb = (window as any).tronWeb;
-    walletRef.current = new TronWallet({
-      signAndSendTransaction: async (transaction: any) => {
-        const signedTransaction = await windowTronWeb.trx.sign(transaction);
-        return windowTronWeb.trx.sendRawTransaction(signedTransaction);
-      },
-      tronWeb: windowTronWeb,
-    });
+    const setWindowWallet = (address?: string) => {
+      const windowTronWeb = (window as any).tronWeb;
+      walletRef.current = new TronWallet({
+        signAndSendTransaction: async (transaction: any) => {
+          const signedTransaction = await windowTronWeb.trx.sign(transaction);
+          return windowTronWeb.trx.sendRawTransaction(signedTransaction);
+        },
+        address: address || windowTronWeb?.defaultAddress?.base58,
+      });
+    };
+    setWindowWallet();
 
     if (!adapter) {
       setWallets({
@@ -122,6 +125,8 @@ const Content = () => {
     });
 
     adapter.on("connect", (address: any) => {
+      console.log("%cAdaptor connected, address is: %o", "background:#423c27;color:#fdf4aa;", address);
+      setWindowWallet(address);
       setWallets({
         tron: {
           account: address,
@@ -157,6 +162,9 @@ const Content = () => {
           : accounts
         : null;
 
+      console.log("%cAccounts changed, new address is: %o", "background:#423c27;color:#fdf4aa;", newAccount);
+
+      setWindowWallet(newAccount);
       setWallets({
         tron: {
           account: newAccount,
@@ -194,7 +202,7 @@ const MobileWallet = () => {
       signAndSendTransaction: (transaction: any) => {
         return provider.signAndSendTransaction(transaction, "tron:mainnet");
       },
-      tronWeb: tronWeb,
+      address: account,
     });
 
     setWallets({
