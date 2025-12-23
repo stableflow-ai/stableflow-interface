@@ -399,7 +399,7 @@ export default class TronWallet {
       // minAmountLD
       "0",
       // extraOptions
-      "0x",
+      "0x0003",
       // composeMsg
       "0x",
       // oftCmd
