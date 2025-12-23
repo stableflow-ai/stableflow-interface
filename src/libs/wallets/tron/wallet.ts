@@ -11,23 +11,26 @@ import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
+const customTronWeb = new TronWeb({
+  fullHost: chainsRpcUrls["Tron"],
+  headers: {},
+  privateKey: "",
+});
 
 export default class TronWallet {
   private signAndSendTransaction: any;
+  private address: string;
   private tronWeb: any;
 
   constructor(options: any) {
     this.signAndSendTransaction = options.signAndSendTransaction;
-    this.tronWeb = options.tronWeb;
+    this.address = options.address;
+
+    customTronWeb.setAddress(this.address || DefaultTronWalletAddress);
+    this.tronWeb = customTronWeb;
   }
 
   async waitForTronWeb() {
-    const customTronWeb = new TronWeb({
-      fullHost: chainsRpcUrls["Tron"],
-      headers: {},
-      privateKey: "",
-    });
-
     return new Promise((resolve) => {
       if (this.tronWeb) {
         const address = this.tronWeb.defaultAddress.base58 || DefaultTronWalletAddress;
@@ -426,7 +429,6 @@ export default class TronWallet {
     }
 
     const oftData = await oftContract.quoteOFT(sendParam).call();
-    console.log("oftData: %o", oftData);
     const [, , oftReceipt] = oftData;
     sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
 
@@ -451,7 +453,7 @@ export default class TronWallet {
       );
     }
 
-    console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+    // console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
     result.sendParam = {
       param: [
@@ -470,7 +472,7 @@ export default class TronWallet {
       options: { callValue: msgFee[0]["nativeFee"].toString() },
     };
 
-    console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
+    // console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
 
     // 3. estimate gas
     const nativeFeeUsd = Big(msgFee[0]["nativeFee"]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
@@ -481,7 +483,7 @@ export default class TronWallet {
     //   result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
     // }
     try {
-      const energyUsed = msgFee[0]["nativeFee"] || 1_500_000;
+      const energyUsed = 5000000;
       const usd = numberRemoveEndZero(Big(energyUsed || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
       result.fees.estimateGasUsd = usd;
       result.estimateSourceGas = energyUsed;
