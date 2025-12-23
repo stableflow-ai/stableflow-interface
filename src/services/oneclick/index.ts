@@ -168,19 +168,23 @@ class OneClickService {
           prices: params.prices,
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };
-        const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
+        try {
+          const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
 
-        for (const proxyKey in proxyResult) {
-          if (proxyKey === "fees") {
-            for (const feeKey in proxyResult.fees) {
-              if (excludeFees.includes(feeKey)) {
-                continue;
+          for (const proxyKey in proxyResult) {
+            if (proxyKey === "fees") {
+              for (const feeKey in proxyResult.fees) {
+                if (excludeFees.includes(feeKey)) {
+                  continue;
+                }
+                res.data.fees[feeKey] = proxyResult.fees[feeKey];
               }
-              res.data.fees[feeKey] = proxyResult.fees[feeKey];
+              continue;
             }
-            continue;
+            res.data[proxyKey] = proxyResult[proxyKey];
           }
-          res.data[proxyKey] = proxyResult[proxyKey];
+        } catch (error) {
+          console.log("oneclick quote proxy failed: %o", error);
         }
       }
 
