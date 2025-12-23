@@ -20,8 +20,16 @@ export default class TronWallet {
   }
 
   async waitForTronWeb() {
-    return new Promise((resolve, reject) => {
+    const customTronWeb = new TronWeb({
+      fullHost: chainsRpcUrls["Tron"],
+      headers: {},
+      privateKey: "",
+    });
+
+    return new Promise((resolve) => {
       if (this.tronWeb) {
+        customTronWeb.setAddress(this.tronWeb.defaultAddress.base58);
+        this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
         return;
       }
@@ -29,6 +37,8 @@ export default class TronWallet {
       const checkTronWeb = () => {
         if ((window as any).tronWeb) {
           this.tronWeb = (window as any).tronWeb;
+          customTronWeb.setAddress(this.tronWeb.defaultAddress.base58);
+          this.tronWeb = customTronWeb;
           resolve(this.tronWeb);
         } else {
           setTimeout(checkTronWeb, 100);
@@ -38,12 +48,8 @@ export default class TronWallet {
       checkTronWeb();
 
       setTimeout(() => {
-        this.tronWeb = new TronWeb({
-          fullHost: chainsRpcUrls["Tron"],
-          headers: {},
-          privateKey: "",
-        });
-        this.tronWeb.setAddress(BridgeDefaultWallets["tron"]);
+        customTronWeb.setAddress(BridgeDefaultWallets["tron"]);
+        this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
         console.log(new Error("TronWeb initialization timeout"));
       }, 10000);
@@ -183,15 +189,15 @@ export default class TronWallet {
     // Get current energy price from Tron (in sun)
     // For bandwidth, it's free if you have bandwidth
     // For energy, the price varies, typically 420 sun per energy unit
-    let gasPrice: bigint;
-    try {
-      const chainParameters = await this.tronWeb.trx.getChainParameters();
-      const energyPrice = chainParameters?.find((p: any) => p.key === "getEnergyFee")?.value || 420;
-      gasPrice = BigInt(energyPrice);
-    } catch (error) {
-      // Default energy price: 420 sun per energy unit
-      gasPrice = 420n;
-    }
+    let gasPrice: bigint = 100n;
+    // try {
+    //   const chainParameters = await this.tronWeb.trx.getChainParameters();
+    //   const energyPrice = chainParameters?.find((p: any) => p.key === "getEnergyFee")?.value || 420;
+    //   gasPrice = BigInt(energyPrice);
+    // } catch (error) {
+    //   // Default energy price: 420 sun per energy unit
+    //   gasPrice = 420n;
+    // }
 
     // Calculate estimated gas cost: gasLimit * gasPrice
     const estimateGas = gasLimit * gasPrice;
@@ -305,14 +311,14 @@ export default class TronWallet {
 
   async getEnergyPrice() {
     await this.waitForTronWeb();
-    let energyFee: any = 280; // Default 280 Sun/Energy
-    try {
-      const params = await this.tronWeb.trx.getChainParameters();
-      energyFee = params.find((p: any) => p.key === "getEnergyFee")?.value || 280;
-      console.log('Energy Fee:', energyFee, 'Sun/Energy');
-    } catch (err) {
-      console.error("Error getting energy price:", err);
-    }
+    let energyFee: any = 100; // Default 280 Sun/Energy
+    // try {
+    //   const params = await this.tronWeb.trx.getChainParameters();
+    //   energyFee = params.find((p: any) => p.key === "getEnergyFee")?.value || 280;
+    //   console.log('Energy Fee:', energyFee, 'Sun/Energy');
+    // } catch (err) {
+    //   console.error("Error getting energy price:", err);
+    // }
     return energyFee;
   }
 
@@ -441,7 +447,6 @@ export default class TronWallet {
     console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
     result.sendParam = {
-      contract: oftContract,
       param: [
         // sendParam
         sendParam,
@@ -597,7 +602,6 @@ export default class TronWallet {
       console.log("oneclick check allowance failed: %o", error);
     }
 
-    const proxyContract = await this.tronWeb.contract(abi, proxyAddress);
     const proxyParam: any = [
       // tokenAddress
       fromToken.contractAddress,
@@ -607,7 +611,6 @@ export default class TronWallet {
       amountWei,
     ];
     result.sendParam = {
-      contract: proxyContract,
       param: proxyParam,
     };
     try {
