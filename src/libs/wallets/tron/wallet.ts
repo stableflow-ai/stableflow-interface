@@ -10,6 +10,8 @@ import { BridgeDefaultWallets } from "@/config";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
 
+const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
+
 export default class TronWallet {
   private signAndSendTransaction: any;
   private tronWeb: any;
@@ -28,7 +30,9 @@ export default class TronWallet {
 
     return new Promise((resolve) => {
       if (this.tronWeb) {
-        customTronWeb.setAddress(this.tronWeb.defaultAddress.base58);
+        const address = this.tronWeb.defaultAddress.base58 || DefaultTronWalletAddress;
+        console.log("%cCustomTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
+        customTronWeb.setAddress(address);
         this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
         return;
@@ -37,7 +41,9 @@ export default class TronWallet {
       const checkTronWeb = () => {
         if ((window as any).tronWeb) {
           this.tronWeb = (window as any).tronWeb;
-          customTronWeb.setAddress(this.tronWeb.defaultAddress.base58);
+          const address = this.tronWeb.defaultAddress.base58 || DefaultTronWalletAddress;
+          console.log("%cCheckTronWeb customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
+          customTronWeb.setAddress(address);
           this.tronWeb = customTronWeb;
           resolve(this.tronWeb);
         } else {
@@ -48,7 +54,8 @@ export default class TronWallet {
       checkTronWeb();
 
       setTimeout(() => {
-        customTronWeb.setAddress(BridgeDefaultWallets["tron"]);
+        customTronWeb.setAddress(DefaultTronWalletAddress);
+        console.log("%cCheck timeout customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", DefaultTronWalletAddress);
         this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
         console.log(new Error("TronWeb initialization timeout"));
@@ -511,7 +518,7 @@ export default class TronWallet {
           value: result.sendParam.param[2]
         }
       ],
-      this.tronWeb.defaultAddress.base58
+      this.tronWeb.defaultAddress.base58 || refundTo
     );
     result.sendParam.tx = tx;
 
@@ -638,6 +645,9 @@ export default class TronWallet {
       console.log("onclick estimate proxy failed: %o", error);
     }
 
+    console.log("%cThis.tronWeb.defaultAddress.base58: %o", "background:#423c27;color:#fdf4aa;", this.tronWeb.defaultAddress.base58);
+    console.log("%cRefundTo: %o", "background:#423c27;color:#fdf4aa;", refundTo);
+
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(
       proxyAddress,
       "proxyTransfer(address,address,uint256)",
@@ -656,7 +666,7 @@ export default class TronWallet {
           value: result.sendParam.param[2] // amount
         }
       ],
-      this.tronWeb.defaultAddress.base58
+      this.tronWeb.defaultAddress.base58 || refundTo
     );
     result.sendParam.tx = tx;
 
