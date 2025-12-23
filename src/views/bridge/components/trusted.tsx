@@ -86,7 +86,7 @@ const Trusted = () => {
   return (
     <div className="w-full md:max-w-[1440px] mx-auto mt-[50px]">
       <div className="text-[16px] md:text-[24px] font-[500] text-center text-[#9FA7BA] md:text-[#444C59]">
-        Trusted by The Best
+        Trusted by
       </div>
       <div className="mt-[34px]">
         <motion.div
