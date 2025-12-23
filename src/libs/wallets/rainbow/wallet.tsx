@@ -158,7 +158,7 @@ export default class RainbowWallet {
       allowance = await contract.allowance(address, spender);
       allowance = allowance.toString();
     } catch (error) {
-      console.log("Error getting allowance: %o", error)
+      // console.log("Error getting allowance: %o", error)
     }
 
     return {
