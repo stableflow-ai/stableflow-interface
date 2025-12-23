@@ -192,7 +192,7 @@ function Content() {
 
   useEffect(() => {
     debouncedDisconnect();
-  }, [account, publicClient, walletClient]);
+  }, [account, publicClient, walletClient, mounted]);
 
   useEffect(() => {
     setMounted(true);

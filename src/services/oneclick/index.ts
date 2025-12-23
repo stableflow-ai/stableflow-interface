@@ -136,7 +136,7 @@ class OneClickService {
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
           res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
         } catch (err) {
-          console.log("oneclick estimate gas failed: %o", err);
+          // console.log("oneclick estimate gas failed: %o", err);
         }
 
         // calculate total fees
