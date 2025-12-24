@@ -9,7 +9,7 @@ import { chainsRpcUrls } from "@/config/chains";
 import { BridgeDefaultWallets } from "@/config";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
-import { USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
+import { DATA_HEX_PROTOBUF_EXTRA, SIGNATURE_SIZE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -519,18 +519,25 @@ export default class TronWallet {
     try {
       const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
       const energyUsed = transaction.energy_used || 200000;
+      const rawDataHexLength = transaction.transaction.raw_data_hex.length || 1000;
+      const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
 
       const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
-      const usd = numberRemoveEndZero(Big(amount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      const totalAmount = Big(amount).plus(bandwidthAmount);
+      const usd = numberRemoveEndZero(Big(totalAmount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
       result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = numberRemoveEndZero(Big(amount).toFixed(fromToken.nativeToken.decimals));
+      result.estimateSourceGas = numberRemoveEndZero(Big(totalAmount).times(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
       result.estimateSourceGasUsd = usd;
     } catch (error) {
       const energyUsed = 200000;
+      const rawDataHexLength = 1000;
+      const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
+
       const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
-      const usd = numberRemoveEndZero(Big(amount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      const totalAmount = Big(amount).plus(bandwidthAmount);
+      const usd = numberRemoveEndZero(Big(totalAmount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
       result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = numberRemoveEndZero(Big(amount).toFixed(fromToken.nativeToken.decimals));
+      result.estimateSourceGas = numberRemoveEndZero(Big(totalAmount).times(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
       result.estimateSourceGasUsd = usd;
     }
 
@@ -672,17 +679,25 @@ export default class TronWallet {
     try {
       const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
       const energyUsed = transaction.energy_used || 30000;
+      const rawDataHexLength = transaction.transaction.raw_data_hex.length || 500;
+      const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
+
       const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
-      const usd = numberRemoveEndZero(Big(amount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      const totalAmount = Big(amount).plus(bandwidthAmount);
+      const usd = numberRemoveEndZero(Big(totalAmount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
       result.fees.sourceGasFeeUsd = usd;
-      result.estimateSourceGas = numberRemoveEndZero(Big(amount).toFixed(fromToken.nativeToken.decimals));
+      result.estimateSourceGas = numberRemoveEndZero(Big(totalAmount).times(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
       result.estimateSourceGasUsd = usd;
     } catch (error) {
       const energyUsed = 30000;
+      const rawDataHexLength = 500;
+      const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
+
       const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
-      const usd = numberRemoveEndZero(Big(amount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      const totalAmount = Big(amount).plus(bandwidthAmount);
+      const usd = numberRemoveEndZero(Big(totalAmount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
       result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = numberRemoveEndZero(Big(amount).toFixed(fromToken.nativeToken.decimals));
+      result.estimateSourceGas = numberRemoveEndZero(Big(totalAmount).times(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
       result.estimateSourceGasUsd = usd;
     }
 
