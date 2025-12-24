@@ -70,3 +70,4 @@ export const USDT0_CONFIG: Record<string, any> = {
 export const USDT0_DVN_COUNT = 2;
 
 export const USDT0_LEGACY_FEE = 0.0001; // 0.01%, 10000 usdt cost 1 usdt
+export const USDT0_LEGACY_MESH_TRANSFTER_FEE = 0.0003; // 0.03% https://docs.usdt0.to/tutorial/how-to-transfer#usdt0
