@@ -68,7 +68,7 @@ export const usdtChains = {
     assetId: "nep141:tron-d28a265909efecdcee7c5028585214ea0b96f015.omft.near",
     contractAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
     ...chains.tron,
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick],
   },
   aptos: {
     assetId: "nep141:aptos-88cb7619440a914fe6400149a12b443c3ac21d59.omft.near",
