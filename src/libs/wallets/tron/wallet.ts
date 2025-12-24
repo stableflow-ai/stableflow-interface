@@ -236,6 +236,17 @@ export default class TronWallet {
     }
   }
 
+  async getTransactionResult(txHash: string) {
+    await this.waitForTronWeb();
+
+    try {
+      const txInfo = await this.tronWeb.trx.getTransactionInfo(txHash);
+      return txInfo;
+    } catch (error) {
+      return {};
+    }
+  }
+
   async allowance(params: any) {
     const {
       contractAddress,

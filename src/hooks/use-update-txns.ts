@@ -1,10 +1,12 @@
 import { useHistoryStore } from "@/stores/use-history";
-import oneClickService from "@/services/oneclick";
 import { useEffect } from "react";
 import { Service, ServiceMap } from "@/services";
+import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 
 export default function useUpdateTxns() {
   const historyStore = useHistoryStore();
+  const wallets = useWalletsStore();
+
   const updateTxns = async () => {
     const pendingStatus = JSON.parse(
       JSON.stringify(historyStore.pendingStatus)
@@ -13,10 +15,14 @@ export default function useUpdateTxns() {
       const address = pendingStatus.pop();
       const currentHistory = historyStore.history[address];
       const historyType = currentHistory?.type;
+      const wallet = wallets[currentHistory?.fromToken?.chainType as WalletType];
+
       // 1click transfer
       if (historyType === Service.OneClick || historyType === void 0) {
         const result = await ServiceMap[Service.OneClick].getStatus({
-          depositAddress: address
+          depositAddress: address,
+          history: currentHistory,
+          fromWallet: wallet?.wallet,
         });
         let status = result.data.status;
         // if (status === "PENDING_DEPOSIT") {
@@ -38,18 +44,10 @@ export default function useUpdateTxns() {
         try {
           const response = await ServiceMap[Service.Usdt0].getStatus({
             hash: currentHistory?.txHash,
+            history: currentHistory,
+            fromWallet: wallet?.wallet,
           });
-          const result = response.data.data[0];
-          // INFLIGHT | CONFIRMING | DELIVERED | BLOCKED | FAILED
-          const status = result.status.name;
-          let finalStatus = "PENDING_DEPOSIT";
-          if (status === "DELIVERED") {
-            finalStatus = "SUCCESS";
-          }
-          if (status === "FAILED" || status === "BLOCKED") {
-            finalStatus = "FAILED";
-          }
-          historyStore.updateStatus(address, finalStatus);
+          historyStore.updateStatus(address, response.status);
         } catch (error) {
         }
       }
@@ -59,6 +57,8 @@ export default function useUpdateTxns() {
         try {
           const response = await ServiceMap[Service.CCTP].getStatus({
             hash: currentHistory?.txHash,
+            history: currentHistory,
+            fromWallet: wallet?.wallet,
           });
           const result = response.data.data;
           // status: 1 = minted, 3 = burned
