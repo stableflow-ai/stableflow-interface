@@ -517,16 +517,17 @@ export default class TronWallet {
       const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
       const energyUsed = transaction.energy_used || 200000;
 
-      const usd = numberRemoveEndZero(Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
+      const usd = numberRemoveEndZero(Big(amount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
       result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = energyUsed;
+      result.estimateSourceGas = numberRemoveEndZero(Big(amount).toFixed(fromToken.nativeToken.decimals));
       result.estimateSourceGasUsd = usd;
     } catch (error) {
       const energyUsed = 200000;
-
-      const usd = numberRemoveEndZero(Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
+      const usd = numberRemoveEndZero(Big(amount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
       result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = energyUsed;
+      result.estimateSourceGas = numberRemoveEndZero(Big(amount).toFixed(fromToken.nativeToken.decimals));
       result.estimateSourceGasUsd = usd;
     }
 
@@ -539,20 +540,17 @@ export default class TronWallet {
     }
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
-    // 4. generate tx
-    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
-    result.sendParam.tx = tx;
+    result.sendParam.transactionParams = transactionParams;
 
     return result;
   }
 
   async sendTransaction(params: any) {
     const {
-      tx,
+      transactionParams,
     } = params;
 
-    // const signedTx = await this.tronWeb.trx.sign(tx.transaction);
-    // const broadcast = await this.tronWeb.trx.sendRawTransaction(signedTx);
+    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
     const result = await this.signAndSendTransaction(tx.transaction);
 
     console.log("%cTron send transaction result: %o, %s", "background:#f00;color:#fff;", result, result);
@@ -642,31 +640,8 @@ export default class TronWallet {
     result.sendParam = {
       param: proxyParam,
     };
-    try {
-      // Use fixed gas limit for proxyTransfer (similar to TRC20 transfer)
-      // TRC20 transfer typically uses ~30000 energy
-      const gasLimit = 30000n;
 
-      // Get current energy price from Tron
-      const energyPrice = await this.getEnergyPrice();
-      const gasPrice = BigInt(energyPrice);
-
-      // Calculate estimated gas cost: gasLimit * gasPrice (in sun)
-      const estimateGas = gasLimit * gasPrice;
-
-      // Convert to USD
-      const estimateGasUsd = Big(estimateGas.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
-
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-      result.estimateSourceGas = estimateGas.toString();
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-    } catch (error) {
-      console.log("onclick estimate proxy failed: %o", error);
-    }
-
-    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(
+    const transactionParams = [
       proxyAddress,
       "proxyTransfer(address,address,uint256)",
       {},
@@ -685,8 +660,28 @@ export default class TronWallet {
         }
       ],
       this.tronWeb.defaultAddress.base58 || refundTo
-    );
-    result.sendParam.tx = tx;
+    ];
+    // Get current energy price from Tron
+    const energyPrice = await this.getEnergyPrice();
+
+    try {
+      const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
+      const energyUsed = transaction.energy_used || 30000;
+      const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
+      const usd = numberRemoveEndZero(Big(amount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      result.fees.sourceGasFeeUsd = usd;
+      result.estimateSourceGas = numberRemoveEndZero(Big(amount).toFixed(fromToken.nativeToken.decimals));
+      result.estimateSourceGasUsd = usd;
+    } catch (error) {
+      const energyUsed = 30000;
+      const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
+      const usd = numberRemoveEndZero(Big(amount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas = numberRemoveEndZero(Big(amount).toFixed(fromToken.nativeToken.decimals));
+      result.estimateSourceGasUsd = usd;
+    }
+
+    result.sendParam.transactionParams = transactionParams;
 
     return result;
   }
