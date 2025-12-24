@@ -9,6 +9,7 @@ import { chainsRpcUrls } from "@/config/chains";
 import { BridgeDefaultWallets } from "@/config";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
+import { USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -354,8 +355,8 @@ export default class TronWallet {
       refundTo,
       multiHopComposer,
       isMultiHopComposer,
-      // isOriginLegacy,
-      // isDestinationLegacy,
+      isOriginLegacy,
+      isDestinationLegacy,
     } = params;
 
     const result: any = {
@@ -480,33 +481,17 @@ export default class TronWallet {
 
     // 3. estimate gas
     const nativeFeeUsd = Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFee = numberRemoveEndZero(Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[0]["lzTokenFee"]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
-    // if (!isOriginLegacy && isDestinationLegacy) {
-    //   result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).times(USDT0_LEGACY_FEE).toFixed(fromToken.decimals));
-    //   result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
-    // }
-    try {
-      const energyUsed = 5000000;
-      const usd = numberRemoveEndZero(Big(energyUsed || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = energyUsed;
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      console.log("usdt0 estimate gas failed: %o", error);
+
+    // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
+    if (isOriginLegacy || isDestinationLegacy) {
+      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(fromToken.decimals));
+      result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
     }
 
-    // calculate total fees
-    for (const feeKey in result.fees) {
-      if (excludeFees.includes(feeKey)) {
-        continue;
-      }
-      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
-    }
-    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
-
-    // 4. generate tx
-    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(
+    const transactionParams = [
       originLayerzeroAddress,
       "send((uint32,bytes32,uint256,uint256,bytes,bytes,bytes),(uint256,uint256),address)",
       result.sendParam.options,
@@ -525,7 +510,37 @@ export default class TronWallet {
         }
       ],
       this.tronWeb.defaultAddress.base58 || refundTo
-    );
+    ];
+    const energyPrice = await this.getEnergyPrice();
+
+    try {
+      const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
+      const energyUsed = transaction.energy_used || 200000;
+
+      const usd = numberRemoveEndZero(Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas = energyUsed;
+      result.estimateSourceGasUsd = usd;
+    } catch (error) {
+      const energyUsed = 200000;
+
+      const usd = numberRemoveEndZero(Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas = energyUsed;
+      result.estimateSourceGasUsd = usd;
+    }
+
+    // calculate total fees
+    for (const feeKey in result.fees) {
+      if (excludeFees.includes(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
+    // 4. generate tx
+    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
     result.sendParam.tx = tx;
 
     return result;
