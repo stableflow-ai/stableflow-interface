@@ -513,6 +513,9 @@ export default class TronWallet {
     ];
     const energyPrice = await this.getEnergyPrice();
 
+    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
+    result.sendParam.tx = tx;
+
     try {
       const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
       const energyUsed = transaction.energy_used || 200000;
@@ -547,10 +550,9 @@ export default class TronWallet {
 
   async sendTransaction(params: any) {
     const {
-      transactionParams,
+      tx,
     } = params;
 
-    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
     const result = await this.signAndSendTransaction(tx.transaction);
 
     console.log("%cTron send transaction result: %o, %s", "background:#f00;color:#fff;", result, result);
@@ -663,6 +665,9 @@ export default class TronWallet {
     ];
     // Get current energy price from Tron
     const energyPrice = await this.getEnergyPrice();
+
+    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
+    result.sendParam.tx = tx;
 
     try {
       const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
