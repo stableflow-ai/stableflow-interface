@@ -188,8 +188,9 @@ class Usdt0Service {
   }
 
   public async getStatus(params: any) {
+    const txhash = /^0x/.test(params.hash) ? params.hash : `0x${params.hash}`;
     return axios({
-      url: `https://scan.layerzero-api.com/v1/messages/tx/${params.hash}`,
+      url: `https://scan.layerzero-api.com/v1/messages/tx/${txhash}`,
       method: "GET",
       timeout: 30000,
       headers: {
