@@ -34,7 +34,7 @@ export default class TronWallet {
     return new Promise((resolve) => {
       if (this.tronWeb) {
         const address = this.tronWeb.defaultAddress.base58 || DefaultTronWalletAddress;
-        console.log("%cCustomTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
+        // console.log("%cCustomTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
         customTronWeb.setAddress(address);
         this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
@@ -45,7 +45,7 @@ export default class TronWallet {
         if ((window as any).tronWeb) {
           this.tronWeb = (window as any).tronWeb;
           const address = this.tronWeb.defaultAddress.base58 || DefaultTronWalletAddress;
-          console.log("%cCheckTronWeb customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
+          // console.log("%cCheckTronWeb customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
           customTronWeb.setAddress(address);
           this.tronWeb = customTronWeb;
           resolve(this.tronWeb);
@@ -58,7 +58,7 @@ export default class TronWallet {
 
       setTimeout(() => {
         customTronWeb.setAddress(DefaultTronWalletAddress);
-        console.log("%cCheck timeout customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", DefaultTronWalletAddress);
+        // console.log("%cCheck timeout customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", DefaultTronWalletAddress);
         this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
         console.log(new Error("TronWeb initialization timeout"));
@@ -382,7 +382,7 @@ export default class TronWallet {
     // 1. check if need approve
     const approvalRequired = await oftContract.approvalRequired().call();
     // check approve status
-    console.log("%cApprovalRequired: %o", "background:blue;color:white;", result.needApprove);
+    // console.log("%cApprovalRequired: %o", "background:blue;color:white;", result.needApprove);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -433,7 +433,11 @@ export default class TronWallet {
     sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
 
     const msgFee = await oftContract.quoteSend(sendParam, payInLzToken).call();
-    result.estimateSourceGas = msgFee[0]["nativeFee"];
+    let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
+    if (nativeMsgFee) {
+      nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(1.2).toFixed(0));
+    }
+    result.estimateSourceGas = nativeMsgFee;
 
     if (isMultiHopComposer) {
       //                                                             gas_limt,   msg_value
@@ -462,20 +466,20 @@ export default class TronWallet {
         // feeParam
         [
           // nativeFee
-          msgFee[0]["nativeFee"].toString(),
+          nativeMsgFee.toString(),
           // lzTokenFee
           msgFee[0]["lzTokenFee"].toString(),
         ],
         // refundAddress
         refundTo,
       ],
-      options: { callValue: msgFee[0]["nativeFee"].toString() },
+      options: { callValue: nativeMsgFee.toString() },
     };
 
     // console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
 
     // 3. estimate gas
-    const nativeFeeUsd = Big(msgFee[0]["nativeFee"]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    const nativeFeeUsd = Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[0]["lzTokenFee"]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
     // if (!isOriginLegacy && isDestinationLegacy) {
@@ -646,9 +650,6 @@ export default class TronWallet {
     } catch (error) {
       console.log("onclick estimate proxy failed: %o", error);
     }
-
-    console.log("%cThis.tronWeb.defaultAddress.base58: %o", "background:#423c27;color:#fdf4aa;", this.tronWeb.defaultAddress.base58);
-    console.log("%cRefundTo: %o", "background:#423c27;color:#fdf4aa;", refundTo);
 
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(
       proxyAddress,
