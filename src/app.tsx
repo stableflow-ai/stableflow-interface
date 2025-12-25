@@ -14,6 +14,7 @@ import { usePrices } from "./hooks/use-prices";
 const History = lazy(() => import("./views/history"));
 const LearnMore = lazy(() => import("./views/learn-more"));
 const Apply = lazy(() => import("./views/apply"));
+const Privacy = lazy(() => import("./views/policy/privacy"));
 
 const router = createBrowserRouter([
   {
@@ -39,6 +40,10 @@ const router = createBrowserRouter([
       {
         path: "developer",
         element: <Developer />
+      },
+      {
+        path: "privacy-policy",
+        element: <Privacy />
       }
     ]
   },
