@@ -1,63 +1,10 @@
-import { useState, useEffect } from "react";
 import BackButton from "@/components/back-button";
 import MainTitle from "@/components/main-title";
+import BackToTop from "./components/back-to-top";
 
 /// created by public/privacy-policy.25.12.2025.docx
 
 export default function PrivacyPolicy() {
-  const [showBackToTop, setShowBackToTop] = useState(false);
-
-  // Show/hide back to top button based on scroll position
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollContainer = document.querySelector('.overflow-y-auto');
-      let scrollTop = 0;
-
-      if (scrollContainer) {
-        scrollTop = scrollContainer.scrollTop;
-      } else {
-        scrollTop = window.pageYOffset ||
-          document.documentElement.scrollTop ||
-          document.body.scrollTop ||
-          0;
-      }
-
-      const shouldShow = scrollTop > 50;
-      setShowBackToTop(shouldShow);
-    };
-
-    const scrollContainer = document.querySelector('.overflow-y-auto');
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll);
-    } else {
-      window.addEventListener('scroll', handleScroll);
-    }
-
-    handleScroll();
-
-    return () => {
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      } else {
-        window.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
-
-  const scrollToTop = () => {
-    const scrollContainer = document.querySelector('.overflow-y-auto');
-    if (scrollContainer) {
-      scrollContainer.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    } else {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    }
-  };
 
   return (
     <div className="w-full min-h-[100dvh] flex flex-col items-center mb-[100px]">
@@ -278,31 +225,7 @@ export default function PrivacyPolicy() {
         </div>
       </div>
 
-      {/* Back to Top Button */}
-      {showBackToTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed cursor-pointer bottom-[20px] right-[15px] transform md:right-[15px] z-50 w-[36px] h-[36px] text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
-          style={{ backgroundColor: '#6284F5' }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#243262'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6284F5'}
-          aria-label="Back to Top"
-        >
-          <svg
-            className="w-4 h-4 transform group-hover:scale-110 transition-transform duration-200"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 10l7-7m0 0l7 7m-7-7v18"
-            />
-          </svg>
-        </button>
-      )}
+      <BackToTop />
       <style>
         {`
         .privacy-policy h1,.privacy-policy h2,.privacy-policy h3,.privacy-policy h4,.privacy-policy h5,.privacy-policy h6{margin:16px 0 8px;line-height:1.3;color:#0a0a0a;scroll-margin-top:80px}

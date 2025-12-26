@@ -15,6 +15,7 @@ const History = lazy(() => import("./views/history"));
 const LearnMore = lazy(() => import("./views/learn-more"));
 const Apply = lazy(() => import("./views/apply"));
 const Privacy = lazy(() => import("./views/policy/privacy"));
+const TermsOfService = lazy(() => import("./views/policy/terms-of-service"));
 
 const router = createBrowserRouter([
   {
@@ -44,6 +45,10 @@ const router = createBrowserRouter([
       {
         path: "privacy-policy",
         element: <Privacy />
+      },
+      {
+        path: "terms-of-service",
+        element: <TermsOfService />
       }
     ]
   },
