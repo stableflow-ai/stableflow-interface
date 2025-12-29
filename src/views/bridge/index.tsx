@@ -3,7 +3,6 @@ import useBridge from "./hooks/use-bridge";
 import MainTitle from "@/components/main-title";
 import PendingTransfer from "./components/pending";
 import { useLiquidityQuote } from "@/stores/use-liquidity-quote";
-import Terms from "@/components/terms";
 
 // Dynamic import components
 const Networks = lazy(() => import("./components/networks"));
@@ -60,7 +59,6 @@ export default function Bridge() {
       <Suspense fallback={null}>
         <HistoryDrawer />
       </Suspense>
-      <Terms className="absolute bottom-[20px] right-[150px]" />
     </div>
   );
 }
