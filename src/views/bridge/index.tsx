@@ -3,6 +3,7 @@ import useBridge from "./hooks/use-bridge";
 import MainTitle from "@/components/main-title";
 import PendingTransfer from "./components/pending";
 import { useLiquidityQuote } from "@/stores/use-liquidity-quote";
+import Terms from "@/components/terms";
 
 // Dynamic import components
 const Networks = lazy(() => import("./components/networks"));
@@ -21,7 +22,7 @@ export default function Bridge() {
   const { quote, transfer, addressValidation, errorChain } = useBridge(liquidity);
 
   return (
-    <div className="w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
+    <div className="relative w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
       <div className="pt-[60px] md:pt-[60px]">
         <MainTitle className="hidden! md:flex!" />
       </div>
@@ -59,6 +60,7 @@ export default function Bridge() {
       <Suspense fallback={null}>
         <HistoryDrawer />
       </Suspense>
+      <Terms className="absolute bottom-[20px] right-[150px]" />
     </div>
   );
 }
