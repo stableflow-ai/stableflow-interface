@@ -308,7 +308,10 @@ export default function useBridge(props?: any) {
 
   const { runAsync: report } = useRequest(async (params: any) => {
     try {
-      await axios.post(`${BASE_API_URL}/v1/trade/add`, params);
+      await axios.post(`${BASE_API_URL}/v1/trade/add`, {
+        type: 0,
+        ...params,
+      });
     } catch (error) {
       console.log("report failed: %o", error);
     }
@@ -452,6 +455,11 @@ export default function useBridge(props?: any) {
           amount: bridgeStore.amount,
           deposit_address: _quote.data.quote.depositAddress,
           receive_address: _quote.data.quoteRequest.recipient,
+          from_chain: walletStore.fromToken.blockchain,
+          symbol: walletStore.fromToken.symbol,
+          to_chain: walletStore.toToken.blockchain,
+          to_symbol: walletStore.toToken.symbol,
+          tx_hash: hash,
         });
 
         historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
@@ -484,6 +492,11 @@ export default function useBridge(props?: any) {
           amount: bridgeStore.amount,
           deposit_address: hash,
           receive_address: _quote.data.quoteParam.recipient,
+          from_chain: walletStore.fromToken.blockchain,
+          symbol: walletStore.fromToken.symbol,
+          to_chain: walletStore.toToken.blockchain,
+          to_symbol: walletStore.toToken.symbol,
+          tx_hash: hash,
         });
       }
 
@@ -517,6 +530,11 @@ export default function useBridge(props?: any) {
           fee: _quote.data.fees.estimateMintGasUsd,
           source_domain_id: _quote.data.quoteParam.sourceDomain,
           destination_domain_id: _quote.data.quoteParam.destinationDomain,
+          from_chain: walletStore.fromToken.blockchain,
+          symbol: walletStore.fromToken.symbol,
+          to_chain: walletStore.toToken.blockchain,
+          to_symbol: walletStore.toToken.symbol,
+          tx_hash: hash,
         });
       }
 

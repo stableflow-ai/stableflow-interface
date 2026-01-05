@@ -187,7 +187,7 @@ class Usdt0Service {
     return wallet.send(SendType.SEND, rest);
   }
 
-  public async getStatus(params: any) {
+  public async getStatus(params: any): Promise<{ status: string; toTxHash?: string }> {
     const { hash, history, fromWallet } = params;
     const result = { status: "PENDING_DEPOSIT" };
 
@@ -218,17 +218,24 @@ class Usdt0Service {
       const data = response.data.data[0];
       // INFLIGHT | CONFIRMING | DELIVERED | BLOCKED | FAILED
       const status = data.status.name;
+      const toTxHash = data.destination?.tx?.txHash;
+      let finalStatus = "PENDING_DEPOSIT";
       if (status === "DELIVERED") {
-        result.status = "SUCCESS";
-        return result;
+        finalStatus = "SUCCESS";
       }
       if (status === "FAILED" || status === "BLOCKED") {
-        result.status = "FAILED";
-        return result;
+        finalStatus = "FAILED";
       }
-      return result;
+
+      return {
+        status: finalStatus,
+        toTxHash,
+      };
     } catch (error) {
-      return result;
+      console.error("usdt0 get status failed: %o", error);
+      return {
+        status: "PENDING_DEPOSIT",
+      };
     }
   }
 }

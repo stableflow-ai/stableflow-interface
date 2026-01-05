@@ -63,6 +63,7 @@ export const useHistoryStore = create(
           set({ latestHistories: [] });
           return;
         }
+        // ⚠️ The following code is currently unused because all calls to this function do not pass an address.
         const _latestHistories = get().latestHistories || [];
         const _index = _latestHistories?.indexOf(address) || -1;
         if (_index !== -1) {
@@ -78,7 +79,7 @@ export const useHistoryStore = create(
           _history[address][key] = item[key];
         }
         set({ history: _history });
-      }
+      },
     }),
     {
       name: "_history",

@@ -50,6 +50,7 @@ export const chainsRpcUrls: Record<string, string> = {
 const chains = {
   near: {
     chainName: "Near",
+    blockchain: "near", // https://1click.chaindefuser.com/v0/tokens blockchain
     chainIcon: "/chains/near.png",
     chainIconGray: "/chains/near-gray.png",
     chainType: chainTypes.near.value,
@@ -63,6 +64,7 @@ const chains = {
   },
   sol: {
     chainName: "Solana",
+    blockchain: "sol",
     chainIcon: "/chains/solana.png",
     chainIconGray: "/chains/solana-gray.png",
     chainType: chainTypes.sol.value,
@@ -76,6 +78,7 @@ const chains = {
   },
   eth: {
     chainName: "Ethereum",
+    blockchain: "eth",
     chainIcon: "/chains/ethereum.png",
     chainIconGray: "/chains/ethereum-gray.png",
     chainType: chainTypes.evm.value,
@@ -90,6 +93,7 @@ const chains = {
   },
   arb: {
     chainName: "Arbitrum",
+    blockchain: "arb",
     chainIcon: "/chains/arbitrum.png",
     chainIconGray: "/chains/arbitrum-gray.png",
     chainType: chainTypes.evm.value,
@@ -104,6 +108,7 @@ const chains = {
   },
   bsc: {
     chainName: "BNB Chain",
+    blockchain: "bsc",
     chainIcon: "/chains/bsc.png",
     chainIconGray: "/chains/bsc-gray.png",
     chainType: chainTypes.evm.value,
@@ -118,6 +123,7 @@ const chains = {
   },
   avax: {
     chainName: "Avalanche",
+    blockchain: "avax",
     chainIcon: "/chains/avalanche.png",
     chainIconGray: "/chains/avalanche-gray.png",
     chainType: chainTypes.evm.value,
@@ -132,6 +138,7 @@ const chains = {
   },
   base: {
     chainName: "Base",
+    blockchain: "base",
     chainIcon: "/chains/base.png",
     chainIconGray: "/chains/base-gray.png",
     chainType: chainTypes.evm.value,
@@ -146,6 +153,7 @@ const chains = {
   },
   pol: {
     chainName: "Polygon",
+    blockchain: "pol",
     chainIcon: "/chains/polygon.png",
     chainIconGray: "/chains/polygon-gray.png",
     chainType: chainTypes.evm.value,
@@ -160,6 +168,7 @@ const chains = {
   },
   gnosis: {
     chainName: "Gnosis",
+    blockchain: "gnosis",
     chainIcon: "/chains/gnosis.png",
     chainIconGray: "/chains/gnosis-gray.png",
     chainType: chainTypes.evm.value,
@@ -174,6 +183,7 @@ const chains = {
   },
   op: {
     chainName: "Optimism",
+    blockchain: "op",
     chainIcon: "/chains/optimism.png",
     chainIconGray: "/chains/optimism-gray.png",
     chainType: chainTypes.evm.value,
@@ -188,6 +198,7 @@ const chains = {
   },
   tron: {
     chainName: "Tron",
+    blockchain: "tron",
     chainIcon: "/chains/tron.png",
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
@@ -201,6 +212,7 @@ const chains = {
   },
   aptos: {
     chainName: "Aptos",
+    blockchain: "aptos",
     chainIcon: "/chains/aptos.png",
     chainIconGray: "/chains/aptos-gray.png",
     chainType: chainTypes.aptos.value,
@@ -214,6 +226,7 @@ const chains = {
   },
   bera: {
     chainName: "Berachain",
+    blockchain: "bera",
     chainIcon: "/chains/berachain.png",
     chainIconGray: "/chains/berachain-gray.png",
     chainType: chainTypes.evm.value,
