@@ -4,15 +4,15 @@ import { stablecoinLogoMap } from "@/config/tokens";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn, useRequest } from "ahooks";
 import axios from "axios";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-export function useHistory() {
+export function usePendingHistory(history: any) {
   const wallets = useWalletsStore();
 
   const [list, setList] = useState<any>([]);
   const [page, setPage] = useState<any>({
     current: 1,
-    size: 10,
+    size: 100,
     total: 0,
     totaPage: 0,
   });
@@ -27,7 +27,7 @@ export function useHistory() {
         url: `${BASE_API_URL}/v1/trades`,
         params: {
           type: 0,
-          status: "success",
+          status: "pending",
           address: params.address,
           page: params.page,
           page_size: page.size,
@@ -59,7 +59,13 @@ export function useHistory() {
         item.destination_chain = currentToChain;
       });
 
-      setList(() => {
+      setList((prev: any) => {
+        if (_list.length < prev.length) {
+          history?.getList?.({
+            address: params.address,
+            page: history.page.current,
+          });
+        }
         return _list;
       });
       setPage((prev: any) => {
@@ -71,7 +77,7 @@ export function useHistory() {
         };
       });
     } catch (error) {
-      console.error("get history failed: %o", error);
+      console.error("get pending history failed: %o", error);
     }
   }, {
     manual: true,
@@ -81,8 +87,38 @@ export function useHistory() {
     wait: 1000,
   });
 
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     cancelGetList();
+
+    // Stop polling function
+    const stopPolling = () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+
+    // Start polling function
+    const startPolling = () => {
+      if (!accounts || accounts.length === 0) {
+        return;
+      }
+      const address = accounts.join(",");
+
+      // Clear existing timer
+      stopPolling();
+
+      // Start timer
+      timerRef.current = setInterval(() => {
+        getList({
+          address,
+          page: 1,
+        });
+      }, 10000);
+    };
+
     if (!accounts || accounts.length === 0) {
       setList([]);
       setPage(() => {
@@ -93,27 +129,43 @@ export function useHistory() {
           totaPage: 0,
         };
       });
+      stopPolling();
       return;
     }
+
+    // Initial request (debounced)
     debouncedGetList({
       address: accounts.join(","),
       page: 1,
     });
-  }, [accounts]);
 
-  const handleChangePage = (page: number) => {
-    if (loading) return;
-    getList({
-      address: accounts.join(","),
-      page,
-    });
-  };
+    // Start polling based on page visibility
+    if (document.visibilityState === 'visible') {
+      startPolling();
+    }
+
+    // Listen to page visibility changes
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Start polling when page becomes visible
+        startPolling();
+      } else {
+        // Stop polling when page becomes hidden
+        stopPolling();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [accounts]);
 
   return {
     list,
     page,
     loading,
-    handleChangePage,
-    getList,
   };
 }

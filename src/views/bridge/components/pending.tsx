@@ -1,11 +1,16 @@
-import { Service } from "@/services";
+import { BASE_API_URL } from "@/config/api";
+import chains from "@/config/chains";
+import { stablecoinLogoMap } from "@/config/tokens";
+import { TradeProject, TradeStatus } from "@/config/trade";
 import { useHistoryStore } from "@/stores/use-history";
 import { formatAddress } from "@/utils/format/address";
 import { formatNumber } from "@/utils/format/number";
+import { useRequest } from "ahooks";
+import axios from "axios";
 import Big from "big.js";
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 
 const PendingTransfer = (props: any) => {
@@ -16,8 +21,85 @@ const PendingTransfer = (props: any) => {
     status,
     latestHistories,
     closeLatestHistory,
+    updateStatus,
   } = useHistoryStore();
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { runAsync: getTradeStatus, data: tradeStatus } = useRequest(async () => {
+    if (!latestHistories || !latestHistories.length) {
+      return;
+    }
+    const deposit_address = latestHistories[0];
+    try {
+      const response = await axios({
+        url: `${BASE_API_URL}/v1/trade`,
+        method: "GET",
+        params: {
+          deposit_address: deposit_address,
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status !== 200) {
+        return;
+      }
+
+      if (response.data.code !== 200) {
+        return;
+      }
+
+      const result = response.data.data;
+
+      if (!result) {
+        return;
+      }
+
+      result.token_icon = stablecoinLogoMap[result.symbol];
+      result.to_token_icon = stablecoinLogoMap[result.to_symbol];
+
+      const currentFromChain = Object.values(chains).find((chain) => chain.blockchain === result.from_chain) ?? {};
+      const currentToChain = Object.values(chains).find((chain) => chain.blockchain === result.to_chain) ?? {};
+
+      result.source_chain = currentFromChain;
+      result.destination_chain = currentToChain;
+
+      result.time = new Date(result.create_time).getTime();
+      result.timeEstimate = history[deposit_address]?.timeEstimate ?? Math.floor(Math.random() * 29) + 21;
+
+      if ([TradeStatus.Expired, TradeStatus.Failed, TradeStatus.Success].includes(result.status) && timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+
+        updateStatus(deposit_address, result.status === TradeStatus.Success ? "SUCCESS" : "FAILED");
+      }
+
+      return result;
+    } catch (error) {
+      console.error("get pending transaction status failed: %o", error);
+    }
+  }, {
+    manual: true,
+  });
+
+  useEffect(() => {
+    if (!latestHistories || !latestHistories.length) {
+      return;
+    }
+    getTradeStatus();
+
+    timerRef.current = setInterval(getTradeStatus, 5000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [latestHistories]);
 
   useEffect(() => {
     if (
@@ -30,7 +112,7 @@ const PendingTransfer = (props: any) => {
     closeLatestHistory();
   }, []);
 
-  if (!latestHistories || !latestHistories.length) return null;
+  if (!latestHistories || !latestHistories.length || !tradeStatus) return null;
 
   return (
     <div className={clsx("w-[calc(100%_+_10px)] px-[5px] pb-[5px] pt-0 md:pt-[20px] -translate-x-[5px] rounded-[12px] overflow-hidden", className)}>
@@ -53,18 +135,18 @@ const PendingTransfer = (props: any) => {
         }}
       >
         {
-          latestHistories.slice(0, 1).map((pending, index) => !!history[pending] ? (
-            <SwiperSlide key={index} style={{ width: "100%", maxWidth: "100dvw" }}>
+          !!tradeStatus && (
+            <SwiperSlide style={{ width: "100%", maxWidth: "100dvw" }}>
               <PendingItem
+                key={latestHistories[0]}
                 className=""
-                data={history[pending]}
-                status={status[pending]}
+                data={tradeStatus}
                 close={closeLatestHistory}
-                isCurrent={index === currentIndex}
-                isLastSlide={index === latestHistories.length - 1}
+                isCurrent={true}
+                isLastSlide={true}
               />
             </SwiperSlide>
-          ) : null)
+          )
         }
       </Swiper>
     </div>
@@ -74,19 +156,19 @@ const PendingTransfer = (props: any) => {
 export default PendingTransfer;
 
 const PendingItem = (props: any) => {
-  const { className, data, status, close } = props;
+  const { className, data, close } = props;
 
-  const isPending = ["PENDING_DEPOSIT", "PROCESSING"].includes(status);
-  const isSuccess = ["SUCCESS"].includes(status);
+  const isPending = [TradeStatus.Pending].includes(data.status);
+  const isSuccess = [TradeStatus.Success].includes(data.status);
   const MaxPendingProgress = 90;
   const [progress, setProgress] = useState(0);
 
   const toTokenExplorerUrl = useMemo(() => {
-   if (data.type === Service.Usdt0) {
-    return "https://layerzeroscan.com/tx";
-   }
-   return data.toToken.blockExplorerUrl;
-  }, [data.txHash, data.type, data.toToken]);
+    if (data.project === TradeProject.USDT0) {
+      return "https://layerzeroscan.com/tx";
+    }
+    return data.destination_chain.blockExplorerUrl;
+  }, [data]);
 
   useEffect(() => {
     if (!isPending) {
@@ -98,7 +180,7 @@ const PendingItem = (props: any) => {
     const calcProgress = () => {
       const now = Date.now();
       const timeEstimate = data.timeEstimate || 1;
-      let _progress = Big(now).minus(data.time).div(Big(timeEstimate).times(1000)).times(100);
+      let _progress = Big(now).minus(data.time || now).div(Big(timeEstimate).times(1000)).times(100);
       if (_progress.gt(MaxPendingProgress)) {
         _progress = Big(MaxPendingProgress);
         clearInterval(timer);
@@ -112,7 +194,7 @@ const PendingItem = (props: any) => {
     return () => {
       clearInterval(timer);
     };
-  }, [data, status]);
+  }, [data]);
 
   return (
     <div className={clsx(
@@ -124,7 +206,7 @@ const PendingItem = (props: any) => {
           <a
             className="w-[11px] h-[11px] shrink-0 button"
             target="_blank"
-            href={`${data.fromToken.blockExplorerUrl}/${data.txHash}`}
+            href={`${data.source_chain?.blockExplorerUrl}/${data.tx_hash}`}
             rel="noreferrer noopener nofollow"
           >
             <svg className="w-[11px] h-[11px] shrink-0" width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -133,20 +215,20 @@ const PendingItem = (props: any) => {
             </svg>
           </a>
           <div className="text-[#9FA7BA] text-[12px] font-[500] leading-[100%]">
-            {data.fromToken.chainName}
+            {data.source_chain?.chainName}
           </div>
           <div className="text-[#444C59] text-[12px] font-[400] leading-[100%]">
-            {formatAddress(data.fromAddress, 5, 4)}
+            {formatAddress(data.address, 5, 4)}
           </div>
           <svg className="w-[5px] h-[8px] shrink-0" width="5" height="8" viewBox="0 0 5 8" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M1 1L4 4.10345L1 7" stroke="#9FA7BA" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           {
-            !!data.toChainTxHash && (
+            !!data.to_tx_hash && (
               <a
                 className="w-[11px] h-[11px] shrink-0 button"
                 target="_blank"
-                href={`${toTokenExplorerUrl}/${data.toChainTxHash}`}
+                href={`${toTokenExplorerUrl}/${data.to_tx_hash}`}
                 rel="noreferrer noopener nofollow"
               >
                 <svg className="w-[11px] h-[11px] shrink-0" width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -157,10 +239,10 @@ const PendingItem = (props: any) => {
             )
           }
           <div className="text-[#9FA7BA] text-[12px] font-[500] leading-[100%]">
-            {data.toToken.chainName}
+            {data.destination_chain.chainName}
           </div>
           <div className="text-[#444C59] text-[12px] font-[400] leading-[100%]">
-            {formatAddress(data.toAddress, 5, 4)}
+            {formatAddress(data.receive_address, 5, 4)}
           </div>
         </div>
         {
@@ -183,16 +265,16 @@ const PendingItem = (props: any) => {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-[7px]">
           <img
-            src={data.fromToken.icon}
+            src={data.token_icon}
             alt=""
             className="w-[28px] h-[28px] rounded-full object-center object-contain shrink-0"
           />
           <div className="flex items-center gap-[5px]">
             <div className="text-black text-[16px] font-[700] leading-[100%]">
-              {formatNumber(data.amount, 2, true)}
+              {formatNumber(data.token_in_amount, 2, true)}
             </div>
             <div className="text-[#444C59] text-[12px] font-[500] leading-[100%]">
-              {data.fromToken.symbol}
+              {data.symbol}
             </div>
           </div>
         </div>

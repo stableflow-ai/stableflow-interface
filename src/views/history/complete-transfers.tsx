@@ -15,7 +15,7 @@ export default function CompleteTransfers(props: any) {
       <div className="text-[16px] font-[500] text-[#444C59]">History transfers</div>
       <div className={clsx("mt-[14px] w-full overflow-x-auto", contentClassName)}>
         {
-          history.loading ? (
+          (history.loading && !history.list.length) ? (
             <div className="w-full min-h-[200px] flex justify-center items-center">
               <Loading size={16} />
             </div>
