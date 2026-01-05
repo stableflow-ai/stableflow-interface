@@ -1,93 +1,90 @@
-import { useHistoryStore } from "@/stores/use-history";
 import dayjs from "dayjs";
 import { formatNumber } from "@/utils/format/number";
 import clsx from "clsx";
 import useIsMobile from "@/hooks/use-is-mobile";
 import Pagination from "@/components/pagination";
-import { useEffect, useState } from "react";
-import Big from "big.js";
+import Loading from "@/components/loading/icon";
 
 export default function CompleteTransfers(props: any) {
-  const { className, contentClassName } = props;
+  const { className, contentClassName, history } = props;
 
-  const historyStore = useHistoryStore();
   const isMobile = useIsMobile();
-
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
-  const [totalPage, setTotalPage] = useState(10);
-
-  useEffect(() => {
-    if (!historyStore.completeStatus || !historyStore.completeStatus.length) {
-      setTotalPage(0);
-      setPage(1);
-      return;
-    }
-    setTotalPage(+Big(historyStore.completeStatus.length).div(pageSize).toFixed(0, Big.roundUp));
-  }, [historyStore.completeStatus]);
 
   return (
     <div className={clsx("mt-[12px] rounded-[12px] px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]", className)}>
       <div className="text-[16px] font-[500] text-[#444C59]">History transfers</div>
       <div className={clsx("mt-[14px] w-full overflow-x-auto", contentClassName)}>
-        {historyStore.completeStatus.slice((page - 1) * pageSize, page * pageSize).map((item) => !!historyStore.history[item] ? (
-          <CompleteTransferItem
-            key={item}
-            data={historyStore.history[item]}
-            status={historyStore.status[item]}
-            isMobile={isMobile}
-          />
-        ) : null)}
+        {
+          history.loading ? (
+            <div className="w-full min-h-[200px] flex justify-center items-center">
+              <Loading size={16} />
+            </div>
+          ) : (
+            !history.list.length ? (
+              <div className="text-[14px] font-[300] h-[200px] flex items-center justify-center opacity-50 text-center">
+                No Data.
+              </div>
+            ) : history.list.map((item: any, index: number) => (
+              <CompleteTransferItem
+                key={index}
+                data={item}
+                isMobile={isMobile}
+              />
+            ))
+          )
+        }
       </div>
-      {historyStore.completeStatus.length === 0 && (
-        <div className="text-[14px] font-[300] h-[200px] flex items-center justify-center opacity-50 text-center">
-          No Data.
-        </div>
-      )}
       <Pagination
         className="py-[18px] justify-end"
-        totalPage={totalPage}
-        page={page}
-        pageSize={pageSize}
+        totalPage={history.page.totalPage}
+        page={history.page.current}
+        pageSize={history.page.size}
         onPageChange={(page: number) => {
-          setPage(page);
+          history.handleChangePage(page);
         }}
       />
     </div>
   );
 }
 
-const CompleteTransferItem = ({ data, status, isMobile }: any) => {
-  const isSuccess = status === "SUCCESS";
+const CompleteTransferItem = ({ data, isMobile }: any) => {
+  const isSuccess = data.status === 1;
 
   return (
-    <div className="flex items-center justify-between border-b border-[#EBF0F8] py-[10px] gap-[10px]">
+    <div className="flex items-center justify-between border-b border-[#EBF0F8] py-[10px] gap-[10px] min-w-[350px]">
       <div className="flex items-center gap-[10px] shrink-0">
         <img
-          src={data.fromToken.icon}
-          alt="usdt"
-          className="w-[28px] h-[28px]"
+          src={data.token_icon}
+          alt=""
+          className="md:w-[28px] md:h-[28px] w-[20px] h-[20px]"
         />
         <span>
-          <span className="text-[16px] font-bold">
-            {formatNumber(data.amount, 2, true)}
+          <span className="text-[14px] md:text-[16px] font-bold">
+            {formatNumber(data.token_in_amount, 2, true)}
           </span>{" "}
-          <span className="text-[12px] font-[500]">
-            {data.fromToken.symbol}
+          <span className="text-[10px] md:text-[12px] font-[500]">
+            {data.symbol}
           </span>
         </span>
       </div>
       <div className="flex items-center gap-[10px] shrink-0">
-        <img
-          src={data.fromToken.chainIcon}
-          alt="sol"
-          className="w-[26px] h-[26px]"
-        />
+        <div
+          className="md:w-[26px] md:h-[26px] w-[20px] h-[20px] relative bg-no-repeat bg-center bg-contain"
+          style={{
+            backgroundImage: `url(${data.token_icon})`,
+          }}
+        >
+          <img
+            src={data.source_chain?.chainIcon}
+            alt=""
+            className="w-[12px] h-[12px] absolute bottom-[-2px] right-[-4px] z-[1] object-center object-contain"
+          />
+        </div>
         <button
           className="text-[14px] font-[500] underline button"
           onClick={() => {
             window.open(
-              `${data.fromToken.blockExplorerUrl}/${data.txHash}`,
+              `${data.source_chain?.blockExplorerUrl}/${data.tx_hash}`,
               "_blank"
             );
           }}
@@ -108,18 +105,26 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
             strokeLinejoin="round"
           />
         </svg>
-        <img
-          src={data.toToken.chainIcon}
-          alt="sol"
-          className="w-[26px] h-[26px]"
-        />
+        <div
+          className="md:w-[26px] md:h-[26px] w-[20px] h-[20px] relative bg-no-repeat bg-center bg-contain"
+          style={{
+            backgroundImage: `url(${data.to_token_icon})`,
+          }}
+        >
+          <img
+            src={data.destination_chain?.chainIcon}
+            alt=""
+            className="w-[12px] h-[12px] absolute bottom-[-2px] right-[-4px] z-[1] object-center object-contain"
+          />
+        </div>
         {
-          !!data.toChainTxHash && (
+          !!data.to_tx_hash && (
             <button
+              type="button"
               className="text-[14px] font-[500] underline button"
               onClick={() => {
                 window.open(
-                  `${data.toToken.blockExplorerUrl}/${data.toChainTxHash}`,
+                  `${data.destination_chain.blockExplorerUrl}/${data.to_tx_hash}`,
                   "_blank"
                 );
               }}
@@ -132,7 +137,7 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
           isMobile ? (
             <div className="flex flex-col items-end gap-[0px] leading-[100%]">
               <div className="text-[10px] font-[500] text-[#444C59]">
-                {dayjs(data.time).format("MMM D, YYYY h:mm A")}
+                {dayjs(data.create_time).format("M D, YY hh:m")}
               </div>
               <div className="flex justify-end items-center gap-[6px]">
                 <div
@@ -141,14 +146,14 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
                     isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
                   )}
                 >
-                  {isSuccess ? "Success" : "Failed"}
+                  {isSuccess ? "Success" : (data.trade_status || "Pending")}
                 </div>
               </div>
             </div>
           ) : (
             <>
               <div className="text-[14px] font-[500]">
-                {dayjs(data.time).format("MMM D, YYYY h:mm A")}
+                {dayjs(data.create_time).format("MMM D, YYYY h:mm A")}
               </div>
               <div
                 className={clsx(
@@ -156,7 +161,7 @@ const CompleteTransferItem = ({ data, status, isMobile }: any) => {
                   isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
                 )}
               >
-                {isSuccess ? "Success" : "Failed"}
+                {isSuccess ? "Success" : (data.trade_status || "Pending")}
               </div>
             </>
           )

@@ -306,7 +306,10 @@ export default function useBridge(props?: any) {
 
   const { runAsync: report } = useRequest(async (params: any) => {
     try {
-      await axios.post(`${BASE_API_URL}/v1/trade/add`, params);
+      await axios.post(`${BASE_API_URL}/v1/trade/add`, {
+        type: 0,
+        ...params,
+      });
     } catch (error) {
       console.log("report failed: %o", error);
     }

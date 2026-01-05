@@ -1,8 +1,11 @@
 import BackButton from "@/components/back-button";
 import Pending from "./pending";
 import CompleteTransfers from "./complete-transfers";
+import { useHistory } from "./hooks/use-history";
 
 export default function History() {
+  const history = useHistory();
+
   return (
     <div className="w-full md:w-[680px] px-[10px] md:px-0 mx-auto pt-[72px] relative pb-[50px] md:pb-0">
       <BackButton className="absolute left-[10px] md:left-[0px] top-[72px] md:top-[72px] z-[10]" />
@@ -10,7 +13,7 @@ export default function History() {
         Transaction History
       </div>
       <Pending />
-      <CompleteTransfers />
+      <CompleteTransfers history={history} />
     </div>
   );
 }
