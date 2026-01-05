@@ -88,18 +88,46 @@ class CCTPService {
     return wallet.send(SendType.SEND, rest);
   }
 
-  public async getStatus(params: any) {
-    return axios({
-      url: `${BASE_API_URL}/v1/trade`,
-      params: {
-        deposit_address: params.hash,
-      },
-      method: "GET",
-      timeout: 30000,
-      headers: {
-        "Content-Type": "application/json"
-      },
-    });
+  public async getStatus(params: any): Promise<{ status: string; toTxHash?: string }> {
+    try {
+      const response = await axios({
+        url: `${BASE_API_URL}/v1/trade`,
+        params: {
+          deposit_address: params.hash,
+        },
+        method: "GET",
+        timeout: 30000,
+        headers: {
+          "Content-Type": "application/json"
+        },
+      });
+      const result = response.data.data;
+      // status: 1 = minted, 3 = burned
+      const status = result.status;
+      // to_tx_hash: minted tx hash
+      const toTxHash = result.to_tx_hash;
+
+      let finalStatus = "PENDING_DEPOSIT";
+      // success
+      if (status === 1) {
+        finalStatus = "SUCCESS";
+      }
+      // Expired
+      if (status === 2) {
+        finalStatus = "FAILED";
+      }
+
+      return {
+        status: finalStatus,
+        toTxHash,
+      };
+    } catch (error) {
+      console.error("cctp get status failed: %o", error);
+
+      return {
+        status: "PENDING_DEPOSIT",
+      };
+    }
   }
 }
 

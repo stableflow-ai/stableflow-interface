@@ -192,8 +192,18 @@ class OneClickService {
   public async getStatus(params: {
     depositAddress: string;
     depositMemo?: string;
-  }) {
-    return await this.api.get("/status", { params });
+  }): Promise<{ status: string; toTxHash?: string }> {
+    try {
+      const response = await this.api.get("/status", { params });
+
+      const status = response.data.status;
+      const toTxHash = response.data.swapDetails?.destinationChainTxHashes?.[0]?.hash;
+
+      return { status, toTxHash };
+    } catch (error) {
+      console.error("oneclick get status failed: %o", error);
+      return { status: "PENDING_DEPOSIT" };
+    }
   }
 }
 
