@@ -14,7 +14,7 @@ export default function Pending(props: any) {
       {
         isTitle && (
           <div className="text-[16px] font-[500]">
-            {history.page.total} Pending transfers
+            {history.page.total || history.list.length} Pending transfers
           </div>
         )
       }
