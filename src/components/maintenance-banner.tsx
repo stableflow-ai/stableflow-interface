@@ -1,7 +1,8 @@
 import dayjs from "@/libs/dayjs";
 import { BASE_API_URL } from "@/config/api";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface MaintenanceNotice {
   content: string;
@@ -47,11 +48,11 @@ export default function MaintenanceBanner() {
         setMaintenanceData(data);
 
         // Check if current time is within maintenance window
-        const now = dayjs();
-        const startTime = dayjs.unix(data.start_time);
-        const endTime = dayjs.unix(data.end_time);
-        const inMaintenanceWindow = dayjs(now).isAfter(startTime) && (dayjs(now).isBefore(endTime) || dayjs(now).isSame(endTime));
-        setIsVisible(inMaintenanceWindow);
+        // const now = dayjs();
+        // const startTime = dayjs.unix(data.start_time);
+        // const endTime = dayjs.unix(data.end_time);
+        // const inMaintenanceWindow = dayjs(now).isAfter(startTime) && (dayjs(now).isBefore(endTime) || dayjs(now).isSame(endTime));
+        setIsVisible(true);
       } else {
         // No maintenance notice or invalid response
         setMaintenanceData(null);
@@ -116,35 +117,83 @@ export default function MaintenanceBanner() {
     };
   }, []);
 
-  console.log("isVisible: %o", isVisible);
-  console.log("maintenanceData: %o", maintenanceData);
-
-  if (!isVisible || !maintenanceData) {
-    return null;
-  }
-
-  const startTime = dayjs.unix(maintenanceData.start_time);
-  const endTime = dayjs.unix(maintenanceData.end_time);
+  const [startTime, endTime] = useMemo(() => {
+    const _result: (dayjs.Dayjs | null)[] = [null, null];
+    if (!maintenanceData) {
+      return _result;
+    }
+    if (maintenanceData.start_time) {
+      _result[0] = dayjs.unix(maintenanceData.start_time);
+    }
+    if (maintenanceData.end_time) {
+      _result[1] = dayjs.unix(maintenanceData.end_time);
+    }
+    return _result;
+  }, [maintenanceData]);
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white shadow-lg">
-      <div className="max-w-[1200px] mx-auto px-[15px] py-[8px]">
-        <div className="flex items-center justify-center gap-[12px] text-[13px] md:text-[14px]">
-          <span className="text-center">
-            1Click Services will undergo scheduled maintenance on <strong>{startTime.format("YYYY-MM-DD HH:mm")} - {endTime.format("YYYY-MM-DD HH:mm")}</strong> | Duration: <strong>{formatDuration(maintenanceData.start_time, maintenanceData.end_time)}</strong>
-          </span>
-
-          <a
-            href="https://status.near-intents.org/posts/dashboard"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center gap-[4px] bg-white text-[#FF6B35] px-[12px] py-[4px] rounded-[6px] font-[600] text-[12px] hover:bg-opacity-90 transition-all duration-300 whitespace-nowrap"
+    <AnimatePresence>
+      {
+        (!isVisible || !maintenanceData) ? null : (
+          <motion.div
+            className="relative top-0 left-0 right-0 z-[1] bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white shadow-lg"
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            transition={{ duration: 0.15 }}
           >
-            <span>Track Status</span>
-            <span>→</span>
-          </a>
-        </div>
-      </div>
-    </div>
+            <div className="max-w-[1200px] mx-auto px-[15px] py-[8px]">
+              <div className="flex items-center justify-center gap-[12px] text-[13px] md:text-[14px]">
+                <span className="text-center">
+                  {
+                    maintenanceData.content ?? "1Click Services will undergo scheduled maintenance"
+                  }
+                  {
+                    (
+                      (!startTime && !endTime) ||
+                      (startTime && endTime && startTime.isAfter(endTime))
+                    ) ? null : (
+                      <>
+                        &nbsp;on&nbsp;
+                        {
+                          startTime ? (
+                            <strong>{startTime.format("YYYY-MM-DD HH:mm")}</strong>
+                          ) : null
+                        }
+                        {
+                          startTime && endTime ? " - " : null
+                        }
+                        {
+                          endTime ? (
+                            <strong>{endTime.format("YYYY-MM-DD HH:mm")}</strong>
+                          ) : null
+                        }
+                        {
+                          startTime && endTime ? (
+                            <>
+                              &nbsp;|&nbsp;Duration:&nbsp;<strong>{formatDuration(maintenanceData.start_time, maintenanceData.end_time)}</strong>
+                            </>
+                          ) : null
+                        }
+                      </>
+                    )
+                  }
+                </span>
+
+                <a
+                  href="https://status.near-intents.org/posts/dashboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 inline-flex items-center gap-[4px] bg-white text-[#FF6B35] px-[12px] py-[4px] rounded-[6px] font-[600] text-[12px] hover:bg-opacity-90 transition-all duration-300 whitespace-nowrap"
+                >
+                  <span>Track Status</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </div>
+          </motion.div>
+        )
+      }
+    </AnimatePresence>
   );
 }
