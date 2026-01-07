@@ -27,7 +27,7 @@ export function useHistory() {
         url: `${BASE_API_URL}/v1/trades`,
         params: {
           type: 0,
-          status: "success",
+          status: "success,failed",
           address: params.address,
           page: params.page,
           page_size: page.size,
