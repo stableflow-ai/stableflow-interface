@@ -3,18 +3,19 @@ import clsx from "clsx";
 import dayjs from "dayjs";
 import { formatNumber } from "@/utils/format/number";
 import { useMemo } from "react";
-import Loading from "@/components/loading/icon";
 import { useHistoryStore } from "@/stores/use-history";
 
 export default function Pending(props: any) {
   const { className, isTitle = true, contentClassName, history } = props;
+
+  const pendingLength = history.page.total || history.list.length;
 
   return (
     <div className={clsx("mt-[12px] rounded-[12px] px-[15px] md:px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]", className)}>
       {
         isTitle && (
           <div className="text-[16px] font-[500]">
-            {history.page.total || history.list.length} Pending transfers
+            {pendingLength} Pending transfers
           </div>
         )
       }
@@ -26,7 +27,7 @@ export default function Pending(props: any) {
           />
         ))}
       </div>
-      {history.page.total === 0 && (
+      {pendingLength === 0 && (
         <div className="text-[14px] font-[300] opacity-50 text-center">
           No Data.
         </div>
