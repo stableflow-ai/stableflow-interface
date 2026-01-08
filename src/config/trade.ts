@@ -3,10 +3,18 @@ export const TradeStatus = {
   Success: 1,
   Expired: 2,
   Failed: 3,
-  Waiting: 4,
+  Continue: 4,
 } as const;
 
 export type TradeStatus = (typeof TradeStatus)[keyof typeof TradeStatus];
+
+export const TradeStatusMap: Record<TradeStatus, { value: TradeStatus; name: string; }> = {
+  [TradeStatus.Pending]: { value: TradeStatus.Pending, name: "Pending" },
+  [TradeStatus.Success]: { value: TradeStatus.Success, name: "Success" },
+  [TradeStatus.Expired]: { value: TradeStatus.Expired, name: "Expired" },
+  [TradeStatus.Failed]: { value: TradeStatus.Failed, name: "Failed" },
+  [TradeStatus.Continue]: { value: TradeStatus.Continue, name: "Waiting" },
+};
 
 export const TradeProject = {
   OneClick: 0,
