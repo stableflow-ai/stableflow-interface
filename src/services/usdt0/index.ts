@@ -187,16 +187,39 @@ class Usdt0Service {
     return wallet.send(SendType.SEND, rest);
   }
 
-  public async getStatus(params: any) {
-    const txhash = /^0x/.test(params.hash) ? params.hash : `0x${params.hash}`;
-    return axios({
-      url: `https://scan.layerzero-api.com/v1/messages/tx/${txhash}`,
-      method: "GET",
-      timeout: 30000,
-      headers: {
-        "Content-Type": "application/json"
-      },
-    });
+  public async getStatus(params: any): Promise<{ status: string; toTxHash?: string }> {
+    try {
+      const txhash = /^0x/.test(params.hash) ? params.hash : `0x${params.hash}`;
+      const response = await axios({
+        url: `https://scan.layerzero-api.com/v1/messages/tx/${txhash}`,
+        method: "GET",
+        timeout: 30000,
+        headers: {
+          "Content-Type": "application/json"
+        },
+      });
+      const result = response.data.data[0];
+      // INFLIGHT | CONFIRMING | DELIVERED | BLOCKED | FAILED
+      const status = result.status.name;
+      const toTxHash = result.destination?.tx?.txHash;
+      let finalStatus = "PENDING_DEPOSIT";
+      if (status === "DELIVERED") {
+        finalStatus = "SUCCESS";
+      }
+      if (status === "FAILED" || status === "BLOCKED") {
+        finalStatus = "FAILED";
+      }
+
+      return {
+        status: finalStatus,
+        toTxHash,
+      };
+    } catch (error) {
+      console.error("usdt0 get status failed: %o", error);
+      return {
+        status: "PENDING_DEPOSIT",
+      };
+    }
   }
 }
 

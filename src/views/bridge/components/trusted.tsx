@@ -1,5 +1,5 @@
-import { motion, useAnimation } from "framer-motion";
-import { useEffect, useState } from "react";
+import { motion, useAnimate, useMotionValue } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 
 const CardList = [
   {
@@ -39,12 +39,15 @@ const CardList = [
 ];
 
 const Trusted = () => {
-  const controls = useAnimation();
-  const [isHovered, setIsHovered] = useState(false);
+  const carouselTransform = useMotionValue("translate3d(0, 0, 0)");
+  const [carouselRef, animateCarousel] = useAnimate();
+  const carouselAnimation = useRef<any>(null);
   const [shouldAnimate, setShouldAnimate] = useState(false);
 
+  const itemWidth = 350;
+  const itemGap = 25;
   // Calculate total width of all cards
-  const totalCardWidth = CardList.length * 375; // 350px card + 25px gap = 375px
+  const totalCardWidth = CardList.length * (itemWidth + itemGap); // 350px card + 25px gap = 375px
 
   useEffect(() => {
     const checkScreenWidth = () => {
@@ -60,25 +63,17 @@ const Trusted = () => {
   }, [totalCardWidth]);
 
   useEffect(() => {
-    if (!isHovered && shouldAnimate) {
-      const startAnimation = () => {
-        controls.start({
-          x: -375 * CardList.length,
-          transition: {
-            duration: 20,
-            ease: "linear",
-            repeat: Infinity,
-            repeatType: "loop"
-          }
-        });
-      };
-      startAnimation();
-    } else if (!shouldAnimate) {
-      // Stop animation and reset position when screen is large enough
-      controls.stop();
-      controls.set({ x: 0 });
+    if (!shouldAnimate) {
+      carouselAnimation.current = animateCarousel(carouselRef.current, { transform: "translate3d(0, 0, 0)" }, { duration: 0 });
+      carouselTransform.set("translate3d(0, 0, 0)");
+      return;
     }
-  }, [controls, isHovered, shouldAnimate]);
+    carouselAnimation.current = animateCarousel(
+      carouselRef.current,
+      { transform: [`translate3d(0, 0, 0)`, `translate3d(${-totalCardWidth}px, 0, 0)`] },
+      { duration: 15, repeat: Infinity, ease: "linear" }
+    );
+  }, [shouldAnimate]);
 
   // Use duplicated cards only when animation is needed
   const cardsToRender = shouldAnimate ? [...CardList, ...CardList] : CardList;
@@ -90,18 +85,14 @@ const Trusted = () => {
       </div>
       <div className="mt-[34px]">
         <motion.div
-          className={`flex gap-[25px] items-center ${!shouldAnimate ? 'justify-center' : ''}`}
-          animate={shouldAnimate ? controls : {}}
+          ref={carouselRef}
+          className={`flex gap-[25px] items-center will-change-transform ${!shouldAnimate ? 'justify-center' : ''}`}
+          style={{ transform: carouselTransform }}
           onHoverStart={() => {
-            if (shouldAnimate) {
-              setIsHovered(true);
-              controls.stop();
-            }
+            carouselAnimation.current?.pause?.();
           }}
           onHoverEnd={() => {
-            if (shouldAnimate) {
-              setIsHovered(false);
-            }
+            carouselAnimation.current?.play?.();
           }}
         >
           {

@@ -101,7 +101,7 @@ function App() {
           className="w-[26px] h-[26px] bg-[url('/logo-paragraph.svg')] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
         />
       </div>
-      <Terms className="fixed z-[11] bottom-[20px] right-[140px]" />
+      <Terms className="fixed z-[11] bottom-[13px] md:bottom-[20px] right-[10px] md:right-[140px]" />
     </WalletsProvider>
   );
 }
