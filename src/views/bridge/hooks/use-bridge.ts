@@ -430,7 +430,7 @@ export default function useBridge(props?: any) {
         return;
       }
 
-      // create solana usdc account
+      // create solana usdc account for CCTP
       if (_quote?.data?.needCreateTokenAccount) {
         const createResult = await toWallet.wallet?.createAssociatedTokenAddress?.({
           tokenMint: walletStore.toToken.contractAddress,
@@ -472,7 +472,40 @@ export default function useBridge(props?: any) {
           throw new Error("Failed to get quote");
         }
 
+        const localHistoryData = {
+          type: Service.OneClick,
+          despoitAddress: _quote.data.quote.depositAddress,
+          amount: bridgeStore.amount,
+          fromToken: walletStore.fromToken,
+          toToken: walletStore.toToken,
+          fromAddress: wallet.account,
+          toAddress: _quote.data.quoteRequest.recipient,
+          time: Date.now(),
+          txHash: "",
+          timeEstimate: _quote.data.quote.timeEstimate,
+        };
+        const reportData = {
+          project: "nearintents",
+          address: wallet.account,
+          amount: bridgeStore.amount,
+          out_amount: _quote.data.outputAmount,
+          deposit_address: _quote.data.quote.depositAddress,
+          receive_address: _quote.data.quoteRequest.recipient,
+          from_chain: walletStore.fromToken.blockchain,
+          symbol: walletStore.fromToken.symbol,
+          to_chain: walletStore.toToken.blockchain,
+          to_symbol: walletStore.toToken.symbol,
+          tx_hash: "",
+        };
+
         if (isFromTron) {
+          historyStore.addHistory(localHistoryData);
+          historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
+          report({
+            ...reportData,
+            status: 4, // continue
+          });
+
           const fromTronParams = {
             wallet: wallet.wallet,
             account: wallet.account,
@@ -499,33 +532,14 @@ export default function useBridge(props?: any) {
           amountWei: _amount,
         });
 
-        historyStore.addHistory({
-          type: Service.OneClick,
-          despoitAddress: _quote.data.quote.depositAddress,
-          amount: bridgeStore.amount,
-          fromToken: walletStore.fromToken,
-          toToken: walletStore.toToken,
-          fromAddress: wallet.account,
-          toAddress: _quote.data.quoteRequest.recipient,
-          time: Date.now(),
-          txHash: hash,
-          timeEstimate: _quote.data.quote.timeEstimate,
-        });
-        report({
-          project: "nearintents",
-          address: wallet.account,
-          amount: bridgeStore.amount,
-          out_amount: _quote.data.outputAmount,
-          deposit_address: _quote.data.quote.depositAddress,
-          receive_address: _quote.data.quoteRequest.recipient,
-          from_chain: walletStore.fromToken.blockchain,
-          symbol: walletStore.fromToken.symbol,
-          to_chain: walletStore.toToken.blockchain,
-          to_symbol: walletStore.toToken.symbol,
-          tx_hash: hash,
-        });
+        localHistoryData.txHash = hash;
+        localHistoryData.time = Date.now();
 
+        historyStore.addHistory(localHistoryData);
         historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
+
+        reportData.tx_hash = hash;
+        report(reportData);
       }
 
       // usdt0 transfer
