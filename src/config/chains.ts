@@ -45,6 +45,7 @@ export const chainsRpcUrls: Record<string, string> = {
   "Aptos": "https://api.mainnet.aptoslabs.com/v1",
   "Solana": "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
   "Near": "",
+  "X Layer": "https://rpc.xlayer.tech",
 };
 
 const chains = {
@@ -238,6 +239,21 @@ const chains = {
       decimals: 18,
     },
     rpcUrl: chainsRpcUrls["Berachain"],
+  },
+  xlayer: {
+    chainName: "X Layer",
+    blockchain: "xlayer",
+    chainIcon: "/chains/xlayer.png",
+    chainIconGray: "/chains/xlayer-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 196,
+    blockExplorerUrl: "https://www.oklink.com/xlayer/tx/",
+    primaryColor: "#000000",
+    nativeToken: {
+      symbol: "OKB",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["X Layer"],
   },
 };
 
