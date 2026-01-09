@@ -674,4 +674,71 @@ export default class TronWallet {
 
     return result;
   }
+
+  async getAccountResources(params: any) {
+    const { account } = params;
+
+    const result: any = {
+      energy: 0,
+      bandwidth: 0,
+      success: false,
+      error: "TronWeb is not initialized or the wallet is not connected",
+    };
+
+    await this.waitForTronWeb();
+
+    if (!this.tronWeb || !account) {
+      return result;
+    }
+
+    try {
+      let availableEnergy;
+      let availableBandwidth;
+
+      try {
+        if (this.tronWeb.trx.getAccountResources) {
+          const resources: any = await this.tronWeb.trx.getAccountResources(account);
+          console.log("resources: %o", resources);
+          if (resources) {
+            // Get available energy (EnergyLimit - EnergyUsed)
+            availableEnergy = (resources.EnergyLimit || 0) - (resources.EnergyUsed || 0);
+            // Get available bandwidth (NetLimit - NetUsed)
+            availableBandwidth = (resources.freeNetLimit || 0) - (resources.freeNetUsed || 0);
+          }
+        }
+      } catch (resourcesErr) {
+        console.warn("getAccountResources API is not available, try other way:", resourcesErr);
+      }
+
+      if (availableEnergy === void 0 && availableBandwidth === void 0) {
+        const accountInfo: any = await this.tronWeb.trx.getAccount(account);
+
+        if (accountInfo.account_resource) {
+          const accountResource = accountInfo.account_resource;
+          availableEnergy = (accountResource.EnergyLimit || 0) - (accountResource.EnergyUsed || 0);
+          availableBandwidth = (accountResource.NetLimit || 0) - (accountResource.NetUsed || 0);
+        } else if (accountInfo.energy !== undefined) {
+          availableEnergy = accountInfo.energy || 0;
+        }
+
+        // Try to get bandwidth information
+        if (accountInfo.bandwidth !== undefined) {
+          if (typeof accountInfo.bandwidth === "number") {
+            availableBandwidth = accountInfo.bandwidth;
+          } else if (accountInfo.bandwidth) {
+            availableBandwidth = accountInfo.bandwidth.available || accountInfo.bandwidth.freeNetUsage || 0;
+          }
+        }
+      }
+
+      result.energy = Math.max(0, availableEnergy);
+      result.bandwidth = Math.max(0, availableBandwidth);
+      result.success = true;
+      result.error = null;
+    } catch (error) {
+      console.error("Failed to get account resources:", error);
+    }
+
+    return result;
+  }
 }

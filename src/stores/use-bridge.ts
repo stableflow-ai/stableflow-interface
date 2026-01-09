@@ -1,5 +1,6 @@
 import { create } from "zustand/index";
 import { Service, type ServiceType } from "@/services";
+import { TronTransferStepStatus } from "@/config/tron";
 
 interface BridgeState {
   amount: string;
@@ -17,6 +18,13 @@ interface BridgeState {
   modifyQuoteData: (key: string, value: any) => void;
   clearQuoteData: () => void;
   setQuoting: (key: string, value: boolean) => void;
+
+  // tron energy rental
+  tronTransferVisible: boolean;
+  tronTransferQuoteData?: any;
+  tronTransferStep: TronTransferStepStatus;
+  setTronTransferVisible: (value: boolean, params?: { quoteData: any; }) => void;
+  setTronTransferStep: (step: TronTransferStepStatus) => void;
 }
 
 const useBridgeStore = create<BridgeState>((set) => ({
@@ -61,6 +69,30 @@ const useBridgeStore = create<BridgeState>((set) => ({
       const _quotingMap = new Map(state.quotingMap);
       _quotingMap.set(key, value);
       return { ...state, quotingMap: _quotingMap };
+    });
+  },
+
+  // tron energy rental
+  tronTransferVisible: false,
+  tronTransferQuoteData: null,
+  tronTransferStep: TronTransferStepStatus.EnergyPayment,
+  setTronTransferVisible: (visible, params) => {
+    set((state) => {
+      return {
+        ...state,
+        // reset step to initial
+        tronTransferStep: TronTransferStepStatus.EnergyPayment,
+        tronTransferVisible: visible,
+        tronTransferQuoteData: params?.quoteData ?? null,
+      };
+    });
+  },
+  setTronTransferStep: (step) => {
+    set((state) => {
+      return {
+        ...state,
+        tronTransferStep: step,
+      };
     });
   },
 }));
