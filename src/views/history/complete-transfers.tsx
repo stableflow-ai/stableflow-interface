@@ -4,6 +4,7 @@ import clsx from "clsx";
 import useIsMobile from "@/hooks/use-is-mobile";
 import Pagination from "@/components/pagination";
 import Loading from "@/components/loading/icon";
+import { TradeStatus, TradeStatusMap } from "@/config/trade";
 
 export default function CompleteTransfers(props: any) {
   const { className, contentClassName, history } = props;
@@ -146,7 +147,7 @@ const CompleteTransferItem = ({ data, isMobile }: any) => {
                     isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
                   )}
                 >
-                  {isSuccess ? "Success" : (data.trade_status || "Pending")}
+                  {isSuccess ? "Success" : (data.trade_status || TradeStatusMap[data.status as TradeStatus]?.name || "Pending")}
                 </div>
               </div>
             </div>
@@ -161,7 +162,7 @@ const CompleteTransferItem = ({ data, isMobile }: any) => {
                   isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
                 )}
               >
-                {isSuccess ? "Success" : (data.trade_status || "Pending")}
+                {isSuccess ? "Success" : (data.trade_status || TradeStatusMap[data.status as TradeStatus]?.name || "Pending")}
               </div>
             </>
           )
