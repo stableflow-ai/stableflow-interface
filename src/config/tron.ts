@@ -6,7 +6,7 @@ export const TRON_RENTAL_FEE = {
   // Account without referral code
   Normal: 0.2, // 10 TRX
   // Account with referral code
-  Referral: 0.1, // 7 TRX
+  Referral: 7, // 7 TRX
 };
 
 export const EnergyAmounts = {
@@ -18,7 +18,7 @@ export const EnergyAmounts = {
 
 export const BridgeFees = {
   Normal: 0.2, // 2 USDT
-  Referral: 0.1, // 1 USDT
+  Referral: 1, // 1 USDT
 };
 
 export const TronTransferStepStatus = {
