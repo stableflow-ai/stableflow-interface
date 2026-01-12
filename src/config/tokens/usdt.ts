@@ -99,7 +99,7 @@ export const usdtChains = {
     assetId: "nep245:v2_1.omni.hot.tg:196_2fezDCvVYRsG8wrK6deJ2VRPiAS1",
     contractAddress: "0x779ded0c9e1022225f8e0630b35a9b54be713736",
     ...chains.xlayer,
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick],
   },
 };
 
