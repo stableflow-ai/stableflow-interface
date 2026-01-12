@@ -7,18 +7,18 @@ export default function NavigationMenu() {
   const menuItems = [
     {
       label: "Transfer",
-      path: "/",
-      isExternal: false
+      path: "https://app.stableflow.ai",
+      isExternal: true
     },
     {
       label: "Developer",
-      path: "/developer", // 稍后替换为实际的外部链接
-      isExternal: false
+      path: "https://app.stableflow.ai/developer",
+      isExternal: true
     },
     {
       label: "Learn",
-      path: "/learn-more",
-      isExternal: false
+      path: "https://app.stableflow.ai/learn-more",
+      isExternal: true
     }
   ];
 

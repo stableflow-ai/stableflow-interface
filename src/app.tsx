@@ -4,7 +4,7 @@ import {
   RouterProvider
 } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
-import Bridge from "./views/bridge";
+import Overview from "./views/overview";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy } from "react";
@@ -12,7 +12,6 @@ import ErrorPage from "./views/error";
 import Developer from "./views/developer";
 
 const History = lazy(() => import("./views/history"));
-const Overview = lazy(() => import("./views/overview"));
 const LearnMore = lazy(() => import("./views/learn-more"));
 const Apply = lazy(() => import("./views/apply"));
 
@@ -24,7 +23,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Bridge />
+        element: <Overview />
       },
       {
         path: "history",
@@ -32,7 +31,7 @@ const router = createBrowserRouter([
       },
       {
         path: "overview",
-        element: <Overview />
+        element: <Navigate to="/" replace />
       },
       {
         path: "apply",

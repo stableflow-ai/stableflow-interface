@@ -5,7 +5,6 @@ import OverviewStats from "./components/overview-stats";
 import Chart from "./components/chart";
 import Transfers from "./components/transfers";
 import useOverviewData from "./hooks/use-overview-data";
-import BackButton from "@/components/back-button";
 import Sankey from "./components/sankey";
 
 export default function Overview() {
@@ -24,9 +23,6 @@ export default function Overview() {
   return (
     <div className="w-full min-h-[100dvh] flex flex-col items-center mb-[100px]">
       <div className="md:w-[1100px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0 relative">
-        <BackButton
-          className="absolute translate-x-[10px] translate-y-[-5px] md:translate-y-[10px] md:translate-x-[0px]"
-        />
         <MainTitle className="!hidden md:!flex" />
         <div className="text-[16px] text-center w-full hidden md:block mb-[30px]">
           Overview & Analytics

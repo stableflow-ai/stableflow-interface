@@ -56,7 +56,7 @@ export default function UserActions() {
             </button>
           ) : (
             <div className="flex items-center gap-[7px]">
-              {!isHistory && !isOverview && (
+              {/* {!isHistory && !isOverview && (
                 <HistoryButton
                   onClick={() => {
                     if (isMobile) {
@@ -66,15 +66,15 @@ export default function UserActions() {
                     navigate("/history");
                   }}
                 />
-              )}
-              {!isHistory && !isOverview && (
+              )} */}
+              {/* {!isHistory && !isOverview && (
                 <OverviewButton
                   onClick={() => {
                     navigate("/overview");
                   }}
                   hidden={false}
                 />
-              )}
+              )} */}
               <ChainsButton
                 onClick={() => {
                   walletStore.set({ showWallet: true });
