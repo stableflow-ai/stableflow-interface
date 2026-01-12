@@ -174,6 +174,8 @@ class Usdt0Service {
         isDestinationLegacy,
       });
 
+      result.estimateTime = estimateTime;
+
       return result;
     }
   }
