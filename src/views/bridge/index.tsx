@@ -21,7 +21,7 @@ export default function Bridge() {
   const { quote, transfer, addressValidation, errorChain } = useBridge(liquidity);
 
   return (
-    <div className="w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
+    <div className="relative w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
       <div className="pt-[60px] md:pt-[60px]">
         <MainTitle className="hidden! md:flex!" />
       </div>

@@ -189,7 +189,7 @@ class Usdt0Service {
 
   public async getStatus(params: any) {
     const { hash, history, fromWallet } = params;
-    const result = { status: "PENDING_DEPOSIT" };
+    const result: any = { status: "PENDING_DEPOSIT" };
 
     // If it's Tron, get the transaction status first
     if (history?.fromToken?.chainType === "tron" && fromWallet) {
@@ -218,6 +218,7 @@ class Usdt0Service {
       const data = response.data.data[0];
       // INFLIGHT | CONFIRMING | DELIVERED | BLOCKED | FAILED
       const status = data.status.name;
+      result.toTxHash = result.destination?.tx?.txHash;
       if (status === "DELIVERED") {
         result.status = "SUCCESS";
         return result;

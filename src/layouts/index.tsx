@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Wallet from "@/sections/wallet";
 import UserActions from "./user-actions";
-import useUpdateTxns from "@/hooks/use-update-txns";
+// import useUpdateTxns from "@/hooks/use-update-txns";
 import ZendeskWidget from "@/components/zendesk-widget";
 import { lazy, Suspense } from "react";
 // import SupportButton from "@/components/support-button";
@@ -10,7 +10,7 @@ import { lazy, Suspense } from "react";
 const MaintenanceBanner = lazy(() => import("@/components/maintenance-banner"));
 
 export default function Layout() {
-  useUpdateTxns();
+  // useUpdateTxns();
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* Video Background */}

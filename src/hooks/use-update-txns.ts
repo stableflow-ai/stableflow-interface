@@ -1,6 +1,6 @@
 import { useHistoryStore } from "@/stores/use-history";
 import { useEffect } from "react";
-import { Service, ServiceMap } from "@/services";
+import { Service, ServiceMap, type ServiceType } from "@/services";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 
 export default function useUpdateTxns() {
@@ -14,69 +14,27 @@ export default function useUpdateTxns() {
     while (pendingStatus.length > 0) {
       const address = pendingStatus.pop();
       const currentHistory = historyStore.history[address];
-      const historyType = currentHistory?.type;
+      const historyType: ServiceType = currentHistory?.type ?? Service.OneClick;
       const wallet = wallets[currentHistory?.fromToken?.chainType as WalletType];
 
-      // 1click transfer
-      if (historyType === Service.OneClick || historyType === void 0) {
-        const result = await ServiceMap[Service.OneClick].getStatus({
-          depositAddress: address,
-          history: currentHistory,
-          fromWallet: wallet?.wallet,
-        });
-        let status = result.data.status;
-        // if (status === "PENDING_DEPOSIT") {
-        //   if (result.data.quoteResponse?.quote?.deadline) {
-        //     const isTimeout = Date.now() > new Date(result.data.quoteResponse?.quote?.deadline).getTime();
-        //     if (isTimeout) {
-        //       status = "FAILED";
-        //     }
-        //   }
-        // }
-        historyStore.updateStatus(address, status);
+      let getStatusParams: any = {
+        hash: currentHistory?.txHash,
+        history: currentHistory,
+        fromWallet: wallet?.wallet,
+      };
+      if (historyType === Service.OneClick) {
+        getStatusParams = {
+          depositAddress: address
+        };
+      }
+
+      const result = await ServiceMap[historyType].getStatus(getStatusParams);
+
+      historyStore.updateStatus(address, result.status);
+      if (result.toTxHash) {
         historyStore.updateHistory(address, {
-          toChainTxHash: result.data.swapDetails?.destinationChainTxHashes?.[0]?.hash,
+          toChainTxHash: result.toTxHash,
         });
-      }
-
-      // usdt0 transfer
-      if (historyType === Service.Usdt0) {
-        try {
-          const response = await ServiceMap[Service.Usdt0].getStatus({
-            hash: currentHistory?.txHash,
-            history: currentHistory,
-            fromWallet: wallet?.wallet,
-          });
-          historyStore.updateStatus(address, response.status);
-        } catch (error) {
-        }
-      }
-
-      // cctp transfer
-      if (historyType === Service.CCTP) {
-        try {
-          const response = await ServiceMap[Service.CCTP].getStatus({
-            hash: currentHistory?.txHash,
-            history: currentHistory,
-            fromWallet: wallet?.wallet,
-          });
-          const result = response.data.data;
-          // status: 1 = minted, 3 = burned
-          // to_tx_hash: minted tx hash
-          historyStore.updateHistory(address, {
-            toChainTxHash: result.to_tx_hash,
-          });
-          const status = result.status;
-          // success
-          if (status === 1) {
-            historyStore.updateStatus(address, "SUCCESS");
-          }
-          // Expired
-          if (status === 2) {
-            historyStore.updateStatus(address, "FAILED");
-          }
-        } catch (error) {
-        }
       }
     }
 
