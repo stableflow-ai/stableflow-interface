@@ -31,110 +31,245 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
   },
 };
 
-const chains = {
+export const chainsRpcUrls: Record<string, string> = {
+  "Ethereum": "https://eth.merkle.io",
+  "Arbitrum": "https://arb1.arbitrum.io/rpc",
+  "BNB Chain": "https://56.rpc.thirdweb.com",
+  "Avalanche": "https://api.avax.network/ext/bc/C/rpc",
+  "Base": "https://mainnet.base.org",
+  "Polygon": "https://polygon-rpc.com",
+  "Gnosis": "https://rpc.gnosischain.com",
+  "Optimism": "https://mainnet.optimism.io",
+  "Berachain": "https://rpc.berachain.com",
+  "Tron": "https://tron-rpc.publicnode.com",
+  "Aptos": "https://api.mainnet.aptoslabs.com/v1",
+  "Solana": "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
+  "Near": "",
+  "X Layer": "https://rpc.xlayer.tech",
+};
+
+interface Chain {
+  chainName: string;
+  blockchain: string;
+  chainIcon: string;
+  chainIconGray: string;
+  chainType: string;
+  chainId?: number;
+  blockExplorerUrl: string;
+  primaryColor: string;
+  nativeToken: {
+    symbol: string;
+    decimals: number;
+  };
+  rpcUrl: string;
+}
+
+const chains: Record<string, Chain> = {
   near: {
     chainName: "Near",
+    blockchain: "near", // https://1click.chaindefuser.com/v0/tokens blockchain
     chainIcon: "/chains/near.png",
     chainIconGray: "/chains/near-gray.png",
     chainType: chainTypes.near.value,
     blockExplorerUrl: "https://nearblocks.io/txns",
     primaryColor: "#76EA9E",
+    nativeToken: {
+      symbol: "NEAR",
+      decimals: 24,
+    },
+    rpcUrl: chainsRpcUrls["Near"],
   },
   sol: {
     chainName: "Solana",
+    blockchain: "sol",
     chainIcon: "/chains/solana.png",
     chainIconGray: "/chains/solana-gray.png",
     chainType: chainTypes.sol.value,
     blockExplorerUrl: "https://solscan.io/tx",
     primaryColor: "#B93EF0",
+    nativeToken: {
+      symbol: "SOL",
+      decimals: 9,
+    },
+    rpcUrl: chainsRpcUrls["Solana"],
   },
   eth: {
     chainName: "Ethereum",
+    blockchain: "eth",
     chainIcon: "/chains/ethereum.png",
     chainIconGray: "/chains/ethereum-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 1,
     blockExplorerUrl: "https://etherscan.io/tx",
     primaryColor: "#7083ee",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Ethereum"],
   },
   arb: {
     chainName: "Arbitrum",
+    blockchain: "arb",
     chainIcon: "/chains/arbitrum.png",
     chainIconGray: "/chains/arbitrum-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 42161,
     blockExplorerUrl: "https://arbiscan.io/tx",
     primaryColor: "#4763A7",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Arbitrum"],
   },
   bsc: {
     chainName: "BNB Chain",
+    blockchain: "bsc",
     chainIcon: "/chains/bsc.png",
     chainIconGray: "/chains/bsc-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 56,
     blockExplorerUrl: "https://bscscan.com/tx",
     primaryColor: "#F1C144",
+    nativeToken: {
+      symbol: "BNB",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["BNB Chain"],
   },
   avax: {
     chainName: "Avalanche",
+    blockchain: "avax",
     chainIcon: "/chains/avalanche.png",
     chainIconGray: "/chains/avalanche-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 43114,
     blockExplorerUrl: "https://snowtrace.io/tx",
     primaryColor: "#9D2620",
+    nativeToken: {
+      symbol: "AVAX",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Avalanche"],
   },
   base: {
     chainName: "Base",
+    blockchain: "base",
     chainIcon: "/chains/base.png",
     chainIconGray: "/chains/base-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 8453,
     blockExplorerUrl: "https://basescan.org/tx",
     primaryColor: "#3137F6",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Base"],
   },
   pol: {
     chainName: "Polygon",
+    blockchain: "pol",
     chainIcon: "/chains/polygon.png",
     chainIconGray: "/chains/polygon-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 137,
     blockExplorerUrl: "https://polygonscan.com/tx",
     primaryColor: "#5A2AD1",
+    nativeToken: {
+      symbol: "POL",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Polygon"],
   },
   gnosis: {
     chainName: "Gnosis",
+    blockchain: "gnosis",
     chainIcon: "/chains/gnosis.png",
     chainIconGray: "/chains/gnosis-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 100,
     blockExplorerUrl: "https://gnosisscan.io/tx",
     primaryColor: "#285230",
+    nativeToken: {
+      symbol: "XDAI",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Gnosis"],
   },
   op: {
     chainName: "Optimism",
+    blockchain: "op",
     chainIcon: "/chains/optimism.png",
     chainIconGray: "/chains/optimism-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 10,
     blockExplorerUrl: "https://optimistic.etherscan.io/tx",
     primaryColor: "#B5271D",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Optimism"],
   },
   tron: {
     chainName: "Tron",
+    blockchain: "tron",
     chainIcon: "/chains/tron.png",
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
     blockExplorerUrl: "https://tronscan.org/tx",
     primaryColor: "#BC3221",
+    nativeToken: {
+      symbol: "TRX",
+      decimals: 6,
+    },
+    rpcUrl: chainsRpcUrls["Tron"],
   },
   aptos: {
     chainName: "Aptos",
+    blockchain: "aptos",
     chainIcon: "/chains/aptos.png",
     chainIconGray: "/chains/aptos-gray.png",
     chainType: chainTypes.aptos.value,
     blockExplorerUrl: "https://aptoscan.com/transaction",
     primaryColor: "#000000",
+    nativeToken: {
+      symbol: "APT",
+      decimals: 8,
+    },
+    rpcUrl: chainsRpcUrls["Aptos"],
+  },
+  bera: {
+    chainName: "Berachain",
+    blockchain: "bera",
+    chainIcon: "/chains/berachain.png",
+    chainIconGray: "/chains/berachain-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 80094,
+    blockExplorerUrl: "https://berascan.com/tx/",
+    primaryColor: "#F37325",
+    nativeToken: {
+      symbol: "BERA",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Berachain"],
+  },
+  xlayer: {
+    chainName: "X Layer",
+    blockchain: "xlayer",
+    chainIcon: "/chains/xlayer.png",
+    chainIconGray: "/chains/xlayer-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 196,
+    blockExplorerUrl: "https://www.oklink.com/xlayer/tx/",
+    primaryColor: "#000000",
+    nativeToken: {
+      symbol: "OKB",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["X Layer"],
   },
 };
 

@@ -2,6 +2,19 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Loading from "@/components/loading/icon";
 import clsx from "clsx";
+import chains from "@/config/chains";
+import { formatNumber } from "@/utils/format/number";
+import { stablecoinLogoMap } from "@/config/tokens";
+import { getTokenLogo } from "@/utils/format/logo";
+import LazyImage from "@/components/layz-image";
+import { TradeStatus, TradeStatusMap } from "@/config/trade";
+import Pagination from "@/components/pagination";
+import TokenLogo from "./token-logo";
+import { formatAddress } from "@/utils/format/address";
+import { formatTimeAgo } from "@/utils/format/time";
+import useToast from "@/hooks/use-toast";
+import { ProjectMap, type Project } from "@/services";
+import GridTable from "@/components/grid-table";
 
 interface TransferData {
   id: number;
@@ -13,7 +26,7 @@ interface TransferData {
   token_in_amount: string;
   token_out_amount: string;
   volume: string;
-  status: number;
+  status: TradeStatus;
   trade_status: string;
   ip: string;
   symbol: string;
@@ -21,6 +34,7 @@ interface TransferData {
   asset_id: string;
   to_asset_id: string;
   create_time: string;
+  project: Project;
 }
 
 interface ApiResponse {
@@ -36,33 +50,9 @@ interface TransfersProps {
   selectedToken: "USDT" | "USDC" | "USD1";
 }
 
-const chainNames: Record<string, string> = {
-  eth: "Ethereum",
-  arb: "Arbitrum", 
-  pol: "Polygon",
-  bsc: "BNB Chain",
-  op: "Optimism",
-  avax: "Avalanche",
-  near: "Near",
-  sol: "Solana",
-  tron: "Tron",
-  aptos: "Aptos",
-};
-
-const chainColors: Record<string, string> = {
-  eth: "#627EEA",
-  arb: "#2D374B",
-  pol: "#8247E5", 
-  bsc: "#F3BA2F",
-  op: "#FF0420",
-  avax: "#E84142",
-  near: "#00C4B3",
-  sol: "#9945FF",
-  tron: "#FF060A",
-  aptos: "#000000",
-};
-
 export default function Transfers({ selectedToken }: TransfersProps) {
+  const toast = useToast();
+
   const [transfers, setTransfers] = useState<TransferData[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -90,7 +80,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
       );
 
       if (response.data.code === 200) {
-        setTransfers(response.data.data.list);
+        setTransfers(response.data.data.list || []);
         setTotalPages(response.data.data.total_page);
       }
     } catch (error) {
@@ -104,70 +94,208 @@ export default function Transfers({ selectedToken }: TransfersProps) {
     fetchTransfers(currentPage);
   }, [selectedToken, currentPage, filters, pageSize]);
 
-  const formatTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const transferTime = new Date(dateString);
-    const diffInSeconds = Math.floor((now.getTime() - transferTime.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    return `${Math.floor(diffInSeconds / 86400)} days ago`;
-  };
-
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 4)}...${address.slice(-4)}`;
-  };
-
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: TradeStatus) => {
     switch (status) {
-      case "SUCCESS": return "text-green-600";
-      case "PENDING": return "text-yellow-600";
-      case "FAILED": return "text-red-600";
+      case TradeStatus.Success: return "text-green-600";
+      case TradeStatus.Pending: return "text-yellow-600";
+      case TradeStatus.Failed: return "text-red-600";
       default: return "text-gray-600";
     }
   };
+
+  const columns: any = [
+    {
+      title: "Network",
+      dataIndex: "network",
+      width: 250,
+      render: (transfer: TransferData, idx: number) => {
+        return (
+          <div className="">
+            <div className="flex items-center gap-2">
+              {/* From Chain */}
+              <div className="flex items-center gap-[6px]">
+                <LazyImage
+                  src={chains[transfer.from_chain]?.chainIcon}
+                  width={16}
+                  height={16}
+                  alt=""
+                  containerClassName="rounded-full shrink-0"
+                />
+                <span className="text-[12px] font-[500] text-[#2B3337]">
+                  {chains[transfer.from_chain]?.chainName || transfer.from_chain}
+                </span>
+              </div>
+
+              {/* Arrow */}
+              <img
+                src="/icon-arrow-right.svg"
+                alt=""
+                className="shrink-0 w-[5px] h-[8px] object-center object-contain"
+              />
+
+              {/* To Chain */}
+              <div className="flex items-center gap-[6px]">
+                <LazyImage
+                  src={chains[transfer.to_chain]?.chainIcon}
+                  width={16}
+                  height={16}
+                  alt=""
+                  containerClassName="rounded-full shrink-0"
+                />
+                <span className="text-[12px] font-[500] text-[#2B3337]">
+                  {chains[transfer.to_chain]?.chainName || transfer.to_chain}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-[8px] mt-2">
+              <div className="text-[10px] text-[#9FA7BA] flex items-center gap-1">
+                <div>
+                  {formatAddress(transfer.address, 5, 4)}
+                </div>
+                <button
+                  type="button"
+                  className="button w-[16px] h-[16px] shrink-0 bg-[url('/icon-copy.svg')] bg-center bg-no-repeat bg-[length:10px_10px]"
+                  onClick={() => {
+                    navigator.clipboard.writeText(transfer.address);
+                    toast.success({
+                      title: "Copied to clipboard",
+                    });
+                  }}
+                />
+              </div>
+              <span className={clsx("text-[10px] font-[500]", getStatusColor(transfer.status))}>
+                {TradeStatusMap[transfer.status as TradeStatus]?.name || "Unknown"}
+              </span>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: "Project",
+      dataIndex: "project",
+      width: 100,
+      render: (transfer: TransferData, idx: number) => {
+        return (
+          <div
+            className="text-[12px] font-[500] text-[#FFFFFF] px-2 py-0.5 rounded-sm"
+            style={{
+              backgroundColor: ProjectMap[transfer.project]?.color,
+            }}
+          >
+            {ProjectMap[transfer.project]?.name}
+          </div>
+        );
+      },
+    },
+    {
+      title: "Assets",
+      dataIndex: "assets",
+      align: "right",
+      render: (transfer: TransferData, idx: number) => {
+        const isSwap = transfer.symbol !== transfer.to_symbol && transfer.from_chain === transfer.to_chain;
+        return (
+          <div className="">
+            <div className="text-right">
+              <div className="text-[14px] font-[400] text-[#2B3337] flex justify-end items-center gap-2">
+                <div className="text-[12px] text-[#9FA7BA]">
+                  {isSwap ? "Swap" : "Bridge"}
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <div className="">
+                    {formatNumber(transfer.token_in_amount, 2, true)}
+                  </div>
+                  <TokenLogo
+                    symbol={transfer.symbol}
+                    chain={transfer.from_chain}
+                    className="!w-[16px] !h-[16px] mr-1"
+                  />
+                  <div className="">
+                    {transfer.symbol}
+                  </div>
+                </div>
+                <img
+                  src="/icon-arrow-right.svg"
+                  alt=""
+                  className="shrink-0 w-[5px] h-[8px] object-center object-contain"
+                />
+                <div className="flex items-center gap-0.5">
+                  <div className="">
+                    {formatNumber(transfer.token_out_amount, 2, true)}
+                  </div>
+                  <TokenLogo
+                    symbol={transfer.to_symbol}
+                    chain={transfer.to_chain}
+                    className="!w-[16px] !h-[16px] mr-1"
+                  />
+                  <div className="">
+                    {transfer.to_symbol}
+                  </div>
+                </div>
+              </div>
+              <div className="text-[12px] text-[#9FA7BA] mt-1">
+                {formatNumber(transfer.volume, 2, true, { prefix: "$" })}
+              </div>
+            </div>
+            <div className="text-[10px] text-[#9FA7BA] mt-1">
+              {formatTimeAgo(transfer.create_time)}
+            </div>
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="w-full">
       <div className="text-[16px] font-[500] text-[#0E3616] mb-[12px]">
         Transfers
       </div>
-      
+
       {/* Filters */}
       <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] mb-[16px]">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px]">
           <div>
             <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Source Network:</label>
-            <select 
+            <select
               value={filters.fromChain}
               onChange={(e) => setFilters(prev => ({ ...prev, fromChain: e.target.value }))}
               className="w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
             >
               <option value="">All</option>
-              {Object.entries(chainNames).map(([key, name]) => (
-                <option key={key} value={key}>{name}</option>
+              {Object.entries(chains).map(([key, chain]) => (
+                <option
+                  key={key}
+                  value={chain.blockchain}
+                >
+                  {chain.chainName}
+                </option>
               ))}
             </select>
           </div>
-          
+
           <div>
             <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Destination Network:</label>
-            <select 
+            <select
               value={filters.toChain}
               onChange={(e) => setFilters(prev => ({ ...prev, toChain: e.target.value }))}
               className="w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
             >
               <option value="">All</option>
-              {Object.entries(chainNames).map(([key, name]) => (
-                <option key={key} value={key}>{name}</option>
+              {Object.entries(chains).map(([key, chain]) => (
+                <option
+                  key={key}
+                  value={chain.blockchain}
+                >
+                  {chain.chainName}
+                </option>
               ))}
             </select>
           </div>
-          
+
           <div>
             <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Page Size:</label>
-            <select 
+            <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
               className="w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
@@ -183,114 +311,24 @@ export default function Transfers({ selectedToken }: TransfersProps) {
 
       {/* Transfers List */}
       <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)]">
-        {loading ? (
-          <div className="flex items-center justify-center h-[200px]">
-            <div className="flex flex-col items-center gap-[8px]">
-              <Loading size={24} />
-              <span className="text-[12px] text-[#9FA7BA]">Loading transfers...</span>
-            </div>
-          </div>
-        ) : transfers.length === 0 ? (
-          <div className="flex items-center justify-center h-[200px] text-[#9FA7BA]">
-            No transfers found
-          </div>
-        ) : (
-          <div className="divide-y divide-[#F2F2F2]">
-            {transfers.map((transfer) => (
-              <div key={transfer.id} className="p-[16px] hover:bg-[#FAFBFF] transition-colors duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-[12px]">
-                    {/* From Chain */}
-                    <div className="flex items-center gap-[6px]">
-                      <div 
-                        className="w-[8px] h-[8px] rounded-full"
-                        style={{ backgroundColor: chainColors[transfer.from_chain] || "#9FA7BA" }}
-                      />
-                      <span className="text-[12px] font-[500] text-[#2B3337]">
-                        {chainNames[transfer.from_chain] || transfer.from_chain}
-                      </span>
-                    </div>
-                    
-                    {/* Arrow */}
-                    <svg 
-                      width="12" 
-                      height="12" 
-                      viewBox="0 0 12 12" 
-                      fill="none" 
-                      className="text-[#9FA7BA]"
-                    >
-                      <path 
-                        d="M1 6H11M11 6L6 1M11 6L6 11" 
-                        stroke="currentColor" 
-                        strokeWidth="1.5" 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    
-                    {/* To Chain */}
-                    <div className="flex items-center gap-[6px]">
-                      <div 
-                        className="w-[8px] h-[8px] rounded-full"
-                        style={{ backgroundColor: chainColors[transfer.to_chain] || "#9FA7BA" }}
-                      />
-                      <span className="text-[12px] font-[500] text-[#2B3337]">
-                        {chainNames[transfer.to_chain] || transfer.to_chain}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div className="text-[14px] font-[500] text-[#2B3337]">
-                      {parseFloat(transfer.token_in_amount).toLocaleString()} {transfer.symbol}
-                    </div>
-                    <div className="text-[12px] text-[#9FA7BA]">
-                      ${parseFloat(transfer.volume).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between mt-[8px]">
-                  <div className="flex items-center gap-[8px]">
-                    <span className="text-[10px] text-[#9FA7BA]">
-                      {formatAddress(transfer.address)}
-                    </span>
-                    <span className={clsx("text-[10px] font-[500]", getStatusColor(transfer.trade_status))}>
-                      {transfer.trade_status}
-                    </span>
-                  </div>
-                  
-                  <div className="text-[10px] text-[#9FA7BA]">
-                    {formatTimeAgo(transfer.create_time)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        
+        <GridTable
+          columns={columns}
+          data={transfers}
+          loading={loading}
+          bodyClassName="max-h-[1700px] overflow-y-auto"
+          rowClassName="!px-5"
+        />
+
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between p-[16px] border-t border-[#F2F2F2]">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="px-[12px] py-[6px] text-[12px] border border-[#F2F2F2] rounded-[6px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#FAFBFF]"
-            >
-              Previous
-            </button>
-            
-            <span className="text-[12px] text-[#9FA7BA]">
-              Page {currentPage} of {totalPages}
-            </span>
-            
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="px-[12px] py-[6px] text-[12px] border border-[#F2F2F2] rounded-[6px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#FAFBFF]"
-            >
-              Next
-            </button>
+          <div className="py-2 flex justify-end items-center">
+            <Pagination
+              className=""
+              totalPage={totalPages}
+              page={currentPage}
+              pageSize={pageSize}
+              onPageChange={(page: number) => setCurrentPage(page)}
+            />
           </div>
         )}
       </div>
