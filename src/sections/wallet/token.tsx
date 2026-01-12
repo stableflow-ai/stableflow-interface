@@ -54,37 +54,22 @@ export default function Token({
                 // Check if chain is disabled: when selecting to token, check if from token causes this chain to be disabled
                 const isDisabled = walletStore.isTo
                   ? isChainDisabled(
-                      walletStore.fromToken?.symbol,
-                      token.symbol,
-                      chain.chainName
-                    )
+                    walletStore.fromToken?.symbol,
+                    token.symbol,
+                    chain.chainName
+                  )
                   : false;
 
                 return (
                   <div
                     key={chain.chainName}
-                    className={`p-[10px] duration-300 flex justify-between items-center ${
-                      isDisabled
-                        ? "opacity-50 cursor-not-allowed"
-                        : "cursor-pointer hover:bg-[#FAFBFF]"
-                    }`}
+                    className={`p-[10px] duration-300 flex justify-between items-center ${isDisabled
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer hover:bg-[#FAFBFF]"
+                      }`}
                     onClick={async () => {
                       // Prevent click if disabled
                       if (isDisabled) {
-                        return;
-                      }
-
-                      // Prevent selecting the same chain and token combination
-                      // But allow selecting different tokens (USDT vs USDC) on the same chain
-                      const otherToken = walletStore.isTo 
-                        ? walletStore.fromToken 
-                        : walletStore.toToken;
-                      
-                      if (
-                        otherToken &&
-                        otherToken.contractAddress === chain.contractAddress &&
-                        otherToken.symbol === token.symbol
-                      ) {
                         return;
                       }
 
@@ -97,6 +82,26 @@ export default function Token({
 
                       if (!walletStore.isTo) {
                         await switchChain({ chainId: chain.chainId });
+                      }
+
+                      if (walletStore.isTo) {
+                        if (mergedToken.contractAddress === walletStore.fromToken?.contractAddress) {
+                          walletStore.set({
+                            toToken: mergedToken,
+                            fromToken: null,
+                            showWallet: false,
+                          });
+                          return;
+                        }
+                      } else {
+                        if (mergedToken.contractAddress === walletStore.toToken?.contractAddress) {
+                          walletStore.set({
+                            fromToken: mergedToken,
+                            toToken: null,
+                            showWallet: false,
+                          });
+                          return;
+                        }
                       }
 
                       walletStore.set({
@@ -114,9 +119,9 @@ export default function Token({
                       {(walletStore.fromToken?.contractAddress ===
                         chain.contractAddress ||
                         walletStore.toToken?.contractAddress ===
-                          chain.contractAddress) && (
-                        <CheckIcon circleColor={"#fff"} />
-                      )}
+                        chain.contractAddress) && (
+                          <CheckIcon circleColor={"#fff"} />
+                        )}
                     </div>
                     {loading ? (
                       <Loading size={14} />
