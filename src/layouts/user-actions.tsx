@@ -9,6 +9,7 @@ import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
 import NavigationMenu from "@/components/navigation-menu";
+import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -89,7 +90,8 @@ export default function UserActions() {
 }
 
 const HistoryButton = ({ onClick }: any) => {
-  const pendingNumber = useHistoryStore((state) => state.pendingStatus.length);
+  usePendingHistory();
+  const pendingNumber = useHistoryStore((state) => state.pendingNumber);
   return (
     <>
       <button
@@ -153,8 +155,8 @@ const OverviewButton = ({ onClick, hidden }: any) => {
           strokeLinejoin="round"
           className="text-[#444C59]"
         >
-          <path d="M3 3v18h18"/>
-          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+          <path d="M3 3v18h18" />
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
         </svg>
       </button>
       <button
@@ -173,8 +175,8 @@ const OverviewButton = ({ onClick, hidden }: any) => {
           strokeLinejoin="round"
           className="text-[#444C59]"
         >
-          <path d="M3 3v18h18"/>
-          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+          <path d="M3 3v18h18" />
+          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
         </svg>
         <span className="text-[#444C59]">Overview</span>
       </button>
