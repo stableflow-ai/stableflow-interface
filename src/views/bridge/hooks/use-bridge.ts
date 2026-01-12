@@ -563,7 +563,7 @@ export default function useBridge(props?: any) {
         const uniqueId = uuidV4();
         historyStore.addHistory({
           type: Service.Usdt0,
-          despoitAddress: uniqueId,
+          despoitAddress: hash,
           amount: bridgeStore.amount,
           fromToken: walletStore.fromToken,
           toToken: walletStore.toToken,
@@ -574,7 +574,7 @@ export default function useBridge(props?: any) {
           toChainTxHash: hash,
           timeEstimate: _quote.data.estimateTime,
         });
-        historyStore.updateStatus(uniqueId, "PENDING_DEPOSIT");
+        historyStore.updateStatus(hash, "PENDING_DEPOSIT");
         report({
           project: "layerzero",
           address: wallet.account,
@@ -609,7 +609,7 @@ export default function useBridge(props?: any) {
         const uniqueId = uuidV4();
         historyStore.addHistory({
           type: Service.CCTP,
-          despoitAddress: uniqueId,
+          despoitAddress: hash,
           amount: bridgeStore.amount,
           fromToken: walletStore.fromToken,
           toToken: walletStore.toToken,
@@ -620,7 +620,7 @@ export default function useBridge(props?: any) {
           toChainTxHash: hash,
           timeEstimate: _quote.data.estimateTime,
         });
-        historyStore.updateStatus(uniqueId, "PENDING_DEPOSIT");
+        historyStore.updateStatus(hash, "PENDING_DEPOSIT");
         report({
           project: "cctp",
           address: wallet.account,
