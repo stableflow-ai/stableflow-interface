@@ -173,15 +173,15 @@ export default function Transfers({ selectedToken }: TransfersProps) {
       dataIndex: "project",
       width: 100,
       render: (transfer: TransferData, idx: number) => {
+        const currentProject = ProjectMap[transfer.project];
         return (
-          <div
-            className="text-[12px] font-[500] text-[#FFFFFF] px-2 py-0.5 rounded-sm"
-            style={{
-              backgroundColor: ProjectMap[transfer.project]?.color,
-            }}
-          >
-            {ProjectMap[transfer.project]?.name}
-          </div>
+          <LazyImage
+            src={currentProject?.logo}
+            width={62}
+            height={16}
+            alt=""
+            containerClassName="rounded-full shrink-0"
+          />
         );
       },
     },

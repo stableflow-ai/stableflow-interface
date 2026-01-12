@@ -17,17 +17,20 @@ export const Project = {
 
 export type Project = (typeof Project)[keyof typeof Project];
 
-export const ProjectMap: Record<Project, { name: string; color: string; }> = {
+export const ProjectMap: Record<Project, { name: string; color: string; logo: string; }> = {
   [Project.Nearintents]: {
-    name: "OneClick",
-    color: "#6284f5",
+    name: "Near Intents",
+    color: "#4CD093",
+    logo: "/bridge/logo-near-intents.png",
   },
   [Project.Layerzero]: {
     name: "USDT0",
     color: "#00b988",
+    logo: "/bridge/logo-usdt0.svg",
   },
   [Project.CCTP]: {
     name: "CCTP",
     color: "#29233b",
+    logo: "/bridge/logo-circle.avif",
   },
 };
