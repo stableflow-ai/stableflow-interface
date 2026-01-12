@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import Loading from "@/components/loading/icon";
 import clsx from "clsx";
 import chains from "@/config/chains";
 import { formatNumber } from "@/utils/format/number";
-import { stablecoinLogoMap } from "@/config/tokens";
-import { getTokenLogo } from "@/utils/format/logo";
 import LazyImage from "@/components/layz-image";
 import { TradeStatus, TradeStatusMap } from "@/config/trade";
 import Pagination from "@/components/pagination";
