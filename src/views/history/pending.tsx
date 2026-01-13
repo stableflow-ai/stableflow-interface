@@ -136,17 +136,17 @@ const ChainAndAddress = ({ className, data, address, token }: any) => {
       <div
         className="relative w-[26px] h-[26px] bg-center bg-contain bg-no-repeat"
         style={{
-          backgroundImage: `url(${data.chainIcon})`,
+          backgroundImage: `url(${data?.chainIcon})`,
         }}
       >
         {/* <img
-          src={data.chainIcon}
+          src={data?.chainIcon}
           alt=""
           className="w-[12px] h-[12px] absolute right-[-4px] bottom-[-2px] z-[1] object-center object-contain"
         /> */}
       </div>
       <div>
-        <div className="text-[12px] font-[500]">{data.chainName}</div>
+        <div className="text-[12px] font-[500]">{data?.chainName}</div>
         <div className="text-[12px] font-[400]">
           {formatAddress(address, 5, 4)}
         </div>
