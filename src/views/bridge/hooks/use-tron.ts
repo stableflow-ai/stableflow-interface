@@ -1,16 +1,19 @@
 import useBridgeStore from "@/stores/use-bridge";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRequest } from "ahooks";
-import { EnergyAmounts, TRON_RENTAL_FEE, TRON_RENTAL_RECEIVING_ADDRESS, TronTransferStepStatus } from "@/config/tron";
+import { EnergyAmounts, energyPeriod, TRON_RENTAL_FEE, TRON_RENTAL_RECEIVING_ADDRESS, TronTransferStepStatus } from "@/config/tron";
 import axios from "axios";
 import Big from "big.js";
 import { v4 as uuidv4 } from "uuid";
-import energyService from "@/libs/energy";
+import energyService, { type EnergyAmount, type EnergyPeriod } from "@/libs/energy";
+import usePricesStore from "@/stores/use-prices";
+import { numberRemoveEndZero } from "@/utils/format/number";
 
 export function useTronEnergy(props?: any) {
   const { } = props ?? {};
 
   const bridgeStore = useBridgeStore();
+  const prices = usePricesStore((state) => state.prices);
 
   const { tronTransferQuoteData, setTronTransferStep } = bridgeStore;
 
@@ -237,7 +240,7 @@ export function useTronEnergy(props?: any) {
     const energyResponse = await energyService.getEnergy({
       receiveAddress: params.account,
       energyAmount: Number(EnergyAmounts.New),
-      period: "1H",
+      period: energyPeriod,
       outTradeNo,
       autoActivate: false,
     });
@@ -262,6 +265,31 @@ export function useTronEnergy(props?: any) {
     manual: true,
   });
 
+  // Get the actual amount of TRX required to rent energy
+  const { runAsync: getEnergyPrice } = useRequest(async (params?: { energyPeriod?: EnergyPeriod; energyAmount?: EnergyAmount; }) => {
+    const response = await energyService.getPrice({
+      period: params?.energyPeriod ?? energyPeriod,
+      energyAmount: params?.energyAmount ?? BigInt(EnergyAmounts.New) as EnergyAmount,
+    });
+
+    if (response.status !== 200 || response.data.errno !== 0) {
+      return {};
+    }
+
+    const { total_price } = response.data.data ?? {};
+    // TRX decimals is 6
+    const totalPrice = Big(total_price || 0).div(10 ** 6);
+    const totalPriceUsd = Big(totalPrice).times(prices["TRX"] || 1);
+
+    return {
+      amount: numberRemoveEndZero(Big(totalPrice).toFixed(6)),
+      sun: total_price + "",
+      usd: numberRemoveEndZero(Big(totalPriceUsd).toFixed(20)),
+    };
+  }, {
+    manual: true,
+  });
+
   useEffect(() => {
     return () => {
       if (checkTransactionTimer.current) {
@@ -278,5 +306,6 @@ export function useTronEnergy(props?: any) {
   return {
     getEstimateNeedsEnergy,
     getEnergy,
+    getEnergyPrice,
   };
 }

@@ -166,6 +166,8 @@ class OneClickService {
       toToken: void 0,
       prices: void 0,
       amountWei: void 0,
+      needsEnergy: void 0,
+      needsEnergyAmount: void 0,
     });
 
     return this.formatQuoteData({ data: res.data, params });
