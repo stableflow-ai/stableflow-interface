@@ -94,6 +94,15 @@ export default function Transfers({ selectedToken }: TransfersProps) {
     fetchTransfers(currentPage);
   }, [selectedToken, currentPage, filters, pageSize]);
 
+  useEffect(() => {
+    setFilters((prev) => {
+      return {
+        ...prev,
+        project: "",
+      };
+    });
+  }, [selectedToken]);
+
   const getStatusColor = (status: TradeStatus) => {
     switch (status) {
       case TradeStatus.Success: return "text-green-600";
@@ -260,7 +269,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
             <select
               value={filters.fromChain}
               onChange={(e) => setFilters(prev => ({ ...prev, fromChain: e.target.value }))}
-              className="w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
+              className="button w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
             >
               <option value="">All</option>
               {Object.entries(chains).map(([key, chain]) => (
@@ -279,7 +288,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
             <select
               value={filters.toChain}
               onChange={(e) => setFilters(prev => ({ ...prev, toChain: e.target.value }))}
-              className="w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
+              className="button w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
             >
               <option value="">All</option>
               {Object.entries(chains).map(([key, chain]) => (
@@ -298,10 +307,10 @@ export default function Transfers({ selectedToken }: TransfersProps) {
             <select
               value={filters.project === "" ? "" : filters.project.toString()}
               onChange={(e) => setFilters(prev => ({ ...prev, project: e.target.value === "" ? "" : e.target.value }))}
-              className="w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
+              className="button w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
             >
               <option value="">All</option>
-              {Object.values(ProjectMap).map((_project) => {
+              {Object.values(ProjectMap).filter((_project) => _project.tokens.includes(selectedToken)).map((_project) => {
                 return (
                   <option
                     key={_project.value}
@@ -319,7 +328,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
-              className="w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
+              className="button w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
             >
               <option value="10">10</option>
               <option value="20">20</option>
