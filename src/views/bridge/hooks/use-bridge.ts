@@ -376,6 +376,10 @@ export default function useBridge(props?: any) {
     return result;
   };
 
+  const { run: debouncedTronTransactionFinihed } = useDebounceFn(() => {
+    bridgeStore.setTronTransferVisible(false);
+  }, { wait: 2000 });
+
   const transfer = async () => {
     if (!walletStore.fromToken) return;
     try {
@@ -540,6 +544,11 @@ export default function useBridge(props?: any) {
 
         reportData.tx_hash = hash;
         report(reportData);
+
+        if (isFromTron) {
+          bridgeStore.setTronTransferStep(TronTransferStepStatus.Broadcasting);
+          debouncedTronTransactionFinihed();
+        }
       }
 
       // usdt0 transfer
