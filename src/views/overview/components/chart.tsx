@@ -349,7 +349,7 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
           onPeriodChange={onPeriodChange}
           selectedPeriod={selectedPeriod}
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[15px]">
           <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] pb-0">
             <div className="flex items-center gap-[6px] mb-[16px]">
               <div className="w-[12px] h-[12px] bg-[#6284F5] rounded-[2px]"></div>
@@ -387,7 +387,7 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
           onPeriodChange={onPeriodChange}
           selectedPeriod={selectedPeriod}
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[15px]">
           <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] pb-0">
             <div className="flex items-center gap-[6px] mb-[16px]">
               <div className="w-[12px] h-[12px] bg-[#6284F5] rounded-[2px]"></div>
@@ -419,7 +419,7 @@ export default function Chart({ data, loading, selectedPeriod, onPeriodChange }:
         selectedPeriod={selectedPeriod}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[15px]">
         {/* Volume Chart */}
         <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] pb-0">
           <div className="flex items-center gap-[6px] mb-[16px]">

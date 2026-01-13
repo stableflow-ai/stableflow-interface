@@ -38,7 +38,7 @@ export default function Overview() {
 
         {/* Overview Stats */}
         <div className="px-[10px] md:px-0 mb-[20px]">
-          <OverviewStats data={dashboardData} loading={loading} />
+          <OverviewStats data={dashboardData} loading={loading} selectedToken={selectedToken} />
         </div>
 
         {/* Chart with Time Period */}
