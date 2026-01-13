@@ -5,6 +5,7 @@ import { formatNumber } from "@/utils/format/number";
 import { BASE_API_URL } from "@/config/api";
 import { ProjectMap, Project } from "@/services";
 import LazyImage from "@/components/layz-image";
+import Big from "big.js";
 
 interface DashboardData {
   symbol: string;
@@ -132,6 +133,7 @@ export default function OverviewStats({ data, loading, selectedToken }: Overview
                         if (!project) return false;
                         return project.tokens.includes(selectedToken);
                       })
+                      .sort((a, b) => Big(b.total_volume || 0).minus(a.total_volume || 0).toNumber())
                       .map((item) => {
                         const project = ProjectMap[item.project];
                         if (!project) return null;
