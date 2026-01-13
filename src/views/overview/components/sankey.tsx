@@ -201,7 +201,7 @@ const Sankey = (props: any) => {
       .style("font-size", "12px")
       .style("font-weight", "500")
       .style("pointer-events", "none")
-      .style("opacity", 0)
+      .style("display", "none")
       .style("z-index", "1000")
       .style("box-shadow", "0 4px 12px rgba(0, 0, 0, 0.3)");
 
@@ -327,7 +327,7 @@ const Sankey = (props: any) => {
 
         // Show node tooltip
         tooltip
-          .style("opacity", 1)
+          .style("display", "block")
           .html(`
             <div style="text-align: left;">
               <div style="font-weight: 600; margin-bottom: 6px; color: #fff;">
@@ -362,7 +362,7 @@ const Sankey = (props: any) => {
         link.attr("stroke-opacity", 0.6);
 
         // Hide tooltip
-        tooltip.style("opacity", 0);
+        tooltip.style("display", "none");
       });
 
     link
@@ -378,7 +378,7 @@ const Sankey = (props: any) => {
 
         // Show tooltip
         tooltip
-          .style("opacity", 1)
+          .style("display", "block")
           .html(`
             <div style="text-align: left;">
               <div style="font-weight: 600; margin-bottom: 4px; color: #fff;">
@@ -408,7 +408,7 @@ const Sankey = (props: any) => {
           .attr("stroke-opacity", 0.6);
 
         // Hide tooltip
-        tooltip.style("opacity", 0);
+        tooltip.style("display", "none");
       });
 
   }, [dimensions, selectedLeftChains, selectedRightChains, data]);

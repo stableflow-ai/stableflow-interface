@@ -12,6 +12,7 @@ import { formatTimeAgo } from "@/utils/format/time";
 import useToast from "@/hooks/use-toast";
 import { ProjectMap, Project, type Project as ProjectType } from "@/services";
 import GridTable from "@/components/grid-table";
+import { BASE_API_URL } from "@/config/api";
 
 interface TransferData {
   id: number;
@@ -57,7 +58,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
   const [filters, setFilters] = useState({
     fromChain: "",
     toChain: "",
-    project: "" as ProjectType | ""
+    project: "",
   });
   const [pageSize, setPageSize] = useState(20);
 
@@ -72,10 +73,10 @@ export default function Transfers({ selectedToken }: TransfersProps) {
 
       if (filters.fromChain) params.append("from_chain", filters.fromChain);
       if (filters.toChain) params.append("to_chain", filters.toChain);
-      if (filters.project !== "") params.append("project", filters.project.toString());
+      if (filters.project !== "") params.append("project", filters.project);
 
       const response = await axios.get<ApiResponse>(
-        `https://api.db3.app/api/stableflow/trade/list?${params.toString()}`
+        `${BASE_API_URL}/v1/dashboard/trades?${params.toString()}`
       );
 
       if (response.data.code === 200) {
@@ -296,18 +297,17 @@ export default function Transfers({ selectedToken }: TransfersProps) {
             <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Project:</label>
             <select
               value={filters.project === "" ? "" : filters.project.toString()}
-              onChange={(e) => setFilters(prev => ({ ...prev, project: e.target.value === "" ? "" : Number(e.target.value) as ProjectType }))}
+              onChange={(e) => setFilters(prev => ({ ...prev, project: e.target.value === "" ? "" : e.target.value }))}
               className="w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
             >
               <option value="">All</option>
-              {Object.values(Project).filter((v): v is ProjectType => typeof v === "number").map((projectValue) => {
-                const project = ProjectMap[projectValue];
+              {Object.values(ProjectMap).map((_project) => {
                 return (
                   <option
-                    key={projectValue}
-                    value={projectValue}
+                    key={_project.value}
+                    value={_project.value}
                   >
-                    {project.name}
+                    {_project.name}
                   </option>
                 );
               })}

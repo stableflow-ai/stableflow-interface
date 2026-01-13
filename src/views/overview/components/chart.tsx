@@ -110,7 +110,7 @@ const VolumeChart = ({ data, selectedPeriod, isMobile }: { data: ChartData[], se
       .append("div")
       .attr("class", "volume-tooltip")
       .style("position", "absolute")
-      .style("visibility", "hidden")
+      .style("display", "none")
       .style("background", "rgba(0, 0, 0, 0.8)")
       .style("color", "white")
       .style("padding", "8px 12px")
@@ -133,7 +133,7 @@ const VolumeChart = ({ data, selectedPeriod, isMobile }: { data: ChartData[], se
       .attr("rx", 2)
       .on("mouseover", function (_, d) {
         tooltip
-          .style("visibility", "visible")
+          .style("display", "block")
           .html(`
             <div><strong>${getTooltipDateLabel(selectedPeriod)}:</strong> ${formatTooltipDate(d.date, selectedPeriod)}</div>
             <div><strong>Volume:</strong> ${formatNumber(d.volume, 2, true, { prefix: "$" })}</div>
@@ -146,7 +146,7 @@ const VolumeChart = ({ data, selectedPeriod, isMobile }: { data: ChartData[], se
           .style("left", (event.pageX + 10) + "px");
       })
       .on("mouseout", function () {
-        tooltip.style("visibility", "hidden");
+        tooltip.style("display", "none");
       });
 
     // Add X axis
@@ -242,7 +242,7 @@ const TransactionsChart = ({ data, selectedPeriod, isMobile }: { data: ChartData
       .append("div")
       .attr("class", "transactions-tooltip")
       .style("position", "absolute")
-      .style("visibility", "hidden")
+      .style("display", "none")
       .style("background", "rgba(0, 0, 0, 0.8)")
       .style("color", "white")
       .style("padding", "8px 12px")
@@ -265,7 +265,7 @@ const TransactionsChart = ({ data, selectedPeriod, isMobile }: { data: ChartData
       .attr("rx", 2)
       .on("mouseover", function (_, d) {
         tooltip
-          .style("visibility", "visible")
+          .style("display", "block")
           .html(`
             <div><strong>${getTooltipDateLabel(selectedPeriod)}:</strong> ${formatTooltipDate(d.date, selectedPeriod)}</div>
             <div><strong>Transactions:</strong> ${d3.format(".2s")(d.transactions)}</div>
@@ -278,7 +278,7 @@ const TransactionsChart = ({ data, selectedPeriod, isMobile }: { data: ChartData
           .style("left", (event.pageX + 10) + "px");
       })
       .on("mouseout", function () {
-        tooltip.style("visibility", "hidden");
+        tooltip.style("display", "none");
       });
 
     // Add X axis
@@ -460,7 +460,7 @@ const Header = (props: any) => {
             <button
               key={period.value}
               onClick={() => onPeriodChange(period.value)}
-              className={`px-[12px] py-[6px] rounded-[6px] text-[12px] font-[500] transition-all duration-300 ${selectedPeriod === period.value
+              className={`button px-[12px] py-[6px] rounded-[6px] text-[12px] font-[500] transition-all duration-300 ${selectedPeriod === period.value
                 ? "bg-[#6284F5] text-white shadow-[0_2px_4px_0_rgba(98,132,245,0.30)]"
                 : "text-[#9FA7BA] hover:text-[#2B3337] hover:bg-[#FAFBFF]"
                 }`}

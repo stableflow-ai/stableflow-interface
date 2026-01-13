@@ -17,6 +17,7 @@ import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { BridgeDefaultWallets } from "../config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
+import { BASE_API_URL } from "@/config/api";
 
 export default function useBridge(props?: any) {
   const { liquidityError } = props ?? {};
@@ -129,7 +130,10 @@ export default function useBridge(props?: any) {
 
   const { runAsync: report } = useRequest(async (params: any) => {
     try {
-      await axios.post("https://api.db3.app/api/stableflow/trade", params);
+      await axios.post(`${BASE_API_URL}/v1/trade/add`, {
+        type: 0,
+        ...params,
+      });
     } catch (error) {
       console.log("report failed: %o", error);
     }
