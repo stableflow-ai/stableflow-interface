@@ -7,6 +7,7 @@ import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services";
+import { TRON_RENTAL_FEE } from "@/config/tron";
 
 export const BridgeFee = [
   {
@@ -62,11 +63,12 @@ class OneClickService {
         };
 
         try {
-          const sourceGasFee = await params.wallet.estimateTransferGas({
-            originAsset: params.fromToken.contractAddress,
-            depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-            amount: params.amount,
-          });
+          // const sourceGasFee = await params.wallet.estimateTransferGas({
+          //   originAsset: params.fromToken.contractAddress,
+          //   depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+          //   amount: params.amount,
+          // });
+          const sourceGasFee = { estimateGas: Big(TRON_RENTAL_FEE.Normal).times(10 ** params.fromToken.nativeToken.decimals) };
           const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
