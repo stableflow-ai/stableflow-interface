@@ -18,6 +18,7 @@ export default function useEvmBalances(auto = false) {
   const balancesStore = useBalancesStore();
   const wallet = wallets.evm;
   const updateEvmBalancesTimer = useRef<any>(null);
+  const initRef = useRef(false);
 
   const getBalances = async () => {
     if (!wallet || !wallet.account) return;
@@ -64,6 +65,7 @@ export default function useEvmBalances(auto = false) {
       console.error(error);
     } finally {
       setLoading(false);
+      initRef.current = true;
     }
   };
 
@@ -81,7 +83,7 @@ export default function useEvmBalances(auto = false) {
     }, 1000 * 60);
   };
 
-  const { run: debouncedGetBalances } = useDebounceFn(getBalances, {
+  const { run: debouncedGetBalances, cancel: cancelDebouncedGetBalances } = useDebounceFn(getBalances, {
     wait: 5000
   });
 
@@ -90,12 +92,18 @@ export default function useEvmBalances(auto = false) {
       return;
     }
 
-    debouncedGetBalances();
+    if (!initRef.current) {
+      debouncedGetBalances();
+    }
   }, [wallet?.account]);
 
   useEffect(() => {
     if (!wallet?.account || !auto) {
       stopPollingBalances();
+
+      if (initRef.current) {
+        cancelDebouncedGetBalances();
+      }
       return;
     }
 
