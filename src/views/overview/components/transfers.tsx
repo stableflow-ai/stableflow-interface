@@ -10,7 +10,7 @@ import TokenLogo from "./token-logo";
 import { formatAddress } from "@/utils/format/address";
 import { formatTimeAgo } from "@/utils/format/time";
 import useToast from "@/hooks/use-toast";
-import { ProjectMap, type Project } from "@/services";
+import { ProjectMap, Project, type Project as ProjectType } from "@/services";
 import GridTable from "@/components/grid-table";
 
 interface TransferData {
@@ -56,7 +56,8 @@ export default function Transfers({ selectedToken }: TransfersProps) {
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     fromChain: "",
-    toChain: ""
+    toChain: "",
+    project: "" as ProjectType | ""
   });
   const [pageSize, setPageSize] = useState(20);
 
@@ -71,6 +72,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
 
       if (filters.fromChain) params.append("from_chain", filters.fromChain);
       if (filters.toChain) params.append("to_chain", filters.toChain);
+      if (filters.project !== "") params.append("project", filters.project.toString());
 
       const response = await axios.get<ApiResponse>(
         `https://api.db3.app/api/stableflow/trade/list?${params.toString()}`
@@ -251,7 +253,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
 
       {/* Filters */}
       <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] mb-[16px]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-[12px]">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-[12px]">
           <div>
             <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Source Network:</label>
             <select
@@ -287,6 +289,28 @@ export default function Transfers({ selectedToken }: TransfersProps) {
                   {chain.chainName}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Project:</label>
+            <select
+              value={filters.project === "" ? "" : filters.project.toString()}
+              onChange={(e) => setFilters(prev => ({ ...prev, project: e.target.value === "" ? "" : Number(e.target.value) as ProjectType }))}
+              className="w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
+            >
+              <option value="">All</option>
+              {Object.values(Project).filter((v): v is ProjectType => typeof v === "number").map((projectValue) => {
+                const project = ProjectMap[projectValue];
+                return (
+                  <option
+                    key={projectValue}
+                    value={projectValue}
+                  >
+                    {project.name}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
