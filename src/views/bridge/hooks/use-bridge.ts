@@ -132,7 +132,10 @@ export default function useBridge(props?: any) {
               wallet: params.wallet,
               account: fromWalletAddress || "",
             });
-            if (!needsEnergy) {
+            _params.needsEnergy = needsEnergy;
+            if (needsEnergy) {
+              _params.needsEnergyAmount = TRON_RENTAL_FEE.Normal;
+            } else {
               const fixedFee = BridgeFees.Normal;
               const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
               _params.appFees = [
@@ -378,6 +381,10 @@ export default function useBridge(props?: any) {
     return result;
   };
 
+  const { run: debouncedTronTransactionFinihed } = useDebounceFn(() => {
+    bridgeStore.setTronTransferVisible(false);
+  }, { wait: 2000 });
+
   const transfer = async () => {
     if (!walletStore.fromToken) return;
     try {
@@ -542,6 +549,11 @@ export default function useBridge(props?: any) {
 
         reportData.tx_hash = hash;
         report(reportData);
+
+        if (isFromTron) {
+          bridgeStore.setTronTransferStep(TronTransferStepStatus.Broadcasting);
+          debouncedTronTransactionFinihed();
+        }
       }
 
       // usdt0 transfer

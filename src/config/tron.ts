@@ -1,3 +1,5 @@
+import type { EnergyPeriod } from "@/libs/energy";
+
 // Tron Energy rental receiving address
 export const TRON_RENTAL_RECEIVING_ADDRESS = "TGKiSaDG7wp5N4T9SJweotgfgwmxDTgjMi";
 
@@ -37,3 +39,5 @@ export const TronTransferStepStatus = {
 } as const;
 
 export type TronTransferStepStatus = (typeof TronTransferStepStatus)[keyof typeof TronTransferStepStatus];
+
+export const energyPeriod: EnergyPeriod = "1H";
