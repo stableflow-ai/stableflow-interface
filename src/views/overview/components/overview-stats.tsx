@@ -148,7 +148,7 @@ export default function OverviewStats({ data, loading, selectedToken }: Overview
                                 src={project.logo}
                                 width={52}
                                 height={14}
-                                alt={project.name}
+                                alt=""
                                 containerClassName="object-contain object-left shrink-0"
                               />
                             </div>
