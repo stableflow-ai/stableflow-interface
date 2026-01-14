@@ -17,7 +17,7 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import { chainsRpcUrls } from "@/config/chains";
-import { addressToBytes32 } from "@layerzerolabs/lz-v2-utilities";
+import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
@@ -29,6 +29,7 @@ import { Service, type ServiceType } from "@/services";
 import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress } from "../utils/layerzero";
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
 import { USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
+import { ethers } from "ethers";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -342,7 +343,6 @@ export default class SolanaWallet {
 
       const programId = new PublicKey(originLayerzeroAddress);
       const tokenMint = new PublicKey(fromToken.contractAddress);
-      const to = new Uint8Array(Buffer.from(addressToBytes32(recipient)));
       const quotePayer = new PublicKey("4NkxtcfRTCxJ1N2j6xENcDLPbiJ3541T6r5BqhTzMD9J");
       const lookupTable = new PublicKey("6zcTrmdkiQp6dZHYUxVr6A2XVDSYi44X1rcPtvwNcrXi");
       const tokenEscrow = new PublicKey("F1YkdxaiLA1eJt12y3uMAQef48Td3zdJfYhzjphma8hG");
@@ -357,8 +357,36 @@ export default class SolanaWallet {
       const minAmountLd =
         amountLd - (amountLd * BigInt(Math.floor(slippage * 10000))) / 10000n;
 
-      const pdas = deriveOftPdas(programId, dstEid);
-      const peerAddress = await getPeerAddress(this.connection, programId, dstEid);
+      let _dstEid: any = dstEid;
+      let to = new Uint8Array(Buffer.from(addressToBytes32(recipient)));
+      let extraOptions = new Uint8Array(0);
+      let composeMsg = null;
+      if (isMultiHopComposer) {
+        _dstEid = multiHopComposer.eid;
+        to = new Uint8Array(Buffer.from(addressToBytes32(multiHopComposer.oftMultiHopComposer)));
+        extraOptions = Options.newOptions()
+          .addExecutorLzReceiveOption(1500000, 0)
+          .addExecutorComposeOption(0, 1000000, 0)
+          .toBytes() as Uint8Array<any>;
+
+        const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+        const composeEncoder = abiCoder.encode(
+          ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
+          [[
+            dstEid,
+            addressToBytes32(recipient),
+            amountLd, // amountLD
+            minAmountLd, // minAmountLD
+            "0x",
+            "0x",
+            "0x"
+          ]]);
+
+        composeMsg = ethers.getBytes(composeEncoder);
+      }
+
+      const pdas = deriveOftPdas(programId, _dstEid);
+      const peerAddress = await getPeerAddress(this.connection, programId, _dstEid);
       const tokenSource = await getAssociatedTokenAddress(
         tokenMint,
         userPubkey,
@@ -371,7 +399,7 @@ export default class SolanaWallet {
         this.connection as any,
         quotePayer,
         pdas.oftStore,
-        dstEid,
+        _dstEid,
         peerAddress,
       );
 
@@ -385,12 +413,12 @@ export default class SolanaWallet {
         ],
         data: Buffer.from(
           encodeQuoteSend({
-            dstEid,
+            dstEid: _dstEid,
             to,
             amountLd,
             minAmountLd,
-            extraOptions: new Uint8Array(0),
-            composeMsg: null,
+            extraOptions,
+            composeMsg,
             payInLzToken: false,
           }),
         ),
@@ -448,7 +476,7 @@ export default class SolanaWallet {
         this.connection as any,
         userPubkey,
         pdas.oftStore,
-        dstEid,
+        _dstEid,
         peerAddress,
       );
 
@@ -469,12 +497,12 @@ export default class SolanaWallet {
         ],
         data: Buffer.from(
           encodeSend({
-            dstEid,
+            dstEid: _dstEid,
             to,
             amountLd,
             minAmountLd,
-            extraOptions: new Uint8Array(0),
-            composeMsg: null,
+            extraOptions,
+            composeMsg,
             nativeFee,
             lzTokenFee: 0n,
           }),
