@@ -12,6 +12,7 @@ import { chainsRpcUrls } from "@/config/chains";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
+import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -234,6 +235,7 @@ export default class RainbowWallet {
       isMultiHopComposer,
       isOriginLegacy,
       isDestinationLegacy,
+      originLayerzero,
     } = params;
 
     const result: any = {
@@ -292,8 +294,23 @@ export default class RainbowWallet {
       sendParam.dstEid = multiHopComposer.eid;
       sendParam.to = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer);
 
-      //                                                                       gas_limt,   msg_value
-      sendParam.extraOptions = Options.newOptions().addExecutorLzReceiveOption(250000000n, 0n).toHex();
+      const hopMsgFee = await getHopMsgFee({
+        dstEid,
+        toToken,
+        recipient,
+        amountWei,
+        slippageTolerance,
+      });
+
+      console.log("%chopMsgFee: %o", "background:blue;color:white;", hopMsgFee);
+      console.log("%clzReceiveOptionGas: %o", "background:blue;color:white;", originLayerzero.lzReceiveOptionGas);
+      console.log("%clzReceiveOptionNativeDrop: %o", "background:blue;color:white;", originLayerzero.lzReceiveOptionNativeDrop);
+      console.log("%ccomposeOptionGas: %o", "background:blue;color:white;", originLayerzero.composeOptionGas);
+
+      sendParam.extraOptions = Options.newOptions()
+        .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 2000000, originLayerzero.lzReceiveOptionNativeDrop || 0)
+        .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
+        .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       sendParam.composeMsg = abiCoder.encode(
         ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
@@ -309,13 +326,15 @@ export default class RainbowWallet {
       );
     }
 
+    console.log("%csendParam: %o", "background:blue;color:white;", sendParam);
+
     const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
 
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     result.estimateSourceGas = msgFee[0];
-    // console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+    console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 
     result.sendParam = {
       contract: oftContract,
