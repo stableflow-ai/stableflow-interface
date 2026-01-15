@@ -95,6 +95,7 @@ interface GetAllQuoteParams {
   refundTo: string;                   // Refund address on source chain
   amountWei: string;                  // Amount in smallest units (e.g., wei)
   slippageTolerance: number;         // Slippage tolerance (percentage, e.g., 0.5 for 0.5%)
+  appFees?: { recipient: string; fee: number; }[]; // Custom fee rates
 }
 ```
 
@@ -159,6 +160,14 @@ const quotes = await SFA.getAllQuote({
   refundTo: '0x5678...',
   amountWei: ethers.parseUnits('100', fromToken!.decimals).toString(),
   slippageTolerance: 0.5, // 0.5%
+  appFees: [
+    {
+      // your fee collection address
+      recipient: "stableflow.near",
+      // Fee rate, as a percentage of the amount. 100 = 1%, 1 = 0.01%
+      fee: 100,
+    },
+  ],
 });
 
 // 4. Filter valid quotes
@@ -796,6 +805,15 @@ const quotes = await SFA.getAllQuote({
   refundTo: userAddress,
   amountWei: ethers.parseUnits('100', fromToken.decimals).toString(),
   slippageTolerance: 0.5,
+  // Fees are optional
+  appFees: [
+    {
+      // ⚠️ Replace with your own fee recipient address
+      recipient: "stableflow.near",
+      // Fee rate, as a percentage of the amount. 100 = 1%, 1 = 0.01%
+      fee: 100,
+    },
+  ],
 });
 
 // 5. Select best quote
