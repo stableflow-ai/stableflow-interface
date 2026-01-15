@@ -308,13 +308,10 @@ export default class RainbowWallet {
         toToken,
       });
 
-      // sendParam.extraOptions = Options.newOptions()
-      //   .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 2000000, originLayerzero.lzReceiveOptionNativeDrop || 0)
-      //   .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
-      //   .toHex();
       sendParam.extraOptions = Options.newOptions()
-      .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 2000000, 0)
-      .toHex();
+        .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 2000000, originLayerzero.lzReceiveOptionNativeDrop || 0)
+        .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
+        .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       sendParam.composeMsg = abiCoder.encode(
         ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
@@ -325,8 +322,6 @@ export default class RainbowWallet {
     const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
-
-    console.log("%csendParam: %o", "background:blue;color:white;", sendParam);
 
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     result.estimateSourceGas = msgFee[0];
