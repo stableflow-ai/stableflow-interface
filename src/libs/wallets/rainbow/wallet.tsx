@@ -5,14 +5,12 @@ import Big from "big.js";
 import { ethers } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { addressToBytes32 } from "@/utils/address-validation";
-import { USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
+import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { quoteSignature } from "../utils/cctp";
-import { Connection, PublicKey } from "@solana/web3.js";
-import { chainsRpcUrls } from "@/config/chains";
-import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
+import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -278,13 +276,26 @@ export default class RainbowWallet {
       }
     }
 
+    const lzReceiveOptionGas = isOriginLegacy ? originLayerzero.lzReceiveOptionGasLegacy : originLayerzero.lzReceiveOptionGas;
+    let lzReceiveOptionValue = 0;
+
+    const destATA = await getDestinationAssociatedTokenAddress({
+      recipient,
+      toToken,
+    });
+    if (destATA.needCreateTokenAccount) {
+      lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
+    }
+
     // 2. quote send
     const sendParam: any = {
       dstEid: dstEid,
       to: addressToBytes32(toToken.chainType, recipient),
       amountLD: amountWei,
       minAmountLD: 0n,
-      extraOptions: "0x0003",
+      extraOptions: Options.newOptions()
+        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
+        .toHex(),
       composeMsg: "0x",
       oftCmd: "0x"
     };
@@ -299,7 +310,9 @@ export default class RainbowWallet {
         to: addressToBytes32(toToken.chainType, recipient),
         amountLD: sendParam.amountLD,
         minAmountLD: sendParam.minAmountLD,
-        extraOptions: "0x0003",
+        extraOptions: Options.newOptions()
+          .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
+          .toHex(),
         composeMsg: "0x",
         oftCmd: "0x",
       };
@@ -309,7 +322,7 @@ export default class RainbowWallet {
       });
 
       sendParam.extraOptions = Options.newOptions()
-        .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 2000000, originLayerzero.lzReceiveOptionNativeDrop || 0)
+        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
         .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
         .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
@@ -505,21 +518,13 @@ export default class RainbowWallet {
 
     let realRecipient = recipient;
     // get ATA address
-    if (toToken.chainType === "sol") {
-      const connection = new Connection(chainsRpcUrls.Solana);
-
-      const wallet = new PublicKey(recipient);
-      const USDC_MINT = new PublicKey(toToken.contractAddress);
-
-      const ata = getAssociatedTokenAddressSync(USDC_MINT, wallet);
-
-      const accountInfo = await connection.getAccountInfo(ata);
-
-      if (!accountInfo) {
-        result.needCreateTokenAccount = true;
-      } else {
-        realRecipient = ata.toBase58();
-      }
+    const destATA = await getDestinationAssociatedTokenAddress({
+      recipient,
+      toToken,
+    });
+    result.needCreateTokenAccount = destATA.needCreateTokenAccount;
+    if (destATA.associatedTokenAddress) {
+      realRecipient = destATA.associatedTokenAddress;
     }
 
     // 1. get user nonce

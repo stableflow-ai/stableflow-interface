@@ -28,7 +28,7 @@ import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
 import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress } from "../utils/layerzero";
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
-import { USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
+import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { ethers } from "ethers";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 
@@ -323,6 +323,7 @@ export default class SolanaWallet {
       slippageTolerance,
       multiHopComposer,
       isMultiHopComposer,
+      isOriginLegacy,
       prices,
       excludeFees,
       originLayerzero,
@@ -358,9 +359,14 @@ export default class SolanaWallet {
       const slippage = slippageTolerance || 0.01; // Default 1% slippage
       const minAmountLd = BigInt(Big(amountWei).times(Big(1).minus(Big(slippage).div(100))).toFixed(0));
 
+      const lzReceiveOptionGas = isOriginLegacy ? originLayerzero.lzReceiveOptionGasLegacy : originLayerzero.lzReceiveOptionGas;
+      const lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
+
       let _dstEid: any = dstEid;
       let to = new Uint8Array(Buffer.from(addressToBytes32(recipient)));
-      let extraOptions = new Uint8Array(0);
+      let extraOptions = Options.newOptions()
+        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
+        .toBytes() as Uint8Array<any>;
       let composeMsg = null;
       if (isMultiHopComposer) {
         _dstEid = multiHopComposer.eid;
@@ -371,7 +377,9 @@ export default class SolanaWallet {
           to: addressToBytes32(recipient),
           amountLD: amountLd,
           minAmountLD: minAmountLd,
-          extraOptions: "0x0003",
+          extraOptions: Options.newOptions()
+            .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
+            .toHex(),
           composeMsg: "0x",
           oftCmd: "0x",
         };
@@ -381,7 +389,7 @@ export default class SolanaWallet {
         });
 
         extraOptions = Options.newOptions()
-          .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 200000, originLayerzero.lzReceiveOptionNativeDrop || 0)
+          .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
           .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 500000, hopMsgFee)
           .toBytes() as Uint8Array<any>;
 

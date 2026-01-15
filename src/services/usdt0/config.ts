@@ -12,6 +12,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "ethereum",
     blockTime: 12, // Ethereum average block time ~12 seconds
     confirmations: 15, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
   },
   Arbitrum: {
     contractAddress: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
@@ -22,6 +24,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "arbitrum",
     blockTime: 0.25, // Arbitrum average block time ~0.25 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
   },
   Polygon: {
     contractAddress: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
@@ -30,8 +34,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "polygon",
     blockTime: 2, // Polygon average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com 
-    lzReceiveOptionGas: 200000,
-    lzReceiveOptionNativeDrop: 2039280,
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
   },
   Optimism: {
@@ -41,6 +45,9 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "optimism",
     blockTime: 2, // Optimism average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
   },
   Berachain: {
     contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
@@ -50,8 +57,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "berachain",
     blockTime: 2, // Optimism average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
-    lzReceiveOptionGas: 200000,
-    lzReceiveOptionNativeDrop: 2039280,
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
   },
   Solana: {
@@ -62,6 +69,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     blockTime: 0.4, // Solana average block time ~0.4 seconds
     confirmations: 32, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 200000,
+    lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 500000,
   },
   Tron: {
@@ -72,7 +80,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     blockTime: 3, // Tron average block time ~3 seconds
     confirmations: 5, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 300000,
-    lzReceiveOptionNativeDrop: 2039280,
+    lzReceiveOptionGasLegacy: 300000,
     composeOptionGas: 500000,
   },
   "X Layer": {
@@ -83,6 +91,10 @@ export const USDT0_CONFIG: Record<string, any> = {
     blockTime: 3, // Tron average block time ~3 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
   },
+};
+
+export const LZ_RECEIVE_VALUE: Record<string, any> = {
+  Solana: 2039280,
 };
 
 // USDT0 DVN count (fixed value)
