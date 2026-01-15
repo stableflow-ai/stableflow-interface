@@ -9,8 +9,9 @@ import { chainsRpcUrls } from "@/config/chains";
 import { BridgeDefaultWallets } from "@/config";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
-import { DATA_HEX_PROTOBUF_EXTRA, SIGNATURE_SIZE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
+import { DATA_HEX_PROTOBUF_EXTRA, LZ_RECEIVE_VALUE, SIGNATURE_SIZE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
+import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -417,6 +418,17 @@ export default class TronWallet {
       }
     }
 
+    const lzReceiveOptionGas = isOriginLegacy ? originLayerzero.lzReceiveOptionGasLegacy : originLayerzero.lzReceiveOptionGas;
+    let lzReceiveOptionValue = 0;
+
+    const destATA = await getDestinationAssociatedTokenAddress({
+      recipient,
+      toToken,
+    });
+    if (destATA.needCreateTokenAccount) {
+      lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
+    }
+
     // 2. quote send
     const sendParam: any = [
       // dstEid
@@ -429,7 +441,9 @@ export default class TronWallet {
       // minAmountLD
       "0",
       // extraOptions
-      "0x0003",
+      Options.newOptions()
+        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
+        .toHex(),
       // composeMsg
       "0x",
       // oftCmd
@@ -459,7 +473,9 @@ export default class TronWallet {
         to: addressToBytes32(toToken.chainType, recipient),
         amountLD: sendParam[2],
         minAmountLD: sendParam[3],
-        extraOptions: "0x0003",
+        extraOptions: Options.newOptions()
+          .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
+          .toHex(),
         composeMsg: "0x",
         oftCmd: "0x",
       };
@@ -469,7 +485,7 @@ export default class TronWallet {
       });
 
       sendParam[4] = Options.newOptions()
-        .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 2000000, originLayerzero.lzReceiveOptionNativeDrop || 0)
+        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
         .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
         .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
