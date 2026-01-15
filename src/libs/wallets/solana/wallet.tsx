@@ -325,6 +325,7 @@ export default class SolanaWallet {
       isMultiHopComposer,
       prices,
       excludeFees,
+      originLayerzero,
     } = params;
 
     try {
@@ -365,31 +366,29 @@ export default class SolanaWallet {
         _dstEid = multiHopComposer.eid;
         to = new Uint8Array(Buffer.from(addressToBytes32(multiHopComposer.oftMultiHopComposer)));
 
-        const hopMsgFee = await getHopMsgFee({
+        const composeMsgSendParam = {
           dstEid,
+          to: addressToBytes32(recipient),
+          amountLD: amountLd,
+          minAmountLD: minAmountLd,
+          extraOptions: "0x0003",
+          composeMsg: "0x",
+          oftCmd: "0x",
+        };
+        const hopMsgFee = await getHopMsgFee({
+          sendParam: composeMsgSendParam,
           toToken,
-          recipient,
-          amountWei,
-          slippageTolerance,
         });
 
         extraOptions = Options.newOptions()
-          .addExecutorLzReceiveOption(200000, 0)
-          .addExecutorComposeOption(0, 500000, hopMsgFee)
+          .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 200000, originLayerzero.lzReceiveOptionNativeDrop || 0)
+          .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 500000, hopMsgFee)
           .toBytes() as Uint8Array<any>;
 
         const abiCoder = ethers.AbiCoder.defaultAbiCoder();
         const composeEncoder = abiCoder.encode(
           ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
-          [[
-            dstEid,
-            addressToBytes32(recipient),
-            amountLd, // amountLD
-            minAmountLd, // minAmountLD
-            "0x0003",
-            "0x",
-            "0x"
-          ]]);
+          [Object.values(composeMsgSendParam)]);
 
         composeMsg = ethers.getBytes(composeEncoder);
       }

@@ -10,6 +10,7 @@ import { BridgeDefaultWallets } from "@/config";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
 import { DATA_HEX_PROTOBUF_EXTRA, SIGNATURE_SIZE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
+import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -368,6 +369,7 @@ export default class TronWallet {
       isMultiHopComposer,
       isOriginLegacy,
       isDestinationLegacy,
+      originLayerzero,
     } = params;
 
     const result: any = {
@@ -452,20 +454,28 @@ export default class TronWallet {
     result.estimateSourceGas = nativeMsgFee;
 
     if (isMultiHopComposer) {
-      //                                                             gas_limt,   msg_value
-      sendParam[4] = Options.newOptions().addExecutorLzReceiveOption(250000000n, 0n).toHex();
+      const composeMsgSendParam = {
+        dstEid,
+        to: addressToBytes32(toToken.chainType, recipient),
+        amountLD: sendParam[2],
+        minAmountLD: sendParam[3],
+        extraOptions: "0x0003",
+        composeMsg: "0x",
+        oftCmd: "0x",
+      };
+      const hopMsgFee = await getHopMsgFee({
+        sendParam: composeMsgSendParam,
+        toToken,
+      });
+
+      sendParam[4] = Options.newOptions()
+        .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 2000000, originLayerzero.lzReceiveOptionNativeDrop || 0)
+        .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
+        .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       sendParam[5] = abiCoder.encode(
         ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
-        [[
-          dstEid,
-          addressToBytes32(toToken.chainType, recipient),
-          sendParam[2], // amountLD
-          sendParam[3], // minAmountLD
-          "0x",
-          "0x",
-          "0x"
-        ]]
+        [Object.values(composeMsgSendParam)]
       );
     }
 

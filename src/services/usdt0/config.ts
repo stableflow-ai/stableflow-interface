@@ -71,6 +71,9 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "tron",
     blockTime: 3, // Tron average block time ~3 seconds
     confirmations: 5, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 300000,
+    lzReceiveOptionNativeDrop: 2039280,
+    composeOptionGas: 500000,
   },
 };
 
