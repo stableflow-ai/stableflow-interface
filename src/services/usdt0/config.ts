@@ -30,6 +30,9 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "polygon",
     blockTime: 2, // Polygon average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com 
+    lzReceiveOptionGas: 200000,
+    lzReceiveOptionNativeDrop: 2039280,
+    composeOptionGas: 600000,
   },
   Optimism: {
     contractAddress: "0x01bFF41798a0BcF287b996046Ca68b395DbC1071",
@@ -47,6 +50,9 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "berachain",
     blockTime: 2, // Optimism average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 200000,
+    lzReceiveOptionNativeDrop: 2039280,
+    composeOptionGas: 600000,
   },
   Solana: {
     contractAddress: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
@@ -55,6 +61,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "solana",
     blockTime: 0.4, // Solana average block time ~0.4 seconds
     confirmations: 32, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 200000,
+    composeOptionGas: 500000,
   },
   Tron: {
     contractAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",

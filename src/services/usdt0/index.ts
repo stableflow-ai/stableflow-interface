@@ -104,6 +104,8 @@ class Usdt0Service {
         isMultiHopComposer,
         isOriginLegacy,
         isDestinationLegacy,
+        originLayerzero,
+        destinationLayerzero,
       });
 
       result.estimateTime = estimateTime;
@@ -146,6 +148,8 @@ class Usdt0Service {
         isMultiHopComposer,
         isOriginLegacy,
         isDestinationLegacy,
+        originLayerzero,
+        destinationLayerzero,
       });
 
       result.estimateTime = estimateTime;
@@ -172,6 +176,8 @@ class Usdt0Service {
         isMultiHopComposer,
         isOriginLegacy,
         isDestinationLegacy,
+        originLayerzero,
+        destinationLayerzero,
       });
 
       result.estimateTime = estimateTime;

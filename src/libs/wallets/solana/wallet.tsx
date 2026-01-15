@@ -30,6 +30,7 @@ import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress } from "../u
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
 import { USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { ethers } from "ethers";
+import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -354,8 +355,7 @@ export default class SolanaWallet {
         .decimals;
       const amountLd = BigInt(amountWei);
       const slippage = slippageTolerance || 0.01; // Default 1% slippage
-      const minAmountLd =
-        amountLd - (amountLd * BigInt(Math.floor(slippage * 10000))) / 10000n;
+      const minAmountLd = BigInt(Big(amountWei).times(Big(1).minus(Big(slippage).div(100))).toFixed(0));
 
       let _dstEid: any = dstEid;
       let to = new Uint8Array(Buffer.from(addressToBytes32(recipient)));
@@ -364,9 +364,18 @@ export default class SolanaWallet {
       if (isMultiHopComposer) {
         _dstEid = multiHopComposer.eid;
         to = new Uint8Array(Buffer.from(addressToBytes32(multiHopComposer.oftMultiHopComposer)));
+
+        const hopMsgFee = await getHopMsgFee({
+          dstEid,
+          toToken,
+          recipient,
+          amountWei,
+          slippageTolerance,
+        });
+
         extraOptions = Options.newOptions()
-          .addExecutorLzReceiveOption(1500000, 0)
-          .addExecutorComposeOption(0, 1000000, 0)
+          .addExecutorLzReceiveOption(200000, 0)
+          .addExecutorComposeOption(0, 500000, hopMsgFee)
           .toBytes() as Uint8Array<any>;
 
         const abiCoder = ethers.AbiCoder.defaultAbiCoder();
@@ -377,7 +386,7 @@ export default class SolanaWallet {
             addressToBytes32(recipient),
             amountLd, // amountLD
             minAmountLd, // minAmountLD
-            "0x",
+            "0x0003",
             "0x",
             "0x"
           ]]);
