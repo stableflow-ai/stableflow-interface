@@ -309,7 +309,7 @@ export default class RainbowWallet {
 
       sendParam.extraOptions = Options.newOptions()
         .addExecutorLzReceiveOption(originLayerzero.lzReceiveOptionGas || 2000000, originLayerzero.lzReceiveOptionNativeDrop || 0)
-        .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
+        .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, 0)
         .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       sendParam.composeMsg = abiCoder.encode(

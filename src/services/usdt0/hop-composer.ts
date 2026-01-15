@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import { USDT0_CONFIG } from "./config";
 import { OFT_ABI } from "./contract";
 import { addressToBytes32 } from "@/utils/address-validation";
-import Big from "big.js";
 
 export const getHopMsgFee = async (params: any) => {
   const {
@@ -11,7 +10,6 @@ export const getHopMsgFee = async (params: any) => {
     toToken,
     recipient,
     amountWei,
-    slippageTolerance,
   } = params;
 
   const originLayerzero = USDT0_CONFIG["Arbitrum"];
