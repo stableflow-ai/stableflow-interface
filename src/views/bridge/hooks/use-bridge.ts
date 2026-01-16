@@ -461,7 +461,7 @@ export default function useBridge(props?: any) {
         const isFromTron = walletStore.fromToken.chainType === "tron";
         const estNativeTokenParams: any = {};
         if (isFromTron) {
-          estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
+          estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(1).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
         if (!isContinue) {
