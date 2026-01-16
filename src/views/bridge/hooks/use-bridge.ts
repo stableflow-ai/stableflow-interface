@@ -381,10 +381,6 @@ export default function useBridge(props?: any) {
     return result;
   };
 
-  const { run: debouncedTronTransactionFinihed } = useDebounceFn(() => {
-    bridgeStore.setTronTransferVisible(false);
-  }, { wait: 2000 });
-
   const transfer = async () => {
     if (!walletStore.fromToken) return;
     try {
@@ -548,11 +544,32 @@ export default function useBridge(props?: any) {
         historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
 
         reportData.tx_hash = hash;
-        report(reportData);
 
         if (isFromTron) {
           bridgeStore.setTronTransferStep(TronTransferStepStatus.Broadcasting);
-          debouncedTronTransactionFinihed();
+
+          // polling transaction status
+          let pollingResult = true;
+          try {
+            pollingResult = await wallet.wallet.pollingTransactionStatus(hash, {
+              maxPolls: 120,
+              pollInterval: 3000,
+            });
+          } catch (error) {
+            console.log("polling transaction status failed: %o", error);
+          }
+          if (!pollingResult) {
+            toast.fail({
+              title: "Transfer failed",
+              text: hash,
+            });
+          } else {
+            report(reportData);
+          }
+
+          bridgeStore.setTronTransferVisible(false);
+        } else {
+          report(reportData);
         }
       }
 
