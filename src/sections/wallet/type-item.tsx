@@ -24,17 +24,24 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
           return;
         }
 
-        // if (!walletStore.isTo && !wallet.account) {
-        //   return;
-        // }
-
-        if (
-          (walletStore.isTo &&
-            walletStore.fromToken?.contractAddress === token.contractAddress) ||
-          (!walletStore.isTo &&
-            walletStore.toToken?.contractAddress === token.contractAddress)
-        ) {
-          return;
+        if (walletStore.isTo) {
+          if (token.contractAddress === walletStore.fromToken?.contractAddress) {
+            walletStore.set({
+              toToken: token,
+              fromToken: null,
+              showWallet: false,
+            });
+            return;
+          }
+        } else {
+          if (token.contractAddress === walletStore.toToken?.contractAddress) {
+            walletStore.set({
+              fromToken: token,
+              toToken: null,
+              showWallet: false,
+            });
+            return;
+          }
         }
 
         walletStore.set({

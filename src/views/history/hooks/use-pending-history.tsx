@@ -1,13 +1,15 @@
 import { BASE_API_URL } from "@/config/api";
 import chains from "@/config/chains";
 import { stablecoinLogoMap } from "@/config/tokens";
+import { useHistoryStore } from "@/stores/use-history";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn, useRequest } from "ahooks";
 import axios from "axios";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-export function usePendingHistory(history: any) {
+export function usePendingHistory(history?: any) {
   const wallets = useWalletsStore();
+  const historyStore = useHistoryStore();
 
   const [list, setList] = useState<any>([]);
   const [page, setPage] = useState<any>({
@@ -66,6 +68,7 @@ export function usePendingHistory(history: any) {
             page: history.page.current,
           });
         }
+        historyStore.updatePendingNumber(_list.length);
         return _list;
       });
       setPage((prev: any) => {
@@ -121,6 +124,7 @@ export function usePendingHistory(history: any) {
 
     if (!accounts || accounts.length === 0) {
       setList([]);
+      historyStore.updatePendingNumber(0);
       setPage(() => {
         return {
           current: 1,
