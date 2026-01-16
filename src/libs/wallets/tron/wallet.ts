@@ -219,6 +219,82 @@ export default class TronWallet {
     };
   }
 
+  async pollingTransactionStatus(txHash: string, options?: {
+    maxPolls?: number;
+    pollInterval?: number;
+    isTRX?: boolean;
+  }) {
+    await this.waitForTronWeb();
+
+    const { maxPolls = 60, pollInterval = 2000, isTRX } = options || {};
+    let pollCount = 0;
+
+    return new Promise((resolve) => {
+      const poll = async () => {
+        pollCount++;
+        console.log(`polling transaction status (${txHash}), ${pollCount} times`);
+
+        try {
+          const txInfo = await this.tronWeb.trx.getTransactionInfo(txHash);
+          console.log(`transaction info (${txHash}): %o`, txInfo);
+
+          // if the transaction info exists and has receipt, the transaction has been on-chain
+          if (txInfo && txInfo.receipt) {
+            if (isTRX) {
+              resolve(true);
+              return;
+            }
+
+            const result = txInfo.receipt.result;
+
+            if (result === "SUCCESS") {
+              console.log(`transaction success (${txHash})`);
+              resolve(true);
+              return;
+            } else if (result === "FAILED" || result === "REVERT") {
+              console.log(`transaction failed (${txHash}), result: ${result}`);
+              resolve(false);
+              return;
+            } else {
+              // other status, continue polling
+              console.log(`unknown transaction status (${txHash}), result: ${result}, continue polling...`);
+            }
+          } else {
+            // transaction info exists but no receipt, maybe still being packed, continue polling
+            console.log(`transaction not confirmed (${txHash}), continue polling...`);
+          }
+        } catch (error: any) {
+          // if the transaction does not exist (maybe still being packed), continue polling
+          // common error messages include "not found" or "does not exist"
+          const errorMessage = error?.message || String(error);
+          if (
+            errorMessage.includes("not found") ||
+            errorMessage.includes("does not exist") ||
+            errorMessage.includes("not exist")
+          ) {
+            console.log(`transaction not on-chain (${txHash}), continue polling...`);
+          } else {
+            // other error, log but continue polling
+            console.warn(`query transaction status error (${txHash}): %o`, errorMessage);
+          }
+        }
+
+        // check if the maximum polling times is reached
+        if (pollCount >= maxPolls) {
+          console.error(`polling timeout (${txHash}), maximum polling times reached: ${maxPolls}`);
+          resolve(false);
+          return;
+        }
+
+        // continue polling
+        setTimeout(poll, pollInterval);
+      };
+
+      // start polling
+      poll();
+    });
+  }
+
   async checkTransactionStatus(txHash: string) {
     await this.waitForTronWeb();
 
