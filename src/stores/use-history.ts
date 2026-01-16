@@ -8,11 +8,13 @@ interface HistoryState {
   completeStatus: any[];
   latestHistories?: string[];
   openDrawer: boolean;
+  pendingNumber: number;
   setOpenDrawer: (open?: boolean) => void;
   addHistory: (item: any) => void;
   updateStatus: (address: string, status: any) => void;
   closeLatestHistory: (address?: string) => void;
   updateHistory: (address?: string, item?: any) => void;
+  updatePendingNumber: (number: number) => void;
 }
 
 export const useHistoryStore = create(
@@ -22,6 +24,7 @@ export const useHistoryStore = create(
       status: {},
       pendingStatus: [],
       completeStatus: [],
+      pendingNumber: 0,
       addHistory: (item: any) => {
         const _history = get().history;
         _history[item.despoitAddress] = item;
@@ -79,6 +82,9 @@ export const useHistoryStore = create(
           _history[address][key] = item[key];
         }
         set({ history: _history });
+      },
+      updatePendingNumber: (number: number) => {
+        set({ pendingNumber: number });
       },
     }),
     {

@@ -83,6 +83,17 @@ export const USDT0_CONFIG: Record<string, any> = {
     lzReceiveOptionGasLegacy: 300000,
     composeOptionGas: 500000,
   },
+  "X Layer": {
+    contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    oft: "0x94bcca6bdfd6a61817ab0e960bfede4984505554",
+    eid: 30274,
+    chainKey: "xlayer",
+    blockTime: 3, // Tron average block time ~3 seconds
+    confirmations: 20, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
+  },
 };
 
 export const LZ_RECEIVE_VALUE: Record<string, any> = {

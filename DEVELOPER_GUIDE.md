@@ -13,6 +13,7 @@ A comprehensive guide for developers to integrate cross-chain token bridging int
 - [Working Examples](#working-examples)
 - [Best Practices](#best-practices)
 - [Common Use Cases](#common-use-cases)
+- [Developer Fees](#developer-fees)
 - [Migration from v1.0](#migration-from-v10)
 - [Troubleshooting](#troubleshooting)
 
@@ -30,11 +31,11 @@ npm install stableflow-ai-sdk
 
 - **Node.js**: Version 16 or higher
 - **JWT Token**: Required for API access
-   
-   [![Apply for API Access](https://img.shields.io/badge/Apply_for_API_Access-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://docs.google.com/forms/u/3/d/e/1FAIpQLSdTeV7UaZ1MiFxdJ2jH_PU60PIN3iqYJ1WXEOFY45TsAy6O5g/viewform)
-   
+  
+  [![Apply for API Access](https://img.shields.io/badge/Apply_for_API_Access-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://docs.google.com/forms/u/3/d/e/1FAIpQLSdTeV7UaZ1MiFxdJ2jH_PU60PIN3iqYJ1WXEOFY45TsAy6O5g/viewform)
 - **TypeScript** (recommended): For full type safety
 - **Wallet Libraries**: Depending on your target chains:
+  
   - EVM: `ethers` (v6.x)
   - Solana: `@solana/web3.js`, `@solana/spl-token`
   - NEAR: `near-api-js`
@@ -95,6 +96,7 @@ interface GetAllQuoteParams {
   refundTo: string;                   // Refund address on source chain
   amountWei: string;                  // Amount in smallest units (e.g., wei)
   slippageTolerance: number;         // Slippage tolerance (percentage, e.g., 0.5 for 0.5%)
+  appFees?: { recipient: string; fee: number; }[]; // Custom fee rates
 }
 ```
 
@@ -159,6 +161,14 @@ const quotes = await SFA.getAllQuote({
   refundTo: '0x5678...',
   amountWei: ethers.parseUnits('100', fromToken!.decimals).toString(),
   slippageTolerance: 0.5, // 0.5%
+  appFees: [
+    {
+      // your fee collection address
+      recipient: "stableflow.near",
+      // Fee rate, as a percentage of the amount. 100 = 1%, 1 = 0.01%
+      fee: 100,
+    },
+  ],
 });
 
 // 4. Filter valid quotes
@@ -470,6 +480,7 @@ interface TokenConfig {
 ```
 
 ---
+
 ## Bridge Services
 
 The SDK supports three bridge services, each with different characteristics:
@@ -507,6 +518,7 @@ The SDK supports three bridge services, each with different characteristics:
 - **Other Tokens**: Usually only OneClick is supported
 
 ---
+
 ## Working Examples
 
 ### Web Demo Application 2.0 ⭐ Recommended
@@ -539,15 +551,16 @@ npm run dev
 #### Key Files
 
 1. **`App.tsx`** - Main application logic
+   
    - Get quotes: `handleGetQuote()`
    - Submit transactions: `handleSubmitTransaction()`
    - Uses `SFA.getAllQuote()` and `SFA.send()`
-
 2. **`useWallet.ts`** - Wallet integration hook
+   
    - Supports multiple wallet types
    - Automatic network switching
-
 3. **`chains.ts`** - Chain configuration utilities
+   
    - Token configurations imported from SDK
    - Chain selector component
 
@@ -796,6 +809,15 @@ const quotes = await SFA.getAllQuote({
   refundTo: userAddress,
   amountWei: ethers.parseUnits('100', fromToken.decimals).toString(),
   slippageTolerance: 0.5,
+  // Fees are optional
+  appFees: [
+    {
+      // ⚠️ Replace with your own fee recipient address
+      recipient: "stableflow.near",
+      // Fee rate, as a percentage of the amount. 100 = 1%, 1 = 0.01%
+      fee: 100,
+    },
+  ],
 });
 
 // 5. Select best quote
@@ -976,6 +998,63 @@ function selectBestQuote(quotes: Array<{ serviceType: ServiceType; quote?: any; 
 
 ---
 
+## Developer Fees
+
+StableFlow allows any integrator (wallets, DApps, exchanges, OTC desks, etc.) to **monetize every cross-chain transaction** by attaching their own service fee directly to the routing layer.
+
+This is done via the `appFees` parameter, which lets you define who gets paid and how much — enforced automatically on-chain.
+
+---
+
+### How it works
+
+When you request a quote via `getAllQuote()`, you can include an `appFees` array:
+
+```ts
+appFees: [
+  {
+    recipient: "yourapp.near",
+    fee: 100, // 1%
+  }
+]
+```
+
+This means:
+
+> **1% of the user’s transfer amount will be routed directly to your wallet when the transaction executes.**
+
+No custody.
+No settlement process.
+No off-chain accounting.
+
+StableFlow embeds your fee into the execution path.
+
+---
+
+### Fee units
+
+| Value | Fee |
+|------|------|
+| 100  | 1.00% |
+| 50   | 0.50% |
+| 10   | 0.10% |
+| 1    | 0.01% |
+
+---
+
+### Multi-party revenue sharing
+
+```ts
+appFees: [
+  { recipient: "yourapp.near", fee: 70 },
+  { recipient: "kol.near", fee: 30 }
+]
+```
+
+StableFlow will split fees automatically and send them directly on-chain.
+
+---
+
 ## Migration from v1.0
 
 If you're using SDK v1.0, here are the key changes for migrating to v2.0:
@@ -992,6 +1071,7 @@ If you're using SDK v1.0, here are the key changes for migrating to v2.0:
 ### Migration Steps
 
 1. **Update imports**:
+
 ```typescript
 // v1.0
 const tokens = await SFA.getTokens();
@@ -1001,6 +1081,7 @@ import { tokens } from 'stableflow-ai-sdk';
 ```
 
 2. **Update quote fetching**:
+
 ```typescript
 // v1.0
 const quote = await SFA.getQuote(quoteRequest);
@@ -1016,6 +1097,7 @@ const selectedQuote = quotes.find(q => q.quote && !q.error);
 ```
 
 3. **Update transaction sending**:
+
 ```typescript
 // v1.0
 await usdtContract.transfer(depositAddress, amount);
@@ -1029,6 +1111,7 @@ const txHash = await SFA.send(serviceType, {
 ```
 
 4. **Update status querying**:
+
 ```typescript
 // v1.0
 const status = await SFA.getExecutionStatus(depositAddress);
@@ -1044,6 +1127,7 @@ const status = await SFA.getStatus(serviceType, {
 v1.0 API methods are still available but marked as `@deprecated`. It's recommended to migrate to v2.0 API as soon as possible for better functionality and performance.
 
 ---
+
 ## Troubleshooting
 
 ### Common Issues
@@ -1053,6 +1137,7 @@ v1.0 API methods are still available but marked as `@deprecated`. It's recommend
 **Cause**: Missing required parameters or incorrect parameter format
 
 **Solution**: Ensure all required parameters are provided:
+
 ```typescript
 const quotes = await SFA.getAllQuote({
   fromToken,      // ✅ Required
@@ -1071,6 +1156,7 @@ const quotes = await SFA.getAllQuote({
 **Cause**: Selected token pair has no available bridge services
 
 **Solution**: Check the `services` field in token configuration:
+
 ```typescript
 const fromToken = tokens.find(t => t.contractAddress === '0x...');
 const toToken = tokens.find(t => t.contractAddress === '0x...');
@@ -1090,6 +1176,7 @@ if (commonServices.length === 0) {
 **Cause**: Amount is below the minimum requirement for the bridge service
 
 **Solution**: Increase the amount or check minimum amount requirements:
+
 ```typescript
 // Set minimum input amount
 const quotes = await SFA.getAllQuote({
@@ -1104,6 +1191,7 @@ const quotes = await SFA.getAllQuote({
 **Cause**: Amount exceeds the maximum limit for the bridge service
 
 **Solution**: Reduce the amount or try other bridge services:
+
 ```typescript
 // Get all quotes, some services may support larger amounts
 const quotes = await SFA.getAllQuote({...});
@@ -1114,11 +1202,12 @@ const validQuotes = quotes.filter(q => !q.error);
 
 **Cause**: JWT token is missing or invalid
 
-**Solution**: 
+**Solution**:
 
 **👉 [Apply for JWT Token](https://docs.google.com/forms/u/3/d/e/1FAIpQLSdTeV7UaZ1MiFxdJ2jH_PU60PIN3iqYJ1WXEOFY45TsAy6O5g/viewform)**
 
 After receiving the token, set it before API calls:
+
 ```typescript
 OpenAPI.TOKEN = 'your-valid-token';
 ```
@@ -1128,6 +1217,7 @@ OpenAPI.TOKEN = 'your-valid-token';
 **Cause**: Wallet is connected to a different chain than the token chain
 
 **Solution**: Check and switch network:
+
 ```typescript
 // EVM chain example
 const currentChainId = await window.ethereum.request({ 
@@ -1148,6 +1238,7 @@ if (fromToken.chainName === 'Ethereum' && currentChainId !== '0x1') {
 **Cause**: Insufficient token allowance or approval transaction failed
 
 **Solution**: Check allowance status and re-approve:
+
 ```typescript
 if (quote.needApprove) {
   const allowance = await wallet.allowance({
@@ -1172,6 +1263,7 @@ if (quote.needApprove) {
 **Cause**: Transaction is still processing, need to continue polling
 
 **Solution**: Implement polling mechanism:
+
 ```typescript
 async function pollUntilComplete(serviceType, params) {
   const maxAttempts = 120; // Maximum 10 minutes (5 second intervals)
@@ -1201,16 +1293,19 @@ async function pollUntilComplete(serviceType, params) {
 ## Additional Resources
 
 ### SDK Repository
+
 - GitHub: [stableflow-ai/stableflow-ai-sdk](https://github.com/stableflow-ai/stableflow-ai-sdk)
 - Examples: `examples/` directory
 - Issues: Report bugs via GitHub Issues
 
 ### StableFlow Platform
+
 - Website: https://app.stableflow.ai/
 - API Access: Apply for JWT token
 - Documentation: Latest API specs
 
 ### Community
+
 - Discord: [Join our community](https://discord.gg/b7Gvw6zCeD)
 - Twitter: [@0xStableFlow](https://twitter.com/0xStableFlow)
 
@@ -1256,6 +1351,7 @@ The following APIs are still available but marked as deprecated. It's recommende
 ### Complete Example Code
 
 Check the `examples/web-demo-2.0/` directory for a complete React application example, including:
+
 - Multi-wallet integration
 - Multi-chain support
 - Real-time quote comparison
@@ -1267,7 +1363,7 @@ Check the `examples/web-demo-2.0/` directory for a complete React application ex
 **Happy Building! 🚀**
 
 For questions or support, visit:
+
 - [GitHub Repository](https://github.com/stableflow-ai/stableflow-ai-sdk)
 - [Discord Community](https://discord.gg/b7Gvw6zCeD)
 - [Apply for API Access](https://docs.google.com/forms/u/3/d/e/1FAIpQLSdTeV7UaZ1MiFxdJ2jH_PU60PIN3iqYJ1WXEOFY45TsAy6O5g/viewform)
-

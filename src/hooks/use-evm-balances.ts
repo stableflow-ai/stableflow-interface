@@ -17,6 +17,7 @@ export default function useEvmBalances(auto = false) {
   const wallets = useWalletsStore();
   const balancesStore = useBalancesStore();
   const wallet = wallets.evm;
+  const updateEvmBalancesTimer = useRef<any>(null);
   const initRef = useRef(false);
 
   const getBalances = async () => {
@@ -64,44 +65,56 @@ export default function useEvmBalances(auto = false) {
       console.error(error);
     } finally {
       setLoading(false);
+      initRef.current = true;
     }
   };
 
-  const fetchBalances = async () => {
-    if (!wallet?.account) {
-      clearTimeout(window.updateEvmBalancesTimer);
-      return;
+  const stopPollingBalances = () => {
+    if (updateEvmBalancesTimer.current) {
+      clearTimeout(updateEvmBalancesTimer.current);
+      updateEvmBalancesTimer.current = null;
     }
-    const loop = async () => {
-      await getBalances();
-      if (!auto) return;
-      window.updateEvmBalancesTimer = setTimeout(() => {
-        loop();
-      }, 5000);
-    };
-
-    loop();
   };
 
-  const { run: debouncedGetBalances } = useDebounceFn(fetchBalances, {
+  const startPollingBalances = async () => {
+    updateEvmBalancesTimer.current = setInterval(() => {
+      getBalances();
+      // 1 minute
+    }, 1000 * 60);
+  };
+
+  const { run: debouncedGetBalances, cancel: cancelDebouncedGetBalances } = useDebounceFn(getBalances, {
     wait: 5000
   });
 
   useEffect(() => {
     if (!wallet?.account) {
-      clearTimeout(window.updateEvmBalancesTimer);
-      initRef.current = false;
-      return;
-    }
-    if (!initRef.current) {
-      initRef.current = true;
-      fetchBalances();
       return;
     }
 
+    if (!initRef.current) {
+      debouncedGetBalances();
+    }
+  }, [wallet?.account]);
+
+  useEffect(() => {
+    if (!wallet?.account || !auto) {
+      stopPollingBalances();
+
+      if (initRef.current) {
+        cancelDebouncedGetBalances();
+      }
+      return;
+    }
+
+    // Initial request
     debouncedGetBalances();
+
+    // Start polling balances
+    startPollingBalances();
+
     return () => {
-      clearTimeout(window.updateEvmBalancesTimer);
+      stopPollingBalances();
     };
   }, [wallet?.account, auto]);
 
