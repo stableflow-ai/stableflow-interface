@@ -502,13 +502,6 @@ export default function useBridge(props?: any) {
         };
 
         if (isFromTron) {
-          historyStore.addHistory(localHistoryData);
-          historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
-          report({
-            ...reportData,
-            status: 4, // continue
-          });
-
           const fromTronParams = {
             wallet: wallet.wallet,
             account: wallet.account,
@@ -521,6 +514,13 @@ export default function useBridge(props?: any) {
             bridgeStore.setTronTransferStep(TronTransferStepStatus.EnergyReady);
           }
           bridgeStore.setTronTransferStep(TronTransferStepStatus.WalletPrompt);
+
+          historyStore.addHistory(localHistoryData);
+          historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
+          report({
+            ...reportData,
+            status: 4, // continue
+          });
         }
 
         if (_quote?.data?.sendParam?.param) {
@@ -678,12 +678,13 @@ export default function useBridge(props?: any) {
       console.error(error);
       bridgeStore.set({ transferring: false });
       bridgeStore.setTronTransferVisible(false);
-      let _finalErrorMessage = error?.toString?.() || "Transfer failed";
+      let _finalErrorMessage = error?.message || error?.toString?.() || "Transfer failed";
       if (
         // evm
         _finalErrorMessage.includes("user rejected action") ||
         // tron
-        _finalErrorMessage.includes("Confirmation declined by user")
+        _finalErrorMessage.includes("Confirmation declined by user") ||
+        _finalErrorMessage.includes("User denied request signature")
       ) {
         _finalErrorMessage = "User rejected transaction";
       }
