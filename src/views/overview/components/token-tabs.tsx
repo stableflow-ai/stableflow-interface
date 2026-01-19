@@ -1,15 +1,10 @@
 import clsx from "clsx";
+import { tokens } from "../config";
 
 interface TokenTabsProps {
   selectedToken: "USDT" | "USDC" | "USD1";
   onTokenChange: (token: "USDT" | "USDC" | "USD1") => void;
 }
-
-const tokens = [
-  { symbol: "USDT", icon: "/usdt.png", available: true },
-  { symbol: "USDC", icon: "/usdc.png", available: true },
-  { symbol: "USD1", icon: "/usd1.png", available: false },
-];
 
 export default function TokenTabs({ selectedToken, onTokenChange }: TokenTabsProps) {
   return (

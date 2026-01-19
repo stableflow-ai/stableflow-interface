@@ -61,7 +61,7 @@ export default function Overview() {
 
         {/* Transfers */}
         <div className="px-[10px] md:px-0">
-          <Transfers selectedToken={selectedToken} />
+          <Transfers selectedToken={selectedToken} onTokenChange={setSelectedToken} />
         </div>
       </div>
     </div>

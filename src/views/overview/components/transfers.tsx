@@ -13,6 +13,7 @@ import useToast from "@/hooks/use-toast";
 import { ProjectMap, Project, type Project as ProjectType } from "@/services";
 import GridTable from "@/components/grid-table";
 import { BASE_API_URL } from "@/config/api";
+import { tokens } from "../config";
 
 interface TransferData {
   id: number;
@@ -46,9 +47,10 @@ interface ApiResponse {
 
 interface TransfersProps {
   selectedToken: "USDT" | "USDC" | "USD1";
+  onTokenChange?: (token: "USDT" | "USDC" | "USD1") => void;
 }
 
-export default function Transfers({ selectedToken }: TransfersProps) {
+export default function Transfers({ selectedToken, onTokenChange }: TransfersProps) {
   const toast = useToast();
 
   const [transfers, setTransfers] = useState<TransferData[]>([]);
@@ -59,6 +61,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
     fromChain: "",
     toChain: "",
     project: "",
+    toSymbol: "",
   });
   const [pageSize, setPageSize] = useState(20);
 
@@ -74,6 +77,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
       if (filters.fromChain) params.append("from_chain", filters.fromChain);
       if (filters.toChain) params.append("to_chain", filters.toChain);
       if (filters.project !== "") params.append("project", filters.project);
+      if (filters.toSymbol) params.append("to_symbol", filters.toSymbol.toLowerCase());
 
       const response = await axios.get<ApiResponse>(
         `${BASE_API_URL}/v1/dashboard/trades?${params.toString()}`
@@ -99,6 +103,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
       return {
         ...prev,
         project: "",
+        toSymbol: "",
       };
     });
   }, [selectedToken]);
@@ -263,7 +268,7 @@ export default function Transfers({ selectedToken }: TransfersProps) {
 
       {/* Filters */}
       <div className="bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] p-[20px] mb-[16px]">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-[12px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-[12px]">
           <div>
             <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Source Network:</label>
             <select
@@ -297,6 +302,46 @@ export default function Transfers({ selectedToken }: TransfersProps) {
                   value={chain.blockchain}
                 >
                   {chain.chainName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Source Symbol:</label>
+            <select
+              value={selectedToken}
+              onChange={(e) => {
+                const newToken = e.target.value as "USDT" | "USDC" | "USD1";
+                onTokenChange?.(newToken);
+              }}
+              className="button w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
+            >
+              {tokens.filter((token) => token.available).map((token) => (
+                <option
+                  key={token.symbol}
+                  value={token.symbol}
+                >
+                  {token.symbol}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Destination Symbol:</label>
+            <select
+              value={filters.toSymbol}
+              onChange={(e) => setFilters(prev => ({ ...prev, toSymbol: e.target.value }))}
+              className="button w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
+            >
+              <option value="">All</option>
+              {tokens.filter((token) => token.available).map((token) => (
+                <option
+                  key={token.symbol}
+                  value={token.symbol}
+                >
+                  {token.symbol}
                 </option>
               ))}
             </select>
