@@ -8,7 +8,6 @@ import ResultFeeItem from "./fee-item";
 import clsx from "clsx";
 import { Service } from "@/services";
 import { formatNumber } from "@/utils/format/number";
-import { TronBandwidthTRX } from "@/config/tron";
 
 const LargeTransactionTip = "Large transactions can take a bit longer to process — usually no more than 3-5 minutes.";
 
@@ -145,7 +144,7 @@ const ResultOneClick = (props: any) => {
               className="inline-block -translate-y-0.5 w-[14px] h-[14px] object-center object-contain shrink-0"
             />
             <span className="pl-1">
-              Small TRX charges for bandwidth may still apply. Please keep at least <strong className="text-[#6284F5]">{TronBandwidthTRX} TRX</strong> to ensure success.
+              Small TRX charges for bandwidth may still apply. Please keep at least <strong className="text-[#6284F5]">{_quoteData?.quoteParam?.needsBandwidthTRX} TRX</strong> to ensure success.
             </span>
           </motion.div>
         )

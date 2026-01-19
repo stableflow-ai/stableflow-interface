@@ -1,7 +1,7 @@
 import useBridgeStore from "@/stores/use-bridge";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRequest } from "ahooks";
-import { EnergyAmounts, energyPeriod, TRON_RENTAL_FEE, TRON_RENTAL_RECEIVING_ADDRESS, TronTransferStepStatus } from "@/config/tron";
+import { EnergyAmounts, energyPeriod, TRON_RENTAL_FEE, TRON_RENTAL_RECEIVING_ADDRESS, TronBandwidthTransderTRX, TronBandwidthTransferToken, TronTransferStepStatus } from "@/config/tron";
 import axios from "axios";
 import Big from "big.js";
 import { v4 as uuidv4 } from "uuid";
@@ -31,16 +31,21 @@ export function useTronEnergy(props?: any) {
 
     const estimatedEnergy = EnergyAmounts.New;
     const availableEnergy = accountResources.energy;
-    const estimatedBandwidth = 650;
     const availableBandwidth = accountResources.bandwidth;
 
     console.log(`Estimated energy: ${estimatedEnergy}, available energy: ${availableEnergy}`);
-    console.log(`Estimated bandwidth: ${estimatedBandwidth}, available bandwidth: ${availableBandwidth}`);
     console.log(`accountTRXBalance: %o`, accountTRXBalance);
-    console.log(`bandwidth payment required: %o TRX`, Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6).toString());
 
     const needsEnergy = availableEnergy < estimatedEnergy;
+    let estimatedBandwidth = TronBandwidthTransferToken;
+    // needEnergy, TronBandwidthTransderTRX + TronBandwidthTransferToken
+    if (needsEnergy) {
+      estimatedBandwidth = TronBandwidthTransderTRX + TronBandwidthTransferToken;
+    }
     const needsBandwidth = estimatedBandwidth > availableBandwidth && Big(accountTRXBalance || 0).lt(Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6));
+
+    console.log(`Estimated bandwidth: ${estimatedBandwidth}, available bandwidth: ${availableBandwidth}`);
+    console.log(`bandwidth payment required: %o TRX`, Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6).toString());
 
     return {
       estimatedEnergy,
@@ -48,6 +53,8 @@ export function useTronEnergy(props?: any) {
       availableBandwidth,
       needsEnergy,
       needsBandwidth,
+      needsBandwidthAmount: estimatedBandwidth,
+      needsBandwidthTRX: numberRemoveEndZero(Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6).toFixed(6)),
     };
   }, {
     manual: true,

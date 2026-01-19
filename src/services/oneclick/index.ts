@@ -169,6 +169,7 @@ class OneClickService {
       needsEnergy: void 0,
       needsEnergyAmount: void 0,
       needsBandwidth: void 0,
+      needsBandwidthTRX: void 0,
     });
 
     return this.formatQuoteData({ data: res.data, params });
