@@ -21,15 +21,15 @@ export function useHistory() {
     return Object.values(wallets ?? {}).map((wallet) => wallet.account).filter((account) => !!account);
   }, [wallets]);
 
-  const { runAsync: getList, loading } = useRequest(async (params: any) => {
+  const { runAsync: getList, loading } = useRequest(async (params?: any) => {
     try {
       const response = await axios({
         url: `${BASE_API_URL}/v1/trades`,
         params: {
           type: 0,
-          status: "success,failed",
-          address: params.address,
-          page: params.page,
+          status: "success,failed,continue",
+          address: params?.address ?? accounts.join(","),
+          page: params?.page ?? page.current,
           page_size: page.size,
         },
         method: "GET",
