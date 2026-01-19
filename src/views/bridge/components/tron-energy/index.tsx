@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Loading from "@/components/loading/icon";
 import useBridgeStore from "@/stores/use-bridge";
 import { TronTransferSteps } from "./config";
@@ -7,6 +8,20 @@ const TronEnergy = (props: any) => {
   const { } = props;
 
   const bridgeStore = useBridgeStore();
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "Transaction in progress. Leaving this page may result in loss of funds. Are you sure you want to leave?";
+      return e.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   const { tronTransferStep } = bridgeStore;
 

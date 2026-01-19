@@ -461,6 +461,7 @@ export default function useBridge(props?: any) {
         const estNativeTokenParams: any = {};
         if (isFromTron) {
           estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(TronBandwidthTRX).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
+          // estNativeTokenParams.estimateGas = Big(0).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
         if (!isContinue) {
