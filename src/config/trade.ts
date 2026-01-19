@@ -23,3 +23,9 @@ export const TradeProject = {
 };
 
 export type TradeProject = (typeof TradeProject)[keyof typeof TradeProject];
+
+export const TradeProjectMap: Record<TradeProject, { logo: string; name: string; }> = {
+  [TradeProject.OneClick]: { logo: "/bridge/logo-near-intents.png", name: "OneClick" },
+  [TradeProject.USDT0]: { logo: "/bridge/logo-usdt0.svg", name: "USDT0" },
+  [TradeProject.CCTP]: { logo: "/bridge/logo-circle.avif", name: "CCTP" },
+};
