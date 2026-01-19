@@ -19,6 +19,11 @@ export function useTronEnergy(props?: any) {
 
   const { runAsync: getEstimateNeedsEnergy } = useRequest(async (params: { wallet: any; account: string; }) => {
     const accountResources = await params.wallet.getAccountResources({ account: params.account });
+    let accountTRXBalance: any;
+    try {
+      accountTRXBalance = await params.wallet.getBalance({ symbol: "TRX" }, params.account);
+      accountTRXBalance = numberRemoveEndZero(Big(accountTRXBalance || 0).div(10 ** 6).toFixed(6));
+    } catch (error) {}
 
     if (!accountResources.success) {
       console.warn("Failed to get account resources:", accountResources.error);
@@ -26,15 +31,23 @@ export function useTronEnergy(props?: any) {
 
     const estimatedEnergy = EnergyAmounts.New;
     const availableEnergy = accountResources.energy;
+    const estimatedBandwidth = 650;
+    const availableBandwidth = accountResources.bandwidth;
 
     console.log(`Estimated energy: ${estimatedEnergy}, available energy: ${availableEnergy}`);
+    console.log(`Estimated bandwidth: ${estimatedBandwidth}, available bandwidth: ${availableBandwidth}`);
+    console.log(`accountTRXBalance: %o`, accountTRXBalance);
+    console.log(`bandwidth payment required: %o TRX`, Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6).toString());
 
     const needsEnergy = availableEnergy < estimatedEnergy;
+    const needsBandwidth = estimatedBandwidth > availableBandwidth && Big(accountTRXBalance || 0).lt(Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6));
 
     return {
       estimatedEnergy,
       availableEnergy,
+      availableBandwidth,
       needsEnergy,
+      needsBandwidth,
     };
   }, {
     manual: true,
