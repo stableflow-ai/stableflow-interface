@@ -5,6 +5,7 @@ import useIsMobile from "@/hooks/use-is-mobile";
 import Pagination from "@/components/pagination";
 import Loading from "@/components/loading/icon";
 import { TradeStatus, TradeStatusMap } from "@/config/trade";
+import ContinueTransfer from "./continue";
 
 export default function CompleteTransfers(props: any) {
   const { className, contentClassName, history } = props;
@@ -30,6 +31,7 @@ export default function CompleteTransfers(props: any) {
                 key={index}
                 data={item}
                 isMobile={isMobile}
+                reload={history.getList}
               />
             ))
           )
@@ -48,9 +50,7 @@ export default function CompleteTransfers(props: any) {
   );
 }
 
-const CompleteTransferItem = ({ data, isMobile }: any) => {
-  const isSuccess = data.status === 1;
-
+const CompleteTransferItem = ({ data, isMobile, reload }: any) => {
   return (
     <div className="flex items-center justify-between border-b border-[#EBF0F8] py-[10px] gap-[10px] min-w-[350px]">
       <div className="flex items-center gap-[10px] shrink-0">
@@ -141,14 +141,7 @@ const CompleteTransferItem = ({ data, isMobile }: any) => {
                 {dayjs(data.create_time).format("M D, YY hh:m")}
               </div>
               <div className="flex justify-end items-center gap-[6px]">
-                <div
-                  className={clsx(
-                    "text-[14px] font-[500px]",
-                    isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
-                  )}
-                >
-                  {isSuccess ? "Success" : (data.trade_status || TradeStatusMap[data.status as TradeStatus]?.name || "Pending")}
-                </div>
+                <StatusText history={data} reload={reload} />
               </div>
             </div>
           ) : (
@@ -156,18 +149,35 @@ const CompleteTransferItem = ({ data, isMobile }: any) => {
               <div className="text-[14px] font-[500]">
                 {dayjs(data.create_time).format("MMM D, YYYY h:mm A")}
               </div>
-              <div
-                className={clsx(
-                  "text-[14px] font-[500px] w-[60px]",
-                  isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
-                )}
-              >
-                {isSuccess ? "Success" : (data.trade_status || TradeStatusMap[data.status as TradeStatus]?.name || "Pending")}
-              </div>
+              <StatusText history={data} />
             </>
           )
         }
       </div>
+    </div>
+  );
+};
+
+const StatusText = (props: any) => {
+  const { history, reload } = props;
+
+  const isSuccess = history.status === 1;
+  const isFromTron = history.from_chain === "tron";
+
+  if (history.status === TradeStatus.Continue && isFromTron) {
+    return (
+      <ContinueTransfer history={history} reload={reload} />
+    );
+  }
+
+  return (
+    <div
+      className={clsx(
+        "text-[14px] font-[500px] w-[60px]",
+        isSuccess ? "text-[#4DCF5E]" : "text-[#FF6A19]"
+      )}
+    >
+      {isSuccess ? "Success" : (history.trade_status || TradeStatusMap[history.status as TradeStatus]?.name || "Pending")}
     </div>
   );
 };

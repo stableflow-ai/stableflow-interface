@@ -21,12 +21,20 @@ import { Service } from "@/services";
 import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
 import { BASE_API_URL } from "@/config/api";
+import { BridgeFees, TRON_RENTAL_FEE, TronTransferStepStatus } from "@/config/tron";
+import { useTronEnergy } from "./use-tron";
+import { BridgeFee } from "@/services/oneclick";
 
 const TRANSFER_MIN_AMOUNT = 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
 
 export default function useBridge(props?: any) {
   const { liquidityError } = props ?? {};
+
+  const {
+    getEstimateNeedsEnergy,
+    getEnergy,
+  } = useTronEnergy();
 
   const prices = usePricesStore((state) => state.prices);
   const wallets = useWalletsStore();
@@ -83,7 +91,7 @@ export default function useBridge(props?: any) {
     try {
       await axios.post(`${BASE_API_URL}/v1/api/error`, params);
     } catch (error) {
-      console.log("report error failed: %o", error);
+      console.log("Report error failed: %o", error);
     }
   }, { manual: true });
 
@@ -98,7 +106,7 @@ export default function useBridge(props?: any) {
         setLiquidityErrorMessage(liquidityError);
       }
 
-      const formatQuoteParams = () => {
+      const formatQuoteParams = async () => {
         const _params: any = {
           amountWei: params.amountWei,
           refundTo: fromWalletAddress || "",
@@ -116,6 +124,32 @@ export default function useBridge(props?: any) {
           _params.destinationAsset = walletStore.toToken.assetId;
           _params.amount = params.amountWei;
           _params.refundType = "ORIGIN_CHAIN";
+
+          if (walletStore.fromToken.chainType === "tron") {
+            const { needsEnergy, needsBandwidth, needsBandwidthTRX } = await getEstimateNeedsEnergy({
+              wallet: params.wallet,
+              account: fromWalletAddress || "",
+            });
+            _params.needsEnergy = needsEnergy;
+            _params.needsBandwidth = needsBandwidth;
+            _params.needsBandwidthTRX = needsBandwidthTRX;
+            if (needsEnergy) {
+              _params.needsEnergyAmount = TRON_RENTAL_FEE.Normal;
+            } else {
+              const fixedFee = BridgeFees.Normal;
+              const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
+              _params.appFees = [
+                {
+                  recipient: BridgeFee[0].recipient,
+                  fee: BridgeFee[0].fee + fixedFeePercentage,
+                },
+              ];
+            }
+          }
+
+          if (params.appFees) {
+            _params.appFees = params.appFees;
+          }
         } else {
           _params.originChain = walletStore.fromToken.chainName;
           _params.destinationChain = walletStore.toToken.chainName;
@@ -124,7 +158,7 @@ export default function useBridge(props?: any) {
         return _params;
       };
 
-      const quoteParams = formatQuoteParams();
+      const quoteParams = await formatQuoteParams();
       const quoteRes = await ServiceMap[service].quote(quoteParams);
 
       // Check request ID again before setting result to ensure it's still the latest request
@@ -189,7 +223,7 @@ export default function useBridge(props?: any) {
         const _errorMessage = getQuoteErrorMessage();
         _finalErrorMessage = _errorMessage.message;
 
-        // report error
+        // Report error
         onReportError({
           content: _errorMessage.sourceMessage,
           amount: bridgeStore.amount,
@@ -311,11 +345,41 @@ export default function useBridge(props?: any) {
         ...params,
       });
     } catch (error) {
-      console.log("report failed: %o", error);
+      console.log("Report failed: %o", error);
     }
   }, {
     manual: true,
   });
+
+  const estimateNativeTokenBalance = async (params?: { estimateGas?: number | string; }) => {
+    const result = { isContinue: true };
+
+    // @ts-ignore
+    const wallet = wallets[walletStore.fromToken.chainType];
+
+    if (!wallet) {
+      return result;
+    }
+
+    // Estimate transfer gas and check native token balance
+    try {
+      const estimateGas = params?.estimateGas ?? bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService)?.estimateSourceGas;
+      // get native token balance
+      const nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
+      const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
+
+      console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
+
+      // Check if balance is sufficient
+      if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
+        result.isContinue = false;
+        return result;
+      }
+    } catch (error) {
+      console.log("check estimate gas failed: %o", error);
+    }
+    return result;
+  };
 
   const transfer = async () => {
     if (!walletStore.fromToken) return;
@@ -371,7 +435,7 @@ export default function useBridge(props?: any) {
         return;
       }
 
-      // create solana usdc account
+      // create solana usdc account for CCTP
       if (_quote?.data?.needCreateTokenAccount) {
         const createResult = await toWallet.wallet?.createAssociatedTokenAddress?.({
           tokenMint: walletStore.toToken.contractAddress,
@@ -392,35 +456,78 @@ export default function useBridge(props?: any) {
         return;
       }
 
-      // Estimate transfer gas and check native token balance
-      try {
-        const estimateGas = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService)?.estimateSourceGas;
-        // get native token balance
-        const nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
-        const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
-
-        console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
-
-        // Check if balance is sufficient
-        if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
+      // 1click transfer
+      if (bridgeStore.quoteDataService === Service.OneClick) {
+        const isFromTron = walletStore.fromToken.chainType === "tron";
+        const estNativeTokenParams: any = {};
+        const fromTronParams = {
+          wallet: wallet.wallet,
+          account: wallet.account,
+        };
+        let needsEnergy = false;
+        let needsBandwidth = false;
+        if (isFromTron) {
+          const estimateNeeds = await getEstimateNeedsEnergy(fromTronParams);
+          needsEnergy = estimateNeeds.needsEnergy;
+          needsBandwidth = estimateNeeds.needsBandwidth;
+          estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(needsBandwidth ? estimateNeeds.needsBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
+          // estNativeTokenParams.estimateGas = Big(0).toFixed(0);
+        }
+        const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
+        if (!isContinue) {
           bridgeStore.set({ transferring: false });
           toast.fail({
             title: "Transfer failed",
             text: "Insufficient native token balance"
           });
-          // bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
-          //   errMsg: "Insufficient native token balance",
-          // });
           return;
         }
-      } catch (error) {
-        console.log("check estimate gas failed: %o", error);
-      }
 
-      // 1click transfer
-      if (bridgeStore.quoteDataService === Service.OneClick) {
         if (!_quote?.data?.quote?.depositAddress) {
           throw new Error("Failed to get quote");
+        }
+
+        const localHistoryData = {
+          type: Service.OneClick,
+          despoitAddress: _quote.data.quote.depositAddress,
+          amount: bridgeStore.amount,
+          fromToken: walletStore.fromToken,
+          toToken: walletStore.toToken,
+          fromAddress: wallet.account,
+          toAddress: _quote.data.quoteRequest.recipient,
+          time: Date.now(),
+          txHash: "",
+          timeEstimate: _quote.data.quote.timeEstimate,
+        };
+        const reportData = {
+          project: "nearintents",
+          address: wallet.account,
+          amount: bridgeStore.amount,
+          out_amount: _quote.data.outputAmount,
+          deposit_address: _quote.data.quote.depositAddress,
+          receive_address: _quote.data.quoteRequest.recipient,
+          from_chain: walletStore.fromToken.blockchain,
+          symbol: walletStore.fromToken.symbol,
+          to_chain: walletStore.toToken.blockchain,
+          to_symbol: walletStore.toToken.symbol,
+          tx_hash: "",
+        };
+
+        if (isFromTron) {
+          bridgeStore.setTronTransferVisible(true, { quoteData: _quote });
+          if (needsEnergy) {
+            await getEnergy(fromTronParams);
+          } else {
+            bridgeStore.setTronTransferStep(TronTransferStepStatus.EnergyReady);
+          }
+          bridgeStore.setTronTransferStep(TronTransferStepStatus.WalletPrompt);
+
+          historyStore.addHistory(localHistoryData);
+          historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
+          report({
+            ...reportData,
+            status: 4, // continue
+          });
         }
 
         if (_quote?.data?.sendParam?.param) {
@@ -435,37 +542,54 @@ export default function useBridge(props?: any) {
           amountWei: _amount,
         });
 
-        historyStore.addHistory({
-          type: Service.OneClick,
-          despoitAddress: _quote.data.quote.depositAddress,
-          amount: bridgeStore.amount,
-          fromToken: walletStore.fromToken,
-          toToken: walletStore.toToken,
-          fromAddress: wallet.account,
-          toAddress: _quote.data.quoteRequest.recipient,
-          time: Date.now(),
-          txHash: hash,
-          timeEstimate: _quote.data.quote.timeEstimate,
-        });
-        report({
-          project: "nearintents",
-          address: wallet.account,
-          amount: bridgeStore.amount,
-          out_amount: _quote.data.outputAmount,
-          deposit_address: _quote.data.quote.depositAddress,
-          receive_address: _quote.data.quoteRequest.recipient,
-          from_chain: walletStore.fromToken.blockchain,
-          symbol: walletStore.fromToken.symbol,
-          to_chain: walletStore.toToken.blockchain,
-          to_symbol: walletStore.toToken.symbol,
-          tx_hash: hash,
-        });
+        localHistoryData.txHash = hash;
+        localHistoryData.time = Date.now();
 
+        historyStore.addHistory(localHistoryData);
         historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
+
+        reportData.tx_hash = hash;
+
+        if (isFromTron) {
+          bridgeStore.setTronTransferStep(TronTransferStepStatus.Broadcasting);
+
+          // polling transaction status
+          let pollingResult = true;
+          try {
+            pollingResult = await wallet.wallet.pollingTransactionStatus(hash, {
+              maxPolls: 120,
+              pollInterval: 3000,
+            });
+          } catch (error) {
+            console.log("polling transaction status failed: %o", error);
+          }
+          if (!pollingResult) {
+            toast.fail({
+              title: "Transfer failed",
+              text: hash,
+            });
+          } else {
+            report(reportData);
+          }
+
+          bridgeStore.setTronTransferVisible(false);
+        } else {
+          report(reportData);
+        }
       }
 
       // usdt0 transfer
       if (bridgeStore.quoteDataService === Service.Usdt0) {
+        const { isContinue } = await estimateNativeTokenBalance();
+        if (!isContinue) {
+          bridgeStore.set({ transferring: false });
+          toast.fail({
+            title: "Transfer failed",
+            text: "Insufficient native token balance"
+          });
+          return;
+        }
+
         const hash = await ServiceMap[Service.Usdt0].send({
           ..._quote?.data?.sendParam,
           wallet: wallet.wallet,
@@ -502,6 +626,16 @@ export default function useBridge(props?: any) {
 
       // cctp transfer
       if (bridgeStore.quoteDataService === Service.CCTP) {
+        const { isContinue } = await estimateNativeTokenBalance();
+        if (!isContinue) {
+          bridgeStore.set({ transferring: false });
+          toast.fail({
+            title: "Transfer failed",
+            text: "Insufficient native token balance"
+          });
+          return;
+        }
+
         const hash = await ServiceMap[Service.CCTP].send({
           ..._quote?.data?.sendParam,
           wallet: wallet.wallet,
@@ -550,8 +684,15 @@ export default function useBridge(props?: any) {
     } catch (error: any) {
       console.error(error);
       bridgeStore.set({ transferring: false });
-      let _finalErrorMessage = error?.message || "Transfer failed";
-      if (_finalErrorMessage.includes("user rejected action")) {
+      bridgeStore.setTronTransferVisible(false);
+      let _finalErrorMessage = error?.message || error?.toString?.() || "Transfer failed";
+      if (
+        // evm
+        _finalErrorMessage.includes("user rejected action") ||
+        // tron
+        _finalErrorMessage.includes("Confirmation declined by user") ||
+        _finalErrorMessage.includes("User denied request signature")
+      ) {
         _finalErrorMessage = "User rejected transaction";
       }
       toast.fail({

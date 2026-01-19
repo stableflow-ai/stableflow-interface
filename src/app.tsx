@@ -7,7 +7,7 @@ import { ToastContainer } from "react-toastify";
 import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 import Developer from "./views/developer";
 import { usePrices } from "./hooks/use-prices";
 import Terms from "./components/terms";
@@ -17,6 +17,8 @@ const LearnMore = lazy(() => import("./views/learn-more"));
 const Apply = lazy(() => import("./views/apply"));
 const Privacy = lazy(() => import("./views/policy/privacy"));
 const TermsOfService = lazy(() => import("./views/policy/terms-of-service"));
+
+const TronEnergyModal = lazy(() => import("./views/bridge/components/tron-energy/modal"));
 
 const router = createBrowserRouter([
   {
@@ -94,7 +96,7 @@ function App() {
           rel="noopener noreferrer nofollow"
           className="w-[26px] h-[26px] bg-[url('/logo-telegram.svg')] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
         />
-         <a
+        <a
           href="https://paragraph.com/@stableflow"
           target="_blank"
           rel="noopener noreferrer nofollow"
@@ -102,6 +104,10 @@ function App() {
         />
       </div>
       <Terms className="fixed z-[11] bottom-[13px] md:bottom-[20px] right-[10px] md:right-[140px]" />
+
+      <Suspense fallback={null}>
+        <TronEnergyModal />
+      </Suspense>
     </WalletsProvider>
   );
 }

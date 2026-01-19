@@ -6,12 +6,14 @@ export const ONECLICK_PROXY: Record<string, string> = {
   ["Avalanche"]: "0xc8dB1175132C64e311D01258dD05D4e2e75fD7b8",
   ["Ethereum"]: "0xc8dB1175132C64e311D01258dD05D4e2e75fD7b8",
   ["Berachain"]: "0x1766A6B8453c7dbcA8c70d17980B6EA87ACA4F60",
-  ["Tron"]: "TMqM35eVd3D9d7JbShRrMzMPyWLFweKYvW",
+  // ⚠️ When using Energy rental, do not use the proxy address as it will increase fees
+  // ["Tron"]: "TMqM35eVd3D9d7JbShRrMzMPyWLFweKYvW",
   ["Solana"]: "HWk6MsFEGzXxpe9B4mfEHpvVoCwNeVVMFxb5Mi7qNTM",
   ["Near"]: "stbflow.near",
   ["Aptos"]: "0x3000ceb3211d23ef73ad1b602a7a99b72020c9ce9537f580ac5bba556ec3bff9",
   ["Base"]: "0x7A18854b695BA7efB7229c17D0E1Cd2679481D28",
   ["X Layer"]: "0xc8dB1175132C64e311D01258dD05D4e2e75fD7b8",
+  ["Plasma"]: "0xc8dB1175132C64e311D01258dD05D4e2e75fD7b8",
 };
 
 export const ONECLICK_PROXY_ABI = [

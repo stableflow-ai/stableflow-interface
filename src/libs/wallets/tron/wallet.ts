@@ -219,6 +219,82 @@ export default class TronWallet {
     };
   }
 
+  async pollingTransactionStatus(txHash: string, options?: {
+    maxPolls?: number;
+    pollInterval?: number;
+    isTRX?: boolean;
+  }) {
+    await this.waitForTronWeb();
+
+    const { maxPolls = 60, pollInterval = 2000, isTRX } = options || {};
+    let pollCount = 0;
+
+    return new Promise((resolve) => {
+      const poll = async () => {
+        pollCount++;
+        console.log(`polling transaction status (${txHash}), ${pollCount} times`);
+
+        try {
+          const txInfo = await this.tronWeb.trx.getTransactionInfo(txHash);
+          console.log(`transaction info (${txHash}): %o`, txInfo);
+
+          // if the transaction info exists and has receipt, the transaction has been on-chain
+          if (txInfo && txInfo.receipt) {
+            if (isTRX) {
+              resolve(true);
+              return;
+            }
+
+            const result = txInfo.receipt.result;
+
+            if (result === "SUCCESS") {
+              console.log(`transaction success (${txHash})`);
+              resolve(true);
+              return;
+            } else if (result === "FAILED" || result === "REVERT") {
+              console.log(`transaction failed (${txHash}), result: ${result}`);
+              resolve(false);
+              return;
+            } else {
+              // other status, continue polling
+              console.log(`unknown transaction status (${txHash}), result: ${result}, continue polling...`);
+            }
+          } else {
+            // transaction info exists but no receipt, maybe still being packed, continue polling
+            console.log(`transaction not confirmed (${txHash}), continue polling...`);
+          }
+        } catch (error: any) {
+          // if the transaction does not exist (maybe still being packed), continue polling
+          // common error messages include "not found" or "does not exist"
+          const errorMessage = error?.message || String(error);
+          if (
+            errorMessage.includes("not found") ||
+            errorMessage.includes("does not exist") ||
+            errorMessage.includes("not exist")
+          ) {
+            console.log(`transaction not on-chain (${txHash}), continue polling...`);
+          } else {
+            // other error, log but continue polling
+            console.warn(`query transaction status error (${txHash}): %o`, errorMessage);
+          }
+        }
+
+        // check if the maximum polling times is reached
+        if (pollCount >= maxPolls) {
+          console.error(`polling timeout (${txHash}), maximum polling times reached: ${maxPolls}`);
+          resolve(false);
+          return;
+        }
+
+        // continue polling
+        setTimeout(poll, pollInterval);
+      };
+
+      // start polling
+      poll();
+    });
+  }
+
   async checkTransactionStatus(txHash: string) {
     await this.waitForTronWeb();
 
@@ -671,6 +747,73 @@ export default class TronWallet {
       this.tronWeb.defaultAddress.base58 || refundTo
     );
     result.sendParam.tx = tx;
+
+    return result;
+  }
+
+  async getAccountResources(params: any) {
+    const { account } = params;
+
+    const result: any = {
+      energy: 0,
+      bandwidth: 0,
+      success: false,
+      error: "TronWeb is not initialized or the wallet is not connected",
+    };
+
+    await this.waitForTronWeb();
+
+    if (!this.tronWeb || !account) {
+      return result;
+    }
+
+    try {
+      let availableEnergy;
+      let availableBandwidth;
+
+      try {
+        if (this.tronWeb.trx.getAccountResources) {
+          const resources: any = await this.tronWeb.trx.getAccountResources(account);
+          console.log("resources: %o", resources);
+          if (resources) {
+            // Get available energy (EnergyLimit - EnergyUsed)
+            availableEnergy = (resources.EnergyLimit || 0) - (resources.EnergyUsed || 0);
+            // Get available bandwidth (NetLimit - NetUsed)
+            availableBandwidth = (resources.freeNetLimit || 0) - (resources.freeNetUsed || 0);
+          }
+        }
+      } catch (resourcesErr) {
+        console.warn("getAccountResources API is not available, try other way:", resourcesErr);
+      }
+
+      if (availableEnergy === void 0 && availableBandwidth === void 0) {
+        const accountInfo: any = await this.tronWeb.trx.getAccount(account);
+
+        if (accountInfo.account_resource) {
+          const accountResource = accountInfo.account_resource;
+          availableEnergy = (accountResource.EnergyLimit || 0) - (accountResource.EnergyUsed || 0);
+          availableBandwidth = (accountResource.NetLimit || 0) - (accountResource.NetUsed || 0);
+        } else if (accountInfo.energy !== undefined) {
+          availableEnergy = accountInfo.energy || 0;
+        }
+
+        // Try to get bandwidth information
+        if (accountInfo.bandwidth !== undefined) {
+          if (typeof accountInfo.bandwidth === "number") {
+            availableBandwidth = accountInfo.bandwidth;
+          } else if (accountInfo.bandwidth) {
+            availableBandwidth = accountInfo.bandwidth.available || accountInfo.bandwidth.freeNetUsage || 0;
+          }
+        }
+      }
+
+      result.energy = Math.max(0, availableEnergy);
+      result.bandwidth = Math.max(0, availableBandwidth);
+      result.success = true;
+      result.error = null;
+    } catch (error) {
+      console.error("Failed to get account resources:", error);
+    }
 
     return result;
   }

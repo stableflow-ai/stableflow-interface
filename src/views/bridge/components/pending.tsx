@@ -54,7 +54,7 @@ const PendingTransfer = (props: any) => {
 
       const result = response.data.data;
 
-      if (!result) {
+      if (!result || result.status === TradeStatus.Continue) {
         return;
       }
 
