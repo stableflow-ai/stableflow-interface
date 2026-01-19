@@ -248,7 +248,7 @@ export function useTronEnergy(props?: any) {
         throw new Error("Energy rental fee payment timed out or failed, please try again later");
       }
 
-      if (Big(transferTRXResult.contractData.amount || 0).div(10 ** tronTransferQuoteData.data.quoteParam.fromToken.nativeToken.decimals).lt(rentalFee)) {
+      if (Big(transferTRXResult.contractData.amount || 0).div(10 ** (tronTransferQuoteData?.data?.quoteParam?.fromToken?.nativeToken?.decimals || 6)).lt(rentalFee)) {
         throw new Error(`Energy rental fee payment is insufficient, please try again later: ${rentalFee} TRX`);
       }
     }
