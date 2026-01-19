@@ -22,7 +22,7 @@ import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
 import { BASE_API_URL } from "@/config/api";
 import { useAccount } from "wagmi";
-import { BridgeFees, TRON_RENTAL_FEE, TronBandwidthTRX, TronTransferStepStatus } from "@/config/tron";
+import { BridgeFees, TRON_RENTAL_FEE, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
 
@@ -128,12 +128,13 @@ export default function useBridge(props?: any) {
           _params.refundType = "ORIGIN_CHAIN";
 
           if (walletStore.fromToken.chainType === "tron") {
-            const { needsEnergy, needsBandwidth } = await getEstimateNeedsEnergy({
+            const { needsEnergy, needsBandwidth, needsBandwidthTRX } = await getEstimateNeedsEnergy({
               wallet: params.wallet,
               account: fromWalletAddress || "",
             });
             _params.needsEnergy = needsEnergy;
             _params.needsBandwidth = needsBandwidth;
+            _params.needsBandwidthTRX = needsBandwidthTRX;
             if (needsEnergy) {
               _params.needsEnergyAmount = TRON_RENTAL_FEE.Normal;
             } else {
@@ -471,7 +472,7 @@ export default function useBridge(props?: any) {
           const estimateNeeds = await getEstimateNeedsEnergy(fromTronParams);
           needsEnergy = estimateNeeds.needsEnergy;
           needsBandwidth = estimateNeeds.needsBandwidth;
-          estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(needsBandwidth ? TronBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
+          estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(needsBandwidth ? estimateNeeds.needsBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
           // estNativeTokenParams.estimateGas = Big(0).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
