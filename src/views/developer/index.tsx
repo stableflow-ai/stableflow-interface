@@ -213,7 +213,7 @@ export default function DeveloperDocs() {
         .prose a.md-btn{display:inline-flex;align-items:center;gap:8px;background:#4285F4;color:#fff !important;text-decoration:none;padding:8px 12px;border-radius:8px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,0.1)}
         .prose a.md-btn:hover{background:#3367d6}
         html{scroll-behavior:smooth}
-        .prose table{width:100%;border-collapse:collapse;margin:12px 0;background:white;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+        .prose table{display:block;width:100%;border-collapse:collapse;margin:12px 0;background:white;border-radius:8px;overflow-x:auto;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
         .prose table th,.prose table td{border:1px solid rgba(0,0,0,0.1);padding:12px;text-align:left;font-size:14px}
         .prose table thead th{background:rgba(0,0,0,0.04);font-weight:600;color:#374151}
         .prose table tbody tr:nth-child(even){background:rgba(0,0,0,0.02)}

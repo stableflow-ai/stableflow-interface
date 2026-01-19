@@ -115,7 +115,7 @@ const PendingTransfer = (props: any) => {
   if (!latestHistories || !latestHistories.length || !tradeStatus) return null;
 
   return (
-    <div className={clsx("w-[calc(100%_+_10px)] px-[5px] pb-[5px] pt-0 md:pt-[20px] -translate-x-[5px] rounded-[12px] overflow-hidden", className)}>
+    <div className={clsx("w-full md:w-[calc(100%_+_10px)] pl-[10px] pr-[10px] md:pl-[5px] md:pr-[5px] pb-[5px] pt-0 md:pt-[20px] md:translate-x-[-5px] rounded-[12px] overflow-hidden", className)}>
       <Swiper
         style={{
           width: "100%",
@@ -136,7 +136,7 @@ const PendingTransfer = (props: any) => {
       >
         {
           !!tradeStatus && (
-            <SwiperSlide style={{ width: "100%", maxWidth: "100dvw" }}>
+            <SwiperSlide className="!w-full" style={{ width: "100%", maxWidth: "100dvw" }}>
               <PendingItem
                 key={latestHistories[0]}
                 className=""
