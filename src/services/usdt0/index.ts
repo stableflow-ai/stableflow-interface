@@ -214,7 +214,7 @@ class Usdt0Service {
     }
 
     try {
-      const txhash = /^0x/.test(hash) ? hash : `0x${hash}`;
+      const txhash = history?.fromToken?.chainType === "tron" ? `0x${hash}` : hash;
       const response = await axios({
         url: `https://scan.layerzero-api.com/v1/messages/tx/${txhash}`,
         method: "GET",
@@ -244,6 +244,26 @@ class Usdt0Service {
       return {
         status: "PENDING_DEPOSIT",
       };
+    }
+  }
+
+  public async getLayerzeroData(params: any) {
+    const { tx_hash, from_chain } = params;
+
+    try {
+      const txhash = from_chain === "tron" ? `0x${tx_hash}` : tx_hash;
+      const response = await axios({
+        url: `https://scan.layerzero-api.com/v1/messages/tx/${txhash}`,
+        method: "GET",
+        timeout: 30000,
+        headers: {
+          "Content-Type": "application/json"
+        },
+      });
+      return response.data.data[0];
+    } catch (error) {
+      console.error("usdt0 get status failed: %o", error);
+      return null;
     }
   }
 }

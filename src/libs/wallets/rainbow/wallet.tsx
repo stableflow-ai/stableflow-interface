@@ -5,12 +5,15 @@ import Big from "big.js";
 import { ethers } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { addressToBytes32 } from "@/utils/address-validation";
-import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
+import { LZ_RECEIVE_VALUE, USDT0_CONFIG, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { quoteSignature } from "../utils/cctp";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
+import { usdtChains } from "@/config/tokens/usdt";
+import { buildEndpointV2LzComposePayload } from "../utils/layerzero";
+import { OFT_ABI } from "@/services/usdt0/contract";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -716,5 +719,124 @@ export default class RainbowWallet {
     };
 
     return result;
+  }
+
+  async retryLayerzeroLzComponse(params: any) {
+    const {
+      layerzeroData,
+      history,
+    } = params;
+
+    const LayerZeroEndpointV2 = "0x1a44076050125825900e736c501f859c50fe728c";
+    const LayerZeroEndpointV2ABI = [
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_from",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "_to",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "_guid",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint16",
+            "name": "_index",
+            "type": "uint16"
+          },
+          {
+            "internalType": "bytes",
+            "name": "_message",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "_extraData",
+            "type": "bytes"
+          }
+        ],
+        "name": "lzCompose",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+      }
+    ];
+    // lzCompose(address _from,address _to,bytes32 _guid,uint16 _index,bytes _message,bytes _extraData)
+    const LayerZeroEndpointV2Contract = new ethers.Contract(LayerZeroEndpointV2, LayerZeroEndpointV2ABI, this.signer);
+
+    const toToken: any = usdtChains[history.destination_chain.blockchain as keyof typeof usdtChains];
+    const amountWei = Big(history.token_in_amount).times(10 ** (toToken.decimals || 6)).toFixed(0);
+
+    const originLayerzero = USDT0_CONFIG["Arbitrum"];
+    const isOriginLegacy = layerzeroData.destination.lzCompose.failedTx[0].from.toLowerCase() === originLayerzero.oftLegacy.toLowerCase();
+    const lzReceiveOptionGas = isOriginLegacy ? originLayerzero.lzReceiveOptionGasLegacy : originLayerzero.lzReceiveOptionGas;
+    let lzReceiveOptionValue = 0;
+
+    const destATA = await getDestinationAssociatedTokenAddress({
+      recipient: history.receive_address,
+      toToken,
+    });
+    if (destATA.needCreateTokenAccount) {
+      lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
+    }
+
+    const composeFrom = layerzeroData.source.tx.from;
+    const composeMsg = layerzeroData.source.tx.payload.split(composeFrom.replace(/^0x/, ""))[1];
+    const _message = buildEndpointV2LzComposePayload({
+      nonce: layerzeroData.pathway.nonce,
+      srcEid: layerzeroData.pathway.srcEid,
+      amountLD: amountWei,
+      composeFrom: composeFrom,
+      composeMsg: composeMsg,
+    });
+
+    const contractParams = [
+      layerzeroData.destination.lzCompose.failedTx[0].from,
+      layerzeroData.destination.lzCompose.failedTx[0].to,
+      layerzeroData.guid,
+      layerzeroData.destination.lzCompose.failedTx[0].index,
+      _message,
+      "0x",
+    ];
+
+    const dstOFT = isOriginLegacy ? originLayerzero.oft : originLayerzero.oftLegacy;
+    const sendParam: any = {
+      dstEid: USDT0_CONFIG[history.destination_chain.chainName].eid,
+      to: addressToBytes32(toToken.chainType, history.receive_address),
+      amountLD: amountWei,
+      minAmountLD: 0n,
+      extraOptions: Options.newOptions()
+        // .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
+        .toHex(),
+      composeMsg: "0x",
+      oftCmd: "0x"
+    };
+
+    const dstOFTContract = new ethers.Contract(dstOFT, OFT_ABI, this.provider);
+    const msgFee = await dstOFTContract.quoteSend.staticCall(sendParam, false);
+    const nativeFee = msgFee[0];
+
+    const tx = await LayerZeroEndpointV2Contract.lzCompose(
+      ...contractParams,
+      {
+        gasLimit: originLayerzero.composeOptionGas || 800000,
+        value: nativeFee,
+      }
+    );
+
+    const txReceipt = await tx.wait();
+
+    if (txReceipt.status === 1) {
+      return txReceipt.hash;
+    }
+
+    return null;
   }
 }
