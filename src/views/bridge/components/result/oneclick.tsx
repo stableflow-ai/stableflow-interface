@@ -8,6 +8,7 @@ import ResultFeeItem from "./fee-item";
 import clsx from "clsx";
 import { Service } from "@/services";
 import { formatNumber } from "@/utils/format/number";
+import { TronBandwidthTRX } from "@/config/tron";
 
 const LargeTransactionTip = "Large transactions can take a bit longer to process — usually no more than 3-5 minutes.";
 
@@ -125,6 +126,26 @@ const ResultOneClick = (props: any) => {
             />
             <span className="pl-1">
               This transaction requires a <strong className="text-[#6284F5]">{formatNumber(_quoteData?.quoteParam?.needsEnergyAmount, 2, true)} TRX</strong> fee for energy rental.
+            </span>
+          </motion.div>
+        )
+      }
+      {
+        _quoteData?.quoteParam?.needsBandwidth && (
+          <motion.div
+            key="duration"
+            className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+          >
+            <img
+              src="/icon-gas.svg"
+              alt=""
+              className="inline-block -translate-y-0.5 w-[14px] h-[14px] object-center object-contain shrink-0"
+            />
+            <span className="pl-1">
+              Small TRX charges for bandwidth may still apply. Please keep at least <strong className="text-[#6284F5]">{TronBandwidthTRX} TRX</strong> to ensure success.
             </span>
           </motion.div>
         )

@@ -41,3 +41,5 @@ export const TronTransferStepStatus = {
 export type TronTransferStepStatus = (typeof TronTransferStepStatus)[keyof typeof TronTransferStepStatus];
 
 export const energyPeriod: EnergyPeriod = "1H";
+
+export const TronBandwidthTRX = 0.7;
