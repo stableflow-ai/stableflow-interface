@@ -459,8 +459,17 @@ export default function useBridge(props?: any) {
       if (bridgeStore.quoteDataService === Service.OneClick) {
         const isFromTron = walletStore.fromToken.chainType === "tron";
         const estNativeTokenParams: any = {};
+        const fromTronParams = {
+          wallet: wallet.wallet,
+          account: wallet.account,
+        };
+        let needsEnergy = false;
+        let needsBandwidth = false;
         if (isFromTron) {
-          estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(TronBandwidthTRX).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
+          const estimateNeeds = await getEstimateNeedsEnergy(fromTronParams);
+          needsEnergy = estimateNeeds.needsEnergy;
+          needsBandwidth = estimateNeeds.needsBandwidth;
+          estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(needsBandwidth ? TronBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
           // estNativeTokenParams.estimateGas = Big(0).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
@@ -504,12 +513,7 @@ export default function useBridge(props?: any) {
         };
 
         if (isFromTron) {
-          const fromTronParams = {
-            wallet: wallet.wallet,
-            account: wallet.account,
-          };
           bridgeStore.setTronTransferVisible(true, { quoteData: _quote });
-          const { needsEnergy } = await getEstimateNeedsEnergy(fromTronParams);
           if (needsEnergy) {
             await getEnergy(fromTronParams);
           } else {
