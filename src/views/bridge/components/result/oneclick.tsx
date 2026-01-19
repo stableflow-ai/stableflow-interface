@@ -113,7 +113,7 @@ const ResultOneClick = (props: any) => {
       {
         _quoteData?.quoteParam?.needsEnergy && Big(_quoteData?.quoteParam?.needsEnergyAmount ?? 0).gt(0) && (
           <motion.div
-            key="duration"
+            key="energy"
             className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -133,7 +133,7 @@ const ResultOneClick = (props: any) => {
       {
         _quoteData?.quoteParam?.needsBandwidth && (
           <motion.div
-            key="duration"
+            key="bandwidth"
             className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}

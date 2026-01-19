@@ -463,6 +463,7 @@ export default function useBridge(props?: any) {
         const estNativeTokenParams: any = {};
         if (isFromTron) {
           estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(TronBandwidthTRX).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
+          // estNativeTokenParams.estimateGas = Big(0).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
         if (!isContinue) {
@@ -512,20 +513,18 @@ export default function useBridge(props?: any) {
           bridgeStore.setTronTransferVisible(true, { quoteData: _quote });
           const { needsEnergy } = await getEstimateNeedsEnergy(fromTronParams);
           if (needsEnergy) {
-            await getEnergy(fromTronParams, {
-              report: () => {
-                historyStore.addHistory(localHistoryData);
-                historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
-                report({
-                  ...reportData,
-                  status: 4, // continue
-                });
-              }
-            });
+            await getEnergy(fromTronParams);
           } else {
             bridgeStore.setTronTransferStep(TronTransferStepStatus.EnergyReady);
           }
           bridgeStore.setTronTransferStep(TronTransferStepStatus.WalletPrompt);
+
+          historyStore.addHistory(localHistoryData);
+          historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
+          report({
+            ...reportData,
+            status: 4, // continue
+          });
         }
 
         if (_quote?.data?.sendParam?.param) {
