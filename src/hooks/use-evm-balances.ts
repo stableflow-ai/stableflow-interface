@@ -35,7 +35,7 @@ export default function useEvmBalances(auto = false) {
       const _balances: any = {};
       const _data = res.data.data;
 
-      const unsupportedChainIds = [9745];
+      const unsupportedChainIds = evmBalancesTokens.map((token: any) => Object.keys(_data).includes(token.chain_id.toString()) ? null : token.chain_id).filter(Boolean);
       const unsupportedBalances: any = {};
       // get unsupported tokens balances from provider
       for (const token of evmBalancesTokens) {
@@ -156,7 +156,7 @@ export default function useEvmBalances(auto = false) {
     }
 
     // Initial request
-    debouncedGetBalances();
+    getBalances();
 
     // Start polling balances
     startPollingBalances();
