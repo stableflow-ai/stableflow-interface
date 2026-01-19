@@ -193,7 +193,9 @@ export function useTronEnergy(props?: any) {
     });
   };
 
-  const { runAsync: getEnergy } = useRequest(async (params: { wallet: any; account: string; }) => {
+  const { runAsync: getEnergy } = useRequest(async (params: { wallet: any; account: string; }, options?: { report?: any; }) => {
+    const { report } = options ?? {};
+
     const rentalFee = TRON_RENTAL_FEE.Normal;
 
     // 1. First, pay the energy rental fee
@@ -211,6 +213,7 @@ export function useTronEnergy(props?: any) {
       if (!transferResult) {
         throw new Error("Failed to pay rental fee, please try again later");
       }
+      report?.();
 
       // 2. Poll for transfer result
       console.log("2. Start polling for transfer result...");

@@ -91,7 +91,7 @@ export default function useBridge(props?: any) {
     try {
       await axios.post(`${BASE_API_URL}/v1/api/error`, params);
     } catch (error) {
-      console.log("report error failed: %o", error);
+      console.log("Report error failed: %o", error);
     }
   }, { manual: true });
 
@@ -221,7 +221,7 @@ export default function useBridge(props?: any) {
         const _errorMessage = getQuoteErrorMessage();
         _finalErrorMessage = _errorMessage.message;
 
-        // report error
+        // Report error
         onReportError({
           content: _errorMessage.sourceMessage,
           amount: bridgeStore.amount,
@@ -343,7 +343,7 @@ export default function useBridge(props?: any) {
         ...params,
       });
     } catch (error) {
-      console.log("report failed: %o", error);
+      console.log("Report failed: %o", error);
     }
   }, {
     manual: true,
@@ -509,18 +509,20 @@ export default function useBridge(props?: any) {
           bridgeStore.setTronTransferVisible(true, { quoteData: _quote });
           const { needsEnergy } = await getEstimateNeedsEnergy(fromTronParams);
           if (needsEnergy) {
-            await getEnergy(fromTronParams);
+            await getEnergy(fromTronParams, {
+              report: () => {
+                historyStore.addHistory(localHistoryData);
+                historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
+                report({
+                  ...reportData,
+                  status: 4, // continue
+                });
+              }
+            });
           } else {
             bridgeStore.setTronTransferStep(TronTransferStepStatus.EnergyReady);
           }
           bridgeStore.setTronTransferStep(TronTransferStepStatus.WalletPrompt);
-
-          historyStore.addHistory(localHistoryData);
-          historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
-          report({
-            ...reportData,
-            status: 4, // continue
-          });
         }
 
         if (_quote?.data?.sendParam?.param) {
