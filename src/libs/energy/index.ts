@@ -10,7 +10,7 @@ class EnergyService {
   constructor() {
     this.api = axios.create({
       baseURL: TRON_ENERGY_API_URL,
-      timeout: 30000,
+      // timeout: 30000,
       headers: {
         "Content-Type": "application/json"
       }
