@@ -28,7 +28,7 @@ export default function Setting() {
   }, [isOpen]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative z-[10] translate-y-[2px]" ref={dropdownRef}>
       <button
         className="button p-[5px] duration-300 rounded-[8px] hover:bg-white hover:shadow-[0_0_4px_0_rgba(0,0,0,0.15)]"
         onClick={() => setIsOpen(!isOpen)}
