@@ -10,6 +10,10 @@ import Big from "big.js";
 import useBalancesStore from "@/stores/use-balances";
 import { useDebounceFn } from "ahooks";
 import { DB3_API_URL } from "@/config/api";
+import chains from "@/config/chains";
+import { ethers } from "ethers";
+import { erc20Abi } from "viem";
+import { numberRemoveEndZero } from "@/utils/format/number";
 
 export default function useEvmBalances(auto = false) {
   const [loading, setLoading] = useState(false);
@@ -30,6 +34,50 @@ export default function useEvmBalances(auto = false) {
       });
       const _balances: any = {};
       const _data = res.data.data;
+
+      const unsupportedChainIds = [9745];
+      const unsupportedBalances: any = {};
+      // get unsupported tokens balances from provider
+      for (const token of evmBalancesTokens) {
+        const _token: any = token;
+        if (unsupportedChainIds.includes(_token.chain_id)) {
+          const currentChain = Object.values(chains).find((chain: any) => chain.chainId === _token.chain_id);
+          if (!currentChain) {
+            return;
+          }
+
+          const provider = new ethers.JsonRpcProvider(currentChain.rpcUrl);
+
+          const balancePromises = _token.tokens.map(async (address: string) => {
+            const _result = {
+              address,
+              decimals: 6,
+              balance: "0",
+              format: "0",
+            };
+            try {
+              const contract = new ethers.Contract(address, erc20Abi, provider);
+              const decimals = await contract.decimals();
+              const balance = await contract.balanceOf(wallet.account);
+
+              _result.decimals = Number(decimals);
+              _result.balance = balance.toString();
+              _result.format = numberRemoveEndZero(Big(_result.balance).div(10 ** _result.decimals).toFixed(_result.decimals));
+            } catch (error) { }
+
+            return _result;
+          });
+
+          const balances = await Promise.all(balancePromises);
+          unsupportedBalances[_token.chain_id] = balances;
+        }
+      }
+
+      for (const chainId in unsupportedBalances) {
+        if (!_data[chainId]) {
+          _data[chainId] = unsupportedBalances[chainId];
+        }
+      }
 
       let usdcBalance = Big(0);
       let usdtBalance = Big(0);
