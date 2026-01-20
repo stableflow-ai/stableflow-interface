@@ -25,7 +25,6 @@ import { useAccount } from "wagmi";
 import { BridgeFees, TRON_RENTAL_FEE, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
-import { useAccount } from "wagmi";
 
 const TRANSFER_MIN_AMOUNT = 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
