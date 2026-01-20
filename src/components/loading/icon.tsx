@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 
 const Loading = (props: Props) => {
-  const { size = 18, style, className } = props;
+  const { size = 18, style, className, isAnimation = true } = props;
 
   return (
     <div
@@ -17,9 +17,9 @@ const Loading = (props: Props) => {
         viewBox="0 0 18 18"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        animate={{
+        animate={isAnimation ? {
           rotate: [0, 360]
-        }}
+        } : void 0}
         transition={{
           duration: 1,
           ease: "linear",
@@ -51,4 +51,5 @@ interface Props {
   size?: number;
   style?: React.CSSProperties;
   className?: string;
+  isAnimation?: boolean;
 }

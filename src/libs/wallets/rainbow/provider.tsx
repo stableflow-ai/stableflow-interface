@@ -10,6 +10,7 @@ import {
   gnosis,
   berachain,
   xLayer,
+  plasma,
 } from "wagmi/chains";
 import {
   WagmiProvider,
@@ -58,6 +59,7 @@ const RpcUrls: any = {
   [gnosis.id]: fallback([http(chainsRpcUrls["Gnosis"])]),
   [berachain.id]: fallback([http(chainsRpcUrls["Berachain"])]),
   [xLayer.id]: fallback([http(chainsRpcUrls["X Layer"])]),
+  [plasma.id]: fallback([http(chainsRpcUrls["Plasma"])]),
 };
 
 const config = getDefaultConfig({
@@ -66,7 +68,19 @@ const config = getDefaultConfig({
   appUrl: metadata.url,
   appIcon: metadata.icons[0],
   projectId,
-  chains: [mainnet, polygon, arbitrum, bsc, base, avalanche, optimism, gnosis, berachain, xLayer],
+  chains: [
+    mainnet,
+    polygon,
+    arbitrum,
+    bsc,
+    base,
+    avalanche,
+    optimism,
+    gnosis,
+    berachain,
+    xLayer,
+    plasma
+  ],
   transports: {
     [mainnet.id]: RpcUrls[mainnet.id] || http(),
     [polygon.id]: RpcUrls[polygon.id] || http(),
@@ -78,6 +92,7 @@ const config = getDefaultConfig({
     [gnosis.id]: RpcUrls[gnosis.id] || http(),
     [berachain.id]: RpcUrls[berachain.id] || http(),
     [xLayer.id]: RpcUrls[xLayer.id] || http(),
+    [plasma.id]: RpcUrls[plasma.id] || http(),
   },
 });
 const connectors: any = connectorsForWallets(

@@ -7,6 +7,7 @@ import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services";
+import { TRON_RENTAL_FEE } from "@/config/tron";
 
 export const BridgeFee = [
   {
@@ -30,41 +31,9 @@ class OneClickService {
       }
     });
   }
-  public async quote(params: {
-    wallet: any,
-    fromToken: any,
-    toToken: any,
-    dry: boolean;
-    slippageTolerance: number;
-    originAsset: string;
-    destinationAsset: string;
-    amount: string;
-    refundTo: string;
-    refundType: "ORIGIN_CHAIN";
-    recipient: string;
-    connectedWallets?: string[];
-    prices: Record<string, string>;
-  }) {
-    const res = await this.api.post("/quote", {
-      depositMode: "SIMPLE",
-      swapType: "EXACT_INPUT",
-      depositType: "ORIGIN_CHAIN",
-      sessionId: `session_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 9)}`,
-      recipientType: "DESTINATION_CHAIN",
-      deadline: new Date(Date.now() + this.offsetTime).toISOString(),
-      quoteWaitingTimeMs: 3000,
-      appFees: BridgeFee,
-      referral: "stableflow",
-      ...params,
-      // delete params
-      wallet: void 0,
-      fromToken: void 0,
-      toToken: void 0,
-      prices: void 0,
-      amountWei: void 0,
-    });
+
+  public async formatQuoteData(res: { data: any; params: any; }) {
+    const { params } = res;
 
     if (res.data) {
       // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
@@ -94,11 +63,12 @@ class OneClickService {
         };
 
         try {
-          const sourceGasFee = await params.wallet.estimateTransferGas({
-            originAsset: params.fromToken.contractAddress,
-            depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-            amount: params.amount,
-          });
+          // const sourceGasFee = await params.wallet.estimateTransferGas({
+          //   originAsset: params.fromToken.contractAddress,
+          //   depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+          //   amount: params.amount,
+          // });
+          const sourceGasFee = { estimateGas: Big(TRON_RENTAL_FEE.Normal).times(10 ** params.fromToken.nativeToken.decimals) };
           const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
@@ -162,6 +132,49 @@ class OneClickService {
     return res.data || {};
   }
 
+  public async quote(params: {
+    wallet: any,
+    fromToken: any,
+    toToken: any,
+    dry: boolean;
+    slippageTolerance: number;
+    originAsset: string;
+    destinationAsset: string;
+    amount: string;
+    refundTo: string;
+    refundType: "ORIGIN_CHAIN";
+    recipient: string;
+    connectedWallets?: string[];
+    prices: Record<string, string>;
+  }) {
+    const res = await this.api.post("/quote", {
+      depositMode: "SIMPLE",
+      swapType: "EXACT_INPUT",
+      depositType: "ORIGIN_CHAIN",
+      sessionId: `session_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`,
+      recipientType: "DESTINATION_CHAIN",
+      deadline: new Date(Date.now() + this.offsetTime).toISOString(),
+      quoteWaitingTimeMs: 3000,
+      appFees: BridgeFee,
+      referral: "stableflow",
+      ...params,
+      // delete params
+      wallet: void 0,
+      fromToken: void 0,
+      toToken: void 0,
+      prices: void 0,
+      amountWei: void 0,
+      needsEnergy: void 0,
+      needsEnergyAmount: void 0,
+      needsBandwidth: void 0,
+      needsBandwidthTRX: void 0,
+    });
+
+    return this.formatQuoteData({ data: res.data, params });
+  }
+
   public async send(params: any) {
     const {
       wallet,
@@ -203,6 +216,23 @@ class OneClickService {
     } catch (error) {
       console.error("oneclick get status failed: %o", error);
       return { status: "PENDING_DEPOSIT" };
+    }
+  }
+
+  public async getStatusData(params: {
+    depositAddress: string;
+  }): Promise<any> {
+    try {
+      const response = await this.api.get("/status", { params });
+
+      if (response.status !== 200 || !response.data) {
+        return null;
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("oneclick get status data failed: %o", error);
+      return null;
     }
   }
 }
