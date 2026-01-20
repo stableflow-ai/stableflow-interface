@@ -100,6 +100,58 @@ export const LZ_RECEIVE_VALUE: Record<string, any> = {
   Solana: 2039280,
 };
 
+// https://docs.layerzero.network/v2/developers/evm/tooling/layerzeroscan#transaction-statuses
+// https://scan.layerzero-api.com/v1/swagger
+export const LzScanStatus = {
+  // The message has been successfully sent and received by the destination chain.
+  Delivered: "DELIVERED",
+  // The message is currently being transmitted between chains and has not yet reached its destination.
+  InFlight: "INFLIGHT",
+  // The message arrived at the destination, but reverted or ran out of gas during execution and needs to be retried.
+  PayloadStored: "PAYLOAD_STORED",
+  // The transaction encountered an error and did not complete.
+  Failed: "FAILED",
+  // A previous message nonce has a stored payload, halting the current transaction.
+  Blocked: "BLOCKED",
+  // The system is validating the finality of a transaction amidst potential high gas replacements or block reorgs.
+  Confirming: "CONFIRMING",
+  ApplicationBurned: "APPLICATION_BURNED",
+  ApplicationSkipped: "APPLICATION_SKIPPED",
+  UnresolvableCommand: "UNRESOLVABLE_COMMAND",
+  MalformedCommand: "MALFORMED_COMMAND",
+};
+
+export type LzScanStatus = (typeof LzScanStatus)[keyof typeof LzScanStatus];
+
+export const LzScanSourceStatus = {
+  Waiting: "WAITING",
+  ValidatingTx: "VALIDATING_TX",
+  Succeeded: "SUCCEEDED",
+  WaitingForHashDelivered: "WAITING_FOR_HASH_DELIVERED",
+  UnresolvableCommand: "UNRESOLVABLE_COMMAND",
+  MalformedCommand: "MALFORMED_COMMAND",
+};
+export type LzScanSourceStatus = (typeof LzScanSourceStatus)[keyof typeof LzScanSourceStatus];
+
+export const LzScanDestinationStatus = {
+  Waiting: "WAITING",
+  ValidatingTx: "VALIDATING_TX",
+  Succeeded: "SUCCEEDED",
+  PayloadStored: "PAYLOAD_STORED",
+};
+export type LzScanDestinationStatus = (typeof LzScanDestinationStatus)[keyof typeof LzScanDestinationStatus];
+
+export const LzScanLzComposeStatus = {
+  Waiting: "WAITING",
+  ValidatingTx: "VALIDATING_TX",
+  Succeeded: "SUCCEEDED",
+  NA: "N/A",
+  Failed: "FAILED",
+  SimulatedReverted: "SIMULATION_REVERTED",
+  WaitingForComposeSentEvent: "WAITING_FOR_COMPOSE_SENT_EVENT",
+};
+export type LzScanLzComposeStatus = (typeof LzScanLzComposeStatus)[keyof typeof LzScanLzComposeStatus];
+
 // USDT0 DVN count (fixed value)
 export const USDT0_DVN_COUNT = 2;
 
