@@ -7,7 +7,6 @@ import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services";
-import { TRON_RENTAL_FEE } from "@/config/tron";
 
 export const BridgeFee = [
   {
@@ -46,11 +45,7 @@ class OneClickService {
       }
 
       res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
-      res.data.outputAmount = numberRemoveEndZero(
-        Big(res.data?.quote?.amountOut || 0)
-          .div(10 ** params.toToken.decimals)
-          .toFixed(params.toToken.decimals, 0)
-      );
+      res.data.outputAmount = numberRemoveEndZero(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
       let priceImpact = Big(0);
       try {
         priceImpact = Big(Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0)).div(res.data?.quote?.amountInUsd || 1);
@@ -92,7 +87,10 @@ class OneClickService {
           //   depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
           //   amount: params.amount,
           // });
-          const sourceGasFee = { estimateGas: Big(TRON_RENTAL_FEE.Normal).times(10 ** params.fromToken.nativeToken.decimals) };
+          let sourceGasFee = { estimateGas: Big(params.needsBandwidthTRX).times(10 ** params.fromToken.nativeToken.decimals) };
+          if (params.needsEnergy) {
+            sourceGasFee.estimateGas = Big(sourceGasFee.estimateGas).plus(Big(params.needsEnergyAmount).times(10 ** params.fromToken.nativeToken.decimals));
+          }
           const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
