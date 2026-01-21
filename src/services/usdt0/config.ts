@@ -12,6 +12,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "ethereum",
     blockTime: 12, // Ethereum average block time ~12 seconds
     confirmations: 15, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
   },
   Arbitrum: {
     contractAddress: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
@@ -22,6 +24,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "arbitrum",
     blockTime: 0.25, // Arbitrum average block time ~0.25 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
   },
   Polygon: {
     contractAddress: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
@@ -30,6 +34,9 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "polygon",
     blockTime: 2, // Polygon average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com 
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
   },
   Optimism: {
     contractAddress: "0x01bFF41798a0BcF287b996046Ca68b395DbC1071",
@@ -38,6 +45,9 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "optimism",
     blockTime: 2, // Optimism average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
   },
   Berachain: {
     contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
@@ -47,6 +57,9 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "berachain",
     blockTime: 2, // Optimism average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
   },
   Solana: {
     contractAddress: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
@@ -55,6 +68,9 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "solana",
     blockTime: 0.4, // Solana average block time ~0.4 seconds
     confirmations: 32, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 200000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 500000,
   },
   Tron: {
     contractAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
@@ -63,6 +79,9 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "tron",
     blockTime: 3, // Tron average block time ~3 seconds
     confirmations: 5, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 300000,
+    lzReceiveOptionGasLegacy: 300000,
+    composeOptionGas: 500000,
   },
   "X Layer": {
     contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
@@ -77,7 +96,66 @@ export const USDT0_CONFIG: Record<string, any> = {
   },
 };
 
+export const LZ_RECEIVE_VALUE: Record<string, any> = {
+  Solana: 2039280,
+};
+
+// https://docs.layerzero.network/v2/developers/evm/tooling/layerzeroscan#transaction-statuses
+// https://scan.layerzero-api.com/v1/swagger
+export const LzScanStatus = {
+  // The message has been successfully sent and received by the destination chain.
+  Delivered: "DELIVERED",
+  // The message is currently being transmitted between chains and has not yet reached its destination.
+  InFlight: "INFLIGHT",
+  // The message arrived at the destination, but reverted or ran out of gas during execution and needs to be retried.
+  PayloadStored: "PAYLOAD_STORED",
+  // The transaction encountered an error and did not complete.
+  Failed: "FAILED",
+  // A previous message nonce has a stored payload, halting the current transaction.
+  Blocked: "BLOCKED",
+  // The system is validating the finality of a transaction amidst potential high gas replacements or block reorgs.
+  Confirming: "CONFIRMING",
+  ApplicationBurned: "APPLICATION_BURNED",
+  ApplicationSkipped: "APPLICATION_SKIPPED",
+  UnresolvableCommand: "UNRESOLVABLE_COMMAND",
+  MalformedCommand: "MALFORMED_COMMAND",
+};
+
+export type LzScanStatus = (typeof LzScanStatus)[keyof typeof LzScanStatus];
+
+export const LzScanSourceStatus = {
+  Waiting: "WAITING",
+  ValidatingTx: "VALIDATING_TX",
+  Succeeded: "SUCCEEDED",
+  WaitingForHashDelivered: "WAITING_FOR_HASH_DELIVERED",
+  UnresolvableCommand: "UNRESOLVABLE_COMMAND",
+  MalformedCommand: "MALFORMED_COMMAND",
+};
+export type LzScanSourceStatus = (typeof LzScanSourceStatus)[keyof typeof LzScanSourceStatus];
+
+export const LzScanDestinationStatus = {
+  Waiting: "WAITING",
+  ValidatingTx: "VALIDATING_TX",
+  Succeeded: "SUCCEEDED",
+  PayloadStored: "PAYLOAD_STORED",
+};
+export type LzScanDestinationStatus = (typeof LzScanDestinationStatus)[keyof typeof LzScanDestinationStatus];
+
+export const LzScanLzComposeStatus = {
+  Waiting: "WAITING",
+  ValidatingTx: "VALIDATING_TX",
+  Succeeded: "SUCCEEDED",
+  NA: "N/A",
+  Failed: "FAILED",
+  SimulatedReverted: "SIMULATION_REVERTED",
+  WaitingForComposeSentEvent: "WAITING_FOR_COMPOSE_SENT_EVENT",
+};
+export type LzScanLzComposeStatus = (typeof LzScanLzComposeStatus)[keyof typeof LzScanLzComposeStatus];
+
 // USDT0 DVN count (fixed value)
 export const USDT0_DVN_COUNT = 2;
 
 export const USDT0_LEGACY_FEE = 0.0001; // 0.01%, 10000 usdt cost 1 usdt
+export const USDT0_LEGACY_MESH_TRANSFTER_FEE = 0.0003; // 0.03% https://docs.usdt0.to/tutorial/how-to-transfer#usdt0
+export const DATA_HEX_PROTOBUF_EXTRA = 3;
+export const SIGNATURE_SIZE = 67;

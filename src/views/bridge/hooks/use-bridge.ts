@@ -24,6 +24,7 @@ import { BASE_API_URL } from "@/config/api";
 import { BridgeFees, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
+import { useAccount } from "wagmi";
 
 const TRANSFER_MIN_AMOUNT = 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -44,6 +45,7 @@ export default function useBridge(props?: any) {
   const bridgeStore = useBridgeStore();
   const { getBalance } = useTokenBalance(walletStore.fromToken, false);
   const balancesStore = useBalancesStore();
+  const evmAccount = useAccount();
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
   const [liquidityErrorMssage, setLiquidityErrorMessage] = useState<boolean>();
@@ -844,7 +846,10 @@ export default function useBridge(props?: any) {
       }
       if (
         walletStore.fromToken?.chainType === "evm" &&
-        walletStore.fromToken?.chainId !== wallets.evm?.chainId
+        (
+          walletStore.fromToken?.chainId !== wallets.evm?.chainId ||
+          (evmAccount && walletStore.fromToken?.chainId !== evmAccount.chainId)
+        )
       ) {
         setErrorChain(walletStore.fromToken.chainId);
       } else {
@@ -889,7 +894,8 @@ export default function useBridge(props?: any) {
     fromWalletAddress,
     toWalletAddress,
     wallets.evm?.chainId,
-    liquidityErrorMssage
+    liquidityErrorMssage,
+    evmAccount?.chainId,
   ]);
 
   useEffect(() => {

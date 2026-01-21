@@ -20,18 +20,19 @@ export function usePendingHistory(history?: any) {
   });
 
   const accounts = useMemo(() => {
-    return Object.values(wallets ?? {}).map((wallet) => wallet.account).filter((account) => !!account);
+    const _accounts = Object.values(wallets ?? {}).map((wallet) => wallet.account).filter((account) => !!account);
+    return _accounts;
   }, [wallets]);
 
-  const { runAsync: getList, loading } = useRequest(async (params: any) => {
+  const { runAsync: getList, loading } = useRequest(async (params?: any) => {
     try {
       const response = await axios({
         url: `${BASE_API_URL}/v1/trades`,
         params: {
           type: 0,
           status: "pending",
-          address: params.address,
-          page: params.page,
+          address: params?.address ?? accounts.join(","),
+          page: params?.page ?? page.current,
           page_size: page.size,
         },
         method: "GET",
@@ -64,7 +65,7 @@ export function usePendingHistory(history?: any) {
       setList((prev: any) => {
         if (_list.length < prev.length) {
           history?.getList?.({
-            address: params.address,
+            address: params?.address ?? accounts.join(","),
             page: history.page.current,
           });
         }
@@ -74,7 +75,7 @@ export function usePendingHistory(history?: any) {
       setPage((prev: any) => {
         return {
           ...prev,
-          current: params.page,
+          current: params?.page ?? page.current,
           total: response.data.data.total,
           totalPage: response.data.data.total_page,
         };
@@ -171,5 +172,6 @@ export function usePendingHistory(history?: any) {
     list,
     page,
     loading,
+    getList,
   };
 }

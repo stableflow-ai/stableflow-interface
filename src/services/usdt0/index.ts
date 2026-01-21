@@ -104,6 +104,8 @@ class Usdt0Service {
         isMultiHopComposer,
         isOriginLegacy,
         isDestinationLegacy,
+        originLayerzero,
+        destinationLayerzero,
       });
 
       result.estimateTime = estimateTime;
@@ -146,6 +148,8 @@ class Usdt0Service {
         isMultiHopComposer,
         isOriginLegacy,
         isDestinationLegacy,
+        originLayerzero,
+        destinationLayerzero,
       });
 
       result.estimateTime = estimateTime;
@@ -172,7 +176,11 @@ class Usdt0Service {
         isMultiHopComposer,
         isOriginLegacy,
         isDestinationLegacy,
+        originLayerzero,
+        destinationLayerzero,
       });
+
+      result.estimateTime = estimateTime;
 
       return result;
     }
@@ -188,8 +196,25 @@ class Usdt0Service {
   }
 
   public async getStatus(params: any): Promise<{ status: string; toTxHash?: string }> {
+    const { hash, history, fromWallet } = params;
+    const result = { status: "PENDING_DEPOSIT" };
+
+    // If it's Tron, get the transaction status first
+    if (history?.fromToken?.chainType === "tron" && fromWallet) {
+      const response = await fromWallet.getTransactionResult(hash);
+
+      if (!response || !response.receipt || !response.receipt.result) {
+        return result;
+      }
+
+      if (response.receipt.result !== "SUCCESS") {
+        result.status = "FAILED";
+        return result;
+      }
+    }
+
     try {
-      const txhash = /^0x/.test(params.hash) ? params.hash : `0x${params.hash}`;
+      const txhash = history?.fromToken?.chainType === "tron" ? `0x${hash}` : hash;
       const response = await axios({
         url: `https://scan.layerzero-api.com/v1/messages/tx/${txhash}`,
         method: "GET",
@@ -198,10 +223,10 @@ class Usdt0Service {
           "Content-Type": "application/json"
         },
       });
-      const result = response.data.data[0];
+      const data = response.data.data[0];
       // INFLIGHT | CONFIRMING | DELIVERED | BLOCKED | FAILED
-      const status = result.status.name;
-      const toTxHash = result.destination?.tx?.txHash;
+      const status = data.status.name;
+      const toTxHash = data.destination?.tx?.txHash;
       let finalStatus = "PENDING_DEPOSIT";
       if (status === "DELIVERED") {
         finalStatus = "SUCCESS";
@@ -219,6 +244,26 @@ class Usdt0Service {
       return {
         status: "PENDING_DEPOSIT",
       };
+    }
+  }
+
+  public async getLayerzeroData(params: any) {
+    const { tx_hash, from_chain } = params;
+
+    try {
+      const txhash = from_chain === "tron" ? `0x${tx_hash}` : tx_hash;
+      const response = await axios({
+        url: `https://scan.layerzero-api.com/v1/messages/tx/${txhash}`,
+        method: "GET",
+        timeout: 30000,
+        headers: {
+          "Content-Type": "application/json"
+        },
+      });
+      return response.data.data[0];
+    } catch (error) {
+      console.error("usdt0 get status failed: %o", error);
+      return null;
     }
   }
 }

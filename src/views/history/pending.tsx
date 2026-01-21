@@ -2,13 +2,70 @@ import { formatAddress } from "@/utils/format/address";
 import clsx from "clsx";
 import dayjs from "dayjs";
 import { formatNumber } from "@/utils/format/number";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useHistoryStore } from "@/stores/use-history";
+import { TradeProject, TradeProjectMap } from "@/config/trade";
+import usdt0Service from "@/services/usdt0";
+import { useDebounceFn, useRequest } from "ahooks";
+import useWalletsStore from "@/stores/use-wallets";
+import useToast from "@/hooks/use-toast";
+import { useAccount, useSwitchChain } from "wagmi";
+import { arbitrum } from "viem/chains";
+import Loading from "@/components/loading/icon";
 
 export default function Pending(props: any) {
   const { className, isTitle = true, contentClassName, history } = props;
 
+  const wallets = useWalletsStore();
+  const toast = useToast();
+  const evmAccount = useAccount();
+  const { switchChain } = useSwitchChain();
+
   const pendingLength = history.page.total || history.list.length;
+
+  const [layerzeroDataMap, setLayerzeroDataMap] = useState<any>();
+  const { run: getLayerzeroData, cancel: cancelGetLayerzeroData } = useDebounceFn(async () => {
+    if (!history.list.length) return;
+    const layerzeroHistory = history.list.filter((_history: any) => _history.project === TradeProject.USDT0);
+    if (!layerzeroHistory.length) return;
+    const layerzeroData = await Promise.all(layerzeroHistory.map((_history: any) => {
+      return usdt0Service.getLayerzeroData(_history);
+    }));
+
+    const _layerzeroDataMap: any = {};
+    layerzeroHistory.forEach((_history: any, index: number) => {
+      const currentLayerzeroData = layerzeroData[index];
+      if (!currentLayerzeroData) return;
+      // SIMULATION_REVERTED
+      const needRetry = !!currentLayerzeroData.destination?.lzCompose &&
+        !!currentLayerzeroData.destination?.lzCompose?.status &&
+        currentLayerzeroData.destination.lzCompose.status !== "N/A" &&
+        currentLayerzeroData.destination.lzCompose.status !== "SUCCEEDED" &&
+        currentLayerzeroData.destination?.lzCompose?.failedTx?.length > 0 &&
+        currentLayerzeroData.source?.tx?.payload;
+      _layerzeroDataMap[_history.deposit_address] = {
+        ...currentLayerzeroData,
+        needRetry,
+      };
+    });
+
+    setLayerzeroDataMap(_layerzeroDataMap);
+  }, { wait: 1000 });
+
+  const layerzeroHistoryKey = useMemo(() => {
+    if (!history.list.length) return "";
+    const layerzeroHistory = history.list.filter((_history: any) => _history.project === TradeProject.USDT0);
+    return layerzeroHistory.map((_history: any) => _history.deposit_address).sort().join(",");
+  }, [history.list]);
+
+  useEffect(() => {
+    cancelGetLayerzeroData();
+    getLayerzeroData();
+
+    return () => {
+      cancelGetLayerzeroData();
+    };
+  }, [layerzeroHistoryKey]);
 
   return (
     <div className={clsx("mt-[12px] rounded-[12px] px-[15px] md:px-[30px] pt-[20px] pb-[30px] bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)]", className)}>
@@ -24,6 +81,12 @@ export default function Pending(props: any) {
           <PendingItem
             key={index}
             data={item}
+            layerzeroData={layerzeroDataMap?.[item.deposit_address]}
+            wallets={wallets}
+            toast={toast}
+            evmAccount={evmAccount}
+            switchChain={switchChain}
+            getList={history.getList}
           />
         ))}
       </div>
@@ -36,8 +99,10 @@ export default function Pending(props: any) {
   );
 }
 
-const PendingItem = ({ className, data }: any) => {
+const PendingItem = ({ className, data, layerzeroData, wallets, toast, evmAccount, switchChain, getList }: any) => {
   const historyStore = useHistoryStore();
+
+  const wallet = wallets["evm"];
 
   const duration = useMemo(() => {
     const currentHistory = historyStore.history[data.deposit_address];
@@ -53,9 +118,87 @@ const PendingItem = ({ className, data }: any) => {
     return `${Math.floor(currentHistory.timeEstimate / 3600)} hour${currentHistory.timeEstimate / 3600 > 1 ? "s" : ""}`;
   }, [data.deposit_address, historyStore.history]);
 
+  const buttonText = useMemo(() => {
+    if (!wallet?.account) {
+      return "Connect Wallet";
+    }
+    if (evmAccount && evmAccount.chainId !== arbitrum.id) {
+      return "Switch to Arbitrum";
+    }
+    return "Retry";
+  }, [evmAccount, wallet?.account]);
+
+  const { runAsync: handleRetry, loading: retryLoading } = useRequest(async () => {
+    if (!wallet?.account) {
+      wallet.connect();
+      return;
+    }
+    if (evmAccount && evmAccount.chainId !== arbitrum.id) {
+      switchChain({ chainId: arbitrum.id });
+      return;
+    }
+
+    try {
+      const txhash = await wallet.wallet.retryLayerzeroLzComponse({
+        layerzeroData,
+        history: data,
+      });
+      if (txhash) {
+        toast.success({
+          title: "Retry layerzero lz compose success",
+        });
+      } else {
+        toast.fail({
+          title: "Retry layerzero lz compose failed",
+        });
+      }
+    } catch (error: any) {
+      console.log("retry layerzero lz compose failed: %o", error);
+      let errorMessage = error.message;
+      if (errorMessage.includes("user rejected action")) {
+        errorMessage = "User rejected transaction";
+      }
+      toast.fail({
+        title: "Retry layerzero lz compose failed",
+        text: errorMessage.slice(0, 100) + (errorMessage.length > 100 ? "..." : ""),
+      });
+    }
+
+    // after retry, refresh the pending list
+    getList?.();
+  }, {
+    manual: true,
+  });
+
   return (
     <div className={clsx("w-full md:w-[300px] bg-[#EDF0F7] rounded-[12px]", className)}>
-      <div className="rounded-[12px] bg-white border border-[#EDF0F7] p-[12px]">
+      <div className="rounded-[12px] bg-white border border-[#EDF0F7] p-[12px] pt-[6px]">
+        <div className="mb-2 flex justify-between items-center">
+          <img
+            src={TradeProjectMap[data.project]?.logo}
+            alt=""
+            className="w-[62px] h-[16px] object-center object-contain shrink-0"
+          />
+          {
+            layerzeroData?.needRetry && (
+              <button
+                type="button"
+                className="leading-[100%] button flex justify-center items-center gap-1 text-[12px] font-[500] bg-[#6284F5] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-white px-2 py-1 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed duration-150"
+                onClick={handleRetry}
+                disabled={retryLoading}
+              >
+                {
+                  retryLoading && (
+                    <Loading size={12} />
+                  )
+                }
+                <div className="">
+                  {buttonText}
+                </div>
+              </button>
+            )
+          }
+        </div>
         <div className="flex items-center gap-[10px]">
           <img
             src={data.token_icon}
@@ -123,7 +266,7 @@ const PendingItem = ({ className, data }: any) => {
           />
         </div>
       </div>
-      <div className="h-[30px] text-[12px] font-[400] text-center leading-[30px]">
+      <div className="h-[30px] text-[12px] font-[400] text-center leading-[30px] flex justify-center items-center">
         {dayjs(data.create_time).format("MMM D, YYYY h:mm A")}
       </div>
     </div>

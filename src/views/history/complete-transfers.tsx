@@ -81,17 +81,21 @@ const CompleteTransferItem = ({ data, isMobile, reload }: any) => {
             className="w-[12px] h-[12px] absolute bottom-[-2px] right-[-4px] z-[1] object-center object-contain"
           />
         </div>
-        <button
-          className="text-[14px] font-[500] underline button"
-          onClick={() => {
-            window.open(
-              `${data.source_chain?.blockExplorerUrl}/${data.tx_hash}`,
-              "_blank"
-            );
-          }}
-        >
-          Tx
-        </button>
+        {
+          !!data.tx_hash && (
+            <button
+              className="text-[14px] font-[500] underline button"
+              onClick={() => {
+                window.open(
+                  `${data.source_chain?.blockExplorerUrl}/${data.tx_hash}`,
+                  "_blank"
+                );
+              }}
+            >
+              Tx
+            </button>
+          )
+        }
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="5"
