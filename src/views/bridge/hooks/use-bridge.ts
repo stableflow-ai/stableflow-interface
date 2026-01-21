@@ -21,7 +21,7 @@ import { Service } from "@/services";
 import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
 import { BASE_API_URL } from "@/config/api";
-import { BridgeFees, TRON_RENTAL_FEE, TronTransferStepStatus } from "@/config/tron";
+import { BridgeFees, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
 
@@ -102,6 +102,8 @@ export default function useBridge(props?: any) {
         throw new Error("Request cancelled: outdated request");
       }
       bridgeStore.setQuoting(service, true);
+      const isFromTron = walletStore.fromToken.chainType === "tron";
+
       if (service === Service.OneClick) {
         setLiquidityErrorMessage(liquidityError);
       }
@@ -125,8 +127,8 @@ export default function useBridge(props?: any) {
           _params.amount = params.amountWei;
           _params.refundType = "ORIGIN_CHAIN";
 
-          if (walletStore.fromToken.chainType === "tron") {
-            const { needsEnergy, needsBandwidth, needsBandwidthTRX } = await getEstimateNeedsEnergy({
+          if (isFromTron) {
+            const { needsEnergy, needsBandwidth, needsBandwidthTRX, needsEnergyTRX } = await getEstimateNeedsEnergy({
               wallet: params.wallet,
               account: fromWalletAddress || "",
             });
@@ -134,7 +136,7 @@ export default function useBridge(props?: any) {
             _params.needsBandwidth = needsBandwidth;
             _params.needsBandwidthTRX = needsBandwidthTRX;
             if (needsEnergy) {
-              _params.needsEnergyAmount = TRON_RENTAL_FEE.Normal;
+              _params.needsEnergyAmount = needsEnergyTRX;
             } else {
               const fixedFee = BridgeFees.Normal;
               const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
@@ -470,7 +472,7 @@ export default function useBridge(props?: any) {
           const estimateNeeds = await getEstimateNeedsEnergy(fromTronParams);
           needsEnergy = estimateNeeds.needsEnergy;
           needsBandwidth = estimateNeeds.needsBandwidth;
-          estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(needsBandwidth ? estimateNeeds.needsBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
+          estNativeTokenParams.estimateGas = Big(estimateNeeds.needsEnergyTRX).plus(needsBandwidth ? estimateNeeds.needsBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
           // estNativeTokenParams.estimateGas = Big(0).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);

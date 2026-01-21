@@ -52,6 +52,7 @@ export function useTronEnergy(props?: any) {
       availableEnergy,
       availableBandwidth,
       needsEnergy,
+      needsEnergyTRX: TRON_RENTAL_FEE.Normal,
       needsBandwidth,
       needsBandwidthAmount: estimatedBandwidth,
       needsBandwidthTRX: numberRemoveEndZero(Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6).toFixed(6)),
