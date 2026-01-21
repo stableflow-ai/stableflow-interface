@@ -475,7 +475,6 @@ export default function useBridge(props?: any) {
           needsEnergy = estimateNeeds.needsEnergy;
           needsBandwidth = estimateNeeds.needsBandwidth;
           estNativeTokenParams.estimateGas = Big(needsEnergy ? estimateNeeds.needsEnergyTRX : 0).plus(needsBandwidth ? estimateNeeds.needsBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
-          // estNativeTokenParams.estimateGas = Big(0).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
         if (!isContinue) {
