@@ -126,8 +126,9 @@ export default function useBridge(props?: any) {
           _params.destinationAsset = walletStore.toToken.assetId;
           _params.amount = params.amountWei;
           _params.refundType = "ORIGIN_CHAIN";
+          _params.acceptTronEnergy = bridgeStore.acceptTronEnergy;
 
-          if (isFromTron) {
+          if (isFromTron && bridgeStore.acceptTronEnergy) {
             const { needsEnergy, needsBandwidth, needsBandwidthTRX, needsEnergyTRX } = await getEstimateNeedsEnergy({
               wallet: params.wallet,
               account: fromWalletAddress || "",
@@ -135,6 +136,7 @@ export default function useBridge(props?: any) {
             _params.needsEnergy = needsEnergy;
             _params.needsBandwidth = needsBandwidth;
             _params.needsBandwidthTRX = needsBandwidthTRX;
+            
             if (needsEnergy) {
               _params.needsEnergyAmount = needsEnergyTRX;
             } else {
@@ -468,11 +470,11 @@ export default function useBridge(props?: any) {
         };
         let needsEnergy = false;
         let needsBandwidth = false;
-        if (isFromTron) {
+        if (isFromTron && bridgeStore.acceptTronEnergy) {
           const estimateNeeds = await getEstimateNeedsEnergy(fromTronParams);
           needsEnergy = estimateNeeds.needsEnergy;
           needsBandwidth = estimateNeeds.needsBandwidth;
-          estNativeTokenParams.estimateGas = Big(estimateNeeds.needsEnergyTRX).plus(needsBandwidth ? estimateNeeds.needsBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
+          estNativeTokenParams.estimateGas = Big(needsEnergy ? estimateNeeds.needsEnergyTRX : 0).plus(needsBandwidth ? estimateNeeds.needsBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
           // estNativeTokenParams.estimateGas = Big(0).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
@@ -515,7 +517,7 @@ export default function useBridge(props?: any) {
           tx_hash: "",
         };
 
-        if (isFromTron) {
+        if (isFromTron && bridgeStore.acceptTronEnergy) {
           bridgeStore.setTronTransferVisible(true, { quoteData: _quote });
           if (needsEnergy) {
             await getEnergy(fromTronParams);
@@ -552,7 +554,7 @@ export default function useBridge(props?: any) {
 
         reportData.tx_hash = hash;
 
-        if (isFromTron) {
+        if (isFromTron && bridgeStore.acceptTronEnergy) {
           bridgeStore.setTronTransferStep(TronTransferStepStatus.Broadcasting);
 
           // polling transaction status

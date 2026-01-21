@@ -8,6 +8,7 @@ import ResultFeeItem from "./fee-item";
 import clsx from "clsx";
 import { Service } from "@/services";
 import { formatNumber } from "@/utils/format/number";
+import Checkbox from "@/components/checkbox";
 
 const LargeTransactionTip = "Large transactions can take a bit longer to process — usually no more than 3-5 minutes.";
 
@@ -110,7 +111,8 @@ const ResultOneClick = (props: any) => {
         )
       }
       {
-        _quoteData?.quoteParam?.needsEnergy && Big(_quoteData?.quoteParam?.needsEnergyAmount ?? 0).gt(0) && (
+        /* && _quoteData?.quoteParam?.needsEnergy && Big(_quoteData?.quoteParam?.needsEnergyAmount ?? 0).gt(0) */
+        _quoteData?.quoteParam?.fromToken?.chainType === "tron" && (
           <motion.div
             key="energy"
             className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
@@ -118,14 +120,15 @@ const ResultOneClick = (props: any) => {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
           >
-            <img
-              src="/icon-gas.svg"
-              alt=""
-              className="inline-block -translate-y-0.5 w-[14px] h-[14px] object-center object-contain shrink-0"
-            />
-            <span className="pl-1">
-              This transaction requires a <strong className="text-[#6284F5]">{formatNumber(_quoteData?.quoteParam?.needsEnergyAmount, 2, true)} TRX</strong> fee for energy rental.
-            </span>
+            <Checkbox
+              checked={bridgeStore.acceptTronEnergy}
+              checkedColor="#6284F5"
+              onChange={(checked) => {
+                bridgeStore.setAcceptTronEnergy(checked);
+              }}
+            >
+              Gas optimized: ~14 TRX saved via energy rental sponsorship.
+            </Checkbox>
           </motion.div>
         )
       }
