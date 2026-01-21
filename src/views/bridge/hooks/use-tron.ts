@@ -20,6 +20,7 @@ export function useTronEnergy(props?: any) {
   const { runAsync: getEstimateNeedsEnergy } = useRequest(async (params: { wallet: any; account: string; }) => {
     const accountResources = await params.wallet.getAccountResources({ account: params.account });
     let accountTRXBalance: any;
+
     try {
       accountTRXBalance = await params.wallet.getBalance({ symbol: "TRX" }, params.account);
       accountTRXBalance = numberRemoveEndZero(Big(accountTRXBalance || 0).div(10 ** 6).toFixed(6));
@@ -52,7 +53,7 @@ export function useTronEnergy(props?: any) {
       availableEnergy,
       availableBandwidth,
       needsEnergy,
-      needsEnergyTRX: TRON_RENTAL_FEE.Normal,
+      needsEnergyTRX: needsEnergy ? TRON_RENTAL_FEE.Normal : 0,
       needsBandwidth,
       needsBandwidthAmount: estimatedBandwidth,
       needsBandwidthTRX: numberRemoveEndZero(Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6).toFixed(6)),

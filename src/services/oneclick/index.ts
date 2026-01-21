@@ -90,10 +90,7 @@ class OneClickService {
             amount: params.amount,
           });
           if (params.acceptTronEnergy) {
-            sourceGasFee = { estimateGas: Big(params.needsBandwidthTRX).times(10 ** params.fromToken.nativeToken.decimals) };
-            if (params.needsEnergy) {
-              sourceGasFee.estimateGas = Big(sourceGasFee.estimateGas).plus(Big(params.needsEnergyAmount).times(10 ** params.fromToken.nativeToken.decimals));
-            }
+            sourceGasFee = { estimateGas: Big(Big(params.needsBandwidthTRX || 0).plus(params.needsEnergyAmount || 0)).times(10 ** params.fromToken.nativeToken.decimals) };
           }
 
           const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
