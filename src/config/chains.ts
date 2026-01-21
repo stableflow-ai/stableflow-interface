@@ -204,7 +204,7 @@ const chains = {
     chainIcon: "/chains/tron.png",
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
-    blockExplorerUrl: "https://tronscan.org/tx",
+    blockExplorerUrl: "https://tronscan.org/#/transaction",
     primaryColor: "#BC3221",
     nativeToken: {
       symbol: "TRX",
