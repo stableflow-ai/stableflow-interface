@@ -127,7 +127,7 @@ const ResultOneClick = (props: any) => {
                 bridgeStore.setAcceptTronEnergy(checked);
               }}
             >
-              Gas optimized: ~14 TRX saved via energy rental sponsorship.
+              Gas optimized: ~6 TRX saved via energy rental sponsorship.
             </Checkbox>
           </motion.div>
         )

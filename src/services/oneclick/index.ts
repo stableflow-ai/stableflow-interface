@@ -121,7 +121,7 @@ class OneClickService {
       }
 
       let proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
-      if (isFromTron && !params.acceptTronEnergy) {
+      if (isFromTron && params.acceptTronEnergy) {
         proxyAddress = "";
       }
       let proxyParams: any = {};
