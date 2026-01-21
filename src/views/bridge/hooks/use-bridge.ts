@@ -374,7 +374,7 @@ export default function useBridge(props?: any) {
       const nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
       const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
 
-      console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
+      console.log(`%cEstimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`, "background:#4D2FB2;color:#ffffff;");
 
       // Check if balance is sufficient
       if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
@@ -476,7 +476,7 @@ export default function useBridge(props?: any) {
           const estimateNeeds = await getEstimateNeedsEnergy(fromTronParams);
           needsEnergy = estimateNeeds.needsEnergy;
           needsBandwidth = estimateNeeds.needsBandwidth;
-          estNativeTokenParams.estimateGas = Big(needsEnergy ? estimateNeeds.needsEnergyTRX : 0).plus(needsBandwidth ? estimateNeeds.needsBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
+          estNativeTokenParams.estimateGas = Big(estimateNeeds.needsEnergyTRX).plus(estimateNeeds.needsBandwidthTRX).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
         if (!isContinue) {
