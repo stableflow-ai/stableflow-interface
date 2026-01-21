@@ -34,6 +34,8 @@ class OneClickService {
   public async formatQuoteData(res: { data: any; params: any; }) {
     const { params } = res;
 
+    const isFromTron = params.fromToken.chainType === "tron";
+
     if (res.data) {
       // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
       // If the calculated time exceeds 60 seconds, it is randomized between 40 and 45 seconds,
@@ -82,15 +84,18 @@ class OneClickService {
         };
 
         try {
-          // const sourceGasFee = await params.wallet.estimateTransferGas({
-          //   originAsset: params.fromToken.contractAddress,
-          //   depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-          //   amount: params.amount,
-          // });
-          let sourceGasFee = { estimateGas: Big(params.needsBandwidthTRX).times(10 ** params.fromToken.nativeToken.decimals) };
-          if (params.needsEnergy) {
-            sourceGasFee.estimateGas = Big(sourceGasFee.estimateGas).plus(Big(params.needsEnergyAmount).times(10 ** params.fromToken.nativeToken.decimals));
+          let sourceGasFee = await params.wallet.estimateTransferGas({
+            originAsset: params.fromToken.contractAddress,
+            depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+            amount: params.amount,
+          });
+          if (params.acceptTronEnergy) {
+            sourceGasFee = { estimateGas: Big(params.needsBandwidthTRX).times(10 ** params.fromToken.nativeToken.decimals) };
+            if (params.needsEnergy) {
+              sourceGasFee.estimateGas = Big(sourceGasFee.estimateGas).plus(Big(params.needsEnergyAmount).times(10 ** params.fromToken.nativeToken.decimals));
+            }
           }
+
           const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
@@ -115,7 +120,10 @@ class OneClickService {
         console.log("oneclick estimate failed: %o", error);
       }
 
-      const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
+      let proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
+      if (isFromTron && !params.acceptTronEnergy) {
+        proxyAddress = "";
+      }
       let proxyParams: any = {};
       if (proxyAddress) {
         proxyParams = {
@@ -195,6 +203,7 @@ class OneClickService {
       needsEnergyAmount: void 0,
       needsBandwidth: void 0,
       needsBandwidthTRX: void 0,
+      acceptTronEnergy: void 0,
     });
 
     return this.formatQuoteData({ data: res.data, params });
