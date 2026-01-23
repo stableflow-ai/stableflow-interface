@@ -8,7 +8,7 @@ import MainTitle from "@/components/main-title";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
-import NavigationMenu from "@/components/navigation-menu";
+import NavigationMenu, { menuItems } from "@/components/navigation-menu";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 
 export default function UserActions() {
@@ -305,29 +305,6 @@ const MobileMenuButton = ({ isOpen, onClick }: { isOpen: boolean; onClick: () =>
 const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const location = useLocation();
 
-  const menuItems = [
-    {
-      label: "Transfer",
-      path: "/",
-      isExternal: false
-    },
-    {
-      label: "Deposit",
-      path: "https://deposit.stableflow.ai/",
-      isExternal: true
-    },
-    {
-      label: "Developer",
-      path: "/developer",
-      isExternal: false
-    },
-    {
-      label: "Learn",
-      path: "/learn-more",
-      isExternal: false
-    }
-  ];
-
   return (
     <>
       {/* Backdrop */}
@@ -368,7 +345,7 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         </button>
         <div className="pt-[60px] pb-[20px] px-[20px]">
           <nav className="flex flex-col gap-[16px]">
-            {menuItems.map((item) => {
+            {menuItems.map((item, index) => {
               const isActive = item.path === "/" 
                 ? location.pathname === "/" 
                 : location.pathname.startsWith(item.path);
@@ -376,7 +353,7 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               if (item.isExternal) {
                 return (
                   <a
-                    key={item.label}
+                    key={index}
                     href={item.path}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -390,7 +367,7 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 
               return (
                 <Link
-                  key={item.label}
+                  key={index}
                   to={item.path}
                   onClick={onClose}
                   className={clsx(
