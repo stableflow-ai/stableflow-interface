@@ -67,7 +67,7 @@ const quotes = await SFA.getAllQuote({
   },
   {
     id: "execute",
-    label: "Execute a swap",
+    label: "Execute a quote",
     command: `import { SFA, Service } from 'stableflow-ai-sdk';
 
 const selectedQuote = quotes.find(q => q.quote && !q.error);
