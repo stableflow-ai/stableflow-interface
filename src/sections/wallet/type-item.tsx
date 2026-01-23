@@ -2,7 +2,7 @@ import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
 import Address from "./address";
-import Popover from "@/components/popover";
+import TipInfo from "@/components/tip-info";
 
 const LABEL = {
   evm: "EVM chains",
@@ -19,7 +19,7 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
 
   return (
     <div
-      className="button mx-[10px] py-[6px] flex justify-between items-center"
+      className="button pl-[10px] pr-[4px] py-[6px] flex justify-between items-center"
       onClick={() => {
         if (type === "evm" || !token) {
           return;
@@ -60,28 +60,14 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
           />
         )}
 
-        <span className="text-[16px] font-[500] flex items-center gap-[5px]">
+        <span className="text-[15px] font-[500] flex items-center gap-[5px] whitespace-nowrap">
           <span className="flex items-center gap-1">
             <span className="">{LABEL[type]}</span>
             {
               type === "evm" && (
-                <Popover
-                  content={(
-                    <div className="w-[170px] p-2 bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] rounded-[8px] text-[12px]">
-                      Ethereum and other EVM-compatible networks
-                    </div>
-                  )}
-                  trigger="Hover"
-                  placement="Top"
-                  contentClassName="!z-[52]"
-                  closeDelayDuration={0}
-                >
-                  <img
-                    src="/icon-info.svg"
-                    alt=""
-                    className="w-[16px] h-[16px] object-center object-contain shrink-0"
-                  />
-                </Popover>
+                <TipInfo>
+                  Ethereum and other EVM-compatible networks
+                </TipInfo>
               )
             }
           </span>
