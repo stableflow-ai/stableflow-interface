@@ -1,11 +1,12 @@
+import { DiscordLink, GithubLink } from "../config";
 import { ExternalLinkIcon } from "./icons";
 
 export function Footer() {
   const links = [
-    { label: "API Reference", href: "#" },
-    { label: "Integration Guide", href: "#" },
-    { label: "GitHub", href: "#", external: true },
-    { label: "Contact Support", href: "#" },
+    { label: "API Reference", href: "/developer/documentation#core-functions-v20" },
+    { label: "Integration Guide", href: "/developer/documentation#api-configuration" },
+    { label: "GitHub", href: GithubLink, external: true },
+    { label: "Contact Support", href: DiscordLink, external: true },
   ];
 
   return (
@@ -15,6 +16,7 @@ export function Footer() {
           <a
             key={index}
             href={link.href}
+            target="_blank"
             className="text-sm text-[#9FA7BA] hover:text-[#2B3337] transition-colors flex items-center gap-1"
           >
             {link.label}
