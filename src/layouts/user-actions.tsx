@@ -28,9 +28,17 @@ export default function UserActions() {
     return pathname.pathname === "/overview";
   }, [pathname]);
 
+  const isDeveloper = useMemo(() => {
+    return /^\/developer/.test(pathname.pathname);
+  }, [pathname]);
+
   const hideActions = useMemo(() => {
     return pathname.pathname === "/developer" || pathname.pathname === "/learn-more";
   }, [pathname]);
+
+  if (isDeveloper) {
+    return null;
+  }
 
   return (
     <>
@@ -89,16 +97,16 @@ export default function UserActions() {
             </>
           )}
           {/* Mobile menu button */}
-          <MobileMenuButton 
-            isOpen={mobileMenuOpen} 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+          <MobileMenuButton
+            isOpen={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           />
         </div>
       </div>
       {/* Mobile menu drawer */}
-      <MobileMenuDrawer 
-        isOpen={mobileMenuOpen} 
-        onClose={() => setMobileMenuOpen(false)} 
+      <MobileMenuDrawer
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
       />
     </>
   );
@@ -209,27 +217,27 @@ const ChainsButton = ({
   // Get the list of chains to display
   const chainsToDisplay = useMemo(() => {
     const allChains = Object.entries(stablecoinWithChains);
-    
+
     if (!isMobile) {
       // Desktop: show all chains
       return allChains;
     }
-    
+
     // Mobile: prioritize EVM, if EVM is not connected, show other connected wallet
     if (walletsStore.evm?.account) {
       // EVM is connected, show EVM
       return allChains.filter(([chain]) => chain === 'evm');
     }
-    
+
     // EVM is not connected, find other connected wallet
-    const connectedChain = allChains.find(([chain]) => 
+    const connectedChain = allChains.find(([chain]) =>
       walletsStore?.[chain as WalletType]?.account
     );
-    
+
     if (connectedChain) {
       return [connectedChain];
     }
-    
+
     // None connected, default to first one (EVM)
     return allChains.slice(0, 1);
   }, [isMobile, walletsStore.evm?.account, walletsStore.sol?.account, walletsStore.near?.account, walletsStore.tron?.account]);
@@ -364,8 +372,8 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         <div className="pt-[60px] pb-[20px] px-[20px]">
           <nav className="flex flex-col gap-[16px]">
             {menuItems.map((item) => {
-              const isActive = item.path === "/" 
-                ? location.pathname === "/" 
+              const isActive = item.path === "/"
+                ? location.pathname === "/"
                 : location.pathname.startsWith(item.path);
 
               if (item.isExternal) {
@@ -390,8 +398,8 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                   onClick={onClose}
                   className={clsx(
                     "text-[16px] font-[500] transition-colors duration-200 py-[8px] relative",
-                    isActive 
-                      ? "text-[#2B3337]" 
+                    isActive
+                      ? "text-[#2B3337]"
                       : "text-[#2B3337]/70 hover:text-[#2B3337]"
                   )}
                 >

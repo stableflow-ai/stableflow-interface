@@ -8,7 +8,6 @@ import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy, useEffect, Suspense } from "react";
-import Developer from "./views/developer";
 import ErrorPage from "./views/error";
 import { usePrices } from "./hooks/use-prices";
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -19,6 +18,8 @@ const LearnMore = lazy(() => import("./views/learn-more"));
 const Apply = lazy(() => import("./views/apply"));
 const Privacy = lazy(() => import("./views/policy/privacy"));
 const TermsOfService = lazy(() => import("./views/policy/terms-of-service"));
+const Developer = lazy(() => import("./views/developer"));
+const DeveloperMD = lazy(() => import("./views/developer/md"));
 
 const TronEnergyModal = lazy(() => import("./views/bridge/components/tron-energy/modal"));
 
@@ -46,7 +47,16 @@ const router = createBrowserRouter([
       },
       {
         path: "developer",
-        element: <Developer />
+        children: [
+          {
+            index: true,
+            element: <Developer />
+          },
+          {
+            path: "documentation",
+            element: <DeveloperMD />,
+          }
+        ]
       },
       {
         path: "privacy-policy",
