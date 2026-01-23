@@ -16,7 +16,7 @@ export function Header() {
             Documentation
           </a>
           <a
-            href="/developer/documentation#api-configuration"
+            href="/developer/documentation#core-functions-v20"
             target="_blank"
             className="text-sm text-[#9FA7BA] hover:text-[#2B3337] transition-colors"
           >
