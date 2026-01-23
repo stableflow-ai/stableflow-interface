@@ -11,8 +11,13 @@ export default function NavigationMenu() {
       isExternal: false
     },
     {
+      label: "Deposit",
+      path: "https://deposit.stableflow.ai/",
+      isExternal: true
+    },
+    {
       label: "Developer",
-      path: "/developer", // 稍后替换为实际的外部链接
+      path: "/developer",
       isExternal: false
     },
     {
@@ -43,7 +48,7 @@ export default function NavigationMenu() {
               href={item.path}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[14px] md:text-[15px] font-[500] text-[#2B3337]/70 hover:text-[#2B3337] transition-colors duration-200"
+              className="text-[14px] md:text-[15px] font-[500] text-[#2B3337]/70 hover:text-[#2B3337] transition-colors duration-200 pb-[4px]"
             >
               {item.label}
             </a>

@@ -312,6 +312,11 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       isExternal: false
     },
     {
+      label: "Deposit",
+      path: "https://deposit.stableflow.ai/",
+      isExternal: true
+    },
+    {
       label: "Developer",
       path: "/developer",
       isExternal: false
