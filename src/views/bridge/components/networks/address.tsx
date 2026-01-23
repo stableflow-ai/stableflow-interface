@@ -157,7 +157,7 @@ const EditButton = ({ onClick, recipientAddress }: any) => {
     <Popover
       ref={editRecipientAddressRef}
       content={
-        <div className="w-[130px] p-2 bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] rounded-[8px] text-[12px]">
+        <div className="w-[160px] p-2 bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] rounded-[8px] text-[12px]">
           <img
             src="/icon-info.svg"
             alt=""
