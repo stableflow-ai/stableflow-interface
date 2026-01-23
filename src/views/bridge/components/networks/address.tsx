@@ -6,7 +6,6 @@ import Popover from "@/components/popover";
 import clsx from "clsx";
 import { Service } from "@/services";
 import { useDebounceFn } from "ahooks";
-import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 
 export default function Address({ token, isTo, addressValidation }: any) {
   if (!token?.chainType)
@@ -47,7 +46,6 @@ const WithChain = ({ token, isTo, addressValidation }: any) => {
 const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
   const [edit, setEdit] = useState(false);
   const bridgeStore = useBridgeStore();
-  const evmWalletInfo = useEVMWalletInfo();
 
   const {
     recipientAddress,
@@ -100,7 +98,7 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
       ) : (
         <>
           {token.chainType === "evm" ? (
-            <img className="w-[12px] h-[12px]" src={evmWalletInfo.icon} />
+            <img className="w-[12px] h-[12px]" src={wallet.walletIcon} />
           ) : (
             wallet.walletIcon && (
               <img className="w-[12px] h-[12px]" src={wallet.walletIcon} />
