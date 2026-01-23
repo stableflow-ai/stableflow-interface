@@ -125,6 +125,7 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
             <EditButton
               onClick={() => setEdit(true)}
               recipientAddress={wallet.account}
+              token={token}
             />
           )
         ))}
@@ -132,8 +133,12 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
   );
 };
 
-const EditButton = ({ onClick, recipientAddress }: any) => {
+const EditButton = ({ onClick, recipientAddress, token }: any) => {
   const editRecipientAddressRef = useRef<any>(null);
+
+  const [chainName] = useMemo(() => {
+    return [token?.chainName, token?.chainType];
+  }, [token]);
 
   const { run: toggleEditTooltip, cancel: cancelToggleEditTooltip } = useDebounceFn(() => {
     if (!recipientAddress) {
@@ -149,7 +154,7 @@ const EditButton = ({ onClick, recipientAddress }: any) => {
     return () => {
       cancelToggleEditTooltip();
     }
-  }, [recipientAddress]);
+  }, [recipientAddress, chainName]);
 
   return (
     <Popover

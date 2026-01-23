@@ -827,7 +827,7 @@ export default function useBridge(props?: any) {
         return "Select the chain you are sending from";
       }
       if (!walletStore.toToken?.contractAddress) {
-        return "Please select to chain";
+        return "Select the chain you want to receive";
       }
       if (!bridgeStore.amount) {
         return "Please enter amount";
