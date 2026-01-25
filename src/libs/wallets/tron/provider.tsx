@@ -216,18 +216,5 @@ const MobileWallet = () => {
     });
   });
 
-  const detectTokenPocket = () => {
-    const ua = window?.navigator?.userAgent?.toLowerCase?.();
-    const isTokenPocket = (window?.tronLink as any)?.isTokenPocket ?? ua?.indexOf?.("tokenpocket") > -1;
-
-    if (window && isTokenPocket) {
-      window.location.replace("https://tron.stableflow.ai");
-    }
-  };
-
-  useEffect(() => {
-    detectTokenPocket();
-  }, []);
-
   return null;
 };
