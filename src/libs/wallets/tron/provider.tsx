@@ -1,5 +1,5 @@
 import useWalletsStore from "@/stores/use-wallets";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import TronWallet from "./wallet";
 import WalletSelector from "../components/wallet-selector";
 import { useConfigStore } from "@/stores/use-config";
@@ -26,10 +26,18 @@ export default function TronProvider({
 }) {
   const isMobile = useIsMobile();
 
+  const installedWallets = useMemo(() => {
+    return wallets.filter((wallet) => wallet.readyState === "Found");
+  }, [wallets]);
+
+  const isOKXSDK = useMemo(() => {
+    return installedWallets?.length <= 0 && isMobile;
+  }, [isMobile, installedWallets]);
+
   return (
     <>
       {children}
-      {isMobile ? <MobileWallet /> : <Content />}
+      {isOKXSDK ? <MobileWallet /> : <Content />}
     </>
   );
 }
