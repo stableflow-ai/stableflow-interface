@@ -13,7 +13,7 @@ export default function NavigationMenu() {
     {
       label: "Developer",
       path: "/developer",
-      isExternal: true
+      isExternal: false
     },
     {
       label: "Learn",

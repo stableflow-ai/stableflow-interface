@@ -31,7 +31,7 @@ function ApiCategory({ title, items }: ApiCategoryProps) {
   );
 }
 
-export function BrowseApis() {
+const BrowseApis = () => {
   const categories = [
     {
       title: "Routing",
@@ -45,17 +45,17 @@ export function BrowseApis() {
       title: "Economics",
       items: [
         { text: "Configure affiliate fees", href: "/developer/documentation#developer-fees" },
-        { text: "Fee settlement and distribution", href: "/developer/documentation#developer-fees" },
+        // { text: "Fee settlement and distribution", href: "/developer/documentation#developer-fees" },
       ],
     },
-    {
-      title: "Advanced",
-      items: [
-        { text: "Webhooks", href: "" },
-        { text: "Error codes", href: "/developer/documentation#a-error-handling" },
-        { text: "Limits & guarantees", href: "" },
-      ],
-    },
+    // {
+    //   title: "Advanced",
+    //   items: [
+    //     { text: "Webhooks", href: "" },
+    //     { text: "Error codes", href: "/developer/documentation#a-error-handling" },
+    //     { text: "Limits & guarantees", href: "" },
+    //   ],
+    // },
   ];
 
   return (
@@ -76,3 +76,5 @@ export function BrowseApis() {
     </section>
   );
 }
+
+export default BrowseApis;

@@ -1,9 +1,10 @@
-import { Header } from "./components/header";
+import { lazy, Suspense } from "react";
 import { Hero } from "./components/hero";
-import { DocOverview } from "./components/doc-overview";
-import { ApiPlayground } from "./components/api-playground";
-import { BrowseApis } from "./components/browse-apis";
-import { Footer } from "./components/footer";
+
+const DocOverview = lazy(() => import("./components/doc-overview"));
+const ApiPlayground = lazy(() => import("./components/api-playground"));
+const BrowseApis = lazy(() => import("./components/browse-apis"));
+const Footer = lazy(() => import("./components/footer"));
 
 const DeveloperPage = (props: any) => {
   const { } = props;
@@ -12,14 +13,21 @@ const DeveloperPage = (props: any) => {
     <div className="min-h-screen relative">
       <div className="relative">
         <div className="max-w-5xl mx-auto px-6">
-          <Header />
           <main>
             <Hero />
-            <DocOverview />
-            <ApiPlayground />
-            <BrowseApis />
+            <Suspense fallback={null}>
+              <DocOverview />
+            </Suspense>
+            <Suspense fallback={null}>
+              <ApiPlayground />
+            </Suspense>
+            <Suspense fallback={null}>
+              <BrowseApis />
+            </Suspense>
           </main>
-          <Footer />
+          <Suspense fallback={null}>
+            <Footer />
+          </Suspense>
         </div>
       </div>
     </div>

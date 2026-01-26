@@ -1,7 +1,7 @@
 import { DiscordLink, GithubLink } from "../config";
 import { ExternalLinkIcon } from "./icons";
 
-export function Footer() {
+const Footer = () => {
   const links = [
     { label: "API Reference", href: "/developer/documentation#core-functions-v20" },
     { label: "Integration Guide", href: "/developer/documentation#api-configuration" },
@@ -30,3 +30,5 @@ export function Footer() {
     </footer>
   );
 }
+
+export default Footer;
