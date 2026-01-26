@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import AptosWallet from "@/libs/wallets/aptos/wallet";
 import useWalletsStore from "@/stores/use-wallets";
 import useBalancesStore from "@/stores/use-balances";
@@ -17,8 +17,6 @@ export default function AptosProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const isMobile = useIsMobile();
-
   return (
     <AptosWalletAdapterProvider
       autoConnect={true}
@@ -37,10 +35,31 @@ export default function AptosProvider({
         "Gate Wallet",
       ]}
     >
-      {children} {isMobile ? <MobileContent /> : <Content />}
+      {children} <DeviceDetector />
     </AptosWalletAdapterProvider>
   );
 }
+
+const DeviceDetector = (props: any) => {
+  const { } = props;
+
+  const isMobile = useIsMobile();
+  const { wallets } = useWallet();
+
+  const installedWallets = useMemo(() => {
+    return wallets.filter((wallet) => wallet.readyState === "Installed");
+  }, [wallets]);
+
+  const isOKXSDK = useMemo(() => {
+    return installedWallets?.length <= 0 && isMobile;
+  }, [isMobile, installedWallets]);
+
+  return isOKXSDK ? (
+    <MobileContent />
+  ) : (
+    <Content />
+  );
+};
 
 const Content = () => {
   const [mounted, setMounted] = useState(false);
