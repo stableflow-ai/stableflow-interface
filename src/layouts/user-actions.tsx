@@ -28,17 +28,13 @@ export default function UserActions() {
     return pathname.pathname === "/overview";
   }, [pathname]);
 
-  const isDeveloper = useMemo(() => {
-    return /^\/developer/.test(pathname.pathname);
-  }, [pathname]);
-
   const hideActions = useMemo(() => {
-    return pathname.pathname === "/developer" || pathname.pathname === "/learn-more";
+    const regs = [
+      /^\/developer/,
+      /^\/learn-more/
+    ];
+    return regs.some((reg) => reg.test(pathname.pathname));
   }, [pathname]);
-
-  if (isDeveloper) {
-    return null;
-  }
 
   return (
     <>
@@ -52,7 +48,7 @@ export default function UserActions() {
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-[7px]">
-          {!hideActions && (
+          {!hideActions ? (
             <>
               {!walletsStore.evm.account &&
                 !walletsStore.sol.account &&
@@ -95,7 +91,9 @@ export default function UserActions() {
                 </div>
               )}
             </>
-          )}
+          ) : (
+            <div className="h-[38px]"></div>
+          )} 
           {/* Mobile menu button */}
           <MobileMenuButton
             isOpen={mobileMenuOpen}

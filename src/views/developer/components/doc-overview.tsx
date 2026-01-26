@@ -32,7 +32,7 @@ function DocColumn({ title, items, href }: DocColumnProps) {
   );
 }
 
-export function DocOverview() {
+const DocOverview = () => {
   const columns = [
     {
       title: "Routing",
@@ -82,3 +82,5 @@ export function DocOverview() {
     </section>
   );
 }
+
+export default DocOverview;

@@ -33,8 +33,10 @@ const quotes = await SFA.getAllQuote({
   refundTo: '0x5678...',
   amountWei: ethers.parseUnits('100', fromToken!.decimals).toString(),
   slippageTolerance: 0.5,
+  // optional
   appFees: [
     {
+      // Your wallet address to receive the fee
       recipient: "stableflow.near",
       fee: 100,
     },
@@ -68,7 +70,11 @@ const quotes = await SFA.getAllQuote({
   {
     id: "execute",
     label: "Execute a quote",
-    command: `import { SFA, Service } from 'stableflow-ai-sdk';
+    command: `import { SFA, Service, EVMWallet } from 'stableflow-ai-sdk';
+
+const provider = new ethers.BrowserProvider(window.ethereum);
+const signer = await provider.getSigner();
+const wallet = new EVMWallet(provider, signer);
 
 const selectedQuote = quotes.find(q => q.quote && !q.error);
 
@@ -177,7 +183,7 @@ appFees: [
   },
 ];
 
-export function ApiPlayground() {
+const ApiPlayground = () => {
   const [activeTab, setActiveTab] = useState("quote");
   const activeExample = apiExamples.find((ex) => ex.id === activeTab);
 
@@ -230,7 +236,7 @@ export function ApiPlayground() {
               type="button"
               onClick={() => setActiveTab(example.id)}
               className={clsx(
-                "px-4 py-2.5 text-left text-sm font-medium rounded-md transition-colors whitespace-nowrap",
+                "px-4 py-2.5 text-left text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer",
                 activeTab === example.id
                   ? "bg-[#2B3337] text-white"
                   : "text-[#9FA7BA] hover:text-[#2B3337] hover:bg-[#F5F7FA]"
@@ -289,3 +295,5 @@ export function ApiPlayground() {
     </section>
   );
 }
+
+export default ApiPlayground;
