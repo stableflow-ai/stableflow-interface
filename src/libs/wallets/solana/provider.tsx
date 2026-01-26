@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ConnectionProvider,
   WalletProvider
@@ -19,6 +19,7 @@ import { OKXSolanaProvider } from "@okxconnect/solana-provider";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import { useWatchOKXConnect } from "../okxconnect";
 import SolanaWalletSelectorProvider, { useSolanaWalletModal } from "./wallet-selector";
+import { chainsRpcUrls } from "@/config/chains";
 
 export const adapters = [
   new SolflareWalletAdapter(),
@@ -43,21 +44,41 @@ export default function SolanaProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const isMobile = useIsMobile();
-
   // Wallet order configuration: Solflare first, Phantom second
   const walletOrder = ["Solflare", "Phantom"];
+  const endpoint = chainsRpcUrls["Solana"];
 
   return (
-    <ConnectionProvider endpoint="https://rpc.ankr.com/solana">
-      <WalletProvider wallets={adapters} autoConnect={false}>
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={adapters} autoConnect={true}>
         <SolanaWalletSelectorProvider walletOrder={walletOrder}>
-          {children} {isMobile ? <MobileContent /> : <Content />}
+          {children}<DeviceDetector />
         </SolanaWalletSelectorProvider>
       </WalletProvider>
     </ConnectionProvider>
   );
 }
+
+const DeviceDetector = (props: any) => {
+  const { } = props;
+
+  const isMobile = useIsMobile();
+  const { wallets } = useWallet();
+
+  const installedWallets = useMemo(() => {
+    return wallets.filter((wallet) => wallet.readyState === "Installed");
+  }, [wallets]);
+
+  const isOKXSDK = useMemo(() => {
+    return installedWallets?.length <= 0 && isMobile;
+  }, [isMobile, installedWallets]);
+
+  return isOKXSDK ? (
+    <MobileContent />
+  ) : (
+    <Content />
+  );
+};
 
 const Content = () => {
   const [mounted, setMounted] = useState(false);
@@ -121,6 +142,7 @@ const Content = () => {
   useEffect(() => {
     setMounted(true);
   }, []);
+
   return null;
 };
 
