@@ -17,7 +17,7 @@ function ApiCategory({ title, items }: ApiCategoryProps) {
             <a
               href={item.href}
               target="_blank"
-              className="flex items-center justify-between py-2.5 px-3 -mx-3 rounded-md text-[#2B3337] hover:bg-[#F5F7FA] transition-colors group"
+              className="flex items-center justify-between py-2.5 px-3 -mx-3 rounded-md text-black hover:bg-white transition-colors group"
             >
               <span>{item.text}</span>
               <span className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -59,12 +59,12 @@ const BrowseApis = () => {
   ];
 
   return (
-    <section className="py-16 md:py-24 border-t border-[#DFE7ED]">
-      <h2 className="text-2xl md:text-3xl font-semibold text-[#2B3337] mb-10">
+    <section className="pt-16 md:pt-20">
+      <h2 className="text-2xl font-semibold text-black leading-[100%]">
         Browse by capability
       </h2>
 
-      <div className="grid md:grid-cols-3 gap-10">
+      <div className="grid md:grid-cols-3 gap-10 mt-6">
         {categories.map((category, index) => (
           <ApiCategory
             key={index}

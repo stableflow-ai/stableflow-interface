@@ -10,7 +10,7 @@ const DeveloperPage = (props: any) => {
   const { } = props;
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative font-[SpaceGrotesk] leading-[120%] md:leading-[100%] font-normal">
       <div className="relative">
         <div className="max-w-5xl mx-auto px-6">
           <main>
