@@ -10,7 +10,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="py-10 border-t border-[#DFE7ED]">
+    <footer className="py-10">
       <nav className="flex flex-wrap gap-x-8 gap-y-3">
         {links.map((link, index) => (
           <a

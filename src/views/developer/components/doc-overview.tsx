@@ -9,21 +9,21 @@ interface DocColumnProps {
 function DocColumn({ title, items, href }: DocColumnProps) {
   return (
     <div
-      className="group cursor-pointer p-6 -m-6 rounded-lg hover:bg-[#F5F7FA] transition-colors"
+      className="w-full group cursor-pointer p-4 bg-white rounded-2xl shadow-[0_0_10px_0_rgba(0,0,0,0.10)] hover:translate-y-[-1px] hover:translate-x-[-1px] hover:shadow-[0_0_15px_0_rgba(0,0,0,0.20)] duration-150"
       onClick={() => {
         // window.location.href = href;
         window.open(href, '_blank');
       }}
     >
-      <h3 className="text-lg font-semibold text-[#2B3337] mb-4 flex items-center gap-2">
+      <h3 className="text-xl font-semibold text-[#000] flex justify-between items-center gap-2 leading-[100%]">
         {title}
-        <span className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
+        <div className="w-7.5 h-7.5 border border-[#D9D9D9] rounded-lg flex justify-center items-center text-[#d9d9d9] group-hover:bg-black duration-150 group-hover:text-white group-hover:border-black">
           <ArrowRightIcon />
-        </span>
+        </div>
       </h3>
-      <ul className="space-y-3">
+      <ul className="space-y-3 mt-4 pl-4 text-black font-light">
         {items.map((item, index) => (
-          <li key={index} className="text-[#9FA7BA] text-sm">
+          <li key={index} className="text-sm list-disc">
             {item}
           </li>
         ))}
@@ -64,12 +64,12 @@ const DocOverview = () => {
   ];
 
   return (
-    <section className="py-16 md:py-24 border-t border-[#DFE7ED]">
-      <h2 className="text-2xl md:text-3xl font-semibold text-[#2B3337] mb-12">
+    <section className="pt-16 md:pt-20">
+      <h2 className="text-2xl font-semibold text-[#000] leading-[100%]">
         Explore the Stableflow documentation
       </h2>
 
-      <div className="grid md:grid-cols-3 gap-12">
+      <div className="grid md:grid-cols-3 gap-2.5 mt-8">
         {columns.map((column, index) => (
           <DocColumn
             key={index}

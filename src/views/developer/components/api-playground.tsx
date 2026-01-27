@@ -217,17 +217,17 @@ const ApiPlayground = () => {
   }, [activeExample?.response]);
 
   return (
-    <section className="py-16 md:py-24 border-t border-[#DFE7ED]">
-      <div className="mb-10">
-        <h2 className="text-2xl md:text-3xl font-semibold text-[#2B3337] mb-3">
+    <section className="pt-16 md:pt-20">
+      <div className="">
+        <h2 className="text-2xl font-semibold text-black leading-[100%]">
           Try the Stableflow API
         </h2>
-        <p className="text-[#9FA7BA]">
+        <p className="text-[#9FA7BA] text-md font-normal mt-4.5">
           Explore real API calls and inspect the response structure.
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-[240px_1fr] gap-6 lg:gap-8">
+      <div className="mt-4 rounded-2xl bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] py-6 px-8 grid lg:grid-cols-[190px_1fr] gap-6 lg:gap-12">
         {/* Left side - Tabs */}
         <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
           {apiExamples.map((example) => (
@@ -236,10 +236,10 @@ const ApiPlayground = () => {
               type="button"
               onClick={() => setActiveTab(example.id)}
               className={clsx(
-                "px-4 py-2.5 text-left text-sm font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer",
+                "pl-8 pr-4 py-2.5 text-black text-left text-sm font-normal rounded-lg transition-colors whitespace-nowrap cursor-pointer border border-white",
                 activeTab === example.id
-                  ? "bg-[#2B3337] text-white"
-                  : "text-[#9FA7BA] hover:text-[#2B3337] hover:bg-[#F5F7FA]"
+                  ? "bg-black text-white"
+                  : "hover:text-[#2B3337] hover:border-[#D9D9D9]"
               )}
             >
               {example.label}
@@ -248,7 +248,7 @@ const ApiPlayground = () => {
         </div>
 
         {/* Right side - Code */}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="bg-[#0f172a] rounded-lg overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
