@@ -1,18 +1,18 @@
 import { formatAddress } from "@/utils/format/address";
 import useCopy from "@/hooks/use-copy";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
-import metamask from "@/assets/metamask.png";
 
 export default function Address({ type = "evm" }: { type: WalletType }) {
   const wallets = useWalletsStore();
   const { onCopy } = useCopy();
   const wallet = wallets[type || "evm"];
+
   return (
     wallet?.account && (
       <div className="flex items-center ">
         <div className="flex items-center gap-[8px]">
           {type === "evm" ? (
-            <img className="w-[12px] h-[12px]" src={metamask} />
+            <img className="w-[12px] h-[12px]" src={wallet.walletIcon as string} />
           ) : (
             wallet.walletIcon && (
               <img className="w-[12px] h-[12px]" src={wallet.walletIcon} />

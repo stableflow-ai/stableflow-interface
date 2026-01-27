@@ -25,12 +25,6 @@ export default function Token({
         </div>
         <div className="flex items-center gap-[4px]">
           <Amount amount={totalBalance} />
-          <ExpandButton
-            onClick={() => {
-              onExpand(!expand);
-            }}
-            expand={expand}
-          />
         </div>
       </div>
       <AnimatePresence>
@@ -175,5 +169,33 @@ export const ExpandButton = ({
         />
       </motion.svg>
     </button>
+  );
+};
+
+export const TokenChains = (props: any) => {
+  const { onExpand, expand, token } = props;
+
+  const chains = token.chains;
+
+  return (
+    <div className="flex justify-between items-center mx-[10px] pb-[10px]">
+      <div className="flex items-center shrink-0">
+        {
+          expand ? null : chains.map((chain: any) => (
+            <img
+              src={chain.chainIcon}
+              alt=""
+              className="w-[24px] h-[24px] rounded-[6px] border border-[#fff] object-center object-contain not-first:ml-[-6px]"
+            />
+          ))
+        }
+      </div>
+      <ExpandButton
+        onClick={() => {
+          onExpand(!expand);
+        }}
+        expand={expand}
+      />
+    </div>
   );
 };

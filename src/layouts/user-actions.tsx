@@ -8,7 +8,7 @@ import MainTitle from "@/components/main-title";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
-import NavigationMenu from "@/components/navigation-menu";
+import NavigationMenu, { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 
 export default function UserActions() {
@@ -93,7 +93,7 @@ export default function UserActions() {
             </>
           ) : (
             <div className="h-[38px]"></div>
-          )} 
+          )}
           {/* Mobile menu button */}
           <MobileMenuButton
             isOpen={mobileMenuOpen}
@@ -311,24 +311,6 @@ const MobileMenuButton = ({ isOpen, onClick }: { isOpen: boolean; onClick: () =>
 const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const location = useLocation();
 
-  const menuItems = [
-    {
-      label: "Transfer",
-      path: "/",
-      isExternal: false
-    },
-    {
-      label: "Developer",
-      path: "/developer",
-      isExternal: false
-    },
-    {
-      label: "Learn",
-      path: "/learn-more",
-      isExternal: false
-    }
-  ];
-
   return (
     <>
       {/* Backdrop */}
@@ -346,30 +328,34 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
           isOpen ? "translate-y-0" : "-translate-y-full"
         )}
       >
-        {/* Close button inside drawer */}
-        <button
-          onClick={onClose}
-          className="absolute top-[20px] right-[15px] w-[38px] h-[38px] flex justify-center items-center button rounded-[19px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-[#444C59]"
+        <div className="flex justify-between items-center px-4 pt-5">
+          <HyperliquidDeposit className="" />
+          {/* Close button inside drawer */}
+          <button
+            onClick={onClose}
+            className="w-[38px] h-[38px] flex justify-center items-center button rounded-[19px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
           >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-        <div className="pt-[60px] pb-[20px] px-[20px]">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-[#444C59]"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="pt-4 pb-5 px-5">
           <nav className="flex flex-col gap-[16px]">
-            {menuItems.map((item) => {
+            {menuItems.map((item, index) => {
               const isActive = item.path === "/"
                 ? location.pathname === "/"
                 : location.pathname.startsWith(item.path);
@@ -377,7 +363,7 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               if (item.isExternal) {
                 return (
                   <a
-                    key={item.label}
+                    key={index}
                     href={item.path}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -391,7 +377,7 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
 
               return (
                 <Link
-                  key={item.label}
+                  key={index}
                   to={item.path}
                   onClick={onClose}
                   className={clsx(
