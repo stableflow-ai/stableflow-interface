@@ -1,6 +1,6 @@
 import TypeItem from "./type-item";
 import TokenSimple from "./token-simple";
-import Token from "./token";
+import Token, { TokenChains } from "./token";
 // import { usdcEvm, usdcSol, usdcNear } from "@/config/tokens/usdc";
 // import { usdtEvm, usdtSol, usdtNear, usdtTron } from "@/config/tokens/usdt";
 import useWalletStore from "@/stores/use-wallet";
@@ -71,6 +71,13 @@ export default function Wallet() {
                 balances={balancesStore.evmBalances}
                 // loading={loading}
                 totalBalance={balancesStore.evmBalances[`${walletStore.selectedToken.toLowerCase()}Balance`]}
+              />
+              <TokenChains
+                token={stablecoinWithChains.evm[walletStore.selectedToken]}
+                expand={walletStore.usdtExpand}
+                onExpand={() => {
+                  walletStore.set({ usdtExpand: !walletStore.usdtExpand });
+                }}
               />
             </div>
           )
