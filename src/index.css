@@ -115,3 +115,7 @@ div::-webkit-scrollbar-thumb:hover {
     padding: 0px var(--toastify-toast-padding) 0px var(--toastify-toast-padding);
   }
 }
+
+#launcher {
+  display: none !important;
+}
