@@ -8,16 +8,37 @@ import { OKXTronProvider } from "@okxconnect/universal-provider";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { TronWeb } from "tronweb";
 import { useWatchOKXConnect } from "../okxconnect";
-import { OkxWalletAdapter, TronLinkAdapter } from "@tronweb3/tronwallet-adapters";
+import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter } from "@tronweb3/tronwallet-adapters";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { chainsRpcUrls } from "@/config/chains";
+import { metadata } from "../rainbow/provider";
 
 const tronWeb = new TronWeb({
   fullHost: chainsRpcUrls["Tron"],
   headers: {},
   privateKey: "",
 });
-const wallets = [new TronLinkAdapter(), new OkxWalletAdapter()];
+
+const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
+
+const wallets = [
+  new TronLinkAdapter(),
+  new OkxWalletAdapter(),
+  new WalletConnectAdapter({
+    network: "Mainnet",
+    options: {
+      metadata,
+      projectId,
+    },
+    web3ModalConfig: {
+      termsOfServiceUrl: "https://app.stableflow.ai/terms-of-service",
+      privacyPolicyUrl: "https://app.stableflow.ai/privacy-policy",
+      themeVariables: {
+        "--wcm-z-index": "210",
+      },
+    },
+  }),
+];
 
 export default function TronProvider({
   children
