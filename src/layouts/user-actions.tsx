@@ -93,7 +93,7 @@ export default function UserActions() {
             </>
           ) : (
             <div className="h-[38px]"></div>
-          )} 
+          )}
           {/* Mobile menu button */}
           <MobileMenuButton
             isOpen={mobileMenuOpen}
