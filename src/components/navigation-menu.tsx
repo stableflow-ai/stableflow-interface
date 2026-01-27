@@ -17,7 +17,7 @@ export const menuItems = [
       </div>
     ),
     path: "https://deposit.stableflow.ai/",
-    isExternal: true
+    isExternal: false
   },
   {
     label: "Developer",
