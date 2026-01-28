@@ -96,19 +96,16 @@ const Content = () => {
 
   const setWindowWallet = (address?: string) => {
     const _address = address || adapter.address;
-    let windowTronWeb = (window as any).tronWeb;
-    if (!windowTronWeb) {
-      windowTronWeb = new TronWeb({
-        fullHost: chainsRpcUrls["Tron"],
-        headers: {},
-        privateKey: "",
-      });
-      _address && windowTronWeb.setAddress(_address);
-    }
+    const _tronWeb = new TronWeb({
+      fullHost: chainsRpcUrls["Tron"],
+      headers: {},
+      privateKey: "",
+    });
+    _address && _tronWeb.setAddress(_address);
     walletRef.current = new TronWallet({
       signAndSendTransaction: async (transaction: any) => {
         const signedTx = await adapter.signTransaction(transaction);
-        const result = await windowTronWeb.trx.sendRawTransaction(signedTx);
+        const result = await _tronWeb.trx.sendRawTransaction(signedTx);
         return result.txid;
       },
       address: _address,
