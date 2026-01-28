@@ -6,7 +6,7 @@ export const TRON_RENTAL_RECEIVING_ADDRESS = "TGKiSaDG7wp5N4T9SJweotgfgwmxDTgjMi
 // Tron Energy rental fee (TRX)
 export const TRON_RENTAL_FEE = {
   // Account without referral code
-  Normal: 10, // 10 TRX
+  Normal: 0.1, // 10 TRX
   // Account with referral code
   Referral: 7, // 7 TRX
 };
@@ -19,7 +19,7 @@ export const EnergyAmounts = {
 };
 
 export const BridgeFees = {
-  Normal: 2, // 2 USDT
+  Normal: 0.1, // 2 USDT
   Referral: 1, // 1 USDT
 };
 
