@@ -13,11 +13,7 @@ export async function onRequest(context: any) {
   // HTTP Basic Authentication for test.stableflow.ai
   if (AUTH_DOMAINS.includes(hostname)) {
     const authHeader = request.headers.get("Authorization")
-    
-    // Expected username and password
-    const validUsername = "admin"
-    const validPassword = "dapdap999000"
-    
+
     let isAuthenticated = false
     
     if (authHeader && authHeader.startsWith("Basic ")) {
