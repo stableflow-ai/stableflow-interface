@@ -95,8 +95,6 @@ const Content = () => {
   }, []);
 
   const setWindowWallet = (address?: string) => {
-    console.log("adapter: %o", adapter);
-    console.log("adapter.sendTransaction: %o", adapter.sendTransaction);
     const _address = address || adapter.address;
     let windowTronWeb = (window as any).tronWeb;
     if (!windowTronWeb) {
@@ -109,11 +107,8 @@ const Content = () => {
     }
     walletRef.current = new TronWallet({
       signAndSendTransaction: async (transaction: any) => {
-        console.log("transaction: %o", transaction);
         const signedTx = await adapter.signTransaction(transaction);
-        console.log("signedTx: %o", signedTx);
         const result = await windowTronWeb.trx.sendRawTransaction(signedTx);
-        console.log("result: %o", result);
         return result.txid;
       },
       address: _address,
