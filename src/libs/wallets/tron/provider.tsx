@@ -94,19 +94,33 @@ const Content = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const setWindowWallet = (address?: string) => {
-      const windowTronWeb = (window as any).tronWeb;
-      walletRef.current = new TronWallet({
-        signAndSendTransaction: async (transaction: any) => {
-          const signedTransaction = await windowTronWeb.trx.sign(transaction);
-          return windowTronWeb.trx.sendRawTransaction(signedTransaction);
-        },
-        address: address || windowTronWeb?.defaultAddress?.base58,
+  const setWindowWallet = (address?: string) => {
+    console.log("adapter: %o", adapter);
+    console.log("adapter.sendTransaction: %o", adapter.sendTransaction);
+    const _address = address || adapter.address;
+    let windowTronWeb = (window as any).tronWeb;
+    if (!windowTronWeb) {
+      windowTronWeb = new TronWeb({
+        fullHost: chainsRpcUrls["Tron"],
+        headers: {},
+        privateKey: "",
       });
-    };
-    setWindowWallet();
+      _address && windowTronWeb.setAddress(_address);
+    }
+    walletRef.current = new TronWallet({
+      signAndSendTransaction: async (transaction: any) => {
+        console.log("transaction: %o", transaction);
+        const signedTx = await adapter.signTransaction(transaction);
+        console.log("signedTx: %o", signedTx);
+        const result = await windowTronWeb.trx.sendRawTransaction(signedTx);
+        console.log("result: %o", result);
+        return result.txid;
+      },
+      address: _address,
+    });
+  };
 
+  useEffect(() => {
     if (!adapter) {
       setWallets({
         tron: {
@@ -118,6 +132,8 @@ const Content = () => {
       });
       return;
     }
+
+    setWindowWallet();
 
     configStore.set({
       tronWalletAdapter: adapter.name
