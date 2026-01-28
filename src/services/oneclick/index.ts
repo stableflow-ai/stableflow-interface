@@ -35,6 +35,7 @@ class OneClickService {
     const { params } = res;
 
     const isFromTron = params.fromToken.chainType === "tron";
+    const isFromTronEnergy = isFromTron && params.acceptTronEnergy;
 
     if (res.data) {
       // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
@@ -125,7 +126,7 @@ class OneClickService {
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
       let proxyParams: any = {};
-      if (proxyAddress) {
+      if (proxyAddress && !isFromTronEnergy) {
         proxyParams = {
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
