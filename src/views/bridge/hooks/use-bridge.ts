@@ -549,6 +549,7 @@ export default function useBridge(props?: any) {
         historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
 
         reportData.tx_hash = hash;
+        report(reportData);
 
         if (isFromTron) {
           bridgeStore.setTronTransferStep(TronTransferStepStatus.Broadcasting);
@@ -568,13 +569,9 @@ export default function useBridge(props?: any) {
               title: "Transfer failed",
               text: hash,
             });
-          } else {
-            report(reportData);
           }
 
           bridgeStore.setTronTransferVisible(false);
-        } else {
-          report(reportData);
         }
       }
 
