@@ -92,12 +92,15 @@ class OneClickService {
           });
           const transferSourceGasFeeUsd = Big(res.data.transferSourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
-          res.data.energySourceGasFee = { estimateGas: Big(Big(params.needsBandwidthTRX || 0).plus(params.needsEnergyAmount || 0)).times(10 ** params.fromToken.nativeToken.decimals) };
-          const energySourceGasFeeUsd = Big(res.data.energySourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
+          const energySourceGasFee = {
+            estimateGas: Big(Big(params.needsBandwidthTRX || 0).plus(params.needsEnergyAmount || 0)).times(10 ** params.fromToken.nativeToken.decimals).toFixed(params.fromToken.nativeToken.decimals)
+          };
+          res.data.energySourceGasFee = energySourceGasFee.estimateGas;
+          const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
           let sourceGasFee = res.data.transferSourceGasFee;
           if (params.acceptTronEnergy) {
-            sourceGasFee = res.data.energySourceGasFee;
+            sourceGasFee = energySourceGasFee;
           }
 
           const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
@@ -126,7 +129,7 @@ class OneClickService {
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
       let proxyParams: any = {};
-      if (proxyAddress && !isFromTronEnergy) {
+      if (proxyAddress) {
         proxyParams = {
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
@@ -140,17 +143,19 @@ class OneClickService {
         try {
           const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
 
-          for (const proxyKey in proxyResult) {
-            if (proxyKey === "fees") {
-              for (const feeKey in proxyResult.fees) {
-                if (excludeFees.includes(feeKey)) {
-                  continue;
+          if (!isFromTronEnergy) {
+            for (const proxyKey in proxyResult) {
+              if (proxyKey === "fees") {
+                for (const feeKey in proxyResult.fees) {
+                  if (excludeFees.includes(feeKey)) {
+                    continue;
+                  }
+                  res.data.fees[feeKey] = proxyResult.fees[feeKey];
                 }
-                res.data.fees[feeKey] = proxyResult.fees[feeKey];
+                continue;
               }
-              continue;
+              res.data[proxyKey] = proxyResult[proxyKey];
             }
-            res.data[proxyKey] = proxyResult[proxyKey];
           }
 
           res.data.transferSourceGasFee = proxyResult.estimateSourceGas;
