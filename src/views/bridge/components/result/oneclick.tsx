@@ -3,7 +3,7 @@ import { useConfigStore } from "@/stores/use-config";
 import { useDebounceFn } from "ahooks";
 import Big from "big.js";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ResultFeeItem from "./fee-item";
 import clsx from "clsx";
 import { Service } from "@/services";
@@ -56,6 +56,18 @@ const ResultOneClick = (props: any) => {
   useEffect(() => {
     calculateFees();
   }, [bridgeStore, configStore.slippage]);
+
+  const isFromTron = useMemo(() => {
+    return _quoteData?.quoteParam?.fromToken?.chainType === "tron";
+  }, [_quoteData]);
+
+  const savedTRX = useMemo(() => {
+    if (!isFromTron) {
+      return "0";
+    }
+    const energySourceGasFee = Big(_quoteData?.transferSourceGasFee || 0).div(10 ** 6);
+    return Big(energySourceGasFee).minus(_quoteData?.quoteParam?.needsEnergyAmount || 0).toFixed(0);
+  }, [isFromTron, _quoteData]);
 
   return (
     <AnimatePresence>
@@ -112,7 +124,7 @@ const ResultOneClick = (props: any) => {
       }
       {
         /* && _quoteData?.quoteParam?.needsEnergy && Big(_quoteData?.quoteParam?.needsEnergyAmount ?? 0).gt(0) */
-        _quoteData?.quoteParam?.fromToken?.chainType === "tron" && (
+        isFromTron && (
           <motion.div
             key="energy"
             className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
@@ -127,7 +139,7 @@ const ResultOneClick = (props: any) => {
                 bridgeStore.setAcceptTronEnergy(checked);
               }}
             >
-              Gas optimized: ~6 TRX saved via energy rental sponsorship.
+              Gas optimized: ~{savedTRX} TRX saved via energy rental sponsorship.
             </Checkbox>
           </motion.div>
         )
