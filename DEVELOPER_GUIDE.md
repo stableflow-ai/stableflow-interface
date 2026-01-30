@@ -10,7 +10,9 @@ A comprehensive guide for developers to integrate cross-chain token bridging int
 - [Wallet Integration](#wallet-integration)
 - [Token Configuration](#token-configuration)
 - [Bridge Services](#bridge-services)
+  - [Hyperliquid](#hyperliquid)
 - [Working Examples](#working-examples)
+  - [Hyperliquid Demo](#hyperliquid-demo)
 - [Best Practices](#best-practices)
 - [Common Use Cases](#common-use-cases)
 - [Developer Fees](#developer-fees)
@@ -96,7 +98,14 @@ interface GetAllQuoteParams {
   refundTo: string;                   // Refund address on source chain
   amountWei: string;                  // Amount in smallest units (e.g., wei)
   slippageTolerance: number;         // Slippage tolerance (percentage, e.g., 0.5 for 0.5%)
-  appFees?: { recipient: string; fee: number; }[]; // Custom fee rates
+  oneclickParams?: {
+    // Custom fee rates
+    appFees?: { recipient: string; fee: number; }[];
+    // default is EXACT_INPUT
+    swapType?: "EXACT_INPUT" | "EXACT_OUTPUT";
+    // default is true
+    isProxy?: boolean;
+  };
 }
 ```
 
@@ -161,14 +170,17 @@ const quotes = await SFA.getAllQuote({
   refundTo: '0x5678...',
   amountWei: ethers.parseUnits('100', fromToken!.decimals).toString(),
   slippageTolerance: 0.5, // 0.5%
-  appFees: [
-    {
-      // your fee collection address
-      recipient: "stableflow.near",
-      // Fee rate, as a percentage of the amount. 100 = 1%, 1 = 0.01%
-      fee: 100,
-    },
-  ],
+  // Optional
+  oneclickParams: {
+    appFees: [
+      {
+        // your fee collection address
+        recipient: "stableflow.near",
+        // Fee rate, as a percentage of the amount. 100 = 1%, 1 = 0.01%
+        fee: 100,
+      },
+    ],
+  },
 });
 
 // 4. Filter valid quotes
@@ -483,7 +495,7 @@ interface TokenConfig {
 
 ## Bridge Services
 
-The SDK supports three bridge services, each with different characteristics:
+The SDK supports three bridge services for general cross-chain swaps, plus a dedicated Hyperliquid deposit flow. Each has different characteristics:
 
 ### OneClick (`Service.OneClick`)
 
@@ -511,11 +523,112 @@ The SDK supports three bridge services, each with different characteristics:
 - **Speed**: Varies by chain, typically 5-30 minutes
 - **Query Method**: Use transaction `hash`
 
+### Hyperliquid
+
+Deposit from multiple source chains into **Hyperliquid**. Destination is fixed as **USDC on Arbitrum**; the SDK uses OneClick under the hood to swap/bridge to Arbitrum USDC, then submits a deposit with EIP-2612 permit to the Hyperliquid deposit API.
+
+#### Exports
+
+| Export | Description |
+|--------|-------------|
+| `Hyperliquid` | Singleton service instance |
+| `HyperliquidFromTokens` | Supported source tokens (all except Arbitrum USDC) |
+| `HyperliuquidToToken` | Destination token config (Arbitrum USDC) |
+| `HyperliuquidMinAmount` | Minimum amount in wei (e.g. 5 USDC) |
+| `HyperliquidQuoteParams`, `HyperliquidTransferParams`, etc. | TypeScript interfaces for method params and responses |
+
+#### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `quote(params)` | Get a quote for depositing to Hyperliquid | `{ quote, error }` |
+| `transfer(params)` | Send tokens to the bridge (OneClick). Call after quote with `dry: false`. | Source chain tx hash |
+| `deposit(params)` | Submit deposit with permit (after transfer). Switch wallet to Arbitrum if needed. | `{ code, data: { depositId } }` |
+| `getStatus(params)` | Query deposit status by `depositId` | `{ code, data: { status, txHash } }` |
+
+#### Typical Flow
+
+1. User selects source token from `HyperliquidFromTokens` and amount (≥ `HyperliuquidMinAmount`).
+2. Call `Hyperliquid.quote(params)` — use `dry: true` for preview, then `dry: false` to get `depositAddress`.
+3. Call `Hyperliquid.transfer({ wallet, quote, evmWallet, evmWalletAddress })`; receive `txhash`.
+4. Optionally switch wallet to Arbitrum, then call `Hyperliquid.deposit({ ...transferParams, txhash })` to get `depositId`.
+5. Poll or check with `Hyperliquid.getStatus({ depositId })` for `status` and `txHash`.
+
+#### Example
+
+```typescript
+import {
+  Hyperliquid,
+  HyperliquidFromTokens,
+  HyperliuquidToToken,
+  HyperliuquidMinAmount,
+  OpenAPI,
+  EVMWallet
+} from 'stableflow-ai-sdk';
+import Big from 'big.js';
+
+OpenAPI.TOKEN = 'your-JWT';
+
+const provider = new ethers.BrowserProvider(window.ethereum);
+const signer = await provider.getSigner();
+const wallet = new EVMWallet(provider, signer);
+
+const account = await signer.getAddress();
+
+// 1. Quote (dry: false to get deposit address for transfer)
+const quoteRes = await Hyperliquid.quote({
+  dry: false,
+  slippageTolerance: 0.05,
+  refundTo: account,
+  recipient: account,
+  wallet,
+  fromToken: selectedFromToken,
+  prices: {},
+  amountWei: Big(amount).times(10 ** HyperliuquidToToken.decimals).toFixed(0, 0),
+});
+if (quoteRes.error || !quoteRes.quote) throw new Error(quoteRes.error || 'No quote');
+const quote = quoteRes.quote;
+
+// 2. Transfer on source chain
+const txhash = await Hyperliquid.transfer({
+  // wallet is the wallet on the source chain
+  wallet,
+  // evmWallet is the wallet used for the deposit operation
+  // For simplicity in this example, we use the same wallet
+  // This means the source chain is also an EVM chain
+  evmWallet: wallet,
+  evmWalletAddress: account,
+  quote,
+});
+
+// 3. Submit deposit (after switching to Arbitrum if needed)
+const depositRes = await Hyperliquid.deposit({
+  wallet,
+  evmWallet: wallet,
+  evmWalletAddress: account,
+  quote,
+  txhash,
+});
+const depositId = depositRes.data?.depositId;
+
+// 4. Check status
+const statusRes = await Hyperliquid.getStatus({ depositId: String(depositId) });
+// statusRes.data.status, statusRes.data.txHash
+// status: type HyperliquidDepositStatus = "PROCESSING" | "SUCCESS" | "REFUNDED" | "FAILED";
+```
+
+#### Token Config Notes
+
+- Use `HyperliquidFromTokens` for the source token list (e.g. filter by `chainType === 'evm'` if only supporting EVM).
+- Destination is always `HyperliuquidToToken` (Arbitrum USDC).
+- Enforce minimum amount with `HyperliuquidMinAmount` so users do not send below the bridge minimum.
+
 ### Selection Recommendations
 
 - **USDT Cross-Chain**: Compare OneClick and USDT0, choose the one with lower fees or faster speed
 - **USDC Cross-Chain**: Compare OneClick and CCTP
 - **Other Tokens**: Usually only OneClick is supported
+- **Deposit to Hyperliquid**: Use the `Hyperliquid` service (see [Hyperliquid](#hyperliquid) above); destination is Arbitrum USDC
 
 ---
 
@@ -571,6 +684,33 @@ npm run dev
 3. **Review**: Error handling patterns
 4. **Examine**: UI/UX best practices
 5. **Customize**: Adapt for your use case
+
+### Hyperliquid Demo
+
+Location: `examples/hyperliquid-demo/`
+
+#### Features
+
+- Deposit from multiple EVM chains into Hyperliquid (destination: Arbitrum USDC)
+- Uses `Hyperliquid.quote()`, `Hyperliquid.transfer()`, `Hyperliquid.deposit()`, `Hyperliquid.getStatus()`
+- Token list from `HyperliquidFromTokens`, minimum amount from `HyperliuquidMinAmount`
+- Deposit history and status polling (Next.js app)
+
+#### Running the Example
+
+```bash
+cd examples/hyperliquid-demo
+npm install
+cp env.template .env
+# Edit .env and set your JWT token
+npm run dev
+```
+
+#### Key Files
+
+- **`app/page.tsx`** – Quote, approve, transfer, deposit flow; uses `HyperliquidFromTokens` and `HyperliuquidToToken`
+- **`app/history/page.tsx`** – Deposit history and `Hyperliquid.getStatus({ depositId })`
+- **`stores/history.ts`** – Local history store for deposit IDs and quotes
 
 ---
 
@@ -809,15 +949,18 @@ const quotes = await SFA.getAllQuote({
   refundTo: userAddress,
   amountWei: ethers.parseUnits('100', fromToken.decimals).toString(),
   slippageTolerance: 0.5,
-  // Fees are optional
-  appFees: [
-    {
-      // ⚠️ Replace with your own fee recipient address
-      recipient: "stableflow.near",
-      // Fee rate, as a percentage of the amount. 100 = 1%, 1 = 0.01%
-      fee: 100,
-    },
-  ],
+  // Optional
+  oneclickParams: {
+    // Fees are optional
+    appFees: [
+      {
+         // ⚠️ Replace with your own fee recipient address
+        recipient: "stableflow.near",
+        // Fee rate, as a percentage of the amount. 100 = 1%, 1 = 0.01%
+        fee: 100,
+      },
+    ],
+  },
 });
 
 // 5. Select best quote
@@ -1008,15 +1151,17 @@ This is done via the `appFees` parameter, which lets you define who gets paid an
 
 ### How it works
 
-When you request a quote via `getAllQuote()`, you can include an `appFees` array:
+When you request a quote via `getAllQuote()`, you can include an `appFees` array into `oneclickParams`:
 
 ```ts
-appFees: [
-  {
-    recipient: "yourapp.near",
-    fee: 100, // 1%
-  }
-]
+oneclickParams: {
+  appFees: [
+    {
+      recipient: "yourapp.near",
+      fee: 100, // 1%
+    }
+  ]
+}
 ```
 
 This means:
