@@ -34,13 +34,15 @@ const quotes = await SFA.getAllQuote({
   amountWei: ethers.parseUnits('100', fromToken!.decimals).toString(),
   slippageTolerance: 0.5,
   // optional
-  appFees: [
-    {
-      // Your wallet address to receive the fee
-      recipient: "stableflow.near",
-      fee: 100,
-    },
-  ],
+  oneclickParams: {
+    appFees: [
+      {
+        // Your wallet address to receive the fee
+        recipient: "stableflow.near",
+        fee: 100,
+      },
+    ],
+  }
 });`,
     response: `[
   {
@@ -49,7 +51,6 @@ const quotes = await SFA.getAllQuote({
       "quote": {...},
       "quoteParam": {...},
       "sendParam": {...},
-      "depositAddress": "0x...",
       "needApprove": true,
       "approveSpender": "0x...",
       "fees": {...},
@@ -162,12 +163,14 @@ const solanaTokens = tokens.filter(t => t.chainType === 'sol');`,
     command: `// When requesting quotes, include appFees parameter
 const quotes = await SFA.getAllQuote({
   // ... other parameters
-  appFees: [
-    {
-      recipient: "yourapp.near",
-      fee: 100, // 1% (100 = 1%, 50 = 0.5%, 10 = 0.10%, 1 = 0.01%)
-    }
-  ],
+  oneclickParams: {
+    appFees: [
+      {
+        recipient: "yourapp.near",
+        fee: 100, // 1% (100 = 1%, 50 = 0.5%, 10 = 0.10%, 1 = 0.01%)
+      }
+    ],
+  }
 });
 
 // Multi-party revenue sharing
@@ -180,6 +183,95 @@ appFees: [
 // directly to your wallet when the transaction executes.
 
 // No custody. No settlement process. No off-chain accounting.`,
+  },
+  {
+    id: "hyperliquid",
+    label: "Hyperliquid",
+    command: `import {
+  Hyperliquid,
+  HyperliquidFromTokens,
+  HyperliuquidToToken,
+  HyperliuquidMinAmount,
+  OpenAPI,
+  EVMWallet
+} from 'stableflow-ai-sdk';
+import Big from 'big.js';
+import { ethers } from 'ethers';
+
+OpenAPI.TOKEN = 'your-JWT';
+
+const provider = new ethers.BrowserProvider(window.ethereum);
+const signer = await provider.getSigner();
+const wallet = new EVMWallet(provider, signer);
+
+const account = await signer.getAddress();
+
+// Source: HyperliquidFromTokens (all except Arbitrum USDC)
+// Destination: always HyperliuquidToToken (Arbitrum USDC)
+// Minimum: HyperliuquidMinAmount (e.g. 5 USDC)
+
+// 1. Quote (dry: false to get deposit address for transfer)
+const quoteRes = await Hyperliquid.quote({
+  dry: false,
+  slippageTolerance: 0.05,
+  refundTo: account,
+  recipient: account,
+  wallet,
+  fromToken: selectedFromToken, // from HyperliquidFromTokens
+  prices: {},
+  amountWei: Big(amount).times(10 ** HyperliuquidToToken.decimals).toFixed(0, 0),
+});
+if (quoteRes.error || !quoteRes.quote) throw new Error(quoteRes.error || 'No quote');
+const quote = quoteRes.quote;
+
+// 2. Transfer on source chain
+const txhash = await Hyperliquid.transfer({
+  wallet,
+  evmWallet: wallet,
+  evmWalletAddress: account,
+  quote,
+});
+
+// 3. Submit deposit (switch to Arbitrum if needed)
+const depositRes = await Hyperliquid.deposit({
+  wallet,
+  evmWallet: wallet,
+  evmWalletAddress: account,
+  quote,
+  txhash,
+});
+const depositId = depositRes.data?.depositId;
+
+// 4. Check status
+const statusRes = await Hyperliquid.getStatus({ depositId: String(depositId) });
+// statusRes.data.status: "PROCESSING" | "SUCCESS" | "REFUNDED" | "FAILED"
+// statusRes.data.txHash`,
+    response: `// Quote response
+{
+  "quote": {
+    "quote": {...},
+    "quoteParam": {...},
+    "sendParam": {...},
+    "amountOut": "...",
+    ...
+  },
+  "error": null
+}
+
+// Deposit response
+{
+  "code": 200,
+  "data": { "depositId": 12345 }
+}
+
+// Status response
+{
+  "code": 200,
+  "data": {
+    "status": "SUCCESS",
+    "txHash": "0x..."
+  }
+}`,
   },
 ];
 
