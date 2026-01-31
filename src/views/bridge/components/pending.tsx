@@ -149,7 +149,7 @@ const PendingTransfer = (props: any) => {
         return result;
       }
 
-      if ([TradeStatus.Expired, TradeStatus.Failed, TradeStatus.Success].includes(result.status) && timerRef.current) {
+      if ([TradeStatus.Failed, TradeStatus.Success].includes(result.status) && timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
 
@@ -237,7 +237,7 @@ export default PendingTransfer;
 const PendingItem = (props: any) => {
   const { className, data, close } = props;
 
-  const isPending = [TradeStatus.Pending].includes(data.status);
+  const isPending = [TradeStatus.Pending, TradeStatus.Confirming].includes(data.status);
   const isSuccess = [TradeStatus.Success].includes(data.status);
   const MaxPendingProgress = 90;
   const [progress, setProgress] = useState(0);
@@ -386,7 +386,7 @@ const PendingItem = (props: any) => {
 };
 
 const StatusIcon = ({ status }: { status?: TradeStatus }) => {
-  if (status === TradeStatus.Pending) {
+  if (status === TradeStatus.Pending || status === TradeStatus.Confirming) {
     return <Loading size={12} />;
   }
   if (status === TradeStatus.Success) {
