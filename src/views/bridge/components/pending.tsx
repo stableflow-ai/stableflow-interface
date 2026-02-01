@@ -70,7 +70,7 @@ const PendingTransfer = (props: any) => {
       result.time = new Date(result.create_time).getTime();
       result.timeEstimate = history[deposit_address]?.timeEstimate ?? Math.floor(Math.random() * 29) + 21;
 
-      if ([TradeStatus.Expired, TradeStatus.Failed, TradeStatus.Success].includes(result.status) && timerRef.current) {
+      if ([TradeStatus.Failed, TradeStatus.Success].includes(result.status) && timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
 
@@ -158,7 +158,7 @@ export default PendingTransfer;
 const PendingItem = (props: any) => {
   const { className, data, close } = props;
 
-  const isPending = [TradeStatus.Pending].includes(data.status);
+  const isPending = [TradeStatus.Pending, TradeStatus.Confirming].includes(data.status);
   const isSuccess = [TradeStatus.Success].includes(data.status);
   const MaxPendingProgress = 90;
   const [progress, setProgress] = useState(0);
