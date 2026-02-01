@@ -35,7 +35,7 @@ export function Hero() {
             <span className="text-[#000]">
               <CheckIcon />
             </span>
-            <span>Route across all major stablecoins and chains</span>
+            <span>Route across all major stablecoin rails and chains</span>
           </li>
         </ul>
 

@@ -109,7 +109,7 @@ export default function ZendeskWidget() {
   return mounted && !opened && (
     <button
       type="button"
-      className="button fixed z-[11] bottom-2.5 right-3.5 text-md font-[SpaceGrotesk] font-normal leading-[100%] flex justify-center items-center gap-2 bg-black text-white h-9 pl-3 pr-4.5 rounded-3xl"
+      className="button fixed z-[11] bottom-12 md:bottom-2.5 right-3.5 text-md font-[SpaceGrotesk] font-normal leading-[100%] flex justify-center items-center gap-2 bg-black text-white h-9 pl-3 pr-4.5 rounded-3xl"
       onClick={() => {
         window.zE("webWidget", "open");
       }}
