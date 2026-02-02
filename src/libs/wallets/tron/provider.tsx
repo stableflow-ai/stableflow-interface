@@ -95,7 +95,7 @@ const Content = () => {
   }, []);
 
   const setWindowWallet = (address?: string) => {
-    const _address = address || adapter.address;
+    const _address = address || adapter?.address;
     const _tronWeb = new TronWeb({
       fullHost: chainsRpcUrls["Tron"],
       headers: {},
@@ -104,6 +104,9 @@ const Content = () => {
     _address && _tronWeb.setAddress(_address);
     walletRef.current = new TronWallet({
       signAndSendTransaction: async (transaction: any) => {
+        if (!adapter) {
+          return "";
+        }
         const signedTx = await adapter.signTransaction(transaction);
         const result = await _tronWeb.trx.sendRawTransaction(signedTx);
         return result.txid;
@@ -113,6 +116,8 @@ const Content = () => {
   };
 
   useEffect(() => {
+    setWindowWallet();
+
     if (!adapter) {
       setWallets({
         tron: {
@@ -124,8 +129,6 @@ const Content = () => {
       });
       return;
     }
-
-    setWindowWallet();
 
     configStore.set({
       tronWalletAdapter: adapter.name
