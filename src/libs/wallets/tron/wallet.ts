@@ -9,6 +9,7 @@ import { chainsRpcUrls } from "@/config/chains";
 import { BridgeDefaultWallets } from "@/config";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
+import { generateRpcSignature } from "@/libs/signature";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -31,22 +32,26 @@ export default class TronWallet {
   }
 
   async waitForTronWeb() {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       if (this.tronWeb) {
         const address = this.tronWeb.defaultAddress.base58 || DefaultTronWalletAddress;
         // console.log("%cCustomTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
         customTronWeb.setAddress(address);
+        const rpcSignature = await generateRpcSignature("tron");
+        customTronWeb.setHeader(rpcSignature.headers);
         this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
         return;
       }
 
-      const checkTronWeb = () => {
+      const checkTronWeb = async () => {
         if ((window as any).tronWeb) {
           this.tronWeb = (window as any).tronWeb;
           const address = this.tronWeb.defaultAddress.base58 || DefaultTronWalletAddress;
           // console.log("%cCheckTronWeb customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
           customTronWeb.setAddress(address);
+          const rpcSignature = await generateRpcSignature("tron");
+          customTronWeb.setHeader(rpcSignature.headers);
           this.tronWeb = customTronWeb;
           resolve(this.tronWeb);
         } else {
@@ -54,11 +59,13 @@ export default class TronWallet {
         }
       };
 
-      checkTronWeb();
+      await checkTronWeb();
 
-      setTimeout(() => {
+      setTimeout(async () => {
         customTronWeb.setAddress(DefaultTronWalletAddress);
         // console.log("%cCheck timeout customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", DefaultTronWalletAddress);
+        const rpcSignature = await generateRpcSignature("tron");
+        customTronWeb.setHeader(rpcSignature.headers);
         this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
         console.log(new Error("TronWeb initialization timeout"));

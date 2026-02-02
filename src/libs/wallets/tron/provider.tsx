@@ -12,12 +12,7 @@ import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter } from "@tronwe
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { chainsRpcUrls } from "@/config/chains";
 import { metadata } from "../rainbow/provider";
-
-const tronWeb = new TronWeb({
-  fullHost: chainsRpcUrls["Tron"],
-  headers: {},
-  privateKey: "",
-});
+import { generateRpcSignature } from "@/libs/signature";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 
@@ -104,6 +99,8 @@ const Content = () => {
     _address && _tronWeb.setAddress(_address);
     walletRef.current = new TronWallet({
       signAndSendTransaction: async (transaction: any) => {
+        const rpcSignature = await generateRpcSignature("tron");
+        _tronWeb.setHeader(rpcSignature.headers);
         const signedTx = await adapter.signTransaction(transaction);
         const result = await _tronWeb.trx.sendRawTransaction(signedTx);
         return result.txid;
@@ -234,7 +231,6 @@ const MobileWallet = () => {
 
     // @ts-ignore
     const account = provider.getAccount()?.address || null;
-    account && tronWeb.setAddress(account);
     const tronWallet = new TronWallet({
       signAndSendTransaction: (transaction: any) => {
         return provider.signAndSendTransaction(transaction, "tron:mainnet");
