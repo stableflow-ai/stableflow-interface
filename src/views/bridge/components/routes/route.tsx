@@ -15,6 +15,8 @@ const QuoteRoute = (props: any) => {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
 
+  const isFromTron = data?.quoteParam?.fromToken?.chainType === "tron";
+
   return (
     <motion.div
       className={clsx(
@@ -47,7 +49,7 @@ const QuoteRoute = (props: any) => {
           />
           <div className="">
             {
-              service === Service.OneClick ? (
+              (service === Service.OneClick && isFromTron) ? (
                 bridgeStore.acceptTronEnergy ?
                   formatNumber(data.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
                   formatNumber(data.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
