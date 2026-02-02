@@ -388,7 +388,6 @@ export default class RainbowWallet {
     const DefaultErrorMsg = "Transaction failed";
     try {
       const txReceipt = await tx.wait();
-      console.log("sendTransaction receipt: %o", txReceipt);
 
       if (txReceipt.status !== 1) {
         throw new Error(DefaultErrorMsg);
@@ -396,27 +395,7 @@ export default class RainbowWallet {
 
       return txReceipt.hash;
     } catch (error: any) {
-      console.error("sendTransaction receipt failed: %o", error);
-
-      const recoveredHash = error.hash || error.transactionHash || error.tx?.hash;
-
-      if (recoveredHash) {
-        try {
-          const txReceipt = await this.provider.waitForTransaction(recoveredHash);
-          console.log("sendTransaction manual receipt: %o", txReceipt);
-
-          if (txReceipt.status !== 1) {
-            throw new Error(DefaultErrorMsg);
-          }
-
-          return txReceipt.hash;
-        } catch (err: any) {
-          console.error("sendTransaction manual receipt failed: %o", err);
-          throw new Error(err.message || DefaultErrorMsg);
-        }
-      }
-
-      throw new Error(error.message || DefaultErrorMsg);
+      return tx.hash;
     }
   }
 
