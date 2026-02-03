@@ -159,6 +159,9 @@ class OneClickService {
             }
           }
 
+          res.data.needApprove = proxyResult.needApprove;
+          res.data.approveSpender = proxyResult.approveSpender;
+
           res.data.transferSourceGasFee = proxyResult.estimateSourceGas;
           const transferSourceGasFeeUsd = Big(proxyResult.estimateSourceGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
