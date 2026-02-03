@@ -99,7 +99,7 @@ const PendingTransfer = (props: any) => {
             to_chain: isMultiHop ? "arb" : result.to_chain,
             address: result.address,
             receive_address: isMultiHop ? multiHopComposer : result.receive_address,
-            status: (isSourcePending || isDestinationPending) ? TradeStatus.Pending : ((isSourceSuccess && isDestinationSuccess) ? TradeStatus.Success : TradeStatus.Failed),
+            status: isSourcePending ? TradeStatus.Pending : (isSourceSuccess ? TradeStatus.Success : TradeStatus.Failed),
             tx_hash: layerzeroData?.source?.tx?.txHash,
             // to_tx_hash: layerzeroData?.destination?.tx?.txHash,
             source_chain: currentFromChain,
