@@ -116,7 +116,7 @@ const PendingTransfer = (props: any) => {
             tx_hash: layerzeroData?.destination?.tx?.txHash,
             // to_tx_hash: layerzeroData?.destination?.lzCompose?.txs?.[0]?.txHash,
             source_chain: chains.arb,
-            destination_chain: chains.arb,
+            destination_chain: currentToChain,
           });
         }
 
