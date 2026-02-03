@@ -31,7 +31,9 @@ export default function BridgeButton({
       return "Switch Network";
     }
     const quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
-    if (quoteData?.needApprove) {
+    const isFromTron = quoteData?.quoteParam?.fromToken?.chainType === "tron";
+    const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy;
+    if (quoteData?.needApprove && !isFromTronEnergy) {
       return "Approve";
     }
     if (quoteData?.needCreateTokenAccount) {
@@ -44,7 +46,7 @@ export default function BridgeButton({
       return "Initialize Solana USDC Account";
     }
     return "Transfer";
-  }, [bridgeStore.errorTips, errorChain, bridgeStore.quoteDataService, bridgeStore.quoteDataMap]);
+  }, [bridgeStore.errorTips, errorChain, bridgeStore.quoteDataService, bridgeStore.quoteDataMap, bridgeStore.acceptTronEnergy]);
 
   return (
     <>

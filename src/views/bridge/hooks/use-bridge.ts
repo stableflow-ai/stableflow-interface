@@ -138,7 +138,7 @@ export default function useBridge(props?: any) {
             _params.needsEnergy = needsEnergy;
             _params.needsBandwidth = needsBandwidth;
             _params.needsBandwidthTRX = needsBandwidthTRX;
-            
+
             if (needsEnergy) {
               _params.needsEnergyAmount = needsEnergyTRX;
             } else {
@@ -401,8 +401,11 @@ export default function useBridge(props?: any) {
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
+      const isFromTron = walletStore.fromToken.chainType === "tron";
+      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy;
+
       // approve
-      if (_quote?.data?.needApprove) {
+      if (_quote?.data?.needApprove && !isFromTronEnergy) {
         // check is from ethereum erc20
         if (walletStore.fromToken.chainName === "Ethereum") {
           const allowance = await wallet.wallet.allowance({
@@ -464,7 +467,6 @@ export default function useBridge(props?: any) {
 
       // 1click transfer
       if (bridgeStore.quoteDataService === Service.OneClick) {
-        const isFromTron = walletStore.fromToken.chainType === "tron";
         const estNativeTokenParams: any = {};
         const fromTronParams = {
           wallet: wallet.wallet,
