@@ -16,7 +16,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
-import { chainsRpcUrls } from "@/config/chains";
+import { getChainRpcUrl } from "@/config/chains";
 import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import Big from "big.js";
@@ -45,7 +45,7 @@ export default class SolanaWallet {
     //   "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
     //   "confirmed"
     // );
-    this.connection = new Connection(chainsRpcUrls["Solana"], "confirmed");
+    this.connection = new Connection(getChainRpcUrl("Solana").rpcUrl, "confirmed");
     this.publicKey = options.publicKey;
     this.signTransaction = options.signer.signTransaction;
     this.signer = options.signer;

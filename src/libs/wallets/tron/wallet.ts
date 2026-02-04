@@ -5,7 +5,7 @@ import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { ethers } from "ethers";
 import Big from "big.js";
 import { TronWeb } from "tronweb";
-import { chainsRpcUrls } from "@/config/chains";
+import { getChainRpcUrl } from "@/config/chains";
 import { BridgeDefaultWallets } from "@/config";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
@@ -15,7 +15,7 @@ import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
-  fullHost: chainsRpcUrls["Tron"],
+  fullHost: getChainRpcUrl("Tron").rpcUrl,
   headers: {},
   privateKey: "",
 });

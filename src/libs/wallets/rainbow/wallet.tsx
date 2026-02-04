@@ -52,10 +52,11 @@ export default class RainbowWallet {
 
   async getBalance(token: any, account: string) {
     try {
-      // Use token's rpcUrl if available, otherwise fall back to current provider
+      // Use token's rpcUrls if available, otherwise fall back to current provider
       let provider = this.provider;
-      if (token.rpcUrl) {
-        provider = new ethers.JsonRpcProvider(token.rpcUrl);
+      if (token.rpcUrls) {
+        const providers = token.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+        provider = new ethers.FallbackProvider(providers);
       }
 
       if (token.symbol === "eth" || token.symbol === "ETH" || token.symbol === "native") {

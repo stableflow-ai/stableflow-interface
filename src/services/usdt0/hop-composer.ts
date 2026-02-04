@@ -1,4 +1,4 @@
-import { chainsRpcUrls } from "@/config/chains";
+import { getChainRpcUrl } from "@/config/chains";
 import { ethers } from "ethers";
 import { USDT0_CONFIG } from "./config";
 import { OFT_ABI } from "./contract";
@@ -19,7 +19,8 @@ export const getHopMsgFee = async (params: any) => {
     arbitrumOft = originLayerzero.oftLegacy || originLayerzero.oft;
   }
 
-  const provider = new ethers.JsonRpcProvider(chainsRpcUrls["Arbitrum"]);
+  const providers = getChainRpcUrl("Arbitrum").rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+  const provider = new ethers.FallbackProvider(providers);
   const oftContractRead = new ethers.Contract(arbitrumOft, OFT_ABI, provider);
 
   try {
