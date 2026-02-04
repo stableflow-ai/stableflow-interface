@@ -120,7 +120,7 @@ const PendingTransfer = (props: any) => {
           });
         }
 
-        if (isPending) {
+        if (isPending || isSourcePending || isDestinationPending || isLzComponsePending) {
           result.status = TradeStatus.Pending;
           return result;
         }

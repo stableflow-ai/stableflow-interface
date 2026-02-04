@@ -43,10 +43,19 @@ export function useTronEnergy(props?: any) {
     if (needsEnergy) {
       estimatedBandwidth = TronBandwidthTransderTRX + TronBandwidthTransferToken;
     }
-    const needsBandwidth = estimatedBandwidth > availableBandwidth && Big(accountTRXBalance || 0).lt(Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6));
+    
+    let needsBandwidthAmount = 0;
+    if (availableBandwidth < TronBandwidthTransderTRX) {
+      needsBandwidthAmount = TronBandwidthTransderTRX + (needsEnergy ? TronBandwidthTransferToken : 0);
+    } else if (needsEnergy && availableBandwidth < TronBandwidthTransderTRX + TronBandwidthTransferToken) {
+      needsBandwidthAmount = TronBandwidthTransferToken;
+    }
+
+    const needsBandwidth = estimatedBandwidth > availableBandwidth;
+    const insufficientBandwidth = needsBandwidth && Big(accountTRXBalance || 0).lt(Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6));
 
     console.log(`Estimated bandwidth: ${estimatedBandwidth}, available bandwidth: ${availableBandwidth}`);
-    console.log(`bandwidth payment required: %o TRX`, Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6).toString());
+    console.log(`bandwidth payment required: %o TRX`, Big(needsBandwidthAmount).times(10 ** 3).div(10 ** 6).toString());
 
     return {
       estimatedEnergy,
@@ -54,9 +63,9 @@ export function useTronEnergy(props?: any) {
       availableBandwidth,
       needsEnergy,
       needsEnergyTRX: needsEnergy ? TRON_RENTAL_FEE.Normal : 0,
-      needsBandwidth,
-      needsBandwidthAmount: estimatedBandwidth,
-      needsBandwidthTRX: numberRemoveEndZero(Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6).toFixed(6)),
+      needsBandwidth: insufficientBandwidth,
+      needsBandwidthAmount,
+      needsBandwidthTRX: numberRemoveEndZero(Big(needsBandwidthAmount).times(10 ** 3).div(10 ** 6).toFixed(6)),
     };
   }, {
     manual: true,
