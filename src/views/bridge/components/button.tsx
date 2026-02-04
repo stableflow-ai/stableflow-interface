@@ -1,4 +1,5 @@
 import Button from "@/components/button";
+import { Service } from "@/services";
 import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";
 import useWalletsStore from "@/stores/use-wallets";
@@ -46,7 +47,7 @@ export default function BridgeButton({
     }
     const quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
     const isFromTron = quoteData?.quoteParam?.fromToken?.chainType === "tron";
-    const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy;
+    const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
     if (quoteData?.needApprove && !isFromTronEnergy) {
       return "Approve";
     }

@@ -402,7 +402,7 @@ export default function useBridge(props?: any) {
         .toFixed(0);
 
       const isFromTron = walletStore.fromToken.chainType === "tron";
-      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy;
+      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
 
       // approve
       if (_quote?.data?.needApprove && !isFromTronEnergy) {
