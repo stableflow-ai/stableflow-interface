@@ -16,7 +16,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
-import { chainsRpcUrls } from "@/config/chains";
+import { getChainRpcUrl } from "@/config/chains";
 import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import Big from "big.js";
@@ -45,7 +45,7 @@ export default class SolanaWallet {
     //   "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
     //   "confirmed"
     // );
-    this.connection = new Connection(chainsRpcUrls["Solana"], "confirmed");
+    this.connection = new Connection(getChainRpcUrl("Solana").rpcUrl, "confirmed");
     this.publicKey = options.publicKey;
     this.signTransaction = options.signer.signTransaction;
     this.signer = options.signer;
@@ -324,9 +324,11 @@ export default class SolanaWallet {
       multiHopComposer,
       isMultiHopComposer,
       isOriginLegacy,
+      isDestinationLegacy,
       prices,
       excludeFees,
       originLayerzero,
+      destinationLayerzero,
     } = params;
 
     try {
@@ -359,27 +361,33 @@ export default class SolanaWallet {
       const slippage = slippageTolerance || 0.01; // Default 1% slippage
       const minAmountLd = BigInt(Big(amountWei).times(Big(1).minus(Big(slippage).div(100))).toFixed(0));
 
-      const lzReceiveOptionGas = isOriginLegacy ? originLayerzero.lzReceiveOptionGasLegacy : originLayerzero.lzReceiveOptionGas;
+      const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
       const lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
+
+      let unMultiHopExtraOptions = Options.newOptions().toBytes() as Uint8Array<any>;
+      if (!isMultiHopComposer && lzReceiveOptionValue) {
+        unMultiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toBytes() as Uint8Array<any>;
+      }
 
       let _dstEid: any = dstEid;
       let to = new Uint8Array(Buffer.from(addressToBytes32(recipient)));
-      let extraOptions = Options.newOptions()
-        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
-        .toBytes() as Uint8Array<any>;
+      let extraOptions = unMultiHopExtraOptions;
       let composeMsg = null;
       if (isMultiHopComposer) {
         _dstEid = multiHopComposer.eid;
         to = new Uint8Array(Buffer.from(addressToBytes32(multiHopComposer.oftMultiHopComposer)));
+
+        let multiHopExtraOptions = Options.newOptions().toHex();
+        if (lzReceiveOptionValue) {
+          multiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+        }
 
         const composeMsgSendParam = {
           dstEid,
           to: addressToBytes32(recipient),
           amountLD: amountLd,
           minAmountLD: minAmountLd,
-          extraOptions: Options.newOptions()
-            .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
-            .toHex(),
+          extraOptions: multiHopExtraOptions,
           composeMsg: "0x",
           oftCmd: "0x",
         };
@@ -389,7 +397,6 @@ export default class SolanaWallet {
         });
 
         extraOptions = Options.newOptions()
-          .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
           .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 500000, hopMsgFee)
           .toBytes() as Uint8Array<any>;
 

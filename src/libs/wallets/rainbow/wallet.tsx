@@ -52,10 +52,11 @@ export default class RainbowWallet {
 
   async getBalance(token: any, account: string) {
     try {
-      // Use token's rpcUrl if available, otherwise fall back to current provider
+      // Use token's rpcUrls if available, otherwise fall back to current provider
       let provider = this.provider;
-      if (token.rpcUrl) {
-        provider = new ethers.JsonRpcProvider(token.rpcUrl);
+      if (token.rpcUrls) {
+        const providers = token.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+        provider = new ethers.FallbackProvider(providers);
       }
 
       if (token.symbol === "eth" || token.symbol === "ETH" || token.symbol === "native") {
@@ -237,6 +238,7 @@ export default class RainbowWallet {
       isOriginLegacy,
       isDestinationLegacy,
       originLayerzero,
+      destinationLayerzero,
     } = params;
 
     const result: any = {
@@ -279,7 +281,7 @@ export default class RainbowWallet {
       }
     }
 
-    const lzReceiveOptionGas = isOriginLegacy ? originLayerzero.lzReceiveOptionGasLegacy : originLayerzero.lzReceiveOptionGas;
+    const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
     let lzReceiveOptionValue = 0;
 
     const destATA = await getDestinationAssociatedTokenAddress({
@@ -290,15 +292,18 @@ export default class RainbowWallet {
       lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
     }
 
+    let unMultiHopExtraOptions = Options.newOptions().toHex();
+    if (!isMultiHopComposer && lzReceiveOptionValue) {
+      unMultiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+    }
+
     // 2. quote send
     const sendParam: any = {
       dstEid: dstEid,
       to: addressToBytes32(toToken.chainType, recipient),
       amountLD: amountWei,
       minAmountLD: 0n,
-      extraOptions: Options.newOptions()
-        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
-        .toHex(),
+      extraOptions: unMultiHopExtraOptions,
       composeMsg: "0x",
       oftCmd: "0x"
     };
@@ -308,14 +313,17 @@ export default class RainbowWallet {
       sendParam.dstEid = multiHopComposer.eid;
       sendParam.to = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer);
 
+      let multiHopExtraOptions = Options.newOptions().toHex();
+      if (lzReceiveOptionValue) {
+        multiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+      }
+
       const composeMsgSendParam = {
         dstEid,
         to: addressToBytes32(toToken.chainType, recipient),
         amountLD: sendParam.amountLD,
         minAmountLD: sendParam.minAmountLD,
-        extraOptions: Options.newOptions()
-          .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
-          .toHex(),
+        extraOptions: multiHopExtraOptions,
         composeMsg: "0x",
         oftCmd: "0x",
       };
@@ -325,7 +333,6 @@ export default class RainbowWallet {
       });
 
       sendParam.extraOptions = Options.newOptions()
-        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
         .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
         .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
