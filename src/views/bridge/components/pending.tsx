@@ -74,79 +74,83 @@ const PendingTransfer = (props: any) => {
       result.timeEstimate = history[deposit_address]?.timeEstimate ?? Math.floor(Math.random() * 29) + 21;
 
       // USDT0 status
-      if (result.project === TradeProject.USDT0) {
-        const layerzeroData = await usdt0Service.getLayerzeroData({
-          tx_hash: result.tx_hash,
-          from_chain: result.from_chain,
-        });
-        const isMultiHop = !!layerzeroData.destination?.lzCompose?.status && layerzeroData.destination?.lzCompose?.status !== "N/A";
-        const isPending = [LzScanStatus.InFlight, LzScanStatus.Confirming].includes(layerzeroData.status?.name);
-        const isConfirmed = [LzScanStatus.Delivered].includes(layerzeroData.status?.name);
-
-        const isSourcePending = [LzScanSourceStatus.Waiting, LzScanSourceStatus.ValidatingTx, LzScanSourceStatus.WaitingForHashDelivered].includes(layerzeroData.source?.status);
-        const isSourceSuccess = [LzScanSourceStatus.Succeeded].includes(layerzeroData.source?.status);
-        const isDestinationPending = [LzScanDestinationStatus.Waiting, LzScanDestinationStatus.ValidatingTx].includes(layerzeroData.destination?.status);
-        const isDestinationSuccess = [LzScanSourceStatus.Succeeded].includes(layerzeroData.destination?.status);
-        const isLzComponsePending = [LzScanLzComposeStatus.Waiting, LzScanLzComposeStatus.ValidatingTx, LzScanLzComposeStatus.WaitingForComposeSentEvent].includes(layerzeroData.destination?.lzCompose?.status);
-        const isLzComponseSuccess = [LzScanLzComposeStatus.Succeeded].includes(layerzeroData.destination?.lzCompose?.status);
-
-        const multiHopComposer = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
-
-        result.isMultiHop = isMultiHop;
-        result.hops = [
-          {
+      try {
+        if (result.project === TradeProject.USDT0) {
+          const layerzeroData = await usdt0Service.getLayerzeroData({
+            tx_hash: result.tx_hash,
             from_chain: result.from_chain,
-            to_chain: isMultiHop ? "arb" : result.to_chain,
-            address: result.address,
-            receive_address: isMultiHop ? multiHopComposer : result.receive_address,
-            status: isSourcePending ? TradeStatus.Pending : (isSourceSuccess ? TradeStatus.Success : TradeStatus.Failed),
-            tx_hash: layerzeroData?.source?.tx?.txHash,
-            // to_tx_hash: layerzeroData?.destination?.tx?.txHash,
-            source_chain: currentFromChain,
-            destination_chain: isMultiHop ? chains.arb : currentToChain,
-          }
-        ];
-        if (isMultiHop) {
-          result.hops.push({
-            from_chain: "arb",
-            to_chain: result.to_chain,
-            address: multiHopComposer,
-            receive_address: result.receive_address,
-            status: isLzComponsePending ? TradeStatus.Pending : (isLzComponseSuccess ? TradeStatus.Success : TradeStatus.Failed),
-            tx_hash: layerzeroData?.destination?.tx?.txHash,
-            // to_tx_hash: layerzeroData?.destination?.lzCompose?.txs?.[0]?.txHash,
-            source_chain: chains.arb,
-            destination_chain: currentToChain,
           });
-        }
+          const isMultiHop = !!layerzeroData.destination?.lzCompose?.status && layerzeroData.destination?.lzCompose?.status !== "N/A";
+          const isPending = [LzScanStatus.InFlight, LzScanStatus.Confirming].includes(layerzeroData.status?.name);
+          const isConfirmed = [LzScanStatus.Delivered].includes(layerzeroData.status?.name);
 
-        if (isPending || isSourcePending || isDestinationPending || isLzComponsePending) {
-          result.status = TradeStatus.Pending;
-          return result;
-        }
-        if (!isConfirmed) {
-          result.status = TradeStatus.Failed;
+          const isSourcePending = [LzScanSourceStatus.Waiting, LzScanSourceStatus.ValidatingTx, LzScanSourceStatus.WaitingForHashDelivered].includes(layerzeroData.source?.status);
+          const isSourceSuccess = [LzScanSourceStatus.Succeeded].includes(layerzeroData.source?.status);
+          const isDestinationPending = [LzScanDestinationStatus.Waiting, LzScanDestinationStatus.ValidatingTx].includes(layerzeroData.destination?.status);
+          const isDestinationSuccess = [LzScanSourceStatus.Succeeded].includes(layerzeroData.destination?.status);
+          const isLzComponsePending = [LzScanLzComposeStatus.Waiting, LzScanLzComposeStatus.ValidatingTx, LzScanLzComposeStatus.WaitingForComposeSentEvent].includes(layerzeroData.destination?.lzCompose?.status);
+          const isLzComponseSuccess = [LzScanLzComposeStatus.Succeeded].includes(layerzeroData.destination?.lzCompose?.status);
 
-          updateStatus(deposit_address, "FAILED");
+          const multiHopComposer = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
+
+          result.isMultiHop = isMultiHop;
+          result.hops = [
+            {
+              from_chain: result.from_chain,
+              to_chain: isMultiHop ? "arb" : result.to_chain,
+              address: result.address,
+              receive_address: isMultiHop ? multiHopComposer : result.receive_address,
+              status: isSourcePending ? TradeStatus.Pending : (isSourceSuccess ? TradeStatus.Success : TradeStatus.Failed),
+              tx_hash: layerzeroData?.source?.tx?.txHash,
+              // to_tx_hash: layerzeroData?.destination?.tx?.txHash,
+              source_chain: currentFromChain,
+              destination_chain: isMultiHop ? chains.arb : currentToChain,
+            }
+          ];
+          if (isMultiHop) {
+            result.hops.push({
+              from_chain: "arb",
+              to_chain: result.to_chain,
+              address: multiHopComposer,
+              receive_address: result.receive_address,
+              status: isLzComponsePending ? TradeStatus.Pending : (isLzComponseSuccess ? TradeStatus.Success : TradeStatus.Failed),
+              tx_hash: layerzeroData?.destination?.tx?.txHash,
+              // to_tx_hash: layerzeroData?.destination?.lzCompose?.txs?.[0]?.txHash,
+              source_chain: chains.arb,
+              destination_chain: currentToChain,
+            });
+          }
+
+          if (isPending || isSourcePending || isDestinationPending || isLzComponsePending) {
+            result.status = TradeStatus.Pending;
+            return result;
+          }
+          if (!isConfirmed) {
+            result.status = TradeStatus.Failed;
+
+            updateStatus(deposit_address, "FAILED");
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            return result;
+          }
+          let isSuccess = layerzeroData.source?.status === "SUCCEEDED" && layerzeroData.destination?.status === "SUCCEEDED";
+          // multi hop shuold check source and destination lzcompose status
+          if (isMultiHop) {
+            isSuccess = isSuccess && layerzeroData.destination?.lzCompose?.status === "SUCCEEDED";
+          }
+          result.status = isSuccess ? TradeStatus.Success : TradeStatus.Failed;
+
+          updateStatus(deposit_address, isSuccess ? "SUCCESS" : "FAILED");
           if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
           }
           return result;
         }
-        let isSuccess = layerzeroData.source?.status === "SUCCEEDED" && layerzeroData.destination?.status === "SUCCEEDED";
-        // multi hop shuold check source and destination lzcompose status
-        if (isMultiHop) {
-          isSuccess = isSuccess && layerzeroData.destination?.lzCompose?.status === "SUCCEEDED";
-        }
-        result.status = isSuccess ? TradeStatus.Success : TradeStatus.Failed;
-
-        updateStatus(deposit_address, isSuccess ? "SUCCESS" : "FAILED");
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        return result;
+      } catch (error) {
+        console.error("get USDT0 status failed: %o", error);
       }
 
       if ([TradeStatus.Failed, TradeStatus.Success].includes(result.status) && timerRef.current) {
