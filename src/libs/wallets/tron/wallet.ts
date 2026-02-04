@@ -447,6 +447,7 @@ export default class TronWallet {
       isOriginLegacy,
       isDestinationLegacy,
       originLayerzero,
+      destinationLayerzero,
     } = params;
 
     const result: any = {
@@ -494,7 +495,7 @@ export default class TronWallet {
       }
     }
 
-    const lzReceiveOptionGas = isOriginLegacy ? originLayerzero.lzReceiveOptionGasLegacy : originLayerzero.lzReceiveOptionGas;
+    const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
     let lzReceiveOptionValue = 0;
 
     const destATA = await getDestinationAssociatedTokenAddress({
@@ -503,6 +504,11 @@ export default class TronWallet {
     });
     if (destATA.needCreateTokenAccount) {
       lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
+    }
+
+    let unMultiHopExtraOptions = Options.newOptions().toHex();
+    if (!isMultiHopComposer && lzReceiveOptionValue) {
+      unMultiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
     }
 
     // 2. quote send
@@ -517,9 +523,7 @@ export default class TronWallet {
       // minAmountLD
       "0",
       // extraOptions
-      Options.newOptions()
-        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
-        .toHex(),
+      unMultiHopExtraOptions,
       // composeMsg
       "0x",
       // oftCmd
@@ -536,22 +540,18 @@ export default class TronWallet {
     const [, , oftReceipt] = oftData;
     sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
 
-    const msgFee = await oftContract.quoteSend(sendParam, payInLzToken).call();
-    let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
-    if (nativeMsgFee) {
-      nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(1.2).toFixed(0));
-    }
-    result.estimateSourceGas = nativeMsgFee;
-
     if (isMultiHopComposer) {
+      let multiHopExtraOptions = Options.newOptions().toHex();
+      if (lzReceiveOptionValue) {
+        multiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+      }
+
       const composeMsgSendParam = {
         dstEid,
         to: addressToBytes32(toToken.chainType, recipient),
         amountLD: sendParam[2],
         minAmountLD: sendParam[3],
-        extraOptions: Options.newOptions()
-          .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
-          .toHex(),
+        extraOptions: multiHopExtraOptions,
         composeMsg: "0x",
         oftCmd: "0x",
       };
@@ -561,7 +561,6 @@ export default class TronWallet {
       });
 
       sendParam[4] = Options.newOptions()
-        .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
         .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
         .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
@@ -570,6 +569,13 @@ export default class TronWallet {
         [Object.values(composeMsgSendParam)]
       );
     }
+
+    const msgFee = await oftContract.quoteSend(sendParam, payInLzToken).call();
+    let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
+    if (nativeMsgFee) {
+      nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(1.2).toFixed(0));
+    }
+    result.estimateSourceGas = nativeMsgFee;
 
     // console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
 

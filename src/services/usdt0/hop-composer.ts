@@ -27,8 +27,7 @@ export const getHopMsgFee = async (params: any) => {
 
     const [nativeFee] = msgFee;
 
-    // 20% buffer
-    return nativeFee * 120n / 100n;
+    return nativeFee * 100n / 100n;
   } catch (error) {
     console.log("getHopMsgFee failed: %o", error);
     throw new Error("Quote multi hop message fee failed");

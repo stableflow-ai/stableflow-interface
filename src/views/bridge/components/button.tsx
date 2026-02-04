@@ -78,7 +78,9 @@ export default function BridgeButton({
           onClick();
         }}
       >
-        {buttonText}
+        <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+          {buttonText}
+        </span>
       </Button>
       {
         quoteData?.needCreateTokenAccount && (
