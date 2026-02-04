@@ -6,19 +6,14 @@ export default function NavigationMenu() {
 
   const menuItems = [
     {
-      label: "Transfer",
-      path: "https://app.stableflow.ai",
-      isExternal: true
+      label: "Stableflow",
+      path: "/",
+      isExternal: false
     },
     {
-      label: "Developer",
-      path: "https://app.stableflow.ai/developer",
-      isExternal: true
-    },
-    {
-      label: "Learn",
-      path: "https://app.stableflow.ai/learn-more",
-      isExternal: true
+      label: "Hyperliquid",
+      path: "/overview/hyperliquid",
+      isExternal: false
     }
   ];
 

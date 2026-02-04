@@ -14,6 +14,7 @@ import Developer from "./views/developer";
 const History = lazy(() => import("./views/history"));
 const LearnMore = lazy(() => import("./views/learn-more"));
 const Apply = lazy(() => import("./views/apply"));
+const Hyperliquid = lazy(() => import("./views/hyperliquid"));
 
 const router = createBrowserRouter([
   {
@@ -40,11 +41,14 @@ const router = createBrowserRouter([
       {
         path: "learn-more",
         element: <LearnMore />
-      }
-      ,
+      },
       {
         path: "developer",
         element: <Developer />
+      },
+      {
+        path: "overview/hyperliquid",
+        element: <Hyperliquid />
       }
     ]
   },

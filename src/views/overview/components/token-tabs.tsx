@@ -9,7 +9,7 @@ interface TokenTabsProps {
 export default function TokenTabs({ selectedToken, onTokenChange }: TokenTabsProps) {
   return (
     <div className="w-full">
-      <div className="text-[16px] font-[500] text-[#0E3616] mb-[12px] pl-[40px] md:pl-0">
+      <div className="text-[16px] font-[500] text-[#0E3616] mb-[12px] pl-[0px] md:pl-[40px] md:pl-0">
         Select Token
       </div>
       <div className="flex items-center gap-[12px]">

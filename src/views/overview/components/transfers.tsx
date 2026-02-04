@@ -390,6 +390,7 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
           columns={columns}
           data={transfers}
           loading={loading}
+          className="overflow-x-auto"
           bodyClassName="max-h-[1700px] overflow-y-auto"
           rowClassName="!px-5"
         />
