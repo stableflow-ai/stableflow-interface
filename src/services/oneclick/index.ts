@@ -26,7 +26,8 @@ class OneClickService {
       baseURL: "https://1click.chaindefuser.com/v0",
       timeout: 30000,
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${import.meta.env.VITE_NEAR_INTENTS_KEY}`
       }
     });
   }

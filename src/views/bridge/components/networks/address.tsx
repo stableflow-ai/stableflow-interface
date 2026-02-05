@@ -1,11 +1,11 @@
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
-import metamask from "@/assets/metamask.png";
 import { formatAddress } from "@/utils/format/address";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useBridgeStore from "@/stores/use-bridge";
 import Popover from "@/components/popover";
 import clsx from "clsx";
 import { Service } from "@/services";
+import { useDebounceFn } from "ahooks";
 
 export default function Address({ token, isTo, addressValidation }: any) {
   if (!token?.chainType)
@@ -46,6 +46,25 @@ const WithChain = ({ token, isTo, addressValidation }: any) => {
 const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
   const [edit, setEdit] = useState(false);
   const bridgeStore = useBridgeStore();
+
+  const {
+    recipientAddress,
+    quoteDataService,
+  } = bridgeStore;
+
+  const isEditValid = useMemo(() => {
+    if (!isTo || edit) {
+      return false;
+    }
+    if (recipientAddress && !!addressValidation) {
+      return false;
+    }
+    if (quoteDataService === Service.CCTP && isTo && token.chainType === "sol") {
+      return false;
+    }
+    return true;
+  }, [addressValidation, token, recipientAddress, quoteDataService, isTo, edit]);
+
   return (
     <div
       className={clsx(
@@ -59,7 +78,7 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
           className="text-[12px] font-[500] text-[#444C59] outline-none px-[5px] md:px-[14px] flex-1 w-0 md:w-[unset]"
           placeholder="Paste here"
           autoFocus
-          value={bridgeStore.recipientAddress}
+          value={recipientAddress}
           onChange={(e) => {
             bridgeStore.set({ recipientAddress: e.target.value });
           }}
@@ -67,10 +86,10 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
             setEdit(false);
           }}
         />
-      ) : bridgeStore.recipientAddress && !!addressValidation ? (
+      ) : recipientAddress && !!addressValidation ? (
         <ValidateAddress
           isError={!addressValidation.isValid}
-          address={bridgeStore.recipientAddress}
+          address={recipientAddress}
           onClick={() => {
             bridgeStore.set({ recipientAddress: "" });
             setEdit(true);
@@ -79,7 +98,7 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
       ) : (
         <>
           {token.chainType === "evm" ? (
-            <img className="w-[12px] h-[12px]" src={metamask} />
+            <img className="w-[12px] h-[12px]" src={wallet.walletIcon} />
           ) : (
             wallet.walletIcon && (
               <img className="w-[12px] h-[12px]" src={wallet.walletIcon} />
@@ -102,43 +121,76 @@ const WithAccount = ({ token, wallet, isTo, addressValidation }: any) => {
             Cancel
           </button>
         ) : (
-          !(bridgeStore.recipientAddress && !!addressValidation) && !(bridgeStore.quoteDataService === Service.CCTP && isTo && token.chainType === "sol") && (
-            <Popover
-              content={
-                <div className="w-[142px] h-[42px] text-[14px] text-center leading-[42px] rounded-[8px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]">
-                  Custom Address
-                </div>
-              }
-              placement="Top"
-              trigger="Hover"
-            >
-              <EditButton onClick={() => setEdit(true)} />
-            </Popover>
+          isEditValid && (
+            <EditButton
+              onClick={() => setEdit(true)}
+              recipientAddress={wallet.account}
+              token={token}
+            />
           )
         ))}
     </div>
   );
 };
 
-const EditButton = ({ onClick }: any) => {
+const EditButton = ({ onClick, recipientAddress, token }: any) => {
+  const editRecipientAddressRef = useRef<any>(null);
+
+  const [chainName] = useMemo(() => {
+    return [token?.chainName, token?.chainType];
+  }, [token]);
+
+  const { run: toggleEditTooltip, cancel: cancelToggleEditTooltip } = useDebounceFn(() => {
+    if (!recipientAddress) {
+      editRecipientAddressRef.current?.onOpen();
+      return;
+    }
+    editRecipientAddressRef.current?.onClose();
+  }, { wait: 1000 });
+
+  useEffect(() => {
+    toggleEditTooltip();
+
+    return () => {
+      cancelToggleEditTooltip();
+    }
+  }, [recipientAddress, chainName]);
+
   return (
-    <button
-      className={"button text-[#B3BBCE] hover:text-[#6284F5] duration-300"}
-      onClick={onClick}
+    <Popover
+      ref={editRecipientAddressRef}
+      content={
+        <div className="w-[160px] p-2 bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] rounded-[8px] text-[12px]">
+          <img
+            src="/icon-info.svg"
+            alt=""
+            className="inline-block mr-[4px] translate-y-[-1px]"
+          />
+          <span>Please click to enter recipient address</span>
+        </div>
+      }
+      placement="Top"
+      trigger="Hover"
+      closeDelayDuration={0}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="12"
-        height="12"
-        viewBox="0 0 12 12"
-        fill="none"
+      <button
+        className={"button text-[#B3BBCE] hover:text-[#6284F5] duration-300"}
+        onClick={onClick}
       >
-        <path
-          d="M11.1429 10.3099H0.857143C0.342857 10.3099 0 10.6479 0 11.1549C0 11.662 0.342857 12 0.857143 12H11.1429C11.6571 12 12 11.662 12 11.1549C12 10.6479 11.6571 10.3099 11.1429 10.3099ZM1.71429 9.46479H4.28571C4.54286 9.46479 4.71429 9.38028 4.88571 9.21127L9.68571 4.47887C10.2 3.97183 10.4571 3.38028 10.4571 2.70423C10.4571 2.02817 10.2 1.43662 9.68571 0.929578L9.51429 0.760563C9 0.253521 8.4 0 7.71429 0C7.02857 0 6.42857 0.253521 5.91429 0.760563L1.11429 5.49296C0.942857 5.66197 0.857143 5.83099 0.857143 6.08451V8.61972C0.857143 9.12676 1.2 9.46479 1.71429 9.46479ZM2.57143 6.42254L7.11429 1.94366C7.28571 1.77465 7.45714 1.69014 7.71429 1.69014C7.97143 1.69014 8.14286 1.77465 8.31429 1.94366L8.48571 2.11268C8.65714 2.28169 8.74286 2.4507 8.74286 2.70423C8.74286 2.95775 8.65714 3.12676 8.48571 3.29577L3.94286 7.77465H2.57143V6.42254Z"
-          fill="currentColor"
-        />
-      </svg>
-    </button>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+        >
+          <path
+            d="M11.1429 10.3099H0.857143C0.342857 10.3099 0 10.6479 0 11.1549C0 11.662 0.342857 12 0.857143 12H11.1429C11.6571 12 12 11.662 12 11.1549C12 10.6479 11.6571 10.3099 11.1429 10.3099ZM1.71429 9.46479H4.28571C4.54286 9.46479 4.71429 9.38028 4.88571 9.21127L9.68571 4.47887C10.2 3.97183 10.4571 3.38028 10.4571 2.70423C10.4571 2.02817 10.2 1.43662 9.68571 0.929578L9.51429 0.760563C9 0.253521 8.4 0 7.71429 0C7.02857 0 6.42857 0.253521 5.91429 0.760563L1.11429 5.49296C0.942857 5.66197 0.857143 5.83099 0.857143 6.08451V8.61972C0.857143 9.12676 1.2 9.46479 1.71429 9.46479ZM2.57143 6.42254L7.11429 1.94366C7.28571 1.77465 7.45714 1.69014 7.71429 1.69014C7.97143 1.69014 8.14286 1.77465 8.31429 1.94366L8.48571 2.11268C8.65714 2.28169 8.74286 2.4507 8.74286 2.70423C8.74286 2.95775 8.65714 3.12676 8.48571 3.29577L3.94286 7.77465H2.57143V6.42254Z"
+            fill="currentColor"
+          />
+        </svg>
+      </button>
+    </Popover>
   );
 };
 

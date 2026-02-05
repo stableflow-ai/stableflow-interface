@@ -36,6 +36,17 @@ const CardList = [
     ),
     link: "https://x.com/Aptos/status/1983919379856421334",
   },
+  {
+    img: "/bridge/trusted/avatar-plasma.jpg",
+    name: "Plasma",
+    description: (
+      <div className="line-clamp-4">
+        StableFlow is now live on Plasma.
+        This gives builders access to deep crosschain liquidity at CEX-equivalent pricing.
+      </div>
+    ),
+    link: "https://x.com/plasma/status/2016228518972244197?s=46",
+  },
 ];
 
 const Trusted = () => {
@@ -118,7 +129,7 @@ const Card = (props: any) => {
 
   return (
     <div
-      className="relative w-[350px] shrink-0 h-[192px] p-[35px_12px_20px_18px] flex flex-col justify-between rounded-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] font-[SpaceGrotesk] text-[16px] font-[400] leading-[120%] text-black"
+      className="cursor-pointer relative w-[350px] shrink-0 h-[192px] p-[35px_12px_20px_18px] flex flex-col justify-between rounded-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] font-[SpaceGrotesk] text-[16px] font-[400] leading-[120%] text-black"
       onClick={() => {
         window.open(link, "_blank");
       }}

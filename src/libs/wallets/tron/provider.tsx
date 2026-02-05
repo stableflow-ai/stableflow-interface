@@ -1,5 +1,5 @@
 import useWalletsStore from "@/stores/use-wallets";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import TronWallet from "./wallet";
 import WalletSelector from "../components/wallet-selector";
 import { useConfigStore } from "@/stores/use-config";
@@ -8,16 +8,37 @@ import { OKXTronProvider } from "@okxconnect/universal-provider";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { TronWeb } from "tronweb";
 import { useWatchOKXConnect } from "../okxconnect";
-import { OkxWalletAdapter, TronLinkAdapter } from "@tronweb3/tronwallet-adapters";
+import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter } from "@tronweb3/tronwallet-adapters";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
+import { metadata } from "../rainbow/provider";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
   headers: {},
   privateKey: "",
 });
-const wallets = [new TronLinkAdapter(), new OkxWalletAdapter()];
+
+const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
+
+const wallets = [
+  new TronLinkAdapter(),
+  new OkxWalletAdapter(),
+  new WalletConnectAdapter({
+    network: "Mainnet",
+    options: {
+      metadata,
+      projectId,
+    },
+    web3ModalConfig: {
+      termsOfServiceUrl: "https://app.stableflow.ai/terms-of-service",
+      privacyPolicyUrl: "https://app.stableflow.ai/privacy-policy",
+      themeVariables: {
+        "--wcm-z-index": "210",
+      },
+    },
+  }),
+];
 
 export default function TronProvider({
   children
@@ -26,10 +47,18 @@ export default function TronProvider({
 }) {
   const isMobile = useIsMobile();
 
+  const installedWallets = useMemo(() => {
+    return wallets.filter((wallet) => wallet.readyState === "Found");
+  }, [wallets]);
+
+  const isOKXSDK = useMemo(() => {
+    return installedWallets?.length <= 0 && isMobile;
+  }, [isMobile, installedWallets]);
+
   return (
     <>
       {children}
-      {isMobile ? <MobileWallet /> : <Content />}
+      {isOKXSDK ? <MobileWallet /> : <Content />}
     </>
   );
 }
@@ -65,17 +94,28 @@ const Content = () => {
     }
   }, []);
 
+  const setWindowWallet = (address?: string) => {
+    const _address = address || adapter?.address;
+    const _tronWeb = new TronWeb({
+      fullHost: chainsRpcUrls["Tron"],
+      headers: {},
+      privateKey: "",
+    });
+    _address && _tronWeb.setAddress(_address);
+    walletRef.current = new TronWallet({
+      signAndSendTransaction: async (transaction: any) => {
+        if (!adapter) {
+          return "";
+        }
+        const signedTx = await adapter.signTransaction(transaction);
+        const result = await _tronWeb.trx.sendRawTransaction(signedTx);
+        return result.txid;
+      },
+      address: _address,
+    });
+  };
+
   useEffect(() => {
-    const setWindowWallet = (address?: string) => {
-      const windowTronWeb = (window as any).tronWeb;
-      walletRef.current = new TronWallet({
-        signAndSendTransaction: async (transaction: any) => {
-          const signedTransaction = await windowTronWeb.trx.sign(transaction);
-          return windowTronWeb.trx.sendRawTransaction(signedTransaction);
-        },
-        address: address || windowTronWeb?.defaultAddress?.base58,
-      });
-    };
     setWindowWallet();
 
     if (!adapter) {

@@ -2,9 +2,10 @@ import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
 import Address from "./address";
+import TipInfo from "@/components/tip-info";
 
 const LABEL = {
-  evm: "EVM-based",
+  evm: "EVM chains",
   sol: "Solana",
   near: "Near",
   tron: "Tron",
@@ -18,7 +19,7 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
 
   return (
     <div
-      className="button mx-[10px] py-[6px] flex justify-between items-center"
+      className="button pl-[10px] pr-[4px] py-[6px] flex justify-between items-center"
       onClick={() => {
         if (type === "evm" || !token) {
           return;
@@ -59,8 +60,17 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
           />
         )}
 
-        <span className="text-[16px] font-[500] flex items-center gap-[5px]">
-          <span>{LABEL[type]}</span>
+        <span className="text-[15px] font-[500] flex items-center gap-[5px] whitespace-nowrap">
+          <span className="flex items-center gap-1">
+            <span className="">{LABEL[type]}</span>
+            {
+              type === "evm" && (
+                <TipInfo>
+                  Ethereum and other EVM-compatible networks
+                </TipInfo>
+              )
+            }
+          </span>
           {
             (walletStore.fromToken?.chainType === type || walletStore.toToken?.chainType === type)
               ? (

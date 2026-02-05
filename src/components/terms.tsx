@@ -4,16 +4,16 @@ const Terms = (props: any) => {
   const { className } = props;
 
   return (
-    <div className={clsx("flex justify-end px-[10px] gap-4 font-[SpaceGrotesk] text-[16px] font-[400] leading-[120%] text-black", className)}>
+    <div className={clsx("flex justify-end items-center border border-[#EBF0F8] h-9 bg-[#FAFBFF] rounded-xl", className)}>
       <a
         href="/terms-of-service"
-        className="hover:underline hover:text-[#6284F5] duration-150"
+        className="px-1.5 md:px-3 h-full font-[SpaceGrotesk] text-sm font-normal leading-[100%] text-[#444C59] hover:text-black border-r border-[#EBF0F8] duration-150 flex justify-center items-center"
       >
         Terms of Use
       </a>
       <a
         href="/privacy-policy"
-        className="hover:underline hover:text-[#6284F5] duration-150"
+        className="px-1.5 md:px-3 h-full font-[SpaceGrotesk] text-sm font-normal leading-[100%] text-[#444C59] hover:text-black duration-150 flex justify-center items-center"
       >
         Privacy Policy
       </a>

@@ -61,11 +61,32 @@ const Popover = forwardRef((props: Props, ref: any) => {
     { wait: closeDelayDuration }
   );
 
+  const handleClick = async (e: any) => {
+    if (_trigger === "Hover") return;
+    if (onClickBefore) {
+      const isContinue = await onClickBefore(e, () => {
+        setVisible(true);
+      });
+      if (!isContinue) return;
+    }
+    setVisible(true);
+  };
+
+  const handleMouseEnter = () => {
+    if (_trigger === "Click") return;
+    closeCancel();
+    setVisible(true);
+  };
+
   const refs: any = {
     onClose: () => {
       setVisible(false);
       setRealVisible(false);
-    }
+    },
+    onOpen: () => {
+      closeCancel();
+      setVisible(true);
+    },
   };
   useImperativeHandle(ref, () => refs);
 
@@ -75,21 +96,8 @@ const Popover = forwardRef((props: Props, ref: any) => {
         ref={triggerRef}
         style={triggerContainerStyle}
         className={triggerContainerClassName}
-        onClick={async (e) => {
-          if (_trigger === "Hover") return;
-          if (onClickBefore) {
-            const isContinue = await onClickBefore(e, () => {
-              setVisible(true);
-            });
-            if (!isContinue) return;
-          }
-          setVisible(true);
-        }}
-        onMouseEnter={() => {
-          if (_trigger === "Click") return;
-          closeCancel();
-          setVisible(true);
-        }}
+        onClick={handleClick}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={() => {
           if (_trigger === "Click") return;
           closeDelay();
