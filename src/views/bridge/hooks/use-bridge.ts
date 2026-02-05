@@ -26,7 +26,7 @@ import { BridgeFees, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
 
-const TRANSFER_MIN_AMOUNT = 1;
+const TRANSFER_MIN_AMOUNT = 0.01;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
 
 export default function useBridge(props?: any) {
