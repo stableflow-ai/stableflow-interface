@@ -420,18 +420,20 @@ export default class RainbowWallet {
 
     const tx = await contract[method](...param);
 
-    const DefaultErrorMsg = "Transaction failed";
-    try {
-      const txReceipt = await tx.wait();
+    return tx.hash;
 
-      if (txReceipt.status !== 1) {
-        throw new Error(DefaultErrorMsg);
-      }
+    // const DefaultErrorMsg = "Transaction failed";
+    // try {
+    //   const txReceipt = await tx.wait();
 
-      return txReceipt.hash;
-    } catch (error: any) {
-      return tx.hash;
-    }
+    //   if (txReceipt.status !== 1) {
+    //     throw new Error(DefaultErrorMsg);
+    //   }
+
+    //   return txReceipt.hash;
+    // } catch (error: any) {
+    //   return tx.hash;
+    // }
   }
 
   /**
