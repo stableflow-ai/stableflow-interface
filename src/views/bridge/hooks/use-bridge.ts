@@ -912,7 +912,7 @@ export default function useBridge(props?: any) {
     // Auto-select the best quote as soon as any quote is available
     // This allows immediate selection when first request completes, and updates when better quotes arrive
     if (quoteList.length === 1) {
-      bridgeStore.set({ quoteDataService: quoteList[0][0] });
+      bridgeStore.set({ quoteDataService: quoteList[0][0], showFee: true });
       setAutoSelect(false);
       return;
     }
@@ -943,7 +943,7 @@ export default function useBridge(props?: any) {
       return 0;
     });
     console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
-    bridgeStore.set({ quoteDataService: sortedQuoteData[0][0] });
+    bridgeStore.set({ quoteDataService: sortedQuoteData[0][0], showFee: true });
     setAutoSelect(false);
   }, [
     bridgeStore.transferring,
