@@ -25,3 +25,4 @@ dist-ssr
 .env
 
 pnpm-lock.yaml
+/public/.well-known/*

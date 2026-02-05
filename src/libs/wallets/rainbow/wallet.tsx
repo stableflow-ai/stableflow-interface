@@ -2,16 +2,18 @@ import erc20Abi from "@/config/abi/erc20";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
 import Big from "big.js";
-import { ethers, zeroPadValue } from "ethers";
+import { ethers } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { addressToBytes32 } from "@/utils/address-validation";
-import { USDT0_LEGACY_FEE } from "@/services/usdt0/config";
+import { LZ_RECEIVE_VALUE, USDT0_CONFIG, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { quoteSignature } from "../utils/cctp";
-import { Connection, PublicKey } from "@solana/web3.js";
-import { chainsRpcUrls } from "@/config/chains";
-import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { SendType } from "../types";
 import { Service, type ServiceType } from "@/services";
+import { getHopMsgFee } from "@/services/usdt0/hop-composer";
+import { getDestinationAssociatedTokenAddress } from "../utils/solana";
+import { usdtChains } from "@/config/tokens/usdt";
+import { buildEndpointV2LzComposePayload } from "../utils/layerzero";
+import { OFT_ABI } from "@/services/usdt0/contract";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -50,10 +52,11 @@ export default class RainbowWallet {
 
   async getBalance(token: any, account: string) {
     try {
-      // Use token's rpcUrl if available, otherwise fall back to current provider
+      // Use token's rpcUrls if available, otherwise fall back to current provider
       let provider = this.provider;
-      if (token.rpcUrl) {
-        provider = new ethers.JsonRpcProvider(token.rpcUrl);
+      if (token.rpcUrls) {
+        const providers = token.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+        provider = new ethers.FallbackProvider(providers);
       }
 
       if (token.symbol === "eth" || token.symbol === "ETH" || token.symbol === "native") {
@@ -234,6 +237,8 @@ export default class RainbowWallet {
       isMultiHopComposer,
       isOriginLegacy,
       isDestinationLegacy,
+      originLayerzero,
+      destinationLayerzero,
     } = params;
 
     const result: any = {
@@ -276,13 +281,29 @@ export default class RainbowWallet {
       }
     }
 
+    const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
+    let lzReceiveOptionValue = 0;
+
+    const destATA = await getDestinationAssociatedTokenAddress({
+      recipient,
+      toToken,
+    });
+    if (destATA.needCreateTokenAccount) {
+      lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
+    }
+
+    let unMultiHopExtraOptions = Options.newOptions().toHex();
+    if (!isMultiHopComposer && lzReceiveOptionValue) {
+      unMultiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+    }
+
     // 2. quote send
     const sendParam: any = {
       dstEid: dstEid,
       to: addressToBytes32(toToken.chainType, recipient),
       amountLD: amountWei,
       minAmountLD: 0n,
-      extraOptions: "0x0003",
+      extraOptions: unMultiHopExtraOptions,
       composeMsg: "0x",
       oftCmd: "0x"
     };
@@ -292,20 +313,32 @@ export default class RainbowWallet {
       sendParam.dstEid = multiHopComposer.eid;
       sendParam.to = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer);
 
-      //                                                                       gas_limt,   msg_value
-      sendParam.extraOptions = Options.newOptions().addExecutorLzReceiveOption(250000000n, 0n).toHex();
+      let multiHopExtraOptions = Options.newOptions().toHex();
+      if (lzReceiveOptionValue) {
+        multiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+      }
+
+      const composeMsgSendParam = {
+        dstEid,
+        to: addressToBytes32(toToken.chainType, recipient),
+        amountLD: sendParam.amountLD,
+        minAmountLD: sendParam.minAmountLD,
+        extraOptions: multiHopExtraOptions,
+        composeMsg: "0x",
+        oftCmd: "0x",
+      };
+      const hopMsgFee = await getHopMsgFee({
+        sendParam: composeMsgSendParam,
+        toToken,
+      });
+
+      sendParam.extraOptions = Options.newOptions()
+        .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
+        .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       sendParam.composeMsg = abiCoder.encode(
         ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
-        [[
-          dstEid,
-          addressToBytes32(toToken.chainType, recipient),
-          sendParam.amountLD,
-          sendParam.minAmountLD,
-          "0x",
-          "0x",
-          "0x"
-        ]]
+        [Object.values(composeMsgSendParam)]
       );
     }
 
@@ -335,14 +368,16 @@ export default class RainbowWallet {
 
     // 3. estimate gas
     const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFee = numberRemoveEndZero(Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
-    if (isDestinationLegacy) {
-      // get Legacy Mesh Fee
-      // 0.0003
-      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).times(0.0003).toFixed(params.fromToken.decimals));
+
+    // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
+    if (isOriginLegacy || isDestinationLegacy) {
+      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
       result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
     }
+
     try {
       const gasLimit = await oftContract.send.estimateGas(...result.sendParam.param);
       const { usd, wei } = await this.getEstimateGas({
@@ -385,18 +420,20 @@ export default class RainbowWallet {
 
     const tx = await contract[method](...param);
 
-    const DefaultErrorMsg = "Transaction failed";
-    try {
-      const txReceipt = await tx.wait();
+    return tx.hash;
 
-      if (txReceipt.status !== 1) {
-        throw new Error(DefaultErrorMsg);
-      }
+    // const DefaultErrorMsg = "Transaction failed";
+    // try {
+    //   const txReceipt = await tx.wait();
 
-      return txReceipt.hash;
-    } catch (error: any) {
-      return tx.hash;
-    }
+    //   if (txReceipt.status !== 1) {
+    //     throw new Error(DefaultErrorMsg);
+    //   }
+
+    //   return txReceipt.hash;
+    // } catch (error: any) {
+    //   return tx.hash;
+    // }
   }
 
   /**
@@ -472,21 +509,13 @@ export default class RainbowWallet {
 
     let realRecipient = recipient;
     // get ATA address
-    if (toToken.chainType === "sol") {
-      const connection = new Connection(chainsRpcUrls.Solana);
-
-      const wallet = new PublicKey(recipient);
-      const USDC_MINT = new PublicKey(toToken.contractAddress);
-
-      const ata = getAssociatedTokenAddressSync(USDC_MINT, wallet);
-
-      const accountInfo = await connection.getAccountInfo(ata);
-
-      if (!accountInfo) {
-        result.needCreateTokenAccount = true;
-      } else {
-        realRecipient = ata.toBase58();
-      }
+    const destATA = await getDestinationAssociatedTokenAddress({
+      recipient,
+      toToken,
+    });
+    result.needCreateTokenAccount = destATA.needCreateTokenAccount;
+    if (destATA.associatedTokenAddress) {
+      realRecipient = destATA.associatedTokenAddress;
     }
 
     // 1. get user nonce
@@ -678,5 +707,124 @@ export default class RainbowWallet {
     };
 
     return result;
+  }
+
+  async retryLayerzeroLzComponse(params: any) {
+    const {
+      layerzeroData,
+      history,
+    } = params;
+
+    const LayerZeroEndpointV2 = "0x1a44076050125825900e736c501f859c50fe728c";
+    const LayerZeroEndpointV2ABI = [
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_from",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "_to",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "_guid",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint16",
+            "name": "_index",
+            "type": "uint16"
+          },
+          {
+            "internalType": "bytes",
+            "name": "_message",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "_extraData",
+            "type": "bytes"
+          }
+        ],
+        "name": "lzCompose",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+      }
+    ];
+    // lzCompose(address _from,address _to,bytes32 _guid,uint16 _index,bytes _message,bytes _extraData)
+    const LayerZeroEndpointV2Contract = new ethers.Contract(LayerZeroEndpointV2, LayerZeroEndpointV2ABI, this.signer);
+
+    const toToken: any = usdtChains[history.destination_chain.blockchain as keyof typeof usdtChains];
+    const amountWei = Big(history.token_in_amount).times(10 ** (toToken.decimals || 6)).toFixed(0);
+
+    const originLayerzero = USDT0_CONFIG["Arbitrum"];
+    const isOriginLegacy = layerzeroData.destination.lzCompose.failedTx[0].from.toLowerCase() === originLayerzero.oftLegacy.toLowerCase();
+    const lzReceiveOptionGas = isOriginLegacy ? originLayerzero.lzReceiveOptionGasLegacy : originLayerzero.lzReceiveOptionGas;
+    let lzReceiveOptionValue = 0;
+
+    const destATA = await getDestinationAssociatedTokenAddress({
+      recipient: history.receive_address,
+      toToken,
+    });
+    if (destATA.needCreateTokenAccount) {
+      lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
+    }
+
+    const composeFrom = layerzeroData.source.tx.from;
+    const composeMsg = layerzeroData.source.tx.payload.split(composeFrom.replace(/^0x/, ""))[1];
+    const _message = buildEndpointV2LzComposePayload({
+      nonce: layerzeroData.pathway.nonce,
+      srcEid: layerzeroData.pathway.srcEid,
+      amountLD: amountWei,
+      composeFrom: composeFrom,
+      composeMsg: composeMsg,
+    });
+
+    const contractParams = [
+      layerzeroData.destination.lzCompose.failedTx[0].from,
+      layerzeroData.destination.lzCompose.failedTx[0].to,
+      layerzeroData.guid,
+      layerzeroData.destination.lzCompose.failedTx[0].index,
+      _message,
+      "0x",
+    ];
+
+    const dstOFT = isOriginLegacy ? originLayerzero.oft : originLayerzero.oftLegacy;
+    const sendParam: any = {
+      dstEid: USDT0_CONFIG[history.destination_chain.chainName].eid,
+      to: addressToBytes32(toToken.chainType, history.receive_address),
+      amountLD: amountWei,
+      minAmountLD: 0n,
+      extraOptions: Options.newOptions()
+        // .addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue)
+        .toHex(),
+      composeMsg: "0x",
+      oftCmd: "0x"
+    };
+
+    const dstOFTContract = new ethers.Contract(dstOFT, OFT_ABI, this.provider);
+    const msgFee = await dstOFTContract.quoteSend.staticCall(sendParam, false);
+    const nativeFee = msgFee[0];
+
+    const tx = await LayerZeroEndpointV2Contract.lzCompose(
+      ...contractParams,
+      {
+        gasLimit: originLayerzero.composeOptionGas || 800000,
+        value: nativeFee,
+      }
+    );
+
+    const txReceipt = await tx.wait();
+
+    if (txReceipt.status === 1) {
+      return txReceipt.hash;
+    }
+
+    return null;
   }
 }

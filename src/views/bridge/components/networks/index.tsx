@@ -23,7 +23,7 @@ export default function Networks({ addressValidation }: any) {
     return new Promise(async (resolve) => {
       const fromToken = walletStore.fromToken;
       const toToken = walletStore.toToken;
-      if (toToken.chainType === "evm") {
+      if (toToken?.chainType === "evm") {
         await switchChain({ chainId: toToken.chainId });
       }
       timer.current = setTimeout(() => {

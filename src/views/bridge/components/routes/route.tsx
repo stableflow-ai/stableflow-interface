@@ -1,6 +1,7 @@
 import InputRadio from "@/components/input-radio";
 import { stablecoinLogoMap } from "@/config/tokens";
-import { ServiceLogoMap, type ServiceType } from "@/services";
+import { Service, ServiceLogoMap, type ServiceType } from "@/services";
+import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";
 import { formatNumber } from "@/utils/format/number";
 import { formatDuration } from "@/utils/format/time";
@@ -12,6 +13,9 @@ const QuoteRoute = (props: any) => {
   const { service, data, selected, onSelect } = props;
 
   const walletStore = useWalletStore();
+  const bridgeStore = useBridgeStore();
+
+  const isFromTron = data?.quoteParam?.fromToken?.chainType === "tron";
 
   return (
     <motion.div
@@ -44,7 +48,14 @@ const QuoteRoute = (props: any) => {
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />
           <div className="">
-            {formatNumber(data.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })}
+            {
+              (service === Service.OneClick && isFromTron) ? (
+                bridgeStore.acceptTronEnergy ?
+                  formatNumber(data.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
+                  formatNumber(data.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+              ) :
+                formatNumber(data.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+            }
           </div>
         </div>
         <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>

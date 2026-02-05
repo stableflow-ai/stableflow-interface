@@ -1,4 +1,5 @@
 import Button from "@/components/button";
+import { Service } from "@/services";
 import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";
 import useWalletsStore from "@/stores/use-wallets";
@@ -45,7 +46,9 @@ export default function BridgeButton({
       return "Switch Network";
     }
     const quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
-    if (quoteData?.needApprove) {
+    const isFromTron = quoteData?.quoteParam?.fromToken?.chainType === "tron";
+    const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
+    if (quoteData?.needApprove && !isFromTronEnergy) {
       return "Approve";
     }
     if (quoteData?.needCreateTokenAccount) {
@@ -58,7 +61,7 @@ export default function BridgeButton({
       return "Initialize Solana USDC Account";
     }
     return "Transfer";
-  }, [bridgeStore.errorTips, errorChain, bridgeStore.quoteDataService, bridgeStore.quoteDataMap, errorConnect]);
+  }, [bridgeStore.errorTips, errorChain, bridgeStore.quoteDataService, bridgeStore.quoteDataMap, errorConnect, bridgeStore.acceptTronEnergy]);
 
   const buttonDisabled = useMemo(() => {
     if (errorConnect) {
@@ -106,7 +109,9 @@ export default function BridgeButton({
           onClick();
         }}
       >
-        {buttonText}
+        <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+          {buttonText}
+        </span>
       </Button>
       {
         quoteData?.needCreateTokenAccount && (

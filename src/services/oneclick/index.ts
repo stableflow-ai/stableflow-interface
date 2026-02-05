@@ -7,7 +7,6 @@ import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services";
-import { TRON_RENTAL_FEE } from "@/config/tron";
 
 export const BridgeFee = [
   {
@@ -36,6 +35,9 @@ class OneClickService {
   public async formatQuoteData(res: { data: any; params: any; }) {
     const { params } = res;
 
+    const isFromTron = params.fromToken.chainType === "tron";
+    const isFromTronEnergy = isFromTron && params.acceptTronEnergy;
+
     if (res.data) {
       // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
       // If the calculated time exceeds 60 seconds, it is randomized between 40 and 45 seconds,
@@ -48,6 +50,14 @@ class OneClickService {
 
       res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
       res.data.outputAmount = numberRemoveEndZero(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
+      let priceImpact = Big(0);
+      try {
+        priceImpact = Big(Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0)).div(res.data?.quote?.amountInUsd || 1);
+        if (Big(priceImpact).lt(0)) {
+          priceImpact = Big(0);
+        }
+      } catch (error) { }
+      res.data.priceImpact = numberRemoveEndZero(Big(priceImpact).toFixed(4));
 
       try {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
@@ -64,12 +74,24 @@ class OneClickService {
         };
 
         try {
-          // const sourceGasFee = await params.wallet.estimateTransferGas({
-          //   originAsset: params.fromToken.contractAddress,
-          //   depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-          //   amount: params.amount,
-          // });
-          const sourceGasFee = { estimateGas: Big(TRON_RENTAL_FEE.Normal).times(10 ** params.fromToken.nativeToken.decimals) };
+          res.data.transferSourceGasFee = await params.wallet.estimateTransferGas({
+            originAsset: params.fromToken.contractAddress,
+            depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+            amount: params.amount,
+          });
+          const transferSourceGasFeeUsd = Big(res.data.transferSourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
+          res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
+          const energySourceGasFee = {
+            estimateGas: Big(Big(params.needsBandwidthTRX || 0).plus(params.needsEnergyAmount || 0)).times(10 ** params.fromToken.nativeToken.decimals).toFixed(params.fromToken.nativeToken.decimals)
+          };
+          res.data.energySourceGasFee = energySourceGasFee.estimateGas;
+          const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
+          res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
+          let sourceGasFee = res.data.transferSourceGasFee;
+          if (params.acceptTronEnergy) {
+            sourceGasFee = energySourceGasFee;
+          }
+
           const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
@@ -107,18 +129,27 @@ class OneClickService {
         try {
           const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
 
-          for (const proxyKey in proxyResult) {
-            if (proxyKey === "fees") {
-              for (const feeKey in proxyResult.fees) {
-                if (excludeFees.includes(feeKey)) {
-                  continue;
+          if (!isFromTronEnergy) {
+            for (const proxyKey in proxyResult) {
+              if (proxyKey === "fees") {
+                for (const feeKey in proxyResult.fees) {
+                  if (excludeFees.includes(feeKey)) {
+                    continue;
+                  }
+                  res.data.fees[feeKey] = proxyResult.fees[feeKey];
                 }
-                res.data.fees[feeKey] = proxyResult.fees[feeKey];
+                continue;
               }
-              continue;
+              res.data[proxyKey] = proxyResult[proxyKey];
             }
-            res.data[proxyKey] = proxyResult[proxyKey];
           }
+
+          res.data.needApprove = proxyResult.needApprove;
+          res.data.approveSpender = proxyResult.approveSpender;
+
+          res.data.transferSourceGasFee = proxyResult.estimateSourceGas;
+          const transferSourceGasFeeUsd = Big(proxyResult.estimateSourceGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
+          res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
         } catch (error) {
           console.log("oneclick quote proxy failed: %o", error);
         }
@@ -171,6 +202,7 @@ class OneClickService {
       needsEnergyAmount: void 0,
       needsBandwidth: void 0,
       needsBandwidthTRX: void 0,
+      acceptTronEnergy: void 0,
     });
 
     return this.formatQuoteData({ data: res.data, params });

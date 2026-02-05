@@ -37,7 +37,7 @@ import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
 import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
 import { createClient, fallback } from "viem";
-import { chainsRpcUrls } from "@/config/chains";
+import { getChainRpcUrl } from "@/config/chains";
 import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
@@ -50,17 +50,17 @@ export const metadata = {
 };
 
 const RpcUrls: any = {
-  [mainnet.id]: fallback([http(chainsRpcUrls["Ethereum"])]),
-  [polygon.id]: fallback([http(chainsRpcUrls["Polygon"])]),
-  [arbitrum.id]: fallback([http(chainsRpcUrls["Arbitrum"])]),
-  [optimism.id]: fallback([http(chainsRpcUrls["Optimism"])]),
-  [bsc.id]: fallback([http(chainsRpcUrls["BNB Chain"])]),
-  [base.id]: fallback([http(chainsRpcUrls["Base"])]),
-  [avalanche.id]: fallback([http(chainsRpcUrls["Avalanche"])]),
-  [gnosis.id]: fallback([http(chainsRpcUrls["Gnosis"])]),
-  [berachain.id]: fallback([http(chainsRpcUrls["Berachain"])]),
-  [xLayer.id]: fallback([http(chainsRpcUrls["X Layer"])]),
-  [plasma.id]: fallback([http(chainsRpcUrls["Plasma"])]),
+  [mainnet.id]: fallback(getChainRpcUrl("Ethereum").rpcUrls.map((rpc) => http(rpc))),
+  [polygon.id]: fallback(getChainRpcUrl("Polygon").rpcUrls.map((rpc) => http(rpc))),
+  [arbitrum.id]: fallback(getChainRpcUrl("Arbitrum").rpcUrls.map((rpc) => http(rpc))),
+  [optimism.id]: fallback(getChainRpcUrl("Optimism").rpcUrls.map((rpc) => http(rpc))),
+  [bsc.id]: fallback(getChainRpcUrl("BNB Chain").rpcUrls.map((rpc) => http(rpc))),
+  [base.id]: fallback(getChainRpcUrl("Base").rpcUrls.map((rpc) => http(rpc))),
+  [avalanche.id]: fallback(getChainRpcUrl("Avalanche").rpcUrls.map((rpc) => http(rpc))),
+  [gnosis.id]: fallback(getChainRpcUrl("Gnosis").rpcUrls.map((rpc) => http(rpc))),
+  [berachain.id]: fallback(getChainRpcUrl("Berachain").rpcUrls.map((rpc) => http(rpc))),
+  [xLayer.id]: fallback(getChainRpcUrl("X Layer").rpcUrls.map((rpc) => http(rpc))),
+  [plasma.id]: fallback(getChainRpcUrl("Plasma").rpcUrls.map((rpc) => http(rpc))),
 };
 
 const config = getDefaultConfig({
