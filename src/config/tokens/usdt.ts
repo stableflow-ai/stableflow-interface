@@ -71,14 +71,14 @@ export const usdtChains = {
     assetId: "nep141:sol-c800a4bd850783ccb82c2b2c7e84175443606352.omft.near",
     contractAddress: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
     ...chains.sol,
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick],
   },
   tron: {
     ...usdt,
     assetId: "nep141:tron-d28a265909efecdcee7c5028585214ea0b96f015.omft.near",
     contractAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
     ...chains.tron,
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick],
   },
   aptos: {
     ...usdt,
