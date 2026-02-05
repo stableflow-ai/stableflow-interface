@@ -97,7 +97,7 @@ const Content = () => {
   const setWindowWallet = (address?: string) => {
     const _address = address || adapter?.address;
     const _tronWeb = new TronWeb({
-      fullHost: chainsRpcUrls["Tron"],
+      fullHost: getChainRpcUrl("Tron").rpcUrl,
       headers: {},
       privateKey: "",
     });
