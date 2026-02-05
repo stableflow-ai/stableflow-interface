@@ -60,6 +60,13 @@ export function usePendingHistory(history?: any) {
 
         item.source_chain = currentFromChain;
         item.destination_chain = currentToChain;
+
+        if (item.from_chain === "tron") {
+          item.tx_hash = item.tx_hash?.replace(/^0x/, "");
+        }
+        if (item.to_chain === "tron") {
+          item.to_tx_hash = item.to_tx_hash?.replace(/^0x/, "");
+        }
       });
 
       setList((prev: any) => {

@@ -371,6 +371,16 @@ export default class SolanaWallet {
 
       let _dstEid: any = dstEid;
       let to = new Uint8Array(Buffer.from(addressToBytes32(recipient)));
+
+      if (toToken.chainType === "tron" && !isMultiHopComposer) {
+        const decodedRecipient = addressToBytes32(recipient);
+        const recipientBytes = decodedRecipient.slice(1, 21);
+        to = Buffer.concat([
+          Buffer.alloc(12, 0), // 12 zero bytes
+          recipientBytes         // 20-byte address
+        ]);
+      }
+
       let extraOptions = unMultiHopExtraOptions;
       let composeMsg = null;
       if (isMultiHopComposer) {
