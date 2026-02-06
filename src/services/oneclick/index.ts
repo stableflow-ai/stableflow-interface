@@ -63,26 +63,21 @@ class OneClickService {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
         //   return acc.plus(Big(item.fee).div(100));
         // }, Big(0)).toFixed(2) + "%";
-        const netFee = Big(params.amount)
-          .div(10 ** params.fromToken.decimals)
-          .minus(
-            Big(res.data?.quote?.amountOut || 0).div(
-              10 ** params.toToken.decimals
-            )
-          );
+        // const netFee = Big(params.amount).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
+        const netFee = Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0);
         const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
           return acc.plus(
             Big(params.amount)
               .div(10 ** params.fromToken.decimals)
               .times(Big(item.fee).div(10000))
+              .times(getPrice(params.prices, params.fromToken.symbol))
           );
         }, Big(0));
-        const destinationGasFee = Big(netFee).minus(bridgeFeeValue);
+        let destinationGasFee = Big(netFee).minus(bridgeFeeValue);
+        destinationGasFee = Big(destinationGasFee).lt(0) ? Big(0) : destinationGasFee;
         res.data.fees = {
           bridgeFeeUsd: numberRemoveEndZero(Big(bridgeFeeValue).toFixed(20)),
-          destinationGasFeeUsd: numberRemoveEndZero(
-            Big(destinationGasFee).toFixed(20)
-          )
+          destinationGasFeeUsd: numberRemoveEndZero(Big(destinationGasFee).toFixed(20)),
         };
 
         try {
@@ -117,13 +112,10 @@ class OneClickService {
           if (excludeFees.includes(feeKey)) {
             continue;
           }
-          res.data.totalFeesUsd = Big(res.data.totalFeesUsd || 0).plus(
-            res.data.fees[feeKey] || 0
-          );
+          res.data.totalFeesUsd = Big(res.data.totalFeesUsd || 0).plus(res.data.fees[feeKey] || 0);
         }
-        res.data.totalFeesUsd = numberRemoveEndZero(
-          Big(res.data.totalFeesUsd).toFixed(20)
-        );
+        res.data.totalFeesUsd = numberRemoveEndZero(Big(res.data.totalFeesUsd).toFixed(20));
+
       } catch (error) {
         console.log("oneclick estimate failed: %o", error);
       }
