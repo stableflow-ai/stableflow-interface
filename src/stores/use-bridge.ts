@@ -13,11 +13,13 @@ interface BridgeState {
   showFee: boolean;
   showRoutes: boolean;
   shouldAutoSelect: boolean;
+  acceptPriceImpact: boolean;
   set: (params: any) => void;
   setQuoteData: (key: string, value: any) => void;
   modifyQuoteData: (key: string, value: any) => void;
   clearQuoteData: () => void;
   setQuoting: (key: string, value: boolean) => void;
+  setAcceptPriceImpact: (value: boolean) => void;
 
   // tron energy rental
   tronTransferVisible: boolean;
@@ -25,6 +27,8 @@ interface BridgeState {
   tronTransferStep: TronTransferStepStatus;
   setTronTransferVisible: (value: boolean, params?: { quoteData: any; }) => void;
   setTronTransferStep: (step: TronTransferStepStatus) => void;
+  acceptTronEnergy: boolean;
+  setAcceptTronEnergy: (value: boolean) => void;
 }
 
 const useBridgeStore = create<BridgeState>((set) => ({
@@ -38,6 +42,7 @@ const useBridgeStore = create<BridgeState>((set) => ({
   showFee: false,
   showRoutes: true,
   shouldAutoSelect: false,
+  acceptPriceImpact: true,
   set: (params) => set(() => ({ ...params })),
   setQuoteData: (key, value) => {
     set((state) => {
@@ -71,6 +76,11 @@ const useBridgeStore = create<BridgeState>((set) => ({
       return { ...state, quotingMap: _quotingMap };
     });
   },
+  setAcceptPriceImpact: (value) => {
+    set((state) => {
+      return { ...state, acceptPriceImpact: value };
+    });
+  },
 
   // tron energy rental
   tronTransferVisible: false,
@@ -93,6 +103,12 @@ const useBridgeStore = create<BridgeState>((set) => ({
         ...state,
         tronTransferStep: step,
       };
+    });
+  },
+  acceptTronEnergy: true,
+  setAcceptTronEnergy: (value) => {
+    set((state) => {
+      return { ...state, acceptTronEnergy: value };
     });
   },
 }));

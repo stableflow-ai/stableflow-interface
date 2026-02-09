@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import ResultFeeItem from "./fee-item";
 import { Service } from "@/services";
+import { formatNumber } from "@/utils/format/number";
 
 const ResultUsdt0 = (props: any) => {
   const { } = props;
@@ -28,6 +29,8 @@ const ResultUsdt0 = (props: any) => {
       setFees({
         totalFee: 0,
         messagingFee: 0,
+        messagingFeeAmount: 0,
+        messagingFeeUnit: "",
         legacyMeshFee: 0,
         estimatedSourceGas: 0,
         slippage,
@@ -38,6 +41,8 @@ const ResultUsdt0 = (props: any) => {
     setFees({
       totalFee: _quoteData?.totalFeesUsd,
       messagingFee: _quoteData?.fees?.nativeFeeUsd,
+      messagingFeeAmount: _quoteData?.fees?.nativeFee,
+      messagingFeeUnit: _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
       legacyMeshFee: _quoteData?.fees?.legacyMeshFeeUsd,
       estimatedSourceGas: _quoteData?.fees?.estimateGasUsd,
       slippage,
@@ -59,18 +64,22 @@ const ResultUsdt0 = (props: any) => {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
           >
-            <ResultFeeItem
-              label="Legacy Mesh Fee"
-              loading={bridgeStore.quotingMap.get(Service.Usdt0)}
-            >
-              {fees?.legacyMeshFee}
-            </ResultFeeItem>
+            {
+              !!fees?.legacyMeshFee && Big(fees?.legacyMeshFee).gt(0) && (
+                <ResultFeeItem
+                  label="Legacy Mesh Fee"
+                  loading={bridgeStore.quotingMap.get(Service.Usdt0)}
+                >
+                  {fees?.legacyMeshFee}
+                </ResultFeeItem>
+              )
+            }
             <ResultFeeItem
               label="Messaging Fee"
-              precision={2}
+              isFormat={false}
               loading={bridgeStore.quotingMap.get(Service.Usdt0)}
             >
-              {fees?.messagingFee}
+              {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
             </ResultFeeItem>
             {/* <ResultFeeItem 
             label="Swap Slippage"

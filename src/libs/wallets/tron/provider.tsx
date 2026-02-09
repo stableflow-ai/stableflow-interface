@@ -10,7 +10,7 @@ import { TronWeb } from "tronweb";
 import { useWatchOKXConnect } from "../okxconnect";
 import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter } from "@tronweb3/tronwallet-adapters";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
-import { chainsRpcUrls } from "@/config/chains";
+import { getChainRpcUrl } from "@/config/chains";
 import { metadata } from "../rainbow/provider";
 import { generateRpcSignature } from "@/libs/signature";
 
@@ -90,15 +90,18 @@ const Content = () => {
   }, []);
 
   const setWindowWallet = (address?: string) => {
-    const _address = address || adapter.address;
+    const _address = address || adapter?.address;
     const _tronWeb = new TronWeb({
-      fullHost: chainsRpcUrls["Tron"],
+      fullHost: getChainRpcUrl("Tron").rpcUrl,
       headers: {},
       privateKey: "",
     });
     _address && _tronWeb.setAddress(_address);
     walletRef.current = new TronWallet({
       signAndSendTransaction: async (transaction: any) => {
+        if (!adapter) {
+          return "";
+        }
         const rpcSignature = await generateRpcSignature("tron");
         _tronWeb.setHeader(rpcSignature.headers);
         const signedTx = await adapter.signTransaction(transaction);
@@ -110,6 +113,8 @@ const Content = () => {
   };
 
   useEffect(() => {
+    setWindowWallet();
+
     if (!adapter) {
       setWallets({
         tron: {
@@ -121,8 +126,6 @@ const Content = () => {
       });
       return;
     }
-
-    setWindowWallet();
 
     configStore.set({
       tronWalletAdapter: adapter.name

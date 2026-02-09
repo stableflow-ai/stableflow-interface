@@ -31,22 +31,29 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
   },
 };
 
-export const chainsRpcUrls: Record<string, string> = {
-  "Ethereum": "https://eth.merkle.io",
-  "Arbitrum": "https://arb1.arbitrum.io/rpc",
-  "BNB Chain": "https://56.rpc.thirdweb.com",
-  "Avalanche": "https://api.avax.network/ext/bc/C/rpc",
-  "Base": "https://mainnet.base.org",
-  "Polygon": "https://polygon-rpc.com",
-  "Gnosis": "https://rpc.gnosischain.com",
-  "Optimism": "https://mainnet.optimism.io",
-  "Berachain": "https://rpc.berachain.com",
-  "Tron": "http://localhost:3000/rpc/tron",
-  "Aptos": "https://api.mainnet.aptoslabs.com/v1",
-  "Solana": "http://localhost:3000/rpc/solana",
-  "Near": "",
-  "X Layer": "https://rpc.xlayer.tech",
-  "Plasma": "https://rpc.plasma.to",
+export const chainsRpcUrls: Record<string, string[]> = {
+  "Ethereum": ["https://eth.merkle.io", "https://ethereum-rpc.publicnode.com"],
+  "Arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"],
+  "BNB Chain": ["https://56.rpc.thirdweb.com", "https://bsc-rpc.publicnode.com"],
+  "Avalanche": ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche-c-chain-rpc.publicnode.com"],
+  "Base": ["https://mainnet.base.org", "https://base-rpc.publicnode.com"],
+  "Polygon": ["https://polygon-rpc.com", "https://polygon-bor-rpc.publicnode.com"],
+  "Gnosis": ["https://rpc.gnosischain.com", "https://gnosis-rpc.publicnode.com"],
+  "Optimism": ["https://mainnet.optimism.io", "https://optimism-rpc.publicnode.com"],
+  "Berachain": ["https://rpc.berachain.com", "https://berachain-rpc.publicnode.com"],
+  "Tron": ["https://tron-rpc.publicnode.com"],
+  "Aptos": ["https://api.mainnet.aptoslabs.com/v1"],
+  "Solana": ["https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170", "https://solana-rpc.publicnode.com"],
+  "Near": ["https://nearinner.deltarpc.com"],
+  "X Layer": ["https://rpc.xlayer.tech"],
+  "Plasma": ["https://rpc.plasma.to"],
+};
+
+export const getChainRpcUrl = (chainName: string) => {
+  return {
+    rpcUrls: chainsRpcUrls[chainName],
+    rpcUrl: chainsRpcUrls[chainName][0],
+  };
 };
 
 const chains = {
@@ -62,7 +69,7 @@ const chains = {
       symbol: "NEAR",
       decimals: 24,
     },
-    rpcUrl: chainsRpcUrls["Near"],
+    ...getChainRpcUrl("Near"),
   },
   sol: {
     chainName: "Solana",
@@ -76,7 +83,7 @@ const chains = {
       symbol: "SOL",
       decimals: 9,
     },
-    rpcUrl: chainsRpcUrls["Solana"],
+    ...getChainRpcUrl("Solana"),
   },
   eth: {
     chainName: "Ethereum",
@@ -91,7 +98,7 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Ethereum"],
+    ...getChainRpcUrl("Ethereum"),
   },
   arb: {
     chainName: "Arbitrum",
@@ -106,7 +113,7 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Arbitrum"],
+    ...getChainRpcUrl("Arbitrum"),
   },
   bsc: {
     chainName: "BNB Chain",
@@ -121,7 +128,7 @@ const chains = {
       symbol: "BNB",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["BNB Chain"],
+    ...getChainRpcUrl("BNB Chain"),
   },
   avax: {
     chainName: "Avalanche",
@@ -136,7 +143,7 @@ const chains = {
       symbol: "AVAX",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Avalanche"],
+    ...getChainRpcUrl("Avalanche"),
   },
   base: {
     chainName: "Base",
@@ -151,7 +158,7 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Base"],
+    ...getChainRpcUrl("Base"),
   },
   pol: {
     chainName: "Polygon",
@@ -166,7 +173,7 @@ const chains = {
       symbol: "POL",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Polygon"],
+    ...getChainRpcUrl("Polygon"),
   },
   gnosis: {
     chainName: "Gnosis",
@@ -181,7 +188,7 @@ const chains = {
       symbol: "XDAI",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Gnosis"],
+    ...getChainRpcUrl("Gnosis"),
   },
   op: {
     chainName: "Optimism",
@@ -196,7 +203,7 @@ const chains = {
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Optimism"],
+    ...getChainRpcUrl("Optimism"),
   },
   tron: {
     chainName: "Tron",
@@ -204,13 +211,13 @@ const chains = {
     chainIcon: "/chains/tron.png",
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
-    blockExplorerUrl: "https://tronscan.org/tx",
+    blockExplorerUrl: "https://tronscan.org/#/transaction",
     primaryColor: "#BC3221",
     nativeToken: {
       symbol: "TRX",
       decimals: 6,
     },
-    rpcUrl: chainsRpcUrls["Tron"],
+    ...getChainRpcUrl("Tron"),
   },
   aptos: {
     chainName: "Aptos",
@@ -224,7 +231,7 @@ const chains = {
       symbol: "APT",
       decimals: 8,
     },
-    rpcUrl: chainsRpcUrls["Aptos"],
+    ...getChainRpcUrl("Aptos"),
   },
   bera: {
     chainName: "Berachain",
@@ -239,7 +246,7 @@ const chains = {
       symbol: "BERA",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Berachain"],
+    ...getChainRpcUrl("Berachain"),
   },
   xlayer: {
     chainName: "X Layer",
@@ -254,7 +261,7 @@ const chains = {
       symbol: "OKB",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["X Layer"],
+    ...getChainRpcUrl("X Layer"),
   },
   plasma: {
     chainName: "Plasma",
@@ -269,7 +276,7 @@ const chains = {
       symbol: "XPL",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Plasma"],
+    ...getChainRpcUrl("Plasma"),
   },
 };
 

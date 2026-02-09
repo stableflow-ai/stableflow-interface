@@ -1,9 +1,12 @@
 import { useHistoryStore } from "@/stores/use-history";
 import { useEffect } from "react";
 import { Service, ServiceMap, type ServiceType } from "@/services";
+import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 
 export default function useUpdateTxns() {
   const historyStore = useHistoryStore();
+  const wallets = useWalletsStore();
+
   const updateTxns = async () => {
     const pendingStatus = JSON.parse(
       JSON.stringify(historyStore.pendingStatus)
@@ -12,8 +15,12 @@ export default function useUpdateTxns() {
       const address = pendingStatus.pop();
       const currentHistory = historyStore.history[address];
       const historyType: ServiceType = currentHistory?.type ?? Service.OneClick;
+      const wallet = wallets[currentHistory?.fromToken?.chainType as WalletType];
+
       let getStatusParams: any = {
         hash: currentHistory?.txHash,
+        history: currentHistory,
+        fromWallet: wallet?.wallet,
       };
       if (historyType === Service.OneClick) {
         getStatusParams = {

@@ -46,7 +46,8 @@ export default function useEvmBalances(auto = false) {
             return;
           }
 
-          const provider = new ethers.JsonRpcProvider(currentChain.rpcUrl);
+          const providers = currentChain.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+          const provider = new ethers.FallbackProvider(providers);
 
           const balancePromises = _token.tokens.map(async (address: string) => {
             const _result = {

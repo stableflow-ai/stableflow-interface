@@ -18,7 +18,8 @@ export function useHistory() {
   });
 
   const accounts = useMemo(() => {
-    return Object.values(wallets ?? {}).map((wallet) => wallet.account).filter((account) => !!account);
+    const _accounts = Object.values(wallets ?? {}).map((wallet) => wallet.account).filter((account) => !!account);
+    return _accounts;
   }, [wallets]);
 
   const { runAsync: getList, loading } = useRequest(async (params?: any) => {
@@ -57,6 +58,13 @@ export function useHistory() {
 
         item.source_chain = currentFromChain;
         item.destination_chain = currentToChain;
+
+        if (item.from_chain === "tron") {
+          item.tx_hash = item.tx_hash?.replace(/^0x/, "");
+        }
+        if (item.to_chain === "tron") {
+          item.to_tx_hash = item.to_tx_hash?.replace(/^0x/, "");
+        }
       });
 
       setList(() => {

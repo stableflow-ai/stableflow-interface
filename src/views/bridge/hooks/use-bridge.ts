@@ -14,16 +14,17 @@ import useBridgeStore, { type QuoteData } from "@/stores/use-bridge";
 import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
-import { BridgeDefaultWallets } from "@/config";
+import { BridgeDefaultWallets, PRICE_IMPACT_THRESHOLD } from "@/config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
 import { Service } from "@/services";
 import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
 import { BASE_API_URL } from "@/config/api";
-import { BridgeFees, TRON_RENTAL_FEE, TronTransferStepStatus } from "@/config/tron";
+import { BridgeFees, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
+import { useAccount } from "wagmi";
 
 const TRANSFER_MIN_AMOUNT = 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -44,6 +45,7 @@ export default function useBridge(props?: any) {
   const bridgeStore = useBridgeStore();
   const { getBalance } = useTokenBalance(walletStore.fromToken, false);
   const balancesStore = useBalancesStore();
+  const evmAccount = useAccount();
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
   const [liquidityErrorMssage, setLiquidityErrorMessage] = useState<boolean>();
@@ -102,6 +104,8 @@ export default function useBridge(props?: any) {
         throw new Error("Request cancelled: outdated request");
       }
       bridgeStore.setQuoting(service, true);
+      const isFromTron = walletStore.fromToken.chainType === "tron";
+
       if (service === Service.OneClick) {
         setLiquidityErrorMessage(liquidityError);
       }
@@ -124,17 +128,19 @@ export default function useBridge(props?: any) {
           _params.destinationAsset = walletStore.toToken.assetId;
           _params.amount = params.amountWei;
           _params.refundType = "ORIGIN_CHAIN";
+          _params.acceptTronEnergy = bridgeStore.acceptTronEnergy;
 
-          if (walletStore.fromToken.chainType === "tron") {
-            const { needsEnergy, needsBandwidth, needsBandwidthTRX } = await getEstimateNeedsEnergy({
+          if (isFromTron && bridgeStore.acceptTronEnergy) {
+            const { needsEnergy, needsBandwidth, needsBandwidthTRX, needsEnergyTRX } = await getEstimateNeedsEnergy({
               wallet: params.wallet,
               account: fromWalletAddress || "",
             });
             _params.needsEnergy = needsEnergy;
             _params.needsBandwidth = needsBandwidth;
             _params.needsBandwidthTRX = needsBandwidthTRX;
+
             if (needsEnergy) {
-              _params.needsEnergyAmount = TRON_RENTAL_FEE.Normal;
+              _params.needsEnergyAmount = needsEnergyTRX;
             } else {
               const fixedFee = BridgeFees.Normal;
               const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
@@ -368,7 +374,7 @@ export default function useBridge(props?: any) {
       const nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
       const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
 
-      console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
+      console.log(`%cEstimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`, "background:#4D2FB2;color:#ffffff;");
 
       // Check if balance is sufficient
       if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
@@ -395,8 +401,11 @@ export default function useBridge(props?: any) {
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
+      const isFromTron = walletStore.fromToken.chainType === "tron";
+      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
+
       // approve
-      if (_quote?.data?.needApprove) {
+      if (_quote?.data?.needApprove && !isFromTronEnergy) {
         // check is from ethereum erc20
         if (walletStore.fromToken.chainName === "Ethereum") {
           const allowance = await wallet.wallet.allowance({
@@ -458,7 +467,6 @@ export default function useBridge(props?: any) {
 
       // 1click transfer
       if (bridgeStore.quoteDataService === Service.OneClick) {
-        const isFromTron = walletStore.fromToken.chainType === "tron";
         const estNativeTokenParams: any = {};
         const fromTronParams = {
           wallet: wallet.wallet,
@@ -466,12 +474,11 @@ export default function useBridge(props?: any) {
         };
         let needsEnergy = false;
         let needsBandwidth = false;
-        if (isFromTron) {
+        if (isFromTron && bridgeStore.acceptTronEnergy) {
           const estimateNeeds = await getEstimateNeedsEnergy(fromTronParams);
           needsEnergy = estimateNeeds.needsEnergy;
           needsBandwidth = estimateNeeds.needsBandwidth;
-          estNativeTokenParams.estimateGas = Big(TRON_RENTAL_FEE.Normal).plus(needsBandwidth ? estimateNeeds.needsBandwidthTRX : 0).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
-          // estNativeTokenParams.estimateGas = Big(0).toFixed(0);
+          estNativeTokenParams.estimateGas = Big(estimateNeeds.needsEnergyTRX).plus(estimateNeeds.needsBandwidthTRX).times(10 ** walletStore.fromToken.nativeToken.decimals).toFixed(0);
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
         if (!isContinue) {
@@ -513,7 +520,7 @@ export default function useBridge(props?: any) {
           tx_hash: "",
         };
 
-        if (isFromTron) {
+        if (isFromTron && bridgeStore.acceptTronEnergy) {
           bridgeStore.setTronTransferVisible(true, { quoteData: _quote });
           if (needsEnergy) {
             await getEnergy(fromTronParams);
@@ -551,7 +558,7 @@ export default function useBridge(props?: any) {
         reportData.tx_hash = hash;
         report(reportData);
 
-        if (isFromTron) {
+        if (isFromTron && bridgeStore.acceptTronEnergy) {
           bridgeStore.setTronTransferStep(TronTransferStepStatus.Broadcasting);
 
           // polling transaction status
@@ -838,7 +845,10 @@ export default function useBridge(props?: any) {
       }
       if (
         walletStore.fromToken?.chainType === "evm" &&
-        walletStore.fromToken?.chainId !== wallets.evm?.chainId
+        (
+          walletStore.fromToken?.chainId !== wallets.evm?.chainId ||
+          (evmAccount && walletStore.fromToken?.chainId !== evmAccount.chainId)
+        )
       ) {
         setErrorChain(walletStore.fromToken.chainId);
       } else {
@@ -855,8 +865,15 @@ export default function useBridge(props?: any) {
       if (Object.values(BridgeDefaultWallets).includes(toWalletAddress || "")) {
         return "Recipient address is empty";
       }
-      if (!addressValidation.isValid) {
+      if (!addressValidation.isValid && bridgeStore.recipientAddress && addressValidation.error) {
         return addressValidation.error;
+      }
+
+      const priceImpact = bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.priceImpact;
+      if (priceImpact) {
+        if (Big(priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD) && !bridgeStore.acceptPriceImpact) {
+          return "Large Price Impact";
+        }
       }
 
       return "";
@@ -872,10 +889,12 @@ export default function useBridge(props?: any) {
     walletStore.toToken,
     bridgeStore.quoteDataMap,
     bridgeStore.quoteDataService,
+    bridgeStore.acceptPriceImpact,
     fromWalletAddress,
     toWalletAddress,
     wallets.evm?.chainId,
-    liquidityErrorMssage
+    liquidityErrorMssage,
+    evmAccount?.chainId,
   ]);
 
   useEffect(() => {
@@ -893,7 +912,7 @@ export default function useBridge(props?: any) {
     // Auto-select the best quote as soon as any quote is available
     // This allows immediate selection when first request completes, and updates when better quotes arrive
     if (quoteList.length === 1) {
-      bridgeStore.set({ quoteDataService: quoteList[0][0] });
+      bridgeStore.set({ quoteDataService: quoteList[0][0], showFee: true });
       setAutoSelect(false);
       return;
     }
@@ -924,7 +943,7 @@ export default function useBridge(props?: any) {
       return 0;
     });
     console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
-    bridgeStore.set({ quoteDataService: sortedQuoteData[0][0] });
+    bridgeStore.set({ quoteDataService: sortedQuoteData[0][0], showFee: true });
     setAutoSelect(false);
   }, [
     bridgeStore.transferring,

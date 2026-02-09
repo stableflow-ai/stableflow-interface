@@ -10,8 +10,11 @@ import axios from "axios";
 import Big from "big.js";
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
+import usdt0Service from "@/services/usdt0";
+import { LzScanDestinationStatus, LzScanLzComposeStatus, LzScanSourceStatus, LzScanStatus, USDT0_CONFIG } from "@/services/usdt0/config";
+import Loading from "@/components/loading/icon";
 
 const PendingTransfer = (props: any) => {
   const { className } = props;
@@ -69,6 +72,86 @@ const PendingTransfer = (props: any) => {
 
       result.time = new Date(result.create_time).getTime();
       result.timeEstimate = history[deposit_address]?.timeEstimate ?? Math.floor(Math.random() * 29) + 21;
+
+      // USDT0 status
+      try {
+        if (result.project === TradeProject.USDT0) {
+          const layerzeroData = await usdt0Service.getLayerzeroData({
+            tx_hash: result.tx_hash,
+            from_chain: result.from_chain,
+          });
+          const isMultiHop = !!layerzeroData.destination?.lzCompose?.status && layerzeroData.destination?.lzCompose?.status !== "N/A";
+          const isPending = [LzScanStatus.InFlight, LzScanStatus.Confirming].includes(layerzeroData.status?.name);
+          const isConfirmed = [LzScanStatus.Delivered].includes(layerzeroData.status?.name);
+
+          const isSourcePending = [LzScanSourceStatus.Waiting, LzScanSourceStatus.ValidatingTx, LzScanSourceStatus.WaitingForHashDelivered].includes(layerzeroData.source?.status);
+          const isSourceSuccess = [LzScanSourceStatus.Succeeded].includes(layerzeroData.source?.status);
+          const isDestinationPending = [LzScanDestinationStatus.Waiting, LzScanDestinationStatus.ValidatingTx].includes(layerzeroData.destination?.status);
+          const isDestinationSuccess = [LzScanSourceStatus.Succeeded].includes(layerzeroData.destination?.status);
+          const isLzComponsePending = [LzScanLzComposeStatus.Waiting, LzScanLzComposeStatus.ValidatingTx, LzScanLzComposeStatus.WaitingForComposeSentEvent].includes(layerzeroData.destination?.lzCompose?.status);
+          const isLzComponseSuccess = [LzScanLzComposeStatus.Succeeded].includes(layerzeroData.destination?.lzCompose?.status);
+
+          const multiHopComposer = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
+
+          result.isMultiHop = isMultiHop;
+          result.hops = [
+            {
+              from_chain: result.from_chain,
+              to_chain: isMultiHop ? "arb" : result.to_chain,
+              address: result.address,
+              receive_address: isMultiHop ? multiHopComposer : result.receive_address,
+              status: isSourcePending ? TradeStatus.Pending : (isSourceSuccess ? TradeStatus.Success : TradeStatus.Failed),
+              tx_hash: layerzeroData?.source?.tx?.txHash,
+              // to_tx_hash: layerzeroData?.destination?.tx?.txHash,
+              source_chain: currentFromChain,
+              destination_chain: isMultiHop ? chains.arb : currentToChain,
+            }
+          ];
+          if (isMultiHop) {
+            result.hops.push({
+              from_chain: "arb",
+              to_chain: result.to_chain,
+              address: multiHopComposer,
+              receive_address: result.receive_address,
+              status: isLzComponsePending ? TradeStatus.Pending : (isLzComponseSuccess ? TradeStatus.Success : TradeStatus.Failed),
+              tx_hash: layerzeroData?.destination?.tx?.txHash,
+              // to_tx_hash: layerzeroData?.destination?.lzCompose?.txs?.[0]?.txHash,
+              source_chain: chains.arb,
+              destination_chain: currentToChain,
+            });
+          }
+
+          if (isPending || isSourcePending || isDestinationPending || isLzComponsePending) {
+            result.status = TradeStatus.Pending;
+            return result;
+          }
+          if (!isConfirmed) {
+            result.status = TradeStatus.Failed;
+
+            updateStatus(deposit_address, "FAILED");
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            return result;
+          }
+          let isSuccess = layerzeroData.source?.status === "SUCCEEDED" && layerzeroData.destination?.status === "SUCCEEDED";
+          // multi hop shuold check source and destination lzcompose status
+          if (isMultiHop) {
+            isSuccess = isSuccess && layerzeroData.destination?.lzCompose?.status === "SUCCEEDED";
+          }
+          result.status = isSuccess ? TradeStatus.Success : TradeStatus.Failed;
+
+          updateStatus(deposit_address, isSuccess ? "SUCCESS" : "FAILED");
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          return result;
+        }
+      } catch (error) {
+        console.error("get USDT0 status failed: %o", error);
+      }
 
       if ([TradeStatus.Failed, TradeStatus.Success].includes(result.status) && timerRef.current) {
         clearInterval(timerRef.current);
@@ -163,13 +246,6 @@ const PendingItem = (props: any) => {
   const MaxPendingProgress = 90;
   const [progress, setProgress] = useState(0);
 
-  const toTokenExplorerUrl = useMemo(() => {
-    if (data.project === TradeProject.USDT0) {
-      return "https://layerzeroscan.com/tx";
-    }
-    return data.destination_chain.blockExplorerUrl;
-  }, [data]);
-
   useEffect(() => {
     if (!isPending) {
       setProgress(100);
@@ -198,53 +274,42 @@ const PendingItem = (props: any) => {
 
   return (
     <div className={clsx(
-      "relative w-full h-[70px] flex flex-col justify-center items-stretch gap-[10px] px-[10px] md:px-[16px] bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,_0,_0,_0.10)] text-[16px] text-black font-[500] leading-[100%] transition-all duration-300",
+      "relative w-full flex flex-col justify-center items-stretch gap-[10px] px-[10px] md:px-[16px] bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,_0,_0,_0.10)] text-[16px] text-black font-[500] leading-[100%] transition-all duration-300",
+      data.isMultiHop ? "h-[90px]" : "h-[70px]",
       className
     )}>
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-[5px]">
-          <a
-            className="w-[11px] h-[11px] shrink-0 button"
-            target="_blank"
-            href={`${data.source_chain?.blockExplorerUrl}/${data.tx_hash}`}
-            rel="noreferrer noopener nofollow"
-          >
-            <svg className="w-[11px] h-[11px] shrink-0" width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 2H1V10H9V6" stroke="#9FA7BA" />
-              <path d="M4 7L10 1M10 1H6.5M10 1V4" stroke="#9FA7BA" />
-            </svg>
-          </a>
-          <div className="text-[#9FA7BA] text-[12px] font-[500] leading-[100%]">
-            {data.source_chain?.chainName}
-          </div>
-          <div className="text-[#444C59] text-[12px] font-[400] leading-[100%]">
-            {formatAddress(data.address, 5, 4)}
-          </div>
-          <svg className="w-[5px] h-[8px] shrink-0" width="5" height="8" viewBox="0 0 5 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M1 1L4 4.10345L1 7" stroke="#9FA7BA" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          {
-            !!data.to_tx_hash && (
-              <a
-                className="w-[11px] h-[11px] shrink-0 button"
-                target="_blank"
-                href={`${toTokenExplorerUrl}/${data.to_tx_hash}`}
-                rel="noreferrer noopener nofollow"
-              >
-                <svg className="w-[11px] h-[11px] shrink-0" width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M5 2H1V10H9V6" stroke="#9FA7BA" />
-                  <path d="M4 7L10 1M10 1H6.5M10 1V4" stroke="#9FA7BA" />
-                </svg>
-              </a>
-            )
-          }
-          <div className="text-[#9FA7BA] text-[12px] font-[500] leading-[100%]">
-            {data.destination_chain.chainName}
-          </div>
-          <div className="text-[#444C59] text-[12px] font-[400] leading-[100%]">
-            {formatAddress(data.receive_address, 5, 4)}
-          </div>
-        </div>
+        {
+          data.isMultiHop ? (
+            <div className="flex flex-col gap-1">
+              {
+                data.hops.map((hop: any, idx: number) => (
+                  <BridgeRoute
+                    key={idx}
+                    project={data.project}
+                    source_chain={hop.source_chain}
+                    destination_chain={hop.destination_chain}
+                    tx_hash={hop.tx_hash}
+                    to_tx_hash={hop.to_tx_hash}
+                    address={hop.address}
+                    receive_address={hop.receive_address}
+                    status={hop.status}
+                  />
+                ))
+              }
+            </div>
+          ) : (
+            <BridgeRoute
+              project={data.project}
+              source_chain={data.source_chain}
+              destination_chain={data.destination_chain}
+              tx_hash={data.tx_hash}
+              to_tx_hash={data.to_tx_hash}
+              address={data.address}
+              receive_address={data.receive_address}
+            />
+          )
+        }
         {
           !isPending && (
             <button
@@ -319,6 +384,100 @@ const PendingItem = (props: any) => {
             }}
           />
         </div>
+      </div>
+    </div>
+  );
+};
+
+const StatusIcon = ({ status }: { status?: TradeStatus }) => {
+  if (status === TradeStatus.Pending || status === TradeStatus.Confirming) {
+    return <Loading size={12} />;
+  }
+  if (status === TradeStatus.Success) {
+    return (
+      <svg className="w-[12px] h-[12px] shrink-0" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="6" cy="6" r="6" fill="#2EA97C" />
+        <path d="M3.5 6L5.25 7.75L8.5 4.25" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (status === TradeStatus.Failed) {
+    return (
+      <svg className="w-[12px] h-[12px] shrink-0" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="6" cy="6" r="6" fill="#FF4D4F" />
+        <path d="M4 4L8 8M8 4L4 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return null;
+};
+
+const BridgeRoute = (props: any) => {
+  const {
+    project,
+    source_chain,
+    destination_chain,
+    tx_hash,
+    to_tx_hash,
+    address,
+    receive_address,
+    status,
+  } = props;
+
+  const txExplorerUrl = (chain: any) => {
+    if (project === TradeProject.USDT0) {
+      return "https://layerzeroscan.com/tx";
+    }
+    return chain?.blockExplorerUrl;
+  };
+
+  return (
+    <div className="flex items-center gap-[5px]">
+      {status !== void 0 && <StatusIcon status={status} />}
+      {
+        tx_hash && (
+          <a
+            className="w-[11px] h-[11px] shrink-0 button"
+            target="_blank"
+            href={`${txExplorerUrl(source_chain)}/${tx_hash}`}
+            rel="noreferrer noopener nofollow"
+          >
+            <svg className="w-[11px] h-[11px] shrink-0" width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 2H1V10H9V6" stroke="#9FA7BA" />
+              <path d="M4 7L10 1M10 1H6.5M10 1V4" stroke="#9FA7BA" />
+            </svg>
+          </a>
+        )
+      }
+      <div className="text-[#9FA7BA] text-[12px] font-[500] leading-[100%]">
+        {source_chain?.chainName}
+      </div>
+      <div className="text-[#444C59] text-[12px] font-[400] leading-[100%]">
+        {formatAddress(address, 5, 4)}
+      </div>
+      <svg className="w-[5px] h-[8px] shrink-0" width="5" height="8" viewBox="0 0 5 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 1L4 4.10345L1 7" stroke="#9FA7BA" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      {
+        !!to_tx_hash && (
+          <a
+            className="w-[11px] h-[11px] shrink-0 button"
+            target="_blank"
+            href={`${txExplorerUrl(destination_chain)}/${to_tx_hash}`}
+            rel="noreferrer noopener nofollow"
+          >
+            <svg className="w-[11px] h-[11px] shrink-0" width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 2H1V10H9V6" stroke="#9FA7BA" />
+              <path d="M4 7L10 1M10 1H6.5M10 1V4" stroke="#9FA7BA" />
+            </svg>
+          </a>
+        )
+      }
+      <div className="text-[#9FA7BA] text-[12px] font-[500] leading-[100%]">
+        {destination_chain?.chainName}
+      </div>
+      <div className="text-[#444C59] text-[12px] font-[400] leading-[100%]">
+        {formatAddress(receive_address, 5, 4)}
       </div>
     </div>
   );
