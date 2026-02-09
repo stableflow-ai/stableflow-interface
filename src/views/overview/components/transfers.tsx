@@ -8,7 +8,7 @@ import { TradeStatus, TradeStatusMap } from "@/config/trade";
 import Pagination from "@/components/pagination";
 import TokenLogo from "./token-logo";
 import { formatAddress } from "@/utils/format/address";
-import { formatTimeAgo } from "@/utils/format/time";
+import { formatDuration, formatTimeAgo } from "@/utils/format/time";
 import useToast from "@/hooks/use-toast";
 import { ProjectMap, Project, type Project as ProjectType } from "@/services";
 import GridTable from "@/components/grid-table";
@@ -34,6 +34,7 @@ interface TransferData {
   to_asset_id: string;
   create_time: string;
   project: Project;
+  process_time: number;
 }
 
 interface ApiResponse {
@@ -199,6 +200,18 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
             alt=""
             containerClassName="rounded-full shrink-0"
           />
+        );
+      },
+    },
+    {
+      title: "Process time",
+      dataIndex: "process_time",
+      width: 100,
+      render: (transfer: TransferData, idx: number) => {
+        return (
+          <div className="text-[12px] text-[#2B3337]">
+            {formatDuration(transfer.process_time, { prefix: "~" })}
+            </div>
         );
       },
     },
