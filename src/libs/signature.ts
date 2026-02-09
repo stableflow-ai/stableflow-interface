@@ -3,7 +3,7 @@ export async function generateRpcSignature(
 ): Promise<{ signature: string, timestamp: number; headers: { "x-hmac-signature": string; "x-timestamp": number; }; }> {
   const timestamp = Math.floor(Date.now() / 1000);
   const stringToSign = `${chain}${timestamp}`;
-  const secret = 'a123';
+  const secret = import.meta.env.VITE_RPC_SECRET_KEY;
 
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
