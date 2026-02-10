@@ -514,7 +514,7 @@ export default function useBridge(props?: any) {
 
         const localHistoryData = {
           type: Service.OneClick,
-          despoitAddress: _quote.data.quote.depositAddress,
+          depositAddress: _quote.data.quote.depositAddress,
           amount: bridgeStore.amount,
           fromToken: walletStore.fromToken,
           toToken: walletStore.toToken,
@@ -614,13 +614,13 @@ export default function useBridge(props?: any) {
         ..._quote?.data?.sendParam,
         wallet: wallet.wallet,
       });
-      let _despoitAddress = hash;
+      let _depositAddress = hash;
       if (([Service.Usdt0OneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
-        _despoitAddress = _quote?.data?.quoteParam?.depositAddress;
+        _depositAddress = _quote?.data?.quoteParam?.depositAddress;
       }
       historyStore.addHistory({
         type: bridgeStore.quoteDataService,
-        despoitAddress: _despoitAddress,
+        depositAddress: _depositAddress,
         amount: bridgeStore.amount,
         fromToken: walletStore.fromToken,
         toToken: walletStore.toToken,
@@ -637,7 +637,7 @@ export default function useBridge(props?: any) {
         address: wallet.account,
         amount: bridgeStore.amount,
         out_amount: _quote.data.outputAmount,
-        deposit_address: _despoitAddress,
+        deposit_address: _depositAddress,
         receive_address: _quote.data.quoteParam.recipient,
         from_chain: walletStore.fromToken.blockchain,
         symbol: walletStore.fromToken.symbol,
@@ -894,10 +894,10 @@ export default function useBridge(props?: any) {
       let netB = Big(dataB.outputAmount || 0);
 
       // Usdt0 should minus message fee
-      if (_serviceA === Service.Usdt0) {
+      if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceA)) {
         netA = netA.minus(dataA.fees?.nativeFeeUsd || 0);
       }
-      if (_serviceB === Service.Usdt0) {
+      if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceB)) {
         netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
       }
 
