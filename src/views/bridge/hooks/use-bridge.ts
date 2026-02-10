@@ -614,9 +614,13 @@ export default function useBridge(props?: any) {
         ..._quote?.data?.sendParam,
         wallet: wallet.wallet,
       });
+      let _despoitAddress = hash;
+      if (([Service.Usdt0OneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
+        _despoitAddress = _quote?.data?.quoteParam?.depositAddress;
+      }
       historyStore.addHistory({
         type: bridgeStore.quoteDataService,
-        despoitAddress: hash,
+        despoitAddress: _despoitAddress,
         amount: bridgeStore.amount,
         fromToken: walletStore.fromToken,
         toToken: walletStore.toToken,
@@ -633,7 +637,7 @@ export default function useBridge(props?: any) {
         address: wallet.account,
         amount: bridgeStore.amount,
         out_amount: _quote.data.outputAmount,
-        deposit_address: hash,
+        deposit_address: _despoitAddress,
         receive_address: _quote.data.quoteParam.recipient,
         from_chain: walletStore.fromToken.blockchain,
         symbol: walletStore.fromToken.symbol,
