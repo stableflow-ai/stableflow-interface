@@ -25,6 +25,7 @@ import { useAccount } from "wagmi";
 import { BridgeFees, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
+import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 
 const TRANSFER_MIN_AMOUNT = 0.01;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -36,6 +37,7 @@ export default function useBridge(props?: any) {
     getEstimateNeedsEnergy,
     getEnergy,
   } = useTronEnergy();
+  const { debouncedGetList: getPendingList } = usePendingHistory();
 
   const prices = usePricesStore((state) => state.prices);
   const wallets = useWalletsStore();
@@ -368,6 +370,7 @@ export default function useBridge(props?: any) {
         type: 0,
         ...params,
       });
+      getPendingList();
     } catch (error) {
       console.log("Report failed: %o", error);
     }
