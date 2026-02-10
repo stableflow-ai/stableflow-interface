@@ -11,6 +11,6 @@ export const ServiceBackend: Record<Service, string> = {
   [Service.OneClick]: "nearintents",
   [Service.Usdt0]: "layerzero",
   [Service.CCTP]: "cctp",
-  [Service.Usdt0OneClick]: "layerzero-nearintents",
-  [Service.OneClickUsdt0]: "nearintents-layerzero",
+  [Service.Usdt0OneClick]: "zerointent",
+  [Service.OneClickUsdt0]: "intentzero",
 } as const;
