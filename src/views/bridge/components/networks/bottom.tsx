@@ -21,7 +21,7 @@ export default function Bottom({ token }: { token: any }) {
   const _quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
 
   const mergedBalance =
-    balancesStore[`${token?.chainType}Balances` as keyof BalancesState]?.[
+    balancesStore[`${token?.chainType}Balances` as keyof BalancesState]?.[token?.chainId || token?.blockchain]?.[
     token?.contractAddress
     ];
 

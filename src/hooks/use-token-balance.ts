@@ -31,12 +31,18 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
       setBalance(_balance);
 
       const key = `${token.chainType}Balances`;
+      let nextBalances = balancesStore[key as keyof BalancesState];
+
+      if (nextBalances[token.chainId || token.blockchain]) {
+        nextBalances[token.chainId || token.blockchain][token.contractAddress] = _balance;
+      } else {
+        nextBalances[token.chainId || token.blockchain] = {
+          [token.contractAddress]: _balance,
+        };
+      }
 
       balancesStore.set({
-        [key]: {
-          ...balancesStore[key as keyof BalancesState],
-          [token.contractAddress]: _balance
-        }
+        [key]: nextBalances
       });
     } catch (error) {
       console.error(error);

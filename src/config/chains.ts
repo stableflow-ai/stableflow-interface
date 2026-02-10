@@ -1,3 +1,5 @@
+import type { ServiceType } from "@/services";
+
 export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
   near: {
     value: "near",
@@ -47,6 +49,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Near": ["https://nearinner.deltarpc.com"],
   "X Layer": ["https://rpc.xlayer.tech"],
   "Plasma": ["https://rpc.plasma.to"],
+  "Mantle": ["https://rpc.mantle.xyz"],
 };
 
 export const getChainRpcUrl = (chainName: string) => {
@@ -278,6 +281,42 @@ const chains = {
     },
     ...getChainRpcUrl("Plasma"),
   },
+  mantle: {
+    chainName: "Mantle",
+    blockchain: "mantle",
+    chainIcon: "/chains/mantle.png",
+    chainIconGray: "/chains/mantle-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 5000,
+    blockExplorerUrl: "https://mantlescan.xyz/tx/",
+    primaryColor: "#162F29",
+    nativeToken: {
+      symbol: "XPL",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Mantle"),
+  },
 };
 
 export default chains;
+
+export interface TokenChain {
+  symbol: string;
+  decimals: number;
+  icon: string;
+  assetId?: string;
+  contractAddress: string;
+  services: ServiceType[];
+
+  chainName: string;
+  blockchain: string;
+  chainIcon: string;
+  chainIconGray: string;
+  chainType: string;
+  chainId?: number;
+  blockExplorerUrl: string;
+  primaryColor: string;
+  nativeToken: { symbol: string; decimals: number; };
+  rpcUrls: string[];
+  rpcUrl: string;
+}

@@ -765,7 +765,7 @@ export default function useBridge(props?: any) {
         const balance =
           balancesStore[
           `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
-          ]?.[walletStore.fromToken.contractAddress] || 0;
+          ]?.[walletStore.fromToken.chainId || walletStore.fromToken.blockchain]?.[walletStore.fromToken.contractAddress] || 0;
 
         if (Big(value).gt(balance)) {
           return `Insufficient balance`;

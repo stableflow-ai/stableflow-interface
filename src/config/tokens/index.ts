@@ -27,13 +27,13 @@ export const evmBalancesTokens = (() => {
   return Object.values(map);
 })();
 
-export const usdcAddresses = Object.values(usdcEvm.chains).map((chain) =>
-  chain.contractAddress.toLowerCase()
-);
+export const usdcAddresses = Object.values(usdcEvm.chains).map((chain) => ({
+  [chain.chainId!]: chain.contractAddress.toLowerCase(),
+})).reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
-export const usdtAddresses = Object.values(usdtEvm.chains).map((chain) =>
-  chain.contractAddress.toLowerCase()
-);
+export const usdtAddresses = Object.values(usdtEvm.chains).map((chain) => ({
+  [chain.chainId!]: chain.contractAddress.toLowerCase(),
+})).reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
 export const stablecoinWithChains: any = {
   evm: {
