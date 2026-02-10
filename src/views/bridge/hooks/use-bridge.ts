@@ -894,10 +894,10 @@ export default function useBridge(props?: any) {
       let netB = Big(dataB.outputAmount || 0);
 
       // Usdt0 should minus message fee
-      if (_serviceA === Service.Usdt0) {
+      if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceA)) {
         netA = netA.minus(dataA.fees?.nativeFeeUsd || 0);
       }
-      if (_serviceB === Service.Usdt0) {
+      if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceB)) {
         netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
       }
 
