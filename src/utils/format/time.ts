@@ -36,11 +36,9 @@ export function formatTimeAgo(date: string | dayjs.Dayjs | number) {
 
 /**
  * Format a duration given in seconds into a human-readable string.
- * - < 60s: "xx seconds"
- * - < 1h:  "xx.xx minutes"
- * - < 1d:  "xx.xx hours"
- * - < 30d: "xx.xx days"
- * - >= 30d: "xx.xx months"
+ * Output format: "xx days xx hours xx mins xx s"
+ * - Only non-zero parts are included.
+ * - If the duration is 0 or falsy, returns "-".
  */
 export function formatDuration(seconds: number, options?: { prefix?: string; }): string {
   const { prefix = "" } = options || {};
@@ -51,26 +49,16 @@ export function formatDuration(seconds: number, options?: { prefix?: string; }):
 
   if (seconds < 0) seconds = 0;
 
-  if (seconds < 60) {
-    const s = Math.floor(seconds);
-    return `${prefix}${s} second${s !== 1 ? 's' : ''}`;
-  }
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
 
-  if (seconds < 3600) {
-    const minutes = (seconds / 60).toFixed(2).replace(/\.?0+$/, '');
-    return `${prefix}${minutes} minutes`;
-  }
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} day${days !== 1 ? 's' : ''}`);
+  if (hours > 0) parts.push(`${hours} hour${hours !== 1 ? 's' : ''}`);
+  if (mins > 0) parts.push(`${mins} min${mins !== 1 ? 's' : ''}`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs} s`);
 
-  if (seconds < 86400) {
-    const hours = (seconds / 3600).toFixed(2).replace(/\.?0+$/, '');
-    return `${prefix}${hours} hours`;
-  }
-
-  if (seconds < 2592000) {
-    const days = (seconds / 86400).toFixed(2).replace(/\.?0+$/, '');
-    return `${prefix}${days} days`;
-  }
-
-  const months = (seconds / 2592000).toFixed(2).replace(/\.?0+$/, '');
-  return `${prefix}${months} months`;
+  return `${prefix}${parts.join(' ')}`;
 }

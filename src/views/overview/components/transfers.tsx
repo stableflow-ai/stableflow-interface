@@ -206,7 +206,7 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
     {
       title: "Process time",
       dataIndex: "process_time",
-      width: 100,
+      width: 120,
       render: (transfer: TransferData, idx: number) => {
         return (
           <div className="text-[12px] text-[#2B3337]">

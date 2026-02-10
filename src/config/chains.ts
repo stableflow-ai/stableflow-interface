@@ -46,6 +46,7 @@ export const chainsRpcUrls: Record<string, string> = {
   "Solana": "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
   "Near": "",
   "X Layer": "https://rpc.xlayer.tech",
+  "Plasma": "https://rpc.plasma.to",
 };
 
 interface Chain {
@@ -270,6 +271,21 @@ const chains: Record<string, Chain> = {
       decimals: 18,
     },
     rpcUrl: chainsRpcUrls["X Layer"],
+  },
+  plasma: {
+    chainName: "Plasma",
+    blockchain: "plasma",
+    chainIcon: "/chains/plasma.png",
+    chainIconGray: "/chains/plasma-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 9745,
+    blockExplorerUrl: "https://plasmascan.to/tx/",
+    primaryColor: "#162F29",
+    nativeToken: {
+      symbol: "XPL",
+      decimals: 18,
+    },
+    rpcUrl: chainsRpcUrls["Plasma"],
   },
 };
 
