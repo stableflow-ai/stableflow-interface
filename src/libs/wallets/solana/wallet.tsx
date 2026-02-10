@@ -25,7 +25,7 @@ import { getPrice } from "@/utils/format/price";
 import stableflowProxyIdl from "@/services/oneclick/stableflow-proxy.json";
 import { quoteSignature } from "../utils/cctp";
 import { SendType } from "../types";
-import { Service, type ServiceType } from "@/services";
+import { Service } from "@/services/constants";
 import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress } from "../utils/layerzero";
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
 import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
@@ -659,10 +659,10 @@ export default class SolanaWallet {
 
   /**
    * Unified quote method that routes to specific quote methods based on type
-   * @param type Service type from ServiceType
+   * @param type Service type from Service
    * @param params Parameters for the quote
    */
-  async quote(type: ServiceType, params: any) {
+  async quote(type: Service, params: any) {
     switch (type) {
       case Service.CCTP:
         return await this.quoteCCTP(params);

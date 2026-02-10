@@ -2,11 +2,11 @@ import { USDT0_CONFIG, USDT0_DVN_COUNT } from "./config";
 import { OFT_ABI, SOLANA_IDL } from "./contract";
 import axios from "axios";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 
 export const PayInLzToken = false;
 
-const excludeFees: string[] = ["estimateGasUsd"];
+export const excludeFees: string[] = ["estimateGasUsd"];
 
 /**
  * Calculate USDT0 cross-chain estimated time using LayerZero formula

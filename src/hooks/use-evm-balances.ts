@@ -89,13 +89,20 @@ export default function useEvmBalances(auto = false) {
           const _balance = Big(sl.balance).div(
             10 ** (Number(key) === 56 ? 18 : 6)
           );
-          if (usdcAddresses.includes(sl.address)) {
+          if (Object.values(usdcAddresses).includes(sl.address.toLowerCase())) {
             usdcBalance = usdcBalance.plus(_balance);
           }
-          if (usdtAddresses.includes(sl.address)) {
+          if (Object.values(usdtAddresses).includes(sl.address.toLowerCase())) {
             usdtBalance = usdtBalance.plus(_balance);
           }
-          _balances[sl.address] = _balance.toString();
+
+          if (_balances[key]) {
+            _balances[key][sl.address] = _balance.toString();
+          } else {
+            _balances[key] = {
+              [sl.address]: _balance.toString()
+            };
+          }
         });
       });
 

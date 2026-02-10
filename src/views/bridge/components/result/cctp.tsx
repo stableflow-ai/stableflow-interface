@@ -5,7 +5,7 @@ import Big from "big.js";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import ResultFeeItem from "./fee-item";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 
 const ResultCCTP = (props: any) => {
   const { } = props;

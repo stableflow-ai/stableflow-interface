@@ -1,6 +1,7 @@
 import InputRadio from "@/components/input-radio";
 import { stablecoinLogoMap } from "@/config/tokens";
-import { Service, ServiceLogoMap, type ServiceType } from "@/services";
+import { ServiceLogoMap } from "@/services";
+import { Service } from "@/services/constants";
 import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";
 import { formatNumber } from "@/utils/format/number";
@@ -34,7 +35,7 @@ const QuoteRoute = (props: any) => {
           onChange={onSelect}
         />
         <img
-          src={ServiceLogoMap[service as ServiceType]}
+          src={ServiceLogoMap[service as Service]}
           alt=""
           className="w-[62px] h-[16px] object-center object-contain shrink-0"
         />

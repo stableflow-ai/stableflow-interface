@@ -11,6 +11,7 @@ import {
   berachain,
   xLayer,
   plasma,
+  mantle,
 } from "wagmi/chains";
 import {
   WagmiProvider,
@@ -61,6 +62,7 @@ const RpcUrls: any = {
   [berachain.id]: fallback(getChainRpcUrl("Berachain").rpcUrls.map((rpc) => http(rpc))),
   [xLayer.id]: fallback(getChainRpcUrl("X Layer").rpcUrls.map((rpc) => http(rpc))),
   [plasma.id]: fallback(getChainRpcUrl("Plasma").rpcUrls.map((rpc) => http(rpc))),
+  [mantle.id]: fallback(getChainRpcUrl("Mantle").rpcUrls.map((rpc) => http(rpc))),
 };
 
 const config = getDefaultConfig({
@@ -80,7 +82,8 @@ const config = getDefaultConfig({
     gnosis,
     berachain,
     xLayer,
-    plasma
+    plasma,
+    mantle,
   ],
   transports: {
     [mainnet.id]: RpcUrls[mainnet.id] || http(),

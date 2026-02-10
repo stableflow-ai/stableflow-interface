@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import ResultFeeItem from "./fee-item";
 import clsx from "clsx";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
 import Checkbox from "@/components/checkbox";
 

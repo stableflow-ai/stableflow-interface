@@ -3,7 +3,7 @@ import axios, { type AxiosInstance } from "axios";
 import { CCTP_DOMAINS, IRIS_API_URL } from "./config";
 import { BASE_API_URL } from "@/config/api";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 
 export const PayInLzToken = false;
 

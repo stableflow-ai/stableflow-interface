@@ -1,7 +1,7 @@
 import useBridgeStore from "@/stores/use-bridge";
 import { motion } from "framer-motion";
 import { lazy, Suspense, useMemo } from "react";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 import Checkbox from "@/components/checkbox";
 import { formatDuration } from "@/utils/format/time";
 import Big from "big.js";

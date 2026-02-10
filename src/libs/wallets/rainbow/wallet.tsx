@@ -8,7 +8,7 @@ import { addressToBytes32 } from "@/utils/address-validation";
 import { LZ_RECEIVE_VALUE, USDT0_CONFIG, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { quoteSignature } from "../utils/cctp";
 import { SendType } from "../types";
-import { Service, type ServiceType } from "@/services";
+import { Service } from "@/services/constants";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 import { usdtChains } from "@/config/tokens/usdt";
@@ -470,10 +470,10 @@ export default class RainbowWallet {
 
   /**
    * Unified quote method that routes to specific quote methods based on type
-   * @param type Service type from ServiceType
+   * @param type Service type from Service
    * @param params Parameters for the quote
    */
-  async quote(type: ServiceType, params: any) {
+  async quote(type: Service, params: any) {
     switch (type) {
       case Service.CCTP:
         return await this.quoteCCTP(params);

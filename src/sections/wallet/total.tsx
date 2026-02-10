@@ -37,14 +37,16 @@ export default function Total() {
         color: currentChain?.color,
         name: currentChain?.name,
       };
-      Object.entries(value).forEach(([address, value]) => {
-        if (value === "-") return;
-        if (address.includes("Balance")) return;
-        if (!currentTokenWithChains?.chains?.some((chain: any) => chain.contractAddress === address)) {
-          return;
-        }
-        _total = _total.plus(Big(value as string));
-        _balanceSummaries[chainType].balance = Big(_balanceSummaries[chainType].balance).plus(Big(value as string));
+      Object.entries(value).forEach(([blockchain, balances]) => {
+        if (typeof value === "string") return;
+        if (blockchain.includes("Balance")) return;
+        Object.entries(balances as any).forEach(([address, balance]) => {
+          if (!currentTokenWithChains?.chains?.some((chain: any) => chain.contractAddress === address)) {
+            return;
+          }
+          _total = _total.plus(Big(balance as string));
+          _balanceSummaries[chainType].balance = Big(_balanceSummaries[chainType].balance).plus(Big(balance as string));
+        });
       });
     });
     const _balanceSummariesList = Object.values(_balanceSummaries);

@@ -52,16 +52,6 @@ export default function Wallet() {
                 type="evm"
                 token={stablecoinWithChains.evm[walletStore.selectedToken]}
               />
-              {/* <Token
-              token={usdcEvm}
-              expand={walletStore.usdcExpand}
-              onExpand={() => {
-                walletStore.set({ usdcExpand: !walletStore.usdcExpand });
-              }}
-              balances={balancesStore.evmBalances}
-              loading={loading}
-              totalBalance={balancesStore.evmBalances.usdcBalance}
-            /> */}
               <Token
                 token={stablecoinWithChains.evm[walletStore.selectedToken]}
                 expand={walletStore.usdtExpand}

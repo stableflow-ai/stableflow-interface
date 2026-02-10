@@ -8,7 +8,7 @@ import { TronWeb } from "tronweb";
 import { getChainRpcUrl } from "@/config/chains";
 import { BridgeDefaultWallets } from "@/config";
 import { SendType } from "../types";
-import { Service, type ServiceType } from "@/services";
+import { Service } from "@/services/constants";
 import { DATA_HEX_PROTOBUF_EXTRA, LZ_RECEIVE_VALUE, SIGNATURE_SIZE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
@@ -698,10 +698,10 @@ export default class TronWallet {
 
   /**
    * Unified quote method that routes to specific quote methods based on type
-   * @param type Service type from ServiceType
+   * @param type Service type from Service
    * @param params Parameters for the quote
    */
-  async quote(type: ServiceType, params: any) {
+  async quote(type: Service, params: any) {
     switch (type) {
       case Service.Usdt0:
         return await this.quoteOFT(params);

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import useBridgeStore from "@/stores/use-bridge";
 import Popover from "@/components/popover";
 import clsx from "clsx";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 import { useDebounceFn } from "ahooks";
 
 export default function Address({ token, isTo, addressValidation }: any) {
