@@ -65,6 +65,8 @@ class Usdt0OneClickService {
         ...usdt0Result.quoteParam,
         toToken: params.toToken,
         middleToken: MIDDLE_TOKEN_CHAIN,
+        recipient: params.recipient,
+        depositAddress: oneClickResult.quote.depositAddress,
       },
     };
   }

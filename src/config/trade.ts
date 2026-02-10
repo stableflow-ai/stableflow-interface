@@ -20,6 +20,8 @@ export const TradeProject = {
   OneClick: 0,
   USDT0: 1,
   CCTP: 2,
+  USDT0OneClick: 3,
+  OneClickUSDT0: 4,
 };
 
 export type TradeProject = (typeof TradeProject)[keyof typeof TradeProject];
@@ -28,4 +30,6 @@ export const TradeProjectMap: Record<TradeProject, { logo: string; name: string;
   [TradeProject.OneClick]: { logo: "/bridge/logo-near-intents.svg", name: "OneClick" },
   [TradeProject.USDT0]: { logo: "/bridge/logo-usdt0.svg", name: "USDT0" },
   [TradeProject.CCTP]: { logo: "/bridge/logo-circle.avif", name: "CCTP" },
+  [TradeProject.USDT0OneClick]: { logo: "/bridge/logo-usdt0-near-intents.svg", name: "USDT0OneClick" },
+  [TradeProject.OneClickUSDT0]: { logo: "/bridge/logo-near-intents-usdt0.svg", name: "OneClickUSDT0" },
 };
