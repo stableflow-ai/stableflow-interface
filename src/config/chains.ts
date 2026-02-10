@@ -1,4 +1,4 @@
-import type { ServiceType } from "@/services";
+import type { Service } from "@/services/constants";
 
 export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
   near: {
@@ -291,7 +291,7 @@ const chains = {
     blockExplorerUrl: "https://mantlescan.xyz/tx/",
     primaryColor: "#162F29",
     nativeToken: {
-      symbol: "XPL",
+      symbol: "MNT",
       decimals: 18,
     },
     ...getChainRpcUrl("Mantle"),
@@ -306,7 +306,7 @@ export interface TokenChain {
   icon: string;
   assetId?: string;
   contractAddress: string;
-  services: ServiceType[];
+  services: Service[];
 
   chainName: string;
   blockchain: string;

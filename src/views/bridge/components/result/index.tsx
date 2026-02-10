@@ -1,7 +1,7 @@
 import useBridgeStore from "@/stores/use-bridge";
 import { motion } from "framer-motion";
 import { lazy, Suspense, useMemo } from "react";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 import { PRICE_IMPACT_THRESHOLD } from "@/config";
 import { formatDuration } from "@/utils/format/time";
 import { formatNumber } from "@/utils/format/number";

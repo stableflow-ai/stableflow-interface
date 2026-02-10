@@ -1,11 +1,11 @@
 import { create } from "zustand/index";
-import { Service, type ServiceType } from "@/services";
+import { Service } from "@/services/constants";
 import { TronTransferStepStatus } from "@/config/tron";
 
 interface BridgeState {
   amount: string;
   recipientAddress: string;
-  quoteDataService: ServiceType;
+  quoteDataService: Service;
   quoteDataMap: Map<string, any>;
   quotingMap: Map<string, boolean>;
   transferring: boolean;
@@ -117,7 +117,7 @@ export default useBridgeStore;
 
 
 export interface QuoteData {
-  type: ServiceType;
+  type: Service;
   errMsg?: string;
   data?: any;
 }

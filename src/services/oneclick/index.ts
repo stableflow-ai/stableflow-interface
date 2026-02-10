@@ -6,7 +6,7 @@ import axios, { type AxiosInstance } from "axios";
 import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 
 export const BridgeFee = [
   {
@@ -16,7 +16,7 @@ export const BridgeFee = [
   },
 ];
 
-const excludeFees: string[] = ["sourceGasFeeUsd"];
+export const excludeFees: string[] = ["sourceGasFeeUsd"];
 
 class OneClickService {
   private api: AxiosInstance;
@@ -34,6 +34,7 @@ class OneClickService {
 
   public async formatQuoteData(res: { data: any; params: any; }) {
     const { params } = res;
+    const { isProxy = true } = params;
 
     const isFromTron = params.fromToken.chainType === "tron";
     const isFromTronEnergy = isFromTron && params.acceptTronEnergy;
@@ -122,7 +123,7 @@ class OneClickService {
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
       let proxyParams: any = {};
-      if (proxyAddress) {
+      if (proxyAddress && isProxy) {
         proxyParams = {
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
@@ -185,10 +186,26 @@ class OneClickService {
     recipient: string;
     connectedWallets?: string[];
     prices: Record<string, string>;
+    appFees: any[];
+    isProxy?: boolean;
+    swapType?: "EXACT_INPUT" | "EXACT_OUTPUT" | "FLEX_INPUT";
   }) {
-    const res = await this.api.post("/quote", {
+    const {
+      refundTo,
+      recipient,
+      slippageTolerance,
+      dry,
+      originAsset,
+      destinationAsset,
+      amount,
+      refundType,
+      appFees,
+      swapType,
+    } = params;
+
+    const quoteParams = {
       depositMode: "SIMPLE",
-      swapType: "EXACT_INPUT",
+      swapType: swapType || "EXACT_INPUT",
       depositType: "ORIGIN_CHAIN",
       sessionId: `session_${Date.now()}_${Math.random()
         .toString(36)
@@ -198,19 +215,20 @@ class OneClickService {
       quoteWaitingTimeMs: 3000,
       appFees: BridgeFee,
       referral: "stableflow",
-      ...params,
-      // delete params
-      wallet: void 0,
-      fromToken: void 0,
-      toToken: void 0,
-      prices: void 0,
-      amountWei: void 0,
-      needsEnergy: void 0,
-      needsEnergyAmount: void 0,
-      needsBandwidth: void 0,
-      needsBandwidthTRX: void 0,
-      acceptTronEnergy: void 0,
-    });
+      refundTo,
+      recipient,
+      slippageTolerance,
+      dry,
+      originAsset,
+      destinationAsset,
+      amount,
+      refundType,
+    };
+    if (appFees) {
+      quoteParams.appFees = appFees;
+    }
+
+    const res = await this.api.post("/quote", quoteParams);
 
     return this.formatQuoteData({ data: res.data, params });
   }

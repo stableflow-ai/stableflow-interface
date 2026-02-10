@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { ServiceMap, type ServiceType } from "@/services";
+import { ServiceMap } from "@/services";
 import {
   validateAddress,
   type AddressValidationResult
@@ -17,7 +17,7 @@ import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { BridgeDefaultWallets, PRICE_IMPACT_THRESHOLD } from "@/config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
-import { Service } from "@/services";
+import { Service, ServiceBackend } from "@/services/constants";
 import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
 import { BASE_API_URL } from "@/config/api";
@@ -26,7 +26,7 @@ import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
 import { useAccount } from "wagmi";
 
-const TRANSFER_MIN_AMOUNT = 1;
+const TRANSFER_MIN_AMOUNT = 0.1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
 
 export default function useBridge(props?: any) {
@@ -97,7 +97,7 @@ export default function useBridge(props?: any) {
     }
   }, { manual: true });
 
-  const quoteRoutes = async (service: ServiceType, params: any, requestId?: number): Promise<QuoteData> => {
+  const quoteRoutes = async (service: Service, params: any, requestId?: number): Promise<QuoteData> => {
     try {
       // Check request ID, skip setting loading state if not the latest request
       if (requestId !== undefined && requestId !== requestIdRef.current) {
@@ -121,7 +121,7 @@ export default function useBridge(props?: any) {
           prices,
           slippageTolerance: configStore.slippage,
         };
-        if (service === Service.OneClick) {
+        if (([Service.OneClick, Service.Usdt0OneClick] as Service[]).includes(service)) {
           _params.dry = params.dry;
           _params.slippageTolerance = configStore.slippage * 100;
           _params.originAsset = walletStore.fromToken.assetId;
@@ -156,7 +156,8 @@ export default function useBridge(props?: any) {
           if (params.appFees) {
             _params.appFees = params.appFees;
           }
-        } else {
+        }
+        if (([Service.Usdt0, Service.CCTP, Service.Usdt0OneClick] as Service[]).includes(service)) {
           _params.originChain = walletStore.fromToken.chainName;
           _params.destinationChain = walletStore.toToken.chainName;
         }
@@ -299,6 +300,23 @@ export default function useBridge(props?: any) {
           }
         });
       }
+    }
+    // Usdt0OneClick mode
+    // First, check if fromToken supports Usdt0 and toToken supports OneClick
+    // and toToken does not support Usdt0
+    // If both conditions are met, find an intermediate chain that supports both Usdt0 and OneClick
+    // This intermediate chain is fixed as USDT Arbitrum
+    if (
+      walletStore.fromToken.services.includes(Service.Usdt0)
+      && walletStore.toToken.services.includes(Service.OneClick)
+      && !walletStore.toToken.services.includes(Service.Usdt0)
+    ) {
+      quoteServices.push({
+        service: Service.Usdt0OneClick,
+        quote: (_requestId?: number) => {
+          return quoteRoutes(Service.Usdt0OneClick, quoteParams, _requestId);
+        }
+      });
     }
 
     // Use request ID to ensure only the latest request results are processed
@@ -507,7 +525,7 @@ export default function useBridge(props?: any) {
           timeEstimate: _quote.data.quote.timeEstimate,
         };
         const reportData = {
-          project: "nearintents",
+          project: ServiceBackend[Service.OneClick],
           address: wallet.account,
           amount: bridgeStore.amount,
           out_amount: _quote.data.outputAmount,
@@ -582,100 +600,47 @@ export default function useBridge(props?: any) {
         }
       }
 
-      // usdt0 transfer
-      if (bridgeStore.quoteDataService === Service.Usdt0) {
-        const { isContinue } = await estimateNativeTokenBalance();
-        if (!isContinue) {
-          bridgeStore.set({ transferring: false });
-          toast.fail({
-            title: "Transfer failed",
-            text: "Insufficient native token balance"
-          });
-          return;
-        }
-
-        const hash = await ServiceMap[Service.Usdt0].send({
-          ..._quote?.data?.sendParam,
-          wallet: wallet.wallet,
+      // others transfer
+      const { isContinue } = await estimateNativeTokenBalance();
+      if (!isContinue) {
+        bridgeStore.set({ transferring: false });
+        toast.fail({
+          title: "Transfer failed",
+          text: "Insufficient native token balance"
         });
-        const uniqueId = uuidV4();
-        historyStore.addHistory({
-          type: Service.Usdt0,
-          despoitAddress: hash,
-          amount: bridgeStore.amount,
-          fromToken: walletStore.fromToken,
-          toToken: walletStore.toToken,
-          fromAddress: wallet.account,
-          toAddress: _quote.data.quoteParam.recipient,
-          time: Date.now(),
-          txHash: hash,
-          toChainTxHash: hash,
-          timeEstimate: _quote.data.estimateTime,
-        });
-        historyStore.updateStatus(hash, "PENDING_DEPOSIT");
-        report({
-          project: "layerzero",
-          address: wallet.account,
-          amount: bridgeStore.amount,
-          out_amount: _quote.data.outputAmount,
-          deposit_address: hash,
-          receive_address: _quote.data.quoteParam.recipient,
-          from_chain: walletStore.fromToken.blockchain,
-          symbol: walletStore.fromToken.symbol,
-          to_chain: walletStore.toToken.blockchain,
-          to_symbol: walletStore.toToken.symbol,
-          tx_hash: hash,
-        });
+        return;
       }
-
-      // cctp transfer
-      if (bridgeStore.quoteDataService === Service.CCTP) {
-        const { isContinue } = await estimateNativeTokenBalance();
-        if (!isContinue) {
-          bridgeStore.set({ transferring: false });
-          toast.fail({
-            title: "Transfer failed",
-            text: "Insufficient native token balance"
-          });
-          return;
-        }
-
-        const hash = await ServiceMap[Service.CCTP].send({
-          ..._quote?.data?.sendParam,
-          wallet: wallet.wallet,
-        });
-        const uniqueId = uuidV4();
-        historyStore.addHistory({
-          type: Service.CCTP,
-          despoitAddress: hash,
-          amount: bridgeStore.amount,
-          fromToken: walletStore.fromToken,
-          toToken: walletStore.toToken,
-          fromAddress: wallet.account,
-          toAddress: _quote.data.quoteParam.recipient,
-          time: Date.now(),
-          txHash: hash,
-          toChainTxHash: hash,
-          timeEstimate: _quote.data.estimateTime,
-        });
-        historyStore.updateStatus(hash, "PENDING_DEPOSIT");
-        report({
-          project: "cctp",
-          address: wallet.account,
-          amount: bridgeStore.amount,
-          out_amount: _quote.data.outputAmount,
-          deposit_address: hash,
-          receive_address: _quote.data.quoteParam.recipient,
-          fee: _quote.data.fees.estimateMintGasUsd,
-          source_domain_id: _quote.data.quoteParam.sourceDomain,
-          destination_domain_id: _quote.data.quoteParam.destinationDomain,
-          from_chain: walletStore.fromToken.blockchain,
-          symbol: walletStore.fromToken.symbol,
-          to_chain: walletStore.toToken.blockchain,
-          to_symbol: walletStore.toToken.symbol,
-          tx_hash: hash,
-        });
-      }
+      const hash = await ServiceMap[bridgeStore.quoteDataService].send({
+        ..._quote?.data?.sendParam,
+        wallet: wallet.wallet,
+      });
+      historyStore.addHistory({
+        type: bridgeStore.quoteDataService,
+        despoitAddress: hash,
+        amount: bridgeStore.amount,
+        fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        fromAddress: wallet.account,
+        toAddress: _quote.data.quoteParam.recipient,
+        time: Date.now(),
+        txHash: hash,
+        toChainTxHash: hash,
+        timeEstimate: _quote.data.estimateTime,
+      });
+      historyStore.updateStatus(hash, "PENDING_DEPOSIT");
+      report({
+        project: ServiceBackend[bridgeStore.quoteDataService],
+        address: wallet.account,
+        amount: bridgeStore.amount,
+        out_amount: _quote.data.outputAmount,
+        deposit_address: hash,
+        receive_address: _quote.data.quoteParam.recipient,
+        from_chain: walletStore.fromToken.blockchain,
+        symbol: walletStore.fromToken.symbol,
+        to_chain: walletStore.toToken.blockchain,
+        to_symbol: walletStore.toToken.symbol,
+        tx_hash: hash,
+      });
 
       bridgeStore.set({ transferring: false });
       getBalance();

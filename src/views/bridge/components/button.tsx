@@ -1,5 +1,5 @@
 import Button from "@/components/button";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";
 import useWalletsStore from "@/stores/use-wallets";

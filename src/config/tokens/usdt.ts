@@ -1,5 +1,5 @@
 import chains, { type TokenChain } from "@/config/chains";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 
 export const usdt = {
   symbol: "USDT",
@@ -99,14 +99,21 @@ export const usdtChains: Record<string, TokenChain> = {
     assetId: "nep245:v2_1.omni.hot.tg:196_2fezDCvVYRsG8wrK6deJ2VRPiAS1",
     contractAddress: "0x779ded0c9e1022225f8e0630b35a9b54be713736",
     ...chains.xlayer,
-    services: [Service.OneClick],
+    services: [Service.OneClick, Service.Usdt0],
   },
   plasma: {
     ...usdt,
     assetId: "nep245:v2_1.omni.hot.tg:9745_3aL9skCy1yhPoDB8oKMmRHRN7SJW",
     contractAddress: "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
     ...chains.plasma,
-    services: [Service.OneClick],
+    services: [Service.OneClick, Service.Usdt0],
+  },
+  mantle: {
+    ...usdt,
+    assetId: "",
+    contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    ...chains.mantle,
+    services: [Service.Usdt0],
   },
 };
 

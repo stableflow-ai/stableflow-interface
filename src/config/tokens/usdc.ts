@@ -1,5 +1,5 @@
 import chains, { type TokenChain } from "@/config/chains";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 
 export const usdc = {
   symbol: "USDC",
