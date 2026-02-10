@@ -209,9 +209,12 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
       width: 120,
       render: (transfer: TransferData, idx: number) => {
         return (
-          <div className="text-[12px] text-[#2B3337]">
-            {formatDuration(transfer.process_time, { prefix: "~" })}
-            </div>
+          <div
+            className="text-[12px] text-[#2B3337]"
+            style={formatProcessTimeStyles(transfer.process_time)}
+          >
+            {transfer.process_time ? `~${transfer.process_time}s` : "-"}
+          </div>
         );
       },
     },
@@ -423,4 +426,14 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
       </div>
     </div>
   );
+}
+
+function formatProcessTimeStyles(process_time?: number): React.CSSProperties {
+  if (process_time && process_time > 300) {
+    return { color: "#FF4D4F" };
+  }
+  if (process_time && process_time > 60) {
+    return { color: "#FAAD14" };
+  }
+  return {};
 }
