@@ -126,7 +126,7 @@ const ContinueTransfer = (props: any) => {
 
       const localHistoryData = {
         type: Service.OneClick,
-        despoitAddress: quoteData.data.quote.depositAddress,
+        depositAddress: quoteData.data.quote.depositAddress,
         amount: bridgeStore.amount,
         fromToken: fromToken,
         toToken: toToken,

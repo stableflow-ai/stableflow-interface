@@ -1,3 +1,4 @@
+import { Service } from "@/services/constants";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -27,10 +28,10 @@ export const useHistoryStore = create(
       pendingNumber: 0,
       addHistory: (item: any) => {
         const _history = get().history;
-        _history[item.despoitAddress] = item;
+        _history[item.depositAddress] = item;
         set({
           history: _history,
-          latestHistories: [item.despoitAddress],
+          latestHistories: [item.type === Service.Usdt0OneClick ? item.txHash : item.depositAddress],
         });
       },
       updateStatus: (address: string, status: any) => {
