@@ -26,7 +26,7 @@ import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
 import { useAccount } from "wagmi";
 
-const TRANSFER_MIN_AMOUNT = 0.1;
+const TRANSFER_MIN_AMOUNT = 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
 
 export default function useBridge(props?: any) {
