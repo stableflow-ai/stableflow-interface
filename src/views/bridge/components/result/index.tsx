@@ -11,6 +11,7 @@ import Checkbox from "@/components/checkbox";
 const ResultOneClick = lazy(() => import("./oneclick"));
 const ResultUsdt0 = lazy(() => import("./usdt0"));
 const ResultCCTP = lazy(() => import("./cctp"));
+const ResultUsdt0OneClick = lazy(() => import("./usdt0-oneclick"));
 
 export default function Result() {
   const bridgeStore = useBridgeStore();
@@ -115,6 +116,11 @@ export default function Result() {
         {
           bridgeStore.quoteDataService === Service.CCTP && (
             <ResultCCTP />
+          )
+        }
+        {
+          bridgeStore.quoteDataService === Service.Usdt0OneClick && (
+            <ResultUsdt0OneClick />
           )
         }
       </Suspense>

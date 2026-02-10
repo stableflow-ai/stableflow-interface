@@ -35,6 +35,9 @@ class Usdt0OneClickService {
 
     const usdt0Result = await usdt0Service.quote(usdt0Params);
 
+    console.log("oneClickResult: %o", oneClickResult);
+    console.log("usdt0Result: %o", usdt0Result);
+
     let totalFeesUsd = Big(0);
     const fees = {
       ...usdt0Result.fees,
@@ -54,6 +57,7 @@ class Usdt0OneClickService {
 
     return {
       ...usdt0Result,
+      fees,
       totalFeesUsd: numberRemoveEndZero(Big(totalFeesUsd).toFixed(20)),
       estimateTime: usdt0Result.estimateTime + oneClickResult.estimateTime,
       outputAmount: oneClickResult.outputAmount,
