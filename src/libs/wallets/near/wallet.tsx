@@ -156,7 +156,7 @@ export default class NearWallet {
    * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateTransferGas(data: {
-    originAsset: string;
+    fromToken: any;
     depositAddress: string;
     amount: string;
   }): Promise<{
@@ -164,7 +164,8 @@ export default class NearWallet {
     gasPrice: bigint;
     estimateGas: bigint;
   }> {
-    const { originAsset, depositAddress } = data;
+    const { fromToken, depositAddress } = data;
+    const originAsset = fromToken.contractAddress;
 
     // Check if storage deposit is needed
     const checkStorage = await this.query(

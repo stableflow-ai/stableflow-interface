@@ -9,11 +9,11 @@ import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
 
 const ResultUsdt0OneClick = (props: any) => {
-  const { } = props;
+  const { service } = props;
 
   const bridgeStore = useBridgeStore();
   const configStore = useConfigStore();
-  const _quoteData = bridgeStore.quoteDataMap.get(Service.Usdt0OneClick);
+  const _quoteData = bridgeStore.quoteDataMap.get(service);
 
   const [fees, setFees] = useState<any>();
 
@@ -45,7 +45,7 @@ const ResultUsdt0OneClick = (props: any) => {
       totalFee: _quoteData?.totalFeesUsd,
       messagingFee: _quoteData?.fees?.nativeFeeUsd,
       messagingFeeAmount: _quoteData?.fees?.nativeFee,
-      messagingFeeUnit: _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
+      messagingFeeUnit: service === Service.OneClickUsdt0 ? _quoteData?.quoteParam?.middleToken?.nativeToken?.symbol : _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
       legacyMeshFee: _quoteData?.fees?.legacyMeshFeeUsd,
       estimatedSourceGas: _quoteData?.fees?.estimateGasUsd,
       bridgeFee: "0.01%",
@@ -74,7 +74,7 @@ const ResultUsdt0OneClick = (props: any) => {
               !!fees?.legacyMeshFee && Big(fees?.legacyMeshFee).gt(0) && (
                 <ResultFeeItem
                   label="Legacy Mesh Fee"
-                  loading={bridgeStore.quotingMap.get(Service.Usdt0OneClick)}
+                  loading={bridgeStore.quotingMap.get(service)}
                 >
                   {fees?.legacyMeshFee}
                 </ResultFeeItem>
@@ -83,13 +83,13 @@ const ResultUsdt0OneClick = (props: any) => {
             <ResultFeeItem
               label="Messaging Fee"
               isFormat={false}
-              loading={bridgeStore.quotingMap.get(Service.Usdt0OneClick)}
+              loading={bridgeStore.quotingMap.get(service)}
             >
               {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
             </ResultFeeItem>
             <ResultFeeItem
               label="Net fee"
-              loading={bridgeStore.quotingMap.get(Service.Usdt0OneClick)}
+              loading={bridgeStore.quotingMap.get(service)}
             >
               {fees?.netFee}
             </ResultFeeItem>
@@ -100,7 +100,7 @@ const ResultUsdt0OneClick = (props: any) => {
                 </>
               )}
               precision={2}
-              loading={bridgeStore.quotingMap.get(Service.Usdt0OneClick)}
+              loading={bridgeStore.quotingMap.get(service)}
               isDelete
             >
               {fees?.bridgeFeeValue}

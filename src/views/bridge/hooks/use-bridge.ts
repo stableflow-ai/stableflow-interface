@@ -24,8 +24,9 @@ import { BASE_API_URL } from "@/config/api";
 import { BridgeFees, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
-import { useAccount } from "wagmi";
+import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
+import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 
 const TRANSFER_MIN_AMOUNT = 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -48,6 +49,7 @@ export default function useBridge(props?: any) {
   const { getBalance } = useTokenBalance(walletStore.fromToken, false);
   const balancesStore = useBalancesStore();
   const evmAccount = useAccount();
+  const { switchChainAsync } = useSwitchChain();
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
   const [liquidityErrorMssage, setLiquidityErrorMessage] = useState<boolean>();
@@ -118,12 +120,13 @@ export default function useBridge(props?: any) {
           refundTo: fromWalletAddress || "",
           recipient: bridgeStore.recipientAddress || toWalletAddress || "",
           wallet: params.wallet,
+          wallets: params.wallets,
           fromToken: walletStore.fromToken,
           toToken: walletStore.toToken,
           prices,
           slippageTolerance: configStore.slippage,
         };
-        if (([Service.OneClick, Service.Usdt0OneClick] as Service[]).includes(service)) {
+        if (([Service.OneClick, Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
           _params.dry = params.dry;
           _params.slippageTolerance = configStore.slippage * 100;
           _params.originAsset = walletStore.fromToken.assetId;
@@ -159,7 +162,7 @@ export default function useBridge(props?: any) {
             _params.appFees = params.appFees;
           }
         }
-        if (([Service.Usdt0, Service.CCTP, Service.Usdt0OneClick] as Service[]).includes(service)) {
+        if (([Service.Usdt0, Service.CCTP, Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
           _params.originChain = walletStore.fromToken.chainName;
           _params.destinationChain = walletStore.toToken.chainName;
         }
@@ -290,6 +293,7 @@ export default function useBridge(props?: any) {
       ...params,
       amountWei,
       wallet: wallet.wallet,
+      wallets,
     };
 
     const quoteServices: any = [];
@@ -305,18 +309,33 @@ export default function useBridge(props?: any) {
     }
     // Usdt0OneClick mode
     // First, check if fromToken supports Usdt0 and toToken supports OneClick
-    // and toToken does not support Usdt0
     // If both conditions are met, find an intermediate chain that supports both Usdt0 and OneClick
     // This intermediate chain is fixed as USDT Arbitrum
     if (
       walletStore.fromToken.services.includes(Service.Usdt0)
       && walletStore.toToken.services.includes(Service.OneClick)
       && walletStore.fromToken.chainName !== "Arbitrum"
+      && walletStore.toToken.chainName !== "Arbitrum"
     ) {
       quoteServices.push({
         service: Service.Usdt0OneClick,
         quote: (_requestId?: number) => {
           return quoteRoutes(Service.Usdt0OneClick, quoteParams, _requestId);
+        }
+      });
+    }
+
+    // OneClickUsdt0 mode
+    if (
+      walletStore.fromToken.services.includes(Service.OneClick)
+      && walletStore.toToken.services.includes(Service.Usdt0)
+      && walletStore.fromToken.chainName !== "Arbitrum"
+      && walletStore.toToken.chainName !== "Arbitrum"
+    ) {
+      quoteServices.push({
+        service: Service.OneClickUsdt0,
+        quote: (_requestId?: number) => {
+          return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
         }
       });
     }
@@ -613,12 +632,61 @@ export default function useBridge(props?: any) {
         });
         return;
       }
-      const hash = await ServiceMap[bridgeStore.quoteDataService].send({
+
+      const reportData: any = {
+        project: ServiceBackend[bridgeStore.quoteDataService],
+        address: wallet.account,
+        amount: bridgeStore.amount,
+        out_amount: _quote.data.outputAmount,
+        receive_address: _quote.data.quoteParam.recipient,
+        from_chain: walletStore.fromToken.blockchain,
+        symbol: walletStore.fromToken.symbol,
+        to_chain: walletStore.toToken.blockchain,
+        to_symbol: walletStore.toToken.symbol,
+      };
+      let sendParams: any = {
         ..._quote?.data?.sendParam,
         wallet: wallet.wallet,
-      });
+      };
+
+      // oneclick-usdt0 transfer
+      if (bridgeStore.quoteDataService === Service.OneClickUsdt0) {
+        const permitToken = MIDDLE_TOKEN_CHAIN;
+        // First, switch to the Arbitrum chain to perform the permit signature
+        const evmWallet = wallets.evm.wallet;
+        if (!evmWallet) {
+          throw new Error("Permit wallet not connected");
+        }
+        await switchChainAsync({ chainId: permitToken.chainId! });
+        const signature = await evmWallet?.signTypedData({
+          fromToken: permitToken,
+          amountWei: _quote?.data?.quote?.amountOut,
+          spender: MIDDLE_CHAIN_LAYERZERO_EXECUTOR,
+        });
+        // After signing, need to switch back to the source chain
+        if (walletStore.fromToken.chainType === "evm") {
+          await switchChainAsync({ chainId: walletStore.fromToken.chainId! });
+        }
+        console.log("permit signature: %o", signature);
+        reportData.permit = signature;
+        reportData.sendParam = _quote?.data?.usdt0SendParam;
+        reportData.fee = _quote?.data?.usdt0MessageFee;
+        if (_quote?.data?.sendParam?.param) {
+          // proxyTransfer.recipient = depositAddress
+          _quote.data.sendParam.param[1] = _quote.data.quote.depositAddress;
+        }
+        sendParams = {
+          sendParam: _quote?.data?.sendParam,
+          wallet: wallet.wallet,
+          fromToken: walletStore.fromToken,
+          depositAddress: _quote.data.quote.depositAddress,
+          amountWei: _amount,
+        };
+      }
+
+      const hash = await ServiceMap[bridgeStore.quoteDataService].send(sendParams);
       let _depositAddress = hash;
-      if (([Service.Usdt0OneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
+      if (([Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService)) {
         _depositAddress = _quote?.data?.quoteParam?.depositAddress;
       }
       historyStore.addHistory({
@@ -635,19 +703,9 @@ export default function useBridge(props?: any) {
         timeEstimate: _quote.data.estimateTime,
       });
       historyStore.updateStatus(hash, "PENDING_DEPOSIT");
-      report({
-        project: ServiceBackend[bridgeStore.quoteDataService],
-        address: wallet.account,
-        amount: bridgeStore.amount,
-        out_amount: _quote.data.outputAmount,
-        deposit_address: _depositAddress,
-        receive_address: _quote.data.quoteParam.recipient,
-        from_chain: walletStore.fromToken.blockchain,
-        symbol: walletStore.fromToken.symbol,
-        to_chain: walletStore.toToken.blockchain,
-        to_symbol: walletStore.toToken.symbol,
-        tx_hash: hash,
-      });
+      reportData.deposit_address = _depositAddress;
+      reportData.tx_hash = hash;
+      report(reportData);
 
       bridgeStore.set({ transferring: false });
       getBalance();
@@ -711,7 +769,7 @@ export default function useBridge(props?: any) {
 
   // Amount validation and handler
   const validateAmount = (value: string): string => {
-    if (!value.trim()) {
+    if (!value || !value.trim()) {
       return "Amount is required";
     }
 
@@ -722,7 +780,7 @@ export default function useBridge(props?: any) {
     }
 
     if (Big(numValue).lt(TRANSFER_MIN_AMOUNT)) {
-      return "Amount is too low, at least 1";
+      return `Amount is too low, at least ${TRANSFER_MIN_AMOUNT}`;
     }
 
     // Check for too many decimal places (max 6 for most tokens)
@@ -769,7 +827,11 @@ export default function useBridge(props?: any) {
       const error = validateAmount(bridgeStore.amount);
       setAmountError(error);
     }
-  }, [walletStore.fromToken, bridgeStore.amount, balancesStore]);
+  }, [
+    walletStore.fromToken,
+    bridgeStore.amount,
+    balancesStore,
+  ]);
 
   useEffect(() => {
     // Only trigger quote if both tokens have selected a specific chain (have chainType)
@@ -841,10 +903,20 @@ export default function useBridge(props?: any) {
         return addressValidation.error;
       }
 
-      const priceImpact = bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.priceImpact;
+      const quoteData = bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService);
+      const priceImpact = quoteData?.priceImpact;
       if (priceImpact) {
         if (Big(priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD) && !bridgeStore.acceptPriceImpact) {
           return "Large Price Impact";
+        }
+      }
+
+      if (bridgeStore.quoteDataService === Service.OneClickUsdt0) {
+        const balance = balancesStore[
+          `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
+        ]?.[walletStore.fromToken.chainId || walletStore.fromToken.blockchain]?.[walletStore.fromToken.contractAddress] || 0;
+        if (Big(quoteData?.quote?.amountInFormatted || 0).gt(balance)) {
+          return "Insufficient balance";
         }
       }
 
@@ -867,6 +939,7 @@ export default function useBridge(props?: any) {
     wallets.evm?.chainId,
     liquidityErrorMssage,
     evmAccount?.chainId,
+    balancesStore,
   ]);
 
   useEffect(() => {
@@ -902,6 +975,13 @@ export default function useBridge(props?: any) {
       }
       if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceB)) {
         netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
+      }
+
+      if ([Service.OneClickUsdt0].includes(_serviceA)) {
+        netA = netA.minus(dataA.fees?.destinationGasFeeUsd || 0);
+      }
+      if ([Service.OneClickUsdt0].includes(_serviceB)) {
+        netB = netB.minus(dataB.fees?.destinationGasFeeUsd || 0);
       }
 
       // console.log("%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));

@@ -102,7 +102,7 @@ class CCTPService {
         },
       });
       const result = response.data.data;
-      // status: 1 = minted, 3 = burned
+      // status: 1 = Success, 3 = Confirming
       const status = result.status;
       // to_tx_hash: minted tx hash
       const toTxHash = result.to_tx_hash;
@@ -112,7 +112,7 @@ class CCTPService {
       if (status === 1) {
         finalStatus = "SUCCESS";
       }
-      // Expired
+      // Failed
       if (status === 2) {
         finalStatus = "FAILED";
       }

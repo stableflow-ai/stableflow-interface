@@ -206,7 +206,7 @@ export default class SolanaWallet {
    * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateTransferGas(data: {
-    originAsset: string;
+    fromToken: any;
     depositAddress: string;
     amount: string;
   }): Promise<{
@@ -214,15 +214,12 @@ export default class SolanaWallet {
     gasPrice: bigint;
     estimateGas: bigint;
   }> {
-    if (!this.publicKey) {
-      throw new Error("Wallet not connected");
-    }
-
     // Solana transaction fees are typically fixed at 5000 lamports per signature
     // Base fee per signature: 5000 lamports
     let estimatedFee = 5000n;
 
-    const { originAsset, depositAddress } = data;
+    const { fromToken, depositAddress } = data;
+    const originAsset = fromToken.contractAddress;
 
     // Check if token account creation is needed for SPL tokens
     if (originAsset !== "SOL" && originAsset !== "sol") {
@@ -562,7 +559,7 @@ export default class SolanaWallet {
           replaceRecentBlockhash: true,
         });
 
-        console.log("sendSim: %o", JSON.stringify(sendSim));
+        // console.log("sendSim: %o", JSON.stringify(sendSim));
 
         // Even if simulation fails (e.g., insufficient funds), we can still get the fee estimate
         if (!sendSim.value.err) {

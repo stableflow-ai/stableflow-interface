@@ -171,7 +171,7 @@ export default class TronWallet {
    * @returns Gas limit estimate (bandwidth or energy), gas price, and estimated gas cost
    */
   async estimateTransferGas(data: {
-    originAsset: string;
+    fromToken: any;
     depositAddress: string;
     amount: string;
   }): Promise<{
@@ -179,9 +179,8 @@ export default class TronWallet {
     gasPrice: bigint;
     estimateGas: bigint;
   }> {
-    const { originAsset } = data;
-
-    await this.waitForTronWeb();
+    const { fromToken } = data;
+    const originAsset = fromToken.contractAddress;
 
     // Tron uses bandwidth for TRX transfers and energy for smart contract calls
     // TRX transfer: ~268 bandwidth

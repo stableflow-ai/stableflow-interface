@@ -147,7 +147,7 @@ export default class AptosWallet {
    * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateTransferGas(data: {
-    originAsset: string;
+    fromToken: any;
     depositAddress: string;
     amount: string;
   }): Promise<{
@@ -159,7 +159,8 @@ export default class AptosWallet {
       throw new Error("Wallet not connected");
     }
 
-    const { originAsset, depositAddress, amount } = data;
+    const { fromToken, depositAddress, amount } = data;
+    const originAsset = fromToken.contractAddress;
     const isOriginNative = originAsset === "APT" || originAsset === "apt";
     const sender = this.account?.address?.toString();
 
