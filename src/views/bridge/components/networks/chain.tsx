@@ -79,9 +79,7 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
 
       <div className="text-[14px] flex items-center gap-[8px] mt-[6px]">
         <div className="flex items-center gap-[4px] leading-[100%] whitespace-nowrap">
-          <div className="text-[#444C59] text-[16px] font-[500]">
-            {(token.chainName === "Ethereum" && token.symbol === "USD₮0") ? "USDT" : token.symbol}
-            </div>
+          <div className="text-[#444C59] text-[16px] font-[500]">{token.symbol}</div>
           <div className="text-[#0E3616] text-[12px] font-[400]">{token.chainName}</div>
         </div>
         <img

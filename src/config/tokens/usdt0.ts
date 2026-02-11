@@ -10,6 +10,8 @@ export const usdt0 = {
 export const usdt0Chains: Record<string, TokenChain> = {
   eth: {
     ...usdt0,
+    symbol: "USDT",
+    icon: "/usdt.png",
     assetId: "nep141:eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near",
     contractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
     ...chains.eth,
