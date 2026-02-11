@@ -21,6 +21,8 @@ export default function Wallet() {
   const balancesStore = useBalancesStore();
   useEvmBalances(walletStore.showWallet);
 
+  console.log("balancesStore.evmBalances: %o", balancesStore.evmBalances);
+
   const walletConnected = useMemo(() => {
     return !!walletsStore.evm.account || !!walletsStore.sol.account || !!walletsStore.near.account || !!walletsStore.tron.account;
   }, [walletsStore]);

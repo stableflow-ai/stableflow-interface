@@ -4,6 +4,7 @@ import axios from "axios";
 import {
   evmBalancesTokens,
   usdcAddresses,
+  usdt0Addresses,
   usdtAddresses
 } from "@/config/tokens";
 import Big from "big.js";
@@ -82,6 +83,7 @@ export default function useEvmBalances(auto = false) {
 
       let usdcBalance = Big(0);
       let usdtBalance = Big(0);
+      let usdt0Balance = Big(0);
 
       Object.entries(_data).forEach(([key, item]: any) => {
         if (!item) return;
@@ -94,6 +96,9 @@ export default function useEvmBalances(auto = false) {
           }
           if (Object.values(usdtAddresses).includes(sl.address.toLowerCase())) {
             usdtBalance = usdtBalance.plus(_balance);
+          }
+          if (Object.values(usdt0Addresses).includes(sl.address.toLowerCase())) {
+            usdt0Balance = usdt0Balance.plus(_balance);
           }
 
           if (_balances[key]) {
@@ -111,7 +116,8 @@ export default function useEvmBalances(auto = false) {
           evmBalances: {
             ..._balances,
             usdcBalance: usdcBalance.toString(),
-            usdtBalance: usdtBalance.toString()
+            usdtBalance: usdtBalance.toString(),
+            "usd₮0Balance": usdt0Balance.toString(),
           }
         });
       }
