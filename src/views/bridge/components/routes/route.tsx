@@ -37,7 +37,10 @@ const QuoteRoute = (props: any) => {
         <img
           src={ServiceLogoMap[service as Service]}
           alt=""
-          className="w-[62px] h-[16px] object-center object-contain shrink-0"
+          className={clsx(
+            "object-center object-contain shrink-0",
+            [Service.OneClickUsdt0, Service.Usdt0OneClick].includes(service) ? "w-[118px] h-[24px]" : "w-[62px] h-[16px]",
+          )}
         />
       </div>
       <div className="flex items-center justify-end gap-[10px] text-[12px] font-[400] text-[#444C59] leading-[100%]">
