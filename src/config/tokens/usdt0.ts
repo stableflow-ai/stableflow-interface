@@ -1,4 +1,4 @@
-import chains from "@/config/chains";
+import chains, { type TokenChain } from "@/config/chains";
 import { Service } from "@/services/constants";
 
 export const usdt0 = {
@@ -7,7 +7,7 @@ export const usdt0 = {
   icon: "/usdt0.png"
 };
 
-export const usdt0Chains = {
+export const usdt0Chains: Record<string, TokenChain> = {
   eth: {
     ...usdt0,
     assetId: "nep141:eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near",

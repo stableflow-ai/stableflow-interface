@@ -1,6 +1,7 @@
 import { usdcEvm, usdcNear, usdcSol, usdcChains } from "@/config/tokens/usdc";
 import { usdtAptos, usdtEvm, usdtNear, usdtSol, usdtTron, usdtChains } from "@/config/tokens/usdt";
 import { usdt0Chains, usdt0Evm } from "./usdt0";
+import type { TokenChain } from "../chains";
 
 export const evmBalancesTokens = (() => {
   const map: any = {};
@@ -83,3 +84,8 @@ export const tokens = [
   ...Object.values(usdtChains),
   ...Object.values(usdt0Chains),
 ];
+
+export const allUsdtChains: Record<string, TokenChain> = {
+  ...usdtChains,
+  ...usdt0Chains,
+};

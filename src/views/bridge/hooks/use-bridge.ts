@@ -311,7 +311,7 @@ export default function useBridge(props?: any) {
     if (
       walletStore.fromToken.services.includes(Service.Usdt0)
       && walletStore.toToken.services.includes(Service.OneClick)
-      && !walletStore.toToken.services.includes(Service.Usdt0)
+      // && !walletStore.toToken.services.includes(Service.Usdt0)
     ) {
       quoteServices.push({
         service: Service.Usdt0OneClick,
