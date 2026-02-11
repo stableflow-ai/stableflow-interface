@@ -24,20 +24,30 @@ export default function BridgeButton({
   const solanaWallet = wallets["sol"];
 
   const quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
-  const loading = bridgeStore.quotingMap.get(bridgeStore.quoteDataService) || bridgeStore.transferring;
+  const loading = Array.from(bridgeStore.quotingMap.values()).some((value) => value === true) || bridgeStore.transferring;
 
-  const wallet = useMemo(() => {
+  const [wallet, evmWallet] = useMemo(() => {
     // @ts-ignore
-    return wallets[walletStore.fromToken?.chainType];
+    return [wallets[walletStore.fromToken?.chainType], wallets.evm];
   }, [wallets, walletStore.fromToken]);
 
   const errorConnect = useMemo(() => {
     return !!wallet && !wallet.account;
   }, [wallet]);
 
+  const errorConnectEvm = useMemo(() => {
+    if (bridgeStore.quoteDataService === Service.OneClickUsdt0) {
+      return !evmWallet?.account;
+    }
+    return false;
+  }, [evmWallet, bridgeStore.quoteDataService]);
+
   const buttonText = useMemo(() => {
     if (errorConnect) {
       return `Connect to ${walletStore.fromToken?.chainName ?? "Wallet"}`;
+    }
+    if (errorConnectEvm) {
+      return `Connect to Permit Wallet`;
     }
     if (bridgeStore.errorTips) {
       return bridgeStore.errorTips;
@@ -61,17 +71,17 @@ export default function BridgeButton({
       return "Initialize Solana USDC Account";
     }
     return "Transfer";
-  }, [bridgeStore.errorTips, errorChain, bridgeStore.quoteDataService, bridgeStore.quoteDataMap, errorConnect, bridgeStore.acceptTronEnergy]);
+  }, [bridgeStore.errorTips, errorChain, bridgeStore.quoteDataService, bridgeStore.quoteDataMap, errorConnect, errorConnectEvm, bridgeStore.acceptTronEnergy]);
 
   const buttonDisabled = useMemo(() => {
-    if (errorConnect) {
+    if (errorConnect || errorConnectEvm) {
       return false;
     }
     if (!!bridgeStore.errorTips || loading || !bridgeStore.quoteDataService || bridgeStore.quoteDataMap.size < 1) {
       return true;
     }
     return false;
-  }, [errorConnect, bridgeStore.errorTips, loading, bridgeStore.quoteDataService, bridgeStore.quoteDataMap]);
+  }, [errorConnect, errorConnectEvm, bridgeStore.errorTips, loading, bridgeStore.quoteDataService, bridgeStore.quoteDataMap]);
 
   return (
     <>
@@ -82,6 +92,10 @@ export default function BridgeButton({
         onClick={() => {
           if (errorConnect) {
             wallet?.connect?.();
+            return;
+          }
+          if (errorConnectEvm) {
+            evmWallet?.connect?.();
             return;
           }
 

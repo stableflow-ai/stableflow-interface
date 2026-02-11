@@ -52,7 +52,6 @@ export default class RainbowWallet {
 
   async getBalance(token: any, account: string) {
     try {
-      // Use token's rpcUrls if available, otherwise fall back to current provider
       let provider = this.provider;
       if (token.rpcUrls) {
         const providers = token.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
@@ -64,7 +63,7 @@ export default class RainbowWallet {
         return balance.toString();
       }
 
-      // Use provider instead of signer for read-only operations
+      // Use provider instead of _signer for read-only operations
       const contract = new ethers.Contract(token.contractAddress, erc20Abi, provider);
 
       const balance = await contract.balanceOf(account);
@@ -87,35 +86,33 @@ export default class RainbowWallet {
    * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateTransferGas(data: {
-    originAsset: string;
+    fromToken: any;
     depositAddress: string;
     amount: string;
+    account: string;
   }): Promise<{
     gasLimit: bigint;
     gasPrice: bigint;
     estimateGas: bigint;
   }> {
-    const { originAsset, depositAddress, amount } = data;
-
-    if (!this.signer) {
-      throw new Error("Signer not available");
-    }
-
-    const fromAddress = await this.signer.getAddress();
+    const { fromToken, depositAddress, amount, account } = data;
+    const originAsset = fromToken.contractAddress;
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const provider = new ethers.FallbackProvider(providers);
 
     let gasLimit: bigint;
 
     if (originAsset === "eth") {
       // Estimate gas for ETH transfer
       const tx = {
-        from: fromAddress,
+        from: account,
         to: depositAddress,
         value: ethers.parseEther(amount)
       };
-      gasLimit = await this.provider.estimateGas(tx);
+      gasLimit = await provider.estimateGas(tx);
     } else {
       // Estimate gas for ERC20 token transfer
-      const contract = new ethers.Contract(originAsset, erc20Abi, this.signer);
+      const contract = new ethers.Contract(originAsset, erc20Abi, provider);
       gasLimit = await contract.transfer.estimateGas(depositAddress, amount);
     }
 
@@ -123,7 +120,7 @@ export default class RainbowWallet {
     gasLimit = (gasLimit * 120n) / 100n;
 
     // Get gas price
-    const feeData = await this.provider.getFeeData();
+    const feeData = await provider.getFeeData();
     const gasPrice = feeData.gasPrice || 0n;
 
     // Calculate estimated gas cost: gasLimit * gasPrice
@@ -201,9 +198,9 @@ export default class RainbowWallet {
   }
 
   async getEstimateGas(params: any) {
-    const { gasLimit, price, nativeToken } = params;
+    const { gasLimit, price, nativeToken, provider } = params;
 
-    const feeData = await this.provider.getFeeData();
+    const feeData = await provider.getFeeData();
     const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
 
     const estimateGas = BigInt(gasLimit) * BigInt(gasPrice);
@@ -258,8 +255,11 @@ export default class RainbowWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
 
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const provider = new ethers.FallbackProvider(providers);
+
     const oftContract = new ethers.Contract(originLayerzeroAddress, abi, this.signer);
-    const oftContractRead = new ethers.Contract(originLayerzeroAddress, abi, this.provider);
+    const oftContractRead = new ethers.Contract(originLayerzeroAddress, abi, provider);
 
     // 1. check if need approve
     const approvalRequired = await oftContractRead.approvalRequired();
@@ -345,6 +345,7 @@ export default class RainbowWallet {
     const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
+    // console.log("%cOftData: %o", "background:blue;color:white;", oftData);
 
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     result.estimateSourceGas = msgFee[0];
@@ -372,6 +373,7 @@ export default class RainbowWallet {
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.estimateGasUsd = usd;
       result.estimateSourceGas += wei;
@@ -381,6 +383,7 @@ export default class RainbowWallet {
         gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.estimateGasUsd = usd;
       result.estimateSourceGas += wei;
@@ -536,8 +539,11 @@ export default class RainbowWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
     };
 
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const provider = new ethers.FallbackProvider(providers);
+
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
-    const proxyContractRead = new ethers.Contract(proxyAddress, abi, this.provider);
+    const proxyContractRead = new ethers.Contract(proxyAddress, abi, provider);
 
     let realRecipient = recipient;
     // get ATA address
@@ -611,6 +617,7 @@ export default class RainbowWallet {
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.estimateDepositGasUsd = usd;
       result.estimateSourceGas = wei;
@@ -620,6 +627,7 @@ export default class RainbowWallet {
         gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.estimateDepositGasUsd = usd;
       result.estimateSourceGas = wei;
@@ -651,6 +659,7 @@ export default class RainbowWallet {
           gasLimit,
           price: getPrice(prices, fromToken.nativeToken.symbol),
           nativeToken: fromToken.nativeToken,
+          provider,
         });
         result.fees.estimateApproveGasUsd = usd;
       } catch (error) {
@@ -696,6 +705,9 @@ export default class RainbowWallet {
       console.log("oneclick check allowance failed: %o", error);
     }
 
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const provider = new ethers.FallbackProvider(providers);
+
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
     const proxyParam: any = [
       // tokenAddress
@@ -714,6 +726,7 @@ export default class RainbowWallet {
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
       result.estimateSourceGas = wei;
@@ -723,6 +736,7 @@ export default class RainbowWallet {
         gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
       result.estimateSourceGas = wei;
@@ -858,5 +872,69 @@ export default class RainbowWallet {
     }
 
     return null;
+  }
+
+  async signTypedData(params: any) {
+    const { fromToken, amountWei, spender } = params;
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const provider = new ethers.FallbackProvider(providers);
+
+    const value = amountWei;
+    const tokenAddress = fromToken.contractAddress;
+    const name = fromToken.name;
+    const chainId = fromToken.chainId;
+    const deadline = Math.floor(Date.now() / 1000) + 86400;
+    const account = this.signer.address;
+
+    const erc20 = new ethers.Contract(
+      tokenAddress,
+      [
+        "function name() view returns (string)",
+        "function nonces(address) view returns (uint256)",
+        "function decimals() view returns (uint8)"
+      ],
+      provider
+    );
+    console.log("account: %o", account);
+    const nonce = (await erc20.nonces(account)).toString();
+
+    const domain = {
+      name,
+      version: "2",
+      chainId: Number(chainId),
+      verifyingContract: tokenAddress
+    };
+
+    const types = {
+      Permit: [
+        { name: "owner", type: "address" },
+        { name: "spender", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" }
+      ]
+    };
+
+    const values = {
+      owner: account,
+      spender,
+      value,
+      nonce,
+      deadline
+    };
+
+    const signature = await this.signer?.signTypedData(domain, types, values);
+
+    const { v, r, s } = ethers.Signature.from(signature);
+
+    return {
+      owner: account,
+      value,
+      deadline,
+      v,
+      r,
+      s,
+    };
   }
 }

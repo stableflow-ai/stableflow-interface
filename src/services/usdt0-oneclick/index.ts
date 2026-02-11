@@ -5,12 +5,23 @@ import usdt0Service, { excludeFees as usdt0ExcludeFees } from "../usdt0";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "./config";
+import { ethers } from "ethers";
+import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 
 class Usdt0OneClickService {
   public async quote(params: any) {
     const {
       dry,
+      wallets,
+      fromToken,
     } = params;
+
+    let middleChainWallet = wallets?.evm?.wallet;
+    if (!middleChainWallet) {
+      const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+      const provider = new ethers.FallbackProvider(providers);
+      middleChainWallet = new RainbowWallet(provider, {});
+    }
 
     const usdt0Params = {
       ...params,
@@ -25,7 +36,12 @@ class Usdt0OneClickService {
       swapType: "FLEX_INPUT",
       isProxy: false,
       refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
+      wallet: middleChainWallet,
     });
+
+    if (oneClickResult.errMsg) {
+      return oneClickResult;
+    }
 
     if (!dry) {
       usdt0Params.recipient = oneClickResult.quote.depositAddress;

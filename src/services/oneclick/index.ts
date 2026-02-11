@@ -38,6 +38,7 @@ class OneClickService {
 
     const isFromTron = params.fromToken.chainType === "tron";
     const isFromTronEnergy = isFromTron && params.acceptTronEnergy;
+    const isExactOutput = params.swapType === "EXACT_OUTPUT";
 
     if (res.data) {
       // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
@@ -83,9 +84,10 @@ class OneClickService {
 
         try {
           res.data.transferSourceGasFee = await params.wallet.estimateTransferGas({
-            originAsset: params.fromToken.contractAddress,
+            fromToken: params.fromToken,
             depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
             amount: params.amount,
+            account: params.refundTo,
           });
           const transferSourceGasFeeUsd = Big(res.data.transferSourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
@@ -130,7 +132,7 @@ class OneClickService {
           fromToken: params.fromToken,
           refundTo: params.refundTo,
           recipient: params.recipient,
-          amountWei: params.amount,
+          amountWei: isExactOutput ? res.data?.quote?.amountIn : params.amount,
           prices: params.prices,
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };

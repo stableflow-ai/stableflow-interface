@@ -119,8 +119,8 @@ export default function Result() {
           )
         }
         {
-          bridgeStore.quoteDataService === Service.Usdt0OneClick && (
-            <ResultUsdt0OneClick />
+          ([Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService) && (
+            <ResultUsdt0OneClick service={bridgeStore.quoteDataService} />
           )
         }
       </Suspense>
@@ -141,6 +141,13 @@ export default function Result() {
             <div className="">
               {priceImpact}%
             </div>
+          </div>
+        )
+      }
+      {
+        bridgeStore.quoteDataService === Service.OneClickUsdt0 && quoteData && (
+          <div className="w-full p-[10px] text-[12px] text-[#70788A]">
+            This route requires a payment of <strong>{formatNumber(quoteData?.quote?.amountInFormatted, 6, true)} {quoteData?.quoteParam?.fromToken?.symbol}</strong>, of which <strong>{formatNumber(quoteData?.quote?.amountOutFormatted, 6, true)} {quoteData?.quoteParam?.fromToken?.symbol}</strong> is the amount you will receive.
           </div>
         )
       }
