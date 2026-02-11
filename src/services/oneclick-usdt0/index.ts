@@ -4,9 +4,9 @@ import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick
 import usdt0Service, { excludeFees as usdt0ExcludeFees } from "../usdt0";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
-import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "./config";
+import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "../usdt0-oneclick/config";
 
-class Usdt0OneClickService {
+class OneClickUsdt0Service {
   public async quote(params: any) {
     const {
       dry,
@@ -95,4 +95,4 @@ class Usdt0OneClickService {
   }
 }
 
-export default new Usdt0OneClickService();
+export default new OneClickUsdt0Service();
