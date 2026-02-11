@@ -100,7 +100,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     eid: 30383,
     chainKey: "plasma",
     blockTime: 2, // Plasma average block time ~2 seconds
-    confirmations: 20, // Default confirmations from layerzeroscan.com
+    confirmations: 900, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
@@ -112,6 +112,17 @@ export const USDT0_CONFIG: Record<string, any> = {
     chainKey: "mantle",
     blockTime: 2, // Mantle average block time ~2 seconds
     confirmations: 2000, // Default confirmations from layerzeroscan.com
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
+  },
+  "Unichain": {
+    contractAddress: "0x9151434b16b9763660705744891fA906F660EcC5",
+    oft: "0xc07bE8994D035631c36fb4a89C918CeFB2f03EC3",
+    eid: 30320,
+    chainKey: "unichain",
+    blockTime: 1, // Unichain average block time ~1 seconds
+    confirmations: 450, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,

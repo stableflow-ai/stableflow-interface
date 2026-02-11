@@ -50,6 +50,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "X Layer": ["https://rpc.xlayer.tech"],
   "Plasma": ["https://rpc.plasma.to"],
   "Mantle": ["https://rpc.mantle.xyz"],
+  "Unichain": ["https://mainnet.unichain.org"],
 };
 
 export const getChainRpcUrl = (chainName: string) => {
@@ -295,6 +296,21 @@ const chains = {
       decimals: 18,
     },
     ...getChainRpcUrl("Mantle"),
+  },
+  unichain: {
+    chainName: "Unichain",
+    blockchain: "unichain",
+    chainIcon: "/chains/unichain.png",
+    chainIconGray: "/chains/unichain-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 130,
+    blockExplorerUrl: "https://uniscan.xyz/tx/",
+    primaryColor: "#f50fb4",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Unichain"),
   },
 };
 

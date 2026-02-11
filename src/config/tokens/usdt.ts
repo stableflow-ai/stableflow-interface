@@ -115,6 +115,13 @@ export const usdtChains: Record<string, TokenChain> = {
     ...chains.mantle,
     services: [Service.Usdt0],
   },
+  unichain: {
+    ...usdt,
+    assetId: "",
+    contractAddress: "0x9151434b16b9763660705744891fA906F660EcC5",
+    ...chains.unichain,
+    services: [Service.Usdt0],
+  },
 };
 
 export const usdtSol = {

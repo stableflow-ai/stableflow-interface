@@ -12,6 +12,7 @@ import {
   xLayer,
   plasma,
   mantle,
+  unichain,
 } from "wagmi/chains";
 import {
   WagmiProvider,
@@ -63,6 +64,7 @@ const RpcUrls: any = {
   [xLayer.id]: fallback(getChainRpcUrl("X Layer").rpcUrls.map((rpc) => http(rpc))),
   [plasma.id]: fallback(getChainRpcUrl("Plasma").rpcUrls.map((rpc) => http(rpc))),
   [mantle.id]: fallback(getChainRpcUrl("Mantle").rpcUrls.map((rpc) => http(rpc))),
+  [unichain.id]: fallback(getChainRpcUrl("Unichain").rpcUrls.map((rpc) => http(rpc))),
 };
 
 const config = getDefaultConfig({
@@ -84,6 +86,7 @@ const config = getDefaultConfig({
     xLayer,
     plasma,
     mantle,
+    unichain,
   ],
   transports: {
     [mainnet.id]: RpcUrls[mainnet.id] || http(),
