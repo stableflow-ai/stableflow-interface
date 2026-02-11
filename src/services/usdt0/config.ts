@@ -88,8 +88,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     oft: "0x94bcca6bdfd6a61817ab0e960bfede4984505554",
     eid: 30274,
     chainKey: "xlayer",
-    blockTime: 3, // Tron average block time ~3 seconds
-    confirmations: 20, // Default confirmations from layerzeroscan.com
+    blockTime: 2, // X Layer average block time ~2 seconds
+    confirmations: 2000, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
@@ -99,7 +99,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     oft: "0x02ca37966753bDdDf11216B73B16C1dE756A7CF9",
     eid: 30383,
     chainKey: "plasma",
-    blockTime: 3, // Tron average block time ~3 seconds
+    blockTime: 2, // Plasma average block time ~2 seconds
     confirmations: 20, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
@@ -110,8 +110,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     oft: "0xcb768e263FB1C62214E7cab4AA8d036D76dc59CC",
     eid: 30181,
     chainKey: "mantle",
-    blockTime: 3, // Tron average block time ~3 seconds
-    confirmations: 20, // Default confirmations from layerzeroscan.com
+    blockTime: 2, // Mantle average block time ~2 seconds
+    confirmations: 2000, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
