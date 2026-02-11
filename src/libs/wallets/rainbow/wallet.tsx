@@ -11,7 +11,7 @@ import { SendType } from "../types";
 import { Service } from "@/services/constants";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
-import { usdtChains } from "@/config/tokens/usdt";
+import { allUsdtChains } from "@/config/tokens";
 import { buildEndpointV2LzComposePayload } from "../utils/layerzero";
 import { OFT_ABI } from "@/services/usdt0/contract";
 
@@ -791,7 +791,7 @@ export default class RainbowWallet {
     // lzCompose(address _from,address _to,bytes32 _guid,uint16 _index,bytes _message,bytes _extraData)
     const LayerZeroEndpointV2Contract = new ethers.Contract(LayerZeroEndpointV2, LayerZeroEndpointV2ABI, this.signer);
 
-    const toToken: any = usdtChains[history.destination_chain.blockchain as keyof typeof usdtChains];
+    const toToken: any = allUsdtChains[history.destination_chain.blockchain as keyof typeof allUsdtChains];
     const amountWei = Big(history.token_in_amount).times(10 ** (toToken.decimals || 6)).toFixed(0);
 
     const originLayerzero = USDT0_CONFIG["Arbitrum"];

@@ -1,13 +1,13 @@
-import axios from "axios";
 import { SendType } from "@/libs/wallets/types";
-import { usdtChains } from "@/config/tokens/usdt";
+import { allUsdtChains } from "@/config/tokens";
 
 import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick";
 import usdt0Service, { excludeFees as usdt0ExcludeFees } from "../usdt0";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
+import { MIDDLE_CHAIN_REFOUND_ADDRESS } from "./config";
 
-export const MIDDLE_TOKEN_CHAIN = usdtChains["arb"];
+export const MIDDLE_TOKEN_CHAIN = allUsdtChains["arb"];
 
 class Usdt0OneClickService {
   public async quote(params: any) {
@@ -27,6 +27,7 @@ class Usdt0OneClickService {
       originAsset: MIDDLE_TOKEN_CHAIN.assetId,
       swapType: "FLEX_INPUT",
       isProxy: false,
+      refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
     });
 
     if (!dry) {
