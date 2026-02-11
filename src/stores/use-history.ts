@@ -31,7 +31,7 @@ export const useHistoryStore = create(
         _history[item.depositAddress] = item;
         set({
           history: _history,
-          latestHistories: [item.type === Service.Usdt0OneClick ? item.txHash : item.depositAddress],
+          latestHistories: [item.depositAddress],
         });
       },
       updateStatus: (address: string, status: any) => {
