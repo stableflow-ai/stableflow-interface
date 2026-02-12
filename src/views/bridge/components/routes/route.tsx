@@ -53,7 +53,7 @@ const QuoteRoute = (props: any) => {
           />
           <div className="">
             {
-              (service === Service.OneClick && isFromTron) ? (
+              ([Service.OneClick, Service.OneClickUsdt0].includes(service) && isFromTron) ? (
                 bridgeStore.acceptTronEnergy ?
                   formatNumber(data.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
                   formatNumber(data.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
