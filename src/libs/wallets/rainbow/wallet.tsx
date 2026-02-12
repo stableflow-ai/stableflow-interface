@@ -360,21 +360,7 @@ export default class RainbowWallet {
     result.estimateSourceGas = msgFee[0];
     _log("[quoteOFT] msgFee: %o", msgFee);
 
-    result.sendParam = {
-      contract: oftContract,
-      method: "send",
-      param: [
-        sendParam,
-        {
-          nativeFee: msgFee[0],
-          lzTokenFee: msgFee[1],
-        },
-        refundTo,
-        { value: msgFee[0] }
-      ],
-    };
-
-    _log("[quoteOFT] result.sendParam: %o", result.sendParam);
+    // console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
 
     // 3. estimate gas
     const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
@@ -388,8 +374,10 @@ export default class RainbowWallet {
       result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
     }
 
+    let sendWithFeeGasLimit = 4000000n;
     try {
       const gasLimit = await oftContract.send.estimateGas(...result.sendParam.param);
+      sendWithFeeGasLimit = gasLimit * 120n / 100n;
       const { usd, wei } = await this.getEstimateGas({
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
@@ -411,6 +399,20 @@ export default class RainbowWallet {
       result.estimateSourceGasUsd = usd;
     }
 
+    result.sendParam = {
+      contract: oftContract,
+      method: "send",
+      param: [
+        sendParam,
+        {
+          nativeFee: msgFee[0],
+          lzTokenFee: msgFee[1],
+        },
+        refundTo,
+        { value: msgFee[0], gasLimit: sendWithFeeGasLimit }
+      ],
+    };
+
     // calculate total fees
     for (const feeKey in result.fees) {
       if (excludeFees.includes(feeKey)) {
@@ -430,7 +432,37 @@ export default class RainbowWallet {
       param,
     } = params;
 
-    const tx = await contract[method](...param);
+    // Add gas fee buffer to prevent "max fee per gas less than block base fee" error.
+    // Between quote and send, the baseFee may increase, causing the estimated
+    // maxFeePerGas to be lower than the current baseFee.
+    const overridesIndex = param.length - 1;
+    const overrides = param[overridesIndex] && typeof param[overridesIndex] === "object" && !Array.isArray(param[overridesIndex])
+      ? { ...param[overridesIndex] }
+      : {};
+
+    if (!overrides.maxFeePerGas) {
+      try {
+        const feeData = await this.provider.getFeeData();
+        if (feeData.maxFeePerGas) {
+          // Add 20% buffer to maxFeePerGas to account for baseFee fluctuations
+          overrides.maxFeePerGas = (feeData.maxFeePerGas * 120n) / 100n;
+        }
+        if (feeData.maxPriorityFeePerGas && !overrides.maxPriorityFeePerGas) {
+          overrides.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
+        }
+      } catch (error) {
+        console.log("Failed to get fee data for gas buffer: %o", error);
+      }
+    }
+
+    const finalParam = [...param];
+    if (param[overridesIndex] && typeof param[overridesIndex] === "object" && !Array.isArray(param[overridesIndex])) {
+      finalParam[overridesIndex] = overrides;
+    } else {
+      finalParam.push(overrides);
+    }
+
+    const tx = await contract[method](...finalParam);
 
     return tx.hash;
 
@@ -589,7 +621,7 @@ export default class RainbowWallet {
     let depositWithFeeGasLimit = 4000000n;
     try {
       const gasLimit = await proxyContract.depositWithFee.estimateGas(...depositParam);
-      depositWithFeeGasLimit = gasLimit;
+      depositWithFeeGasLimit = gasLimit * 120n / 100n;
       const { usd, wei } = await this.getEstimateGas({
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
@@ -698,7 +730,7 @@ export default class RainbowWallet {
     let proxyTransferGasLimit = 4000000n;
     try {
       const gasLimit = await proxyContract.proxyTransfer.estimateGas(...proxyParam);
-      proxyTransferGasLimit = gasLimit;
+      proxyTransferGasLimit = gasLimit * 120n / 100n;
       const { usd, wei } = await this.getEstimateGas({
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
