@@ -6,7 +6,7 @@ import {
 } from "@/utils/address-validation";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import Big from "big.js";
-import { useDebounceFn, useRequest } from "ahooks";
+import { useDebounceFn } from "ahooks";
 import { useHistoryStore } from "@/stores/use-history";
 import { useConfigStore } from "@/stores/use-config";
 import useWalletStore from "@/stores/use-wallet";
@@ -77,7 +77,7 @@ export default function useBridge(props?: any) {
   // Amount state
   const [amountError, setAmountError] = useState<string>("");
 
-  const { runAsync: onReportError } = useRequest(async (reportData: any) => {
+  const onReportError = async (reportData: any) => {
     const params = {
       address: fromWalletAddress,
       api: "oneclick/quote",
@@ -99,7 +99,7 @@ export default function useBridge(props?: any) {
     } catch (error) {
       console.log("Report error failed: %o", error);
     }
-  }, { manual: true });
+  };
 
   const quoteRoutes = async (service: Service, params: any, requestId?: number): Promise<QuoteData> => {
     try {
@@ -383,7 +383,7 @@ export default function useBridge(props?: any) {
     }
   };
 
-  const { runAsync: report } = useRequest(async (params: any) => {
+  const report = async (params: any) => {
     try {
       await axios.post(`${BASE_API_URL}/v1/trade/add`, {
         type: 0,
@@ -393,9 +393,7 @@ export default function useBridge(props?: any) {
     } catch (error) {
       console.log("Report failed: %o", error);
     }
-  }, {
-    manual: true,
-  });
+  };
 
   const estimateNativeTokenBalance = async (params?: { estimateGas?: number | string; }) => {
     const result = { isContinue: true };
@@ -443,6 +441,7 @@ export default function useBridge(props?: any) {
 
       const isFromTron = walletStore.fromToken.chainType === "tron";
       const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
+      const isOneClickService = ([Service.OneClickUsdt0, Service.OneClick] as Service[]).includes(bridgeStore.quoteDataService);
 
       // approve
       if (_quote?.data?.needApprove && !isFromTronEnergy) {
@@ -505,8 +504,35 @@ export default function useBridge(props?: any) {
         return;
       }
 
+      const reportData: any = {
+        project: ServiceBackend[bridgeStore.quoteDataService],
+        address: wallet.account,
+        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountIn : bridgeStore.amount,
+        out_amount: _quote.data.outputAmount,
+        deposit_address: isOneClickService ? _quote.data.quote.depositAddress : "",
+        receive_address: _quote.data.quoteParam.recipient,
+        from_chain: walletStore.fromToken.blockchain,
+        symbol: walletStore.fromToken.symbol,
+        to_chain: walletStore.toToken.blockchain,
+        to_symbol: walletStore.toToken.symbol,
+        tx_hash: "",
+      };
+      const localHistoryData: any = {
+        type: bridgeStore.quoteDataService,
+        depositAddress: isOneClickService ? _quote.data.quote.depositAddress : "",
+        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountIn : bridgeStore.amount,
+        fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        fromAddress: wallet.account,
+        toAddress: _quote.data.quoteParam.recipient,
+        time: Date.now(),
+        txHash: "",
+        toChainTxHash: "",
+        timeEstimate: _quote.data.estimateTime,
+      };
+
       // 1click transfer
-      if (bridgeStore.quoteDataService === Service.OneClick) {
+      if (([Service.OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService)) {
         const estNativeTokenParams: any = {};
         const fromTronParams = {
           wallet: wallet.wallet,
@@ -530,35 +556,33 @@ export default function useBridge(props?: any) {
           return;
         }
 
+        // oneclick-usdt0 permit signature
+        if (bridgeStore.quoteDataService === Service.OneClickUsdt0) {
+          const permitToken = MIDDLE_TOKEN_CHAIN;
+          // First, switch to the Arbitrum chain to perform the permit signature
+          const evmWallet = wallets.evm.wallet;
+          if (!evmWallet) {
+            throw new Error("Permit wallet not connected");
+          }
+          await switchChainAsync({ chainId: permitToken.chainId! });
+          const signature = await evmWallet?.signTypedData({
+            fromToken: permitToken,
+            amountWei: _quote?.data?.quote?.amountOut,
+            spender: MIDDLE_CHAIN_LAYERZERO_EXECUTOR,
+          });
+          // After signing, need to switch back to the source chain
+          if (walletStore.fromToken.chainType === "evm") {
+            await switchChainAsync({ chainId: walletStore.fromToken.chainId! });
+          }
+          console.log("permit signature: %o", signature);
+          reportData.permit = signature;
+          reportData.sendParam = _quote?.data?.usdt0SendParam;
+          reportData.fee = _quote?.data?.usdt0MessageFee;
+        }
+
         if (!_quote?.data?.quote?.depositAddress) {
           throw new Error("Failed to get quote");
         }
-
-        const localHistoryData = {
-          type: Service.OneClick,
-          depositAddress: _quote.data.quote.depositAddress,
-          amount: bridgeStore.amount,
-          fromToken: walletStore.fromToken,
-          toToken: walletStore.toToken,
-          fromAddress: wallet.account,
-          toAddress: _quote.data.quoteRequest.recipient,
-          time: Date.now(),
-          txHash: "",
-          timeEstimate: _quote.data.quote.timeEstimate,
-        };
-        const reportData = {
-          project: ServiceBackend[Service.OneClick],
-          address: wallet.account,
-          amount: bridgeStore.amount,
-          out_amount: _quote.data.outputAmount,
-          deposit_address: _quote.data.quote.depositAddress,
-          receive_address: _quote.data.quoteRequest.recipient,
-          from_chain: walletStore.fromToken.blockchain,
-          symbol: walletStore.fromToken.symbol,
-          to_chain: walletStore.toToken.blockchain,
-          to_symbol: walletStore.toToken.symbol,
-          tx_hash: "",
-        };
 
         if (isFromTron && bridgeStore.acceptTronEnergy) {
           bridgeStore.setTronTransferVisible(true, { quoteData: _quote });
@@ -581,7 +605,7 @@ export default function useBridge(props?: any) {
           // proxyTransfer.recipient = depositAddress
           _quote.data.sendParam.param[1] = _quote.data.quote.depositAddress;
         }
-        const hash = await ServiceMap[Service.OneClick].send({
+        const hash = await ServiceMap[bridgeStore.quoteDataService].send({
           sendParam: _quote?.data?.sendParam,
           wallet: wallet.wallet,
           fromToken: walletStore.fromToken,
@@ -621,91 +645,35 @@ export default function useBridge(props?: any) {
           bridgeStore.setTronTransferVisible(false);
         }
       }
-
       // others transfer
-      const { isContinue } = await estimateNativeTokenBalance();
-      if (!isContinue) {
-        bridgeStore.set({ transferring: false });
-        toast.fail({
-          title: "Transfer failed",
-          text: "Insufficient native token balance"
-        });
-        return;
-      }
+      else {
+        const { isContinue } = await estimateNativeTokenBalance();
+        if (!isContinue) {
+          bridgeStore.set({ transferring: false });
+          toast.fail({
+            title: "Transfer failed",
+            text: "Insufficient native token balance"
+          });
+          return;
+        }
 
-      const reportData: any = {
-        project: ServiceBackend[bridgeStore.quoteDataService],
-        address: wallet.account,
-        amount: bridgeStore.amount,
-        out_amount: _quote.data.outputAmount,
-        receive_address: _quote.data.quoteParam.recipient,
-        from_chain: walletStore.fromToken.blockchain,
-        symbol: walletStore.fromToken.symbol,
-        to_chain: walletStore.toToken.blockchain,
-        to_symbol: walletStore.toToken.symbol,
-      };
-      let sendParams: any = {
-        ..._quote?.data?.sendParam,
-        wallet: wallet.wallet,
-      };
-
-      // oneclick-usdt0 transfer
-      if (bridgeStore.quoteDataService === Service.OneClickUsdt0) {
-        const permitToken = MIDDLE_TOKEN_CHAIN;
-        // First, switch to the Arbitrum chain to perform the permit signature
-        const evmWallet = wallets.evm.wallet;
-        if (!evmWallet) {
-          throw new Error("Permit wallet not connected");
-        }
-        await switchChainAsync({ chainId: permitToken.chainId! });
-        const signature = await evmWallet?.signTypedData({
-          fromToken: permitToken,
-          amountWei: _quote?.data?.quote?.amountOut,
-          spender: MIDDLE_CHAIN_LAYERZERO_EXECUTOR,
-        });
-        // After signing, need to switch back to the source chain
-        if (walletStore.fromToken.chainType === "evm") {
-          await switchChainAsync({ chainId: walletStore.fromToken.chainId! });
-        }
-        console.log("permit signature: %o", signature);
-        reportData.permit = signature;
-        reportData.sendParam = _quote?.data?.usdt0SendParam;
-        reportData.fee = _quote?.data?.usdt0MessageFee;
-        if (_quote?.data?.sendParam?.param) {
-          // proxyTransfer.recipient = depositAddress
-          _quote.data.sendParam.param[1] = _quote.data.quote.depositAddress;
-        }
-        sendParams = {
-          sendParam: _quote?.data?.sendParam,
+        const sendParams: any = {
+          ..._quote?.data?.sendParam,
           wallet: wallet.wallet,
-          fromToken: walletStore.fromToken,
-          depositAddress: _quote.data.quote.depositAddress,
-          amountWei: _amount,
         };
+        const hash = await ServiceMap[bridgeStore.quoteDataService].send(sendParams);
+        let _depositAddress = hash;
+        if (([Service.Usdt0OneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
+          _depositAddress = _quote?.data?.quoteParam?.depositAddress;
+        }
+        localHistoryData.txHash = hash;
+        localHistoryData.toChainTxHash = hash;
+        historyStore.addHistory(localHistoryData);
+        historyStore.updateStatus(hash, "PENDING_DEPOSIT");
+        reportData.deposit_address = _depositAddress;
+        reportData.tx_hash = hash;
+        report(reportData);
       }
-
-      const hash = await ServiceMap[bridgeStore.quoteDataService].send(sendParams);
-      let _depositAddress = hash;
-      if (([Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService)) {
-        _depositAddress = _quote?.data?.quoteParam?.depositAddress;
-      }
-      historyStore.addHistory({
-        type: bridgeStore.quoteDataService,
-        depositAddress: _depositAddress,
-        amount: bridgeStore.amount,
-        fromToken: walletStore.fromToken,
-        toToken: walletStore.toToken,
-        fromAddress: wallet.account,
-        toAddress: _quote.data.quoteParam.recipient,
-        time: Date.now(),
-        txHash: hash,
-        toChainTxHash: hash,
-        timeEstimate: _quote.data.estimateTime,
-      });
-      historyStore.updateStatus(hash, "PENDING_DEPOSIT");
-      reportData.deposit_address = _depositAddress;
-      reportData.tx_hash = hash;
-      report(reportData);
 
       bridgeStore.set({ transferring: false });
       getBalance();

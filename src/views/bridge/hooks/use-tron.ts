@@ -1,6 +1,5 @@
 import useBridgeStore from "@/stores/use-bridge";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRequest } from "ahooks";
 import { EnergyAmounts, energyPeriod, TRON_RENTAL_FEE, TRON_RENTAL_RECEIVING_ADDRESS, TronBandwidthTransderTRX, TronBandwidthTransferToken, TronTransferStepStatus } from "@/config/tron";
 import axios from "axios";
 import Big from "big.js";
@@ -17,14 +16,14 @@ export function useTronEnergy(props?: any) {
 
   const { tronTransferQuoteData, setTronTransferStep } = bridgeStore;
 
-  const { runAsync: getEstimateNeedsEnergy } = useRequest(async (params: { wallet: any; account: string; }) => {
+  const getEstimateNeedsEnergy = async (params: { wallet: any; account: string; }) => {
     const accountResources = await params.wallet.getAccountResources({ account: params.account });
     let accountTRXBalance: any;
 
     try {
       accountTRXBalance = await params.wallet.getBalance({ symbol: "TRX" }, params.account);
       accountTRXBalance = numberRemoveEndZero(Big(accountTRXBalance || 0).div(10 ** 6).toFixed(6));
-    } catch (error) {}
+    } catch (error) { }
 
     if (!accountResources.success) {
       console.warn("Failed to get account resources:", accountResources.error);
@@ -43,7 +42,7 @@ export function useTronEnergy(props?: any) {
     if (needsEnergy) {
       estimatedBandwidth = TronBandwidthTransderTRX + TronBandwidthTransferToken;
     }
-    
+
     let needsBandwidthAmount = 0;
     if (availableBandwidth < TronBandwidthTransderTRX) {
       needsBandwidthAmount = TronBandwidthTransderTRX + (needsEnergy ? TronBandwidthTransferToken : 0);
@@ -67,9 +66,7 @@ export function useTronEnergy(props?: any) {
       needsBandwidthAmount,
       needsBandwidthTRX: numberRemoveEndZero(Big(needsBandwidthAmount).times(10 ** 3).div(10 ** 6).toFixed(6)),
     };
-  }, {
-    manual: true,
-  });
+  }
 
   const checkTransactionTimer = useRef<NodeJS.Timeout | null>(null);
   const checkTransactionStatusFromScan = useCallback(
@@ -224,7 +221,7 @@ export function useTronEnergy(props?: any) {
     });
   };
 
-  const { runAsync: getEnergy } = useRequest(async (params: { wallet: any; account: string; }, options?: { report?: any; }) => {
+  const getEnergy = async (params: { wallet: any; account: string; }, options?: { report?: any; }) => {
     const { report } = options ?? {};
 
     const rentalFee = TRON_RENTAL_FEE.Normal;
@@ -295,12 +292,10 @@ export function useTronEnergy(props?: any) {
 
     // 5. Energy rental successful
     setTronTransferStep(TronTransferStepStatus.EnergyReady);
-  }, {
-    manual: true,
-  });
+  };
 
   // Get the actual amount of TRX required to rent energy
-  const { runAsync: getEnergyPrice } = useRequest(async (params?: { energyPeriod?: EnergyPeriod; energyAmount?: EnergyAmount; }) => {
+  const getEnergyPrice = async (params?: { energyPeriod?: EnergyPeriod; energyAmount?: EnergyAmount; }) => {
     const response = await energyService.getPrice({
       period: params?.energyPeriod ?? energyPeriod,
       energyAmount: params?.energyAmount ?? BigInt(EnergyAmounts.New) as EnergyAmount,
@@ -320,9 +315,7 @@ export function useTronEnergy(props?: any) {
       sun: total_price + "",
       usd: numberRemoveEndZero(Big(totalPriceUsd).toFixed(20)),
     };
-  }, {
-    manual: true,
-  });
+  };
 
   useEffect(() => {
     return () => {

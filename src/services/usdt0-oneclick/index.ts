@@ -75,6 +75,7 @@ class Usdt0OneClickService {
       totalFeesUsd: numberRemoveEndZero(Big(totalFeesUsd).toFixed(20)),
       estimateTime: usdt0Result.estimateTime + oneClickResult.estimateTime,
       outputAmount: oneClickResult.outputAmount,
+      priceImpact: oneClickResult.priceImpact,
       quoteParam: {
         ...usdt0Result.quoteParam,
         toToken: params.toToken,
