@@ -2,6 +2,7 @@
 // blockTime: Average block time in seconds, fetched from https://chainspect.app/
 // chainKey: LayerZero chain identifier for querying default configurations
 // confirmations: Default block confirmations for source chain, fetched from https://layerzeroscan.com/tools/defaults (Send Confirmations)
+// For more accurate confirmation counts, visit https://layerzeroscan.com/application/usdt0, filter by the desired source chain, and check the "confirmations" value at the bottom of the page.
 // DVN count: USDT0 uses 2 DVNs (fixed value)
 export const USDT0_CONFIG: Record<string, any> = {
   Ethereum: {
@@ -88,8 +89,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     oft: "0x94bcca6bdfd6a61817ab0e960bfede4984505554",
     eid: 30274,
     chainKey: "xlayer",
-    blockTime: 2, // X Layer average block time ~2 seconds
-    confirmations: 2000, // Default confirmations from layerzeroscan.com
+    blockTime: 0.5, // X Layer average block time ~2 seconds
+    confirmations: 9000, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
@@ -99,8 +100,8 @@ export const USDT0_CONFIG: Record<string, any> = {
     oft: "0x02ca37966753bDdDf11216B73B16C1dE756A7CF9",
     eid: 30383,
     chainKey: "plasma",
-    blockTime: 2, // Plasma average block time ~2 seconds
-    confirmations: 900, // Default confirmations from layerzeroscan.com
+    blockTime: 1, // Plasma average block time ~2 seconds
+    confirmations: 1800, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
@@ -116,13 +117,68 @@ export const USDT0_CONFIG: Record<string, any> = {
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
   },
-  "Unichain": {
+  "MegaETH": {
+    contractAddress: "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
+    oft: "0x9151434b16b9763660705744891fa906f660ecc5",
+    eid: 30398,
+    chainKey: "megaeth",
+    blockTime: 1,
+    confirmations: 5400,
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
+  },
+  "Ink": {
+    contractAddress: "0x0200C29006150606B650577BBE7B6248F58470c1",
+    oft: "0x1cB6De532588fCA4a21B7209DE7C456AF8434A65",
+    eid: 30339,
+    chainKey: "ink",
+    blockTime: 1,
+    confirmations: 450,
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
+  },
+  "Stable": {
+    contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    oft: "0xedaba024be4d87974d5aB11C6Dd586963CcCB027",
+    eid: 30396,
+    chainKey: "stable",
+    blockTime: 0.7,
+    confirmations: 3600,
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
+  },
+  "Celo": {
+    contractAddress: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
+    oft: "0xf10E161027410128E63E75D0200Fb6d34b2db243",
+    eid: 30125,
+    chainKey: "celo",
+    blockTime: 1,
+    confirmations: 10,
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
+  },
+  "Sei": {
     contractAddress: "0x9151434b16b9763660705744891fA906F660EcC5",
-    oft: "0xc07bE8994D035631c36fb4a89C918CeFB2f03EC3",
-    eid: 30320,
-    chainKey: "unichain",
-    blockTime: 1, // Unichain average block time ~1 seconds
-    confirmations: 450, // Default confirmations from layerzeroscan.com
+    oft: "0x56Fe74A2e3b484b921c447357203431a3485CC60",
+    eid: 30280,
+    chainKey: "sei",
+    blockTime: 2,
+    confirmations: 2000,
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
+  },
+  "Flare": {
+    contractAddress: "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
+    oft: "0x567287d2A9829215a37e3B88843d32f9221E7588",
+    eid: 30295,
+    chainKey: "flare",
+    blockTime: 1.8,
+    confirmations: 500,
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,

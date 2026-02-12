@@ -925,7 +925,9 @@ export default function useBridge(props?: any) {
     }
 
     if (!validQuoteList.length) {
-      bridgeStore.set({ quoteDataService: allQuoteList[0][0], showFee: false });
+      if (allQuoteList?.[0]?.[0]) {
+        bridgeStore.set({ quoteDataService: allQuoteList[0][0], showFee: false });
+      }
       setAutoSelect(false);
       return;
     }
