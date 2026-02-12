@@ -311,34 +311,59 @@ export default function useBridge(props?: any) {
     // First, check if fromToken supports Usdt0 and toToken supports OneClick
     // If both conditions are met, find an intermediate chain that supports both Usdt0 and OneClick
     // This intermediate chain is fixed as USDT Arbitrum
+
+    const isFromUsdt = ["USDT", "USD₮0"].includes(walletStore.fromToken.symbol);
+    const isToUsdt = ["USDT", "USD₮0"].includes(walletStore.toToken.symbol);
+
+    // If fromToken is usdt0 and toToken is usdc, Usdt0OneClick mode can be used
     if (
       walletStore.fromToken.services.includes(Service.Usdt0)
       && walletStore.toToken.services.includes(Service.OneClick)
       && walletStore.fromToken.chainName !== "Arbitrum"
-      && walletStore.toToken.chainName !== "Arbitrum"
     ) {
-      quoteServices.push({
-        service: Service.Usdt0OneClick,
-        quote: (_requestId?: number) => {
-          return quoteRoutes(Service.Usdt0OneClick, quoteParams, _requestId);
+      if (isFromUsdt && isToUsdt) {
+        if (walletStore.toToken.chainName !== "Arbitrum") {
+          quoteServices.push({
+            service: Service.Usdt0OneClick,
+            quote: (_requestId?: number) => {
+              return quoteRoutes(Service.Usdt0OneClick, quoteParams, _requestId);
+            }
+          });
         }
-      });
+      } else {
+        quoteServices.push({
+          service: Service.Usdt0OneClick,
+          quote: (_requestId?: number) => {
+            return quoteRoutes(Service.Usdt0OneClick, quoteParams, _requestId);
+          }
+        });
+      }
     }
 
     // OneClickUsdt0 mode
     if (
       walletStore.fromToken.services.includes(Service.OneClick)
       && walletStore.toToken.services.includes(Service.Usdt0)
-      && walletStore.fromToken.chainName !== "Arbitrum"
       && walletStore.toToken.chainName !== "Arbitrum"
     ) {
       // ⚠️ Backend service not ready yet, temporarily commented out to avoid being discovered by tests
-      // quoteServices.push({
-      //   service: Service.OneClickUsdt0,
-      //   quote: (_requestId?: number) => {
-      //     return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
+      // if (isFromUsdt && isToUsdt) {
+      //   if (walletStore.fromToken.chainName !== "Arbitrum") {
+      //     quoteServices.push({
+      //       service: Service.OneClickUsdt0,
+      //       quote: (_requestId?: number) => {
+      //         return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
+      //       }
+      //     });
       //   }
-      // });
+      // } else {
+      //   quoteServices.push({
+      //     service: Service.OneClickUsdt0,
+      //     quote: (_requestId?: number) => {
+      //       return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
+      //     }
+      //   });
+      // }
     }
 
     // Use request ID to ensure only the latest request results are processed
