@@ -110,10 +110,16 @@ export default function Token({
                       <span className="text-[14px] text-[#444C59]">
                         {chain.chainName}
                       </span>
-                      {(walletStore.fromToken?.contractAddress ===
-                        chain.contractAddress ||
-                        walletStore.toToken?.contractAddress ===
-                        chain.contractAddress) && (
+                      {(
+                        (
+                          walletStore.fromToken?.contractAddress === chain.contractAddress
+                          && walletStore.fromToken?.chainName === chain.chainName
+                        )
+                        || (
+                          walletStore.toToken?.contractAddress === chain.contractAddress
+                          && walletStore.toToken?.chainName === chain.chainName
+                        )
+                      ) && (
                           <CheckIcon circleColor={"#fff"} />
                         )}
                     </div>

@@ -28,7 +28,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 
-const TRANSFER_MIN_AMOUNT = 0.01;
+const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 0.01;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
 
 export default function useBridge(props?: any) {
