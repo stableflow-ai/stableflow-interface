@@ -202,7 +202,7 @@ export default function useBridge(props?: any) {
       }
 
       const defaultErrorMessage = "Failed to get quote, please try again later";
-      let _finalErrorMessage = error?.message || defaultErrorMessage;
+      let _finalErrorMessage = error?.response?.data?.message || error?.message || defaultErrorMessage;
       if (service === Service.OneClick) {
         const getQuoteErrorMessage = (): { message: string; sourceMessage: string; } => {
           const _messageResult = {
@@ -833,6 +833,10 @@ export default function useBridge(props?: any) {
       if (!bridgeStore.amount) {
         return "Please enter amount";
       }
+      // const validQuote = Array.from(bridgeStore.quoteDataMap.values()).filter((quote) => !quote.errMsg);
+      // if (!Array.from(bridgeStore.quotingMap.values()).some(Boolean) && validQuote.length <= 0) {
+      //   return "No routes found";
+      // }
       if (bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg) {
         return bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg;
       }
@@ -902,6 +906,7 @@ export default function useBridge(props?: any) {
     bridgeStore.quoteDataMap,
     bridgeStore.quoteDataService,
     bridgeStore.acceptPriceImpact,
+    bridgeStore.quotingMap,
     fromWalletAddress,
     toWalletAddress,
     wallets.evm?.chainId,
@@ -911,26 +916,29 @@ export default function useBridge(props?: any) {
   ]);
 
   useEffect(() => {
-    const quoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
+    const allQuoteList = Array.from(bridgeStore.quoteDataMap.entries());
+    const validQuoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
     const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
 
     if (bridgeStore.transferring || isQuoting || !isAutoSelect) {
       return;
     }
 
-    if (!quoteList.length) {
+    if (!validQuoteList.length) {
+      bridgeStore.set({ quoteDataService: allQuoteList[0][0], showFee: false });
+      setAutoSelect(false);
       return;
     }
 
     // Auto-select the best quote as soon as any quote is available
     // This allows immediate selection when first request completes, and updates when better quotes arrive
-    if (quoteList.length === 1) {
-      bridgeStore.set({ quoteDataService: quoteList[0][0], showFee: true });
+    if (validQuoteList.length === 1) {
+      bridgeStore.set({ quoteDataService: validQuoteList[0][0], showFee: true });
       setAutoSelect(false);
       return;
     }
     // sort and select the best one
-    const sortedQuoteData = quoteList.sort((a: any, b: any) => {
+    const sortedQuoteData = validQuoteList.sort((a: any, b: any) => {
       const [_serviceA, dataA] = a;
       const [_serviceB, dataB] = b;
 

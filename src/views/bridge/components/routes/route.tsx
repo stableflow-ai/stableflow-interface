@@ -70,7 +70,7 @@ const QuoteRoute = (props: any) => {
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />
           <div className="">
-            ~{formatDuration(data.estimateTime)}
+            ~{formatDuration(data.estimateTime, { precision: 0 })}
           </div>
         </div>
         <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
