@@ -55,7 +55,7 @@ const QuoteRoutes = (props: any) => {
           />
         )) : (
           <div className="text-center text-[12px]">
-            {isQuoting ? "Quoting..." : ""}
+            {isQuoting ? "Quoting..." : "No routes found"}
           </div>
         )
       }
