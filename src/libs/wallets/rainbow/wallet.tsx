@@ -941,6 +941,7 @@ export default class RainbowWallet {
       owner: account,
       value,
       deadline,
+      nonce,
       v,
       r,
       s,
