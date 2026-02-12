@@ -17,6 +17,11 @@ import { OFT_ABI } from "@/services/usdt0/contract";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
+const _log = (str: string, ...params: any) => {
+  if (import.meta.env.VITE_BASE_API_URL === "https://api.stableflow.ai") return;
+  console.log(`%c[EVM]${str}`, "background:#0D1A63;color:#fff;", ...params);
+};
+
 export default class RainbowWallet {
   provider: any;
   signer: any;
@@ -71,7 +76,7 @@ export default class RainbowWallet {
 
       return balance.toString();
     } catch (err) {
-      console.log("Error getting token balance: %o", err);
+      console.error("Error getting token balance: %o", err);
       return "0";
     }
   }
@@ -191,7 +196,7 @@ export default class RainbowWallet {
       }
       return false;
     } catch (error) {
-      console.log("Error approve: %o", error)
+      console.error("Error approve: %o", error)
     }
 
     return false;
@@ -261,9 +266,11 @@ export default class RainbowWallet {
     const oftContract = new ethers.Contract(originLayerzeroAddress, abi, this.signer);
     const oftContractRead = new ethers.Contract(originLayerzeroAddress, abi, provider);
 
+    _log("[quoteOFT] params: %o", params);
+
     // 1. check if need approve
     const approvalRequired = await oftContractRead.approvalRequired();
-    // console.log("%cApprovalRequired: %o", "background:blue;color:white;", approvalRequired);
+    _log("[quoteOFT] approvalRequired: %o", approvalRequired);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -342,14 +349,16 @@ export default class RainbowWallet {
       );
     }
 
+    _log("[quoteOFT] sendParam: %o", sendParam);
+
     const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
-    // console.log("%cOftData: %o", "background:blue;color:white;", oftData);
+    _log("[quoteOFT] oftData: %o", oftData);
 
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     result.estimateSourceGas = msgFee[0];
-    // console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+    _log("[quoteOFT] msgFee: %o", msgFee);
 
     // console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
 

@@ -1,16 +1,41 @@
 import Big from "big.js";
 
-export function formatDuration(duration?: number, options?: { precision?: number; }) {
-  const { precision = 2 } = options || {};
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 3600;
+const SECONDS_PER_DAY = 86400;
+
+export function formatDuration(duration?: number, options?: { precision?: number; compound?: boolean }) {
+  const { precision = 2, compound = false } = options || {};
 
   if (!duration) {
     return "-";
   }
-  if (Big(duration).lte(60)) {
+
+  if (compound) {
+    const total = Math.floor(duration);
+    if (total >= SECONDS_PER_DAY) {
+      const days = Math.floor(total / SECONDS_PER_DAY);
+      const hours = Math.floor((total % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
+      return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+    }
+    if (total >= SECONDS_PER_HOUR) {
+      const hours = Math.floor(total / SECONDS_PER_HOUR);
+      const mins = Math.floor((total % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+    if (total >= SECONDS_PER_MINUTE) {
+      const mins = Math.floor(total / SECONDS_PER_MINUTE);
+      const secs = total % SECONDS_PER_MINUTE;
+      return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+    }
+    return `${total}s`;
+  }
+
+  if (Big(duration).lte(SECONDS_PER_MINUTE)) {
     return `${duration} s`;
   }
-  if (Big(duration).lte(3600)) {
-    return `${Big(duration).div(60).toFixed(precision)} min`;
+  if (Big(duration).lte(SECONDS_PER_HOUR)) {
+    return `${Big(duration).div(SECONDS_PER_MINUTE).toFixed(precision)} min`;
   }
-  return `${Big(duration).div(3600).toFixed(precision)} hour`;
+  return `${Big(duration).div(SECONDS_PER_HOUR).toFixed(precision)} hour`;
 }

@@ -66,11 +66,46 @@ export const usdt0Chains: Record<string, TokenChain> = {
     ...chains.mantle,
     services: [Service.Usdt0],
   },
-  unichain: {
+  megaeth: {
+    ...usdt0,
+    assetId: "",
+    contractAddress: "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
+    ...chains.megaeth,
+    services: [Service.Usdt0],
+  },
+  ink: {
+    ...usdt0,
+    assetId: "",
+    contractAddress: "0x0200C29006150606B650577BBE7B6248F58470c1",
+    ...chains.ink,
+    services: [Service.Usdt0],
+  },
+  stable: {
+    ...usdt0,
+    assetId: "",
+    contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
+    ...chains.stable,
+    services: [Service.Usdt0],
+  },
+  celo: {
+    ...usdt0,
+    assetId: "",
+    contractAddress: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
+    ...chains.celo,
+    services: [Service.Usdt0],
+  },
+  sei: {
     ...usdt0,
     assetId: "",
     contractAddress: "0x9151434b16b9763660705744891fA906F660EcC5",
-    ...chains.unichain,
+    ...chains.sei,
+    services: [Service.Usdt0],
+  },
+  flare: {
+    ...usdt0,
+    assetId: "",
+    contractAddress: "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
+    ...chains.flare,
     services: [Service.Usdt0],
   },
 };
