@@ -315,6 +315,7 @@ export default class RainbowWallet {
       oftCmd: "0x"
     };
 
+    _log("[quoteOFT] isMultiHopComposer: %o", isMultiHopComposer);
     if (isMultiHopComposer) {
       // multiHopComposer: Arbitrum legacy mesh MultiHopComposer, eid = 30110
       sendParam.dstEid = multiHopComposer.eid;

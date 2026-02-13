@@ -152,7 +152,7 @@ export const USDT0_CONFIG: Record<string, any> = {
   },
   "Celo": {
     contractAddress: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
-    oft: "0xf10E161027410128E63E75D0200Fb6d34b2db243",
+    oftLegacy: "0xf10E161027410128E63E75D0200Fb6d34b2db243",
     eid: 30125,
     chainKey: "celo",
     blockTime: 1,
