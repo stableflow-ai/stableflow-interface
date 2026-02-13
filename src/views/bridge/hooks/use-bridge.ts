@@ -601,9 +601,26 @@ export default function useBridge(props?: any) {
             await switchChainAsync({ chainId: walletStore.fromToken.chainId! });
           }
           console.log("permit signature: %o", signature);
-          reportData.permit = signature;
-          reportData.sendParam = _quote?.data?.usdt0SendParam;
-          reportData.fee = _quote?.data?.usdt0MessageFee;
+          console.log("permit SendParam: %o", _quote?.data?.usdt0SendParam);
+          console.log("permit MessageFee: %o", _quote?.data?.usdt0MessageFee);
+          reportData.layer_zero_permit = {
+            amount: signature.value,
+            deadline: signature.deadline,
+            nonce: signature.nonce,
+            owner: signature.owner,
+            r: signature.r,
+            s: signature.s,
+            v: signature.v,
+            amount_ld: _quote?.data?.usdt0SendParam?.amountLD,
+            compose_msg: _quote?.data?.usdt0SendParam?.composeMsg,
+            dst_eid: _quote?.data?.usdt0SendParam?.dstEid,
+            extra_options: _quote?.data?.usdt0SendParam?.extraOptions,
+            min_amount_ld: _quote?.data?.usdt0SendParam?.minAmountLD?.toString(),
+            oft_cmd: _quote?.data?.usdt0SendParam?.oftCmd,
+            to: _quote?.data?.usdt0SendParam?.to,
+            native_fee: _quote?.data?.usdt0MessageFee?.nativeFee?.toString(),
+          };
+          console.log("layer_zero_permit: %o", reportData.layer_zero_permit);
         }
 
         if (!_quote?.data?.quote?.depositAddress) {
