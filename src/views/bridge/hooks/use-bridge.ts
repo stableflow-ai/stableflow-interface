@@ -379,8 +379,37 @@ export default function useBridge(props?: any) {
 
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
-      // Pass request ID to service function
-      quoteService.quote(currentRequestId).then((_quoteRes: any) => {
+      // // Pass request ID to service function
+      // quoteService.quote(currentRequestId).then((_quoteRes: any) => {
+      //   // Check if it's the latest request, ignore result if not
+      //   if (currentRequestId !== requestIdRef.current) {
+      //     console.log(`%c[${quoteService.service}] Ignored outdated quote result, current requestId: ${requestIdRef.current}, result requestId: ${currentRequestId}`, "background:#423c27;color:#fdf4aa;");
+      //     return;
+      //   }
+
+      //   console.log("%c[%s]Quote Result: %o", "background:#A3D78A;color:#0D4715;", quoteService.service, _quoteRes);
+      // }).catch((error: any) => {
+      //   // Silently ignore if it's a cancelled request error
+      //   if (error?.message === "Request cancelled: outdated request") {
+      //     console.log(`%c[${quoteService.service}] Request cancelled: outdated request`, "background:#423c27;color:#fdf4aa;");
+      //     return;
+      //   }
+      //   // Also check request ID to avoid old request errors overwriting new requests
+      //   if (currentRequestId !== requestIdRef.current) {
+      //     console.log(`%c[${quoteService.service}] Ignored outdated quote error, current requestId: ${requestIdRef.current}, error requestId: ${currentRequestId}`, "background:#423c27;color:#fdf4aa;");
+      //     return;
+      //   }
+      //   // Re-throw other errors for the caller to handle
+      //   console.error(`[${quoteService.service}] Quote error:`, error);
+      // }).finally(() => {
+      //   if (i >= quoteServices.length - 1) {
+      //     setAutoSelect(true);
+      //   }
+      // });
+
+      // Change to sequential requests to avoid exceeding RPC request rate limits
+      try {
+        const _quoteRes: any = await quoteService.quote(currentRequestId);
         // Check if it's the latest request, ignore result if not
         if (currentRequestId !== requestIdRef.current) {
           console.log(`%c[${quoteService.service}] Ignored outdated quote result, current requestId: ${requestIdRef.current}, result requestId: ${currentRequestId}`, "background:#423c27;color:#fdf4aa;");
@@ -388,7 +417,7 @@ export default function useBridge(props?: any) {
         }
 
         console.log("%c[%s]Quote Result: %o", "background:#A3D78A;color:#0D4715;", quoteService.service, _quoteRes);
-      }).catch((error: any) => {
+      } catch (error: any) {
         // Silently ignore if it's a cancelled request error
         if (error?.message === "Request cancelled: outdated request") {
           console.log(`%c[${quoteService.service}] Request cancelled: outdated request`, "background:#423c27;color:#fdf4aa;");
@@ -401,11 +430,9 @@ export default function useBridge(props?: any) {
         }
         // Re-throw other errors for the caller to handle
         console.error(`[${quoteService.service}] Quote error:`, error);
-      }).finally(() => {
-        if (i >= quoteServices.length - 1) {
-          setAutoSelect(true);
-        }
-      });
+      }
+
+      setAutoSelect(true);
     }
   };
 
