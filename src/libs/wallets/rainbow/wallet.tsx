@@ -468,8 +468,8 @@ export default class RainbowWallet {
 
       return tx.hash;
     } catch (error: any) {
-       console.log("Error sending transaction: %o", error);
-       throw new Error("Transaction failed");
+      console.log("Error sending transaction: %o", error);
+      throw new Error("Transaction failed");
     }
 
     // const DefaultErrorMsg = "Transaction failed";
@@ -892,12 +892,14 @@ export default class RainbowWallet {
   async signTypedData(params: any) {
     const { fromToken, amountWei, spender } = params;
 
+    console.log("sign token: %o", fromToken);
+
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
     const provider = new ethers.FallbackProvider(providers);
 
     const value = amountWei;
     const tokenAddress = fromToken.contractAddress;
-    const name = fromToken.name === "USD₮0" ? "USDT" : fromToken.name;
+    const name = fromToken.name;
     const chainId = fromToken.chainId;
     const deadline = Math.floor(Date.now() / 1000) + 86400;
     const account = this.signer.address;
@@ -915,7 +917,7 @@ export default class RainbowWallet {
 
     const domain = {
       name,
-      version: "2",
+      version: "1",
       chainId: Number(chainId),
       verifyingContract: tokenAddress
     };
