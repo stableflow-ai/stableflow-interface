@@ -79,7 +79,7 @@ export default function Token({
                       }
 
                       if (walletStore.isTo) {
-                        if (mergedToken.contractAddress === walletStore.fromToken?.contractAddress) {
+                        if (mergedToken.contractAddress === walletStore.fromToken?.contractAddress && mergedToken.chainName === walletStore.fromToken?.chainName) {
                           walletStore.set({
                             toToken: mergedToken,
                             fromToken: null,
@@ -88,7 +88,7 @@ export default function Token({
                           return;
                         }
                       } else {
-                        if (mergedToken.contractAddress === walletStore.toToken?.contractAddress) {
+                        if (mergedToken.contractAddress === walletStore.toToken?.contractAddress && mergedToken.chainName === walletStore.toToken?.chainName) {
                           walletStore.set({
                             fromToken: mergedToken,
                             toToken: null,
