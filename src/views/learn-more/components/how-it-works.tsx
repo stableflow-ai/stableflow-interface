@@ -15,7 +15,7 @@ export default function HowItWorks() {
       title: "Atomic Transfers, Secured by NEAR",
       description: "Every transfer settles automatically through NEAR's Verifier Smart Contract. It either fully completes or reverts back to the user, guaranteeing your funds are never at risk.",
       buttonText: "How It Works",
-      buttonLink: "https://docs.dapdap.net/apps/stableflow",
+      buttonLink: "https://docs.stableflow.ai/",
       icon: "🔒"
     },
     {
