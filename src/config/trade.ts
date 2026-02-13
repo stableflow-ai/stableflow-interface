@@ -4,6 +4,7 @@ export const TradeStatus = {
   Failed: 2,
   Confirming: 3,
   Continue: 4,
+  LayerzeroSubmitted: 5,
 } as const;
 
 export type TradeStatus = (typeof TradeStatus)[keyof typeof TradeStatus];
@@ -14,6 +15,7 @@ export const TradeStatusMap: Record<TradeStatus, { value: TradeStatus; name: str
   [TradeStatus.Failed]: { value: TradeStatus.Failed, name: "Failed" },
   [TradeStatus.Confirming]: { value: TradeStatus.Confirming, name: "Confirming" },
   [TradeStatus.Continue]: { value: TradeStatus.Continue, name: "Waiting" },
+  [TradeStatus.LayerzeroSubmitted]: { value: TradeStatus.LayerzeroSubmitted, name: "LayerzeroSubmitted" },
 };
 
 export const TradeProject = {

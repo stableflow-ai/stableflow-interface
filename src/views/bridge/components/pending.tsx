@@ -241,8 +241,10 @@ export default PendingTransfer;
 const PendingItem = (props: any) => {
   const { className, data, close } = props;
 
-  const isPending = [TradeStatus.Pending, TradeStatus.Confirming].includes(data.status);
   const isSuccess = [TradeStatus.Success].includes(data.status);
+  const isFailed = [TradeStatus.Failed].includes(data.status);
+  const isPending = !isSuccess && !isFailed;
+
   const MaxPendingProgress = 90;
   const [progress, setProgress] = useState(0);
 

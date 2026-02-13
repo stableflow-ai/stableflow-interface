@@ -522,11 +522,12 @@ export default function useBridge(props?: any) {
           spender: _quote?.data?.approveSpender,
           amountWei: approveAmountWei,
         });
-        bridgeStore.set({ transferring: false });
+        // bridgeStore.set({ transferring: false });
         if (!approveResult) {
           toast.fail({
             title: "Approve failed"
           });
+          bridgeStore.set({ transferring: false });
           return;
         }
         toast.success({
@@ -535,7 +536,7 @@ export default function useBridge(props?: any) {
         bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
           needApprove: false,
         });
-        return;
+        // return;
       }
 
       // create solana usdc account for CCTP
