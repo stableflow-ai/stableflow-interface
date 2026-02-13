@@ -463,9 +463,14 @@ export default class RainbowWallet {
       finalParam.push(overrides);
     }
 
-    const tx = await contract[method](...finalParam);
+    try {
+      const tx = await contract[method](...finalParam);
 
-    return tx.hash;
+      return tx.hash;
+    } catch (error: any) {
+       console.log("Error sending transaction: %o", error);
+       throw new Error("Transaction failed");
+    }
 
     // const DefaultErrorMsg = "Transaction failed";
     // try {
@@ -892,7 +897,7 @@ export default class RainbowWallet {
 
     const value = amountWei;
     const tokenAddress = fromToken.contractAddress;
-    const name = fromToken.name;
+    const name = fromToken.name === "USD₮0" ? "USDT" : fromToken.name;
     const chainId = fromToken.chainId;
     const deadline = Math.floor(Date.now() / 1000) + 86400;
     const account = this.signer.address;
