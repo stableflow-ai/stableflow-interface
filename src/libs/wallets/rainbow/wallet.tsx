@@ -892,14 +892,11 @@ export default class RainbowWallet {
   async signTypedData(params: any) {
     const { fromToken, amountWei, spender } = params;
 
-    console.log("sign token: %o", fromToken);
-
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
     const provider = new ethers.FallbackProvider(providers);
 
     const value = amountWei;
     const tokenAddress = fromToken.contractAddress;
-    const name = fromToken.name;
     const chainId = fromToken.chainId;
     const deadline = Math.floor(Date.now() / 1000) + 86400;
     const account = this.signer.address;
@@ -914,6 +911,7 @@ export default class RainbowWallet {
       provider
     );
     const nonce = await erc20.nonces(account);
+    const name = await erc20.name();
 
     const domain = {
       name,
