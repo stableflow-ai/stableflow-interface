@@ -711,6 +711,7 @@ export default function useBridge(props?: any) {
         }
         localHistoryData.txHash = hash;
         localHistoryData.toChainTxHash = hash;
+        localHistoryData.depositAddress = _depositAddress;
         historyStore.addHistory(localHistoryData);
         historyStore.updateStatus(hash, "PENDING_DEPOSIT");
         reportData.deposit_address = _depositAddress;
