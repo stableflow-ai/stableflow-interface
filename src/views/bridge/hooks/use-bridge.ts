@@ -488,10 +488,12 @@ export default function useBridge(props?: any) {
             });
           }
         }
+        const approveAmount = bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
+        const approveAmountWei = Big(approveAmount || 0).times(10 ** walletStore.fromToken.decimals).toFixed(0);
         const approveResult = await wallet.wallet.approve({
           contractAddress: walletStore.fromToken.contractAddress,
           spender: _quote?.data?.approveSpender,
-          amountWei: _amount,
+          amountWei: approveAmountWei,
         });
         bridgeStore.set({ transferring: false });
         if (!approveResult) {
@@ -533,14 +535,14 @@ export default function useBridge(props?: any) {
       const reportData: any = {
         project: ServiceBackend[bridgeStore.quoteDataService],
         address: wallet.account,
-        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountIn : bridgeStore.amount,
+        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
         out_amount: _quote.data.outputAmount,
         deposit_address: isOneClickService ? _quote.data.quote.depositAddress : "",
         receive_address: _quote.data.quoteParam.recipient,
         from_chain: walletStore.fromToken.blockchain,
-        symbol: walletStore.fromToken.symbol,
+        symbol: walletStore.fromToken.symbol === "USD₮0" ? "USDT" : walletStore.fromToken.symbol,
         to_chain: walletStore.toToken.blockchain,
-        to_symbol: walletStore.toToken.symbol,
+        to_symbol: walletStore.toToken.symbol === "USD₮0" ? "USDT" : walletStore.toToken.symbol,
         tx_hash: "",
       };
       const localHistoryData: any = {

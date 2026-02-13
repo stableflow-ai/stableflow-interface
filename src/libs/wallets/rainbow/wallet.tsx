@@ -906,8 +906,7 @@ export default class RainbowWallet {
       ],
       provider
     );
-    console.log("account: %o", account);
-    const nonce = (await erc20.nonces(account)).toString();
+    const nonce = await erc20.nonces(account);
 
     const domain = {
       name,
@@ -930,7 +929,7 @@ export default class RainbowWallet {
       owner: account,
       spender,
       value,
-      nonce,
+      nonce: nonce.toString(),
       deadline
     };
 

@@ -77,10 +77,18 @@ class Usdt0Service {
     if (fromToken.chainType === "evm") {
       destinationLayerzeroAddress = destinationLayerzero.oft || destinationLayerzero.oftLegacy;
       let isOriginLegacy = false;
-      const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
+      let isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
       if (isDestinationLegacy) {
         originLayerzeroAddress = originLayerzero.oftLegacy || originLayerzero.oft;
         isOriginLegacy = originLayerzeroAddress === originLayerzero.oftLegacy;
+      }
+      if (!originLayerzeroAddress) {
+        originLayerzeroAddress = originLayerzero.oftLegacy;
+        isOriginLegacy = true;
+        if (destinationLayerzero.oftLegacy) {
+          destinationLayerzeroAddress = destinationLayerzero.oftLegacy;
+          isDestinationLegacy = true;
+        }
       }
       const isBothLegacy = isOriginLegacy && isDestinationLegacy;
       const isBothOUpgradeable = !isOriginLegacy && !isDestinationLegacy;
