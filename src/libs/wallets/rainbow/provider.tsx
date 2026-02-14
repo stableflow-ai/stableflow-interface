@@ -115,6 +115,13 @@ const config = getDefaultConfig({
     [berachain.id]: RpcUrls[berachain.id] || http(),
     [xLayer.id]: RpcUrls[xLayer.id] || http(),
     [plasma.id]: RpcUrls[plasma.id] || http(),
+    [mantle.id]: RpcUrls[mantle.id] || http(),
+    [megaeth.id]: RpcUrls[megaeth.id] || http(),
+    [ink.id]: RpcUrls[ink.id] || http(),
+    [stable.id]: RpcUrls[stable.id] || http(),
+    [celo.id]: RpcUrls[celo.id] || http(),
+    [sei.id]: RpcUrls[sei.id] || http(),
+    [flare.id]: RpcUrls[flare.id] || http(),
   },
 });
 const connectors: any = connectorsForWallets(
