@@ -10,7 +10,7 @@ import useBridgeStore from "@/stores/use-bridge";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import Loading from "@/components/loading/icon";
 import Big from "big.js";
-import { formatNumber } from "@/utils/format/number";
+import { formatNumber, numberRemoveEndZero } from "@/utils/format/number";
 
 export default function Bottom({ token }: { token: any }) {
   const [progress, setProgress] = useState(0);
@@ -45,7 +45,7 @@ export default function Bottom({ token }: { token: any }) {
       const _amount = Big(balance)
         .mul(clampedProgress / 100)
         .toFixed(token.decimals);
-      bridgeStore.set({ amount: _amount });
+      bridgeStore.set({ amount: numberRemoveEndZero(_amount) });
     },
     [balance, token?.decimals]
   );
