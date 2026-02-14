@@ -484,6 +484,10 @@ export default function useBridge(props?: any) {
       bridgeStore.set({ transferring: true });
       const _quote = await quote({ dry: false }, true);
 
+      if (!_quote.data) {
+        throw new Error(_quote.errMsg || "Transfer failed");
+      }
+
       // @ts-ignore
       const wallet = wallets[walletStore.fromToken.chainType];
       // @ts-ignore

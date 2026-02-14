@@ -54,7 +54,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Ink": ["https://rpc-gel.inkonchain.com", "https://rpc-qnd.inkonchain.com"],
   "Stable": ["https://rpc.stable.xyz"],
   "Celo": ["https://forno.celo.org", "https://celo-rpc.publicnode.com"],
-  "Sei": ["https://sei-evm-rpc.publicnode.com", "https://evm-rpc.sei-apis.com/"],
+  "Sei": ["https://sei-evm-rpc.publicnode.com"],
   "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
 };
 
