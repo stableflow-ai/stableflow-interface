@@ -39,7 +39,7 @@ export default function Wallet() {
       <Suspense fallback={null}>
         <Total />
       </Suspense>
-      <div className="h-[calc(100%-255px)] overflow-y-auto pt-[8px] pb-[20px] px-[10px]">
+      <div className="h-[calc(100%-265px)] overflow-y-auto pt-[8px] pb-[20px] px-[10px]">
         {
           !!stablecoinWithChains.evm[walletStore.selectedToken] && (
             <div

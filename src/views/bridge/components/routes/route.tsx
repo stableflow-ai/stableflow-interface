@@ -69,7 +69,12 @@ const QuoteRoute = (props: any) => {
             alt=""
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />
-          <div className="">
+          <div
+            className={clsx(
+              data.estimateTime > 300 && "text-[#E53935]",
+              data.estimateTime > 60 && data.estimateTime <= 300 && "text-[#F9A825]",
+            )}
+          >
             ~{formatDuration(data.estimateTime, { compound: true })}
           </div>
         </div>
