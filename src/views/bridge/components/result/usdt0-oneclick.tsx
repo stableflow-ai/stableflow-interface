@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import ResultFeeItem from "./fee-item";
 import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
+import { BridgeFee } from "@/services/oneclick";
 
 const ResultUsdt0OneClick = (props: any) => {
   const { service } = props;
@@ -19,6 +20,11 @@ const ResultUsdt0OneClick = (props: any) => {
 
   const { run: calculateFees } = useDebounceFn(() => {
     const slippage = Big(configStore.slippage).toFixed(2) + "%";
+    const totalBridgeFee = BridgeFee.reduce((acc, item) => {
+      return acc.plus(Big(item.fee).div(100));
+    }, Big(0));
+    const totalBridgeFeeLabel = totalBridgeFee.toFixed(2) + "%";
+    const totalBridgeFeeValue = Big(bridgeStore.amount).times(Big(totalBridgeFee).div(100));
 
     if (
       !bridgeStore.amount
@@ -33,7 +39,7 @@ const ResultUsdt0OneClick = (props: any) => {
         messagingFeeUnit: "",
         legacyMeshFee: 0,
         estimatedSourceGas: 0,
-        bridgeFee: "0.01%",
+        bridgeFee: totalBridgeFeeLabel,
         bridgeFeeValue: 0,
         netFee: 0,
         slippage,
@@ -48,8 +54,8 @@ const ResultUsdt0OneClick = (props: any) => {
       messagingFeeUnit: service === Service.OneClickUsdt0 ? _quoteData?.quoteParam?.middleToken?.nativeToken?.symbol : _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
       legacyMeshFee: _quoteData?.fees?.legacyMeshFeeUsd,
       estimatedSourceGas: _quoteData?.fees?.estimateGasUsd,
-      bridgeFee: "0.01%",
-      bridgeFeeValue: Big(bridgeStore.amount).times(Big(1).div(10000)),
+      bridgeFee: totalBridgeFeeLabel,
+      bridgeFeeValue: totalBridgeFeeValue,
       netFee: _quoteData?.fees?.destinationGasFeeUsd,
       slippage,
     });
@@ -96,12 +102,12 @@ const ResultUsdt0OneClick = (props: any) => {
             <ResultFeeItem
               label={(
                 <>
-                  Bridge fee<span className="line-through [text-decoration-color:#F00]">({fees?.bridgeFee})</span>
+                  Bridge fee({fees?.bridgeFee})
                 </>
               )}
               precision={2}
               loading={bridgeStore.quotingMap.get(service)}
-              isDelete
+              isDelete={false}
             >
               {fees?.bridgeFeeValue}
             </ResultFeeItem>

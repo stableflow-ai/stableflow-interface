@@ -19,7 +19,7 @@ export const getHopMsgFee = async (params: any) => {
     arbitrumOft = originLayerzero.oftLegacy || originLayerzero.oft;
   }
 
-  const providers = getChainRpcUrl("Arbitrum").rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+  const providers = getChainRpcUrl("Arbitrum").rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, 42161));
   const provider = new ethers.FallbackProvider(providers);
   const oftContractRead = new ethers.Contract(arbitrumOft, OFT_ABI, provider);
 

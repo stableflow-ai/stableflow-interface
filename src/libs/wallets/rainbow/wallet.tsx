@@ -59,7 +59,7 @@ export default class RainbowWallet {
     try {
       let provider = this.provider;
       if (token.rpcUrls) {
-        const providers = token.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+        const providers = token.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, token.chainId));
         provider = new ethers.FallbackProvider(providers);
       }
 
@@ -102,7 +102,7 @@ export default class RainbowWallet {
   }> {
     const { fromToken, depositAddress, amount, account } = data;
     const originAsset = fromToken.contractAddress;
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
     let gasLimit: bigint;
@@ -260,7 +260,7 @@ export default class RainbowWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
     const oftContract = new ethers.Contract(originLayerzeroAddress, abi, this.signer);
@@ -554,7 +554,7 @@ export default class RainbowWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
     };
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
@@ -720,7 +720,7 @@ export default class RainbowWallet {
       console.log("oneclick check allowance failed: %o", error);
     }
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
@@ -892,7 +892,7 @@ export default class RainbowWallet {
   async signTypedData(params: any) {
     const { fromToken, amountWei, spender } = params;
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
     const value = amountWei;

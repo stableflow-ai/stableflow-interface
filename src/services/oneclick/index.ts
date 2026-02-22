@@ -227,7 +227,10 @@ class OneClickService {
       refundType,
     };
     if (appFees) {
-      quoteParams.appFees = appFees;
+      quoteParams.appFees = [
+        ...BridgeFee,
+        ...appFees,
+      ];
     }
 
     const res = await this.api.post("/quote", quoteParams);

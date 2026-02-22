@@ -42,12 +42,12 @@ export default function useEvmBalances(auto = false) {
       for (const token of evmBalancesTokens) {
         const _token: any = token;
         if (unsupportedChainIds.includes(_token.chain_id)) {
-          const currentChain = Object.values(chains).find((chain: any) => chain.chainId === _token.chain_id);
+          const currentChain: any = Object.values(chains).find((chain: any) => chain.chainId === _token.chain_id);
           if (!currentChain) {
             return;
           }
 
-          const providers = currentChain.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+          const providers = currentChain.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, currentChain.chainId));
           const provider = new ethers.FallbackProvider(providers);
 
           const balancePromises = _token.tokens.map(async (address: string) => {
