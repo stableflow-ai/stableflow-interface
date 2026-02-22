@@ -12,7 +12,7 @@ export const BridgeFee = [
   {
     recipient: "reffer.near",
     // No bridge fee will be charged temporarily
-    fee: 0, // 100=1% 1=0.01%
+    fee: 1, // 100=1% 1=0.01%
   },
 ];
 
