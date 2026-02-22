@@ -9,6 +9,7 @@ import clsx from "clsx";
 import { Service } from "@/services";
 import { formatNumber } from "@/utils/format/number";
 import Checkbox from "@/components/checkbox";
+import { BridgeFee } from "@/services/oneclick";
 
 const LargeTransactionTip = "Large transactions can take a bit longer to process — usually no more than 3-5 minutes.";
 
@@ -23,10 +24,11 @@ const ResultOneClick = (props: any) => {
 
   const { run: calculateFees } = useDebounceFn(() => {
     const slippage = Big(configStore.slippage).toFixed(2) + "%";
-    // No bridge fee will be charged temporarily
-    // const bridgeFee = BridgeFee.reduce((acc, item) => {
-    //   return acc.plus(Big(item.fee).div(100));
-    // }, Big(0)).toFixed(2) + "%";
+    const totalBridgeFee = BridgeFee.reduce((acc, item) => {
+      return acc.plus(Big(item.fee).div(100));
+    }, Big(0));
+    const totalBridgeFeeLabel = totalBridgeFee.toFixed(2) + "%";
+    const totalBridgeFeeValue = Big(bridgeStore.amount).times(Big(totalBridgeFee).div(100));
 
     if (
       !bridgeStore.amount
@@ -36,7 +38,7 @@ const ResultOneClick = (props: any) => {
     ) {
       setFees({
         totalFee: 0,
-        bridgeFee: "0.01%",
+        bridgeFee: totalBridgeFeeLabel,
         bridgeFeeValue: 0,
         netFee: 0,
         slippage,
@@ -46,8 +48,8 @@ const ResultOneClick = (props: any) => {
 
     setFees({
       totalFee: _quoteData?.totalFeesUsd,
-      bridgeFee: "0.01%",
-      bridgeFeeValue: Big(bridgeStore.amount).times(Big(1).div(10000)),
+      bridgeFee: totalBridgeFeeLabel,
+      bridgeFeeValue: totalBridgeFeeValue,
       netFee: _quoteData?.fees?.destinationGasFeeUsd,
       slippage,
     });
@@ -89,12 +91,12 @@ const ResultOneClick = (props: any) => {
             <ResultFeeItem
               label={(
                 <>
-                  Bridge fee<span className="line-through [text-decoration-color:#F00]">({fees?.bridgeFee})</span>
+                  Bridge fee({fees?.bridgeFee})
                 </>
               )}
               precision={2}
               loading={bridgeStore.quotingMap.get(Service.OneClick)}
-              isDelete
+              isDelete={false}
             >
               {fees?.bridgeFeeValue}
             </ResultFeeItem>
