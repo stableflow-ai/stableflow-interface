@@ -19,7 +19,7 @@ class Usdt0OneClickService {
 
     let middleChainWallet = wallets?.evm?.wallet;
     if (!middleChainWallet) {
-      const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+      const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
       const provider = new ethers.FallbackProvider(providers);
       middleChainWallet = new RainbowWallet(provider, {});
     }
