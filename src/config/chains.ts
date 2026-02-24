@@ -37,7 +37,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "BNB Chain": ["https://56.rpc.thirdweb.com", "https://bsc-rpc.publicnode.com"],
   "Avalanche": ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche-c-chain-rpc.publicnode.com"],
   "Base": ["https://mainnet.base.org", "https://base-rpc.publicnode.com"],
-  "Polygon": ["https://polygon-rpc.com", "https://polygon-bor-rpc.publicnode.com"],
+  "Polygon": ["https://polygon.drpc.org", "https://polygon-bor-rpc.publicnode.com"],
   "Gnosis": ["https://rpc.gnosischain.com", "https://gnosis-rpc.publicnode.com"],
   "Optimism": ["https://mainnet.optimism.io", "https://optimism-rpc.publicnode.com"],
   "Berachain": ["https://rpc.berachain.com", "https://berachain-rpc.publicnode.com"],
