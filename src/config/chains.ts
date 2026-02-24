@@ -32,7 +32,7 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
 };
 
 export const chainsRpcUrls: Record<string, string[]> = {
-  "Ethereum": ["https://eth.merkle.io", "https://ethereum-rpc.publicnode.com"],
+  "Ethereum": ["https://0xrpc.io/eth", "https://ethereum-rpc.publicnode.com"],
   "Arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"],
   "BNB Chain": ["https://56.rpc.thirdweb.com", "https://bsc-rpc.publicnode.com"],
   "Avalanche": ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche-c-chain-rpc.publicnode.com"],

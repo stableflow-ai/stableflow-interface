@@ -1,4 +1,4 @@
-import { usdcEvm, usdcNear, usdcSol, usdcChains } from "@/config/tokens/usdc";
+import { usdcEvm, usdcNear, usdcSol, usdcChains, usdcAptos } from "@/config/tokens/usdc";
 import { usdtAptos, usdtEvm, usdtNear, usdtSol, usdtTron, usdtChains } from "@/config/tokens/usdt";
 
 export const evmBalancesTokens = (() => {
@@ -53,6 +53,7 @@ export const stablecoinWithChains: any = {
   },
   aptos: {
     "USDT": usdtAptos,
+    "USDC": usdcAptos,
   },
 };
 
