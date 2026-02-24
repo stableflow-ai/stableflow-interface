@@ -468,8 +468,12 @@ export default class RainbowWallet {
 
       return tx.hash;
     } catch (error: any) {
-      console.log("Error sending transaction: %o", error);
-      throw new Error("Transaction failed");
+      console.log("Error sending transaction: %o, message: %o", error, error.message);
+      let _finalErrorMessage = "Transaction failed";
+      if (error?.message?.includes("user rejected action")) {
+        _finalErrorMessage = error.message;
+      }
+      throw new Error(_finalErrorMessage);
     }
 
     // const DefaultErrorMsg = "Transaction failed";

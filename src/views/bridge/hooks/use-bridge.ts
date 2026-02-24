@@ -458,9 +458,19 @@ export default function useBridge(props?: any) {
       return result;
     }
 
+    const _quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
+    let _estimateSourceGas = _quoteData?.estimateSourceGas || 0n;
+
+    // stale chain
+    // The native token of the stable chain is USDT0, so the transfer amount also needs to be included in the estimateGas.
+    // Moreover, the native usdt0 has 18 decimals, while erc20 has 6 decimals
+    if (_quoteData?.quoteParam?.fromToken?.chainId === 988) {
+      _estimateSourceGas = Big(_estimateSourceGas.toString()).plus(Big(_quoteData?.quoteParam?.amountWei || 0).div(10 ** 6).times(10 ** 18)).toFixed(0);
+    }
+
     // Estimate transfer gas and check native token balance
     try {
-      const estimateGas = params?.estimateGas ?? bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService)?.estimateSourceGas;
+      const estimateGas = params?.estimateGas ?? _estimateSourceGas;
       // get native token balance
       const nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
       const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
