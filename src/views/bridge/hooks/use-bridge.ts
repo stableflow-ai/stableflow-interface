@@ -346,24 +346,23 @@ export default function useBridge(props?: any) {
       && walletStore.toToken.services.includes(Service.Usdt0)
       && walletStore.toToken.chainName !== "Arbitrum"
     ) {
-      // ⚠️ Backend service not ready yet, temporarily commented out to avoid being discovered by tests
-      // if (isFromUsdt && isToUsdt) {
-      //   if (walletStore.fromToken.chainName !== "Arbitrum") {
-      //     quoteServices.push({
-      //       service: Service.OneClickUsdt0,
-      //       quote: (_requestId?: number) => {
-      //         return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
-      //       }
-      //     });
-      //   }
-      // } else {
-      //   quoteServices.push({
-      //     service: Service.OneClickUsdt0,
-      //     quote: (_requestId?: number) => {
-      //       return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
-      //     }
-      //   });
-      // }
+      if (isFromUsdt && isToUsdt) {
+        if (walletStore.fromToken.chainName !== "Arbitrum") {
+          quoteServices.push({
+            service: Service.OneClickUsdt0,
+            quote: (_requestId?: number) => {
+              return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
+            }
+          });
+        }
+      } else {
+        quoteServices.push({
+          service: Service.OneClickUsdt0,
+          quote: (_requestId?: number) => {
+            return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
+          }
+        });
+      }
     }
 
     // Use request ID to ensure only the latest request results are processed
