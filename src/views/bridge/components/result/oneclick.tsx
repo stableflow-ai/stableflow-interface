@@ -23,7 +23,7 @@ const ResultOneClick = (props: any) => {
       return acc.plus(Big(item.fee).div(100));
     }, Big(0));
     const totalBridgeFeeLabel = totalBridgeFee.toFixed(2) + "%";
-    const totalBridgeFeeValue = Big(bridgeStore.amount).times(Big(totalBridgeFee).div(100));
+    const totalBridgeFeeValue = Big(bridgeStore.amount || 0).times(Big(totalBridgeFee).div(100));
 
     if (
       !bridgeStore.amount

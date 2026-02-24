@@ -33,6 +33,10 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
       const key = `${token.chainType}Balances`;
       let nextBalances = balancesStore[key as keyof BalancesState];
 
+      if (!nextBalances) {
+        nextBalances = {};
+      }
+
       if (nextBalances[token.chainId || token.blockchain]) {
         nextBalances[token.chainId || token.blockchain][token.contractAddress] = _balance;
       } else {
