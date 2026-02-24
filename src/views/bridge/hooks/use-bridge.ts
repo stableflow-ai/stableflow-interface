@@ -175,7 +175,7 @@ export default function useBridge(props?: any) {
 
       // Check request ID again before setting result to ensure it's still the latest request
       if (requestId !== undefined && requestId !== requestIdRef.current) {
-        bridgeStore.setQuoting(service, false);
+        // bridgeStore.setQuoting(service, false);
         throw new Error("Request cancelled: outdated request");
       }
 
