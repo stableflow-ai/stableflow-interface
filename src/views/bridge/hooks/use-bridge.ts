@@ -472,10 +472,20 @@ export default function useBridge(props?: any) {
     try {
       const estimateGas = params?.estimateGas ?? _estimateSourceGas;
       // get native token balance
-      const nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
+      let nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
       const nativeTokenName = walletStore.fromToken.nativeToken.symbol;
 
-      console.log(`%cEstimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`, "background:#4D2FB2;color:#ffffff;");
+      // tron chain
+      // For Tron chain, need to check if the user has energy
+      // If the user has energy, it should be added together with TRX
+      if (!params?.estimateGas && _quoteData?.quoteParam?.fromToken?.chainType === "tron") {
+        const tronAccountResources = await wallet.wallet.getAccountResources({ account: wallet.account });
+        const tronAccountEnergyAsTRX = Big(tronAccountResources.energy || 0).times(10 ** 3);
+        console.log(`%cEstimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}, Available Energy: ${tronAccountResources.energy}(as ${Big(tronAccountEnergyAsTRX).toFixed(0)} ${nativeTokenName}), Total Available: ${Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX).toFixed(0)} ${nativeTokenName}`, "background:#4D2FB2;color:#ffffff;");
+        nativeBalance = Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX);
+      } else {
+        console.log(`%cEstimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`, "background:#4D2FB2;color:#ffffff;");
+      }
 
       // Check if balance is sufficient
       if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
