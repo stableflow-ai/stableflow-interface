@@ -32,12 +32,12 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
 };
 
 export const chainsRpcUrls: Record<string, string[]> = {
-  "Ethereum": ["https://eth.merkle.io", "https://ethereum-rpc.publicnode.com"],
+  "Ethereum": ["https://0xrpc.io/eth", "https://ethereum-rpc.publicnode.com"],
   "Arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"],
   "BNB Chain": ["https://56.rpc.thirdweb.com", "https://bsc-rpc.publicnode.com"],
   "Avalanche": ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche-c-chain-rpc.publicnode.com"],
   "Base": ["https://mainnet.base.org", "https://base-rpc.publicnode.com"],
-  "Polygon": ["https://polygon-rpc.com", "https://polygon-bor-rpc.publicnode.com"],
+  "Polygon": ["https://polygon.drpc.org", "https://polygon-bor-rpc.publicnode.com"],
   "Gnosis": ["https://rpc.gnosischain.com", "https://gnosis-rpc.publicnode.com"],
   "Optimism": ["https://mainnet.optimism.io", "https://optimism-rpc.publicnode.com"],
   "Berachain": ["https://rpc.berachain.com", "https://berachain-rpc.publicnode.com"],
@@ -45,8 +45,8 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Aptos": ["https://api.mainnet.aptoslabs.com/v1"],
   "Solana": ["https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170", "https://solana-rpc.publicnode.com"],
   "Near": ["https://nearinner.deltarpc.com"],
-  "X Layer": ["https://rpc.xlayer.tech"],
-  "Plasma": ["https://rpc.plasma.to"],
+  "X Layer": ["https://rpc.xlayer.tech", "https://xlayer.drpc.org"],
+  "Plasma": ["https://rpc.plasma.to", "https://plasma.drpc.org"],
 };
 
 export const getChainRpcUrl = (chainName: string) => {
