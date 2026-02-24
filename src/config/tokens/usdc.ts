@@ -89,6 +89,13 @@ export const usdcChains: Record<string, TokenChain> = {
     ...chains.xlayer,
     services: [Service.OneClick],
   },
+  aptos: {
+    ...usdc,
+    assetId: "nep141:aptos-34ee497f210c5a511e8d5b53bc56d75b63612bb5.omft.near",
+    contractAddress: "0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b",
+    ...chains.aptos,
+    services: [Service.OneClick],
+  },
 };
 
 export const usdcSol = {
@@ -101,6 +108,12 @@ export const usdcNear = {
   ...usdc,
   ...usdcChains.near,
   chains: [usdcChains.near],
+};
+
+export const usdcAptos = {
+  ...usdc,
+  ...usdcChains.aptos,
+  chains: [usdcChains.aptos],
 };
 
 export const usdcEvm = {
