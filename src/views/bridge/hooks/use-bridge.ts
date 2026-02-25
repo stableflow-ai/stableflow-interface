@@ -790,7 +790,9 @@ export default function useBridge(props?: any) {
         _finalErrorMessage.includes("user rejected action") ||
         // tron
         _finalErrorMessage.includes("Confirmation declined by user") ||
-        _finalErrorMessage.includes("User denied request signature")
+        _finalErrorMessage.includes("User denied request signature") ||
+        // ton
+        _finalErrorMessage.includes("Reject request")
       ) {
         _finalErrorMessage = "User rejected transaction";
       }

@@ -137,61 +137,43 @@ class Usdt0Service {
       destinationLayerzeroAddress = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
     }
 
+    const oftParams: any = {
+      dstEid: destinationLayerzero.eid,
+      refundTo,
+      recipient,
+      amountWei,
+      slippageTolerance,
+      payInLzToken: PayInLzToken,
+      fromToken,
+      toToken,
+      prices,
+      originLayerzeroAddress,
+      destinationLayerzeroAddress,
+      excludeFees,
+      multiHopComposer: USDT0_CONFIG["Arbitrum"],
+      isMultiHopComposer,
+      isOriginLegacy,
+      isDestinationLegacy,
+      originLayerzero,
+      destinationLayerzero,
+    };
+
     if (fromToken.chainType === "tron") {
-      const result = await wallet.quote(Service.Usdt0, {
-        abi: OFT_ABI,
-        dstEid: destinationLayerzero.eid,
-        refundTo,
-        recipient,
-        amountWei,
-        slippageTolerance,
-        payInLzToken: PayInLzToken,
-        fromToken,
-        toToken,
-        prices,
-        originLayerzeroAddress,
-        destinationLayerzeroAddress,
-        excludeFees,
-        multiHopComposer: USDT0_CONFIG["Arbitrum"],
-        isMultiHopComposer,
-        isOriginLegacy,
-        isDestinationLegacy,
-        originLayerzero,
-        destinationLayerzero,
-      });
-
-      result.estimateTime = estimateTime;
-
-      return result;
+      oftParams.abi = OFT_ABI;
     }
 
     if (fromToken.chainType === "sol") {
-      const result = await wallet.quote(Service.Usdt0, {
-        idl: SOLANA_IDL,
-        dstEid: destinationLayerzero.eid,
-        refundTo,
-        recipient,
-        amountWei,
-        slippageTolerance,
-        payInLzToken: PayInLzToken,
-        fromToken,
-        toToken,
-        prices,
-        originLayerzeroAddress,
-        destinationLayerzeroAddress,
-        excludeFees,
-        multiHopComposer: USDT0_CONFIG["Arbitrum"],
-        isMultiHopComposer,
-        isOriginLegacy,
-        isDestinationLegacy,
-        originLayerzero,
-        destinationLayerzero,
-      });
-
-      result.estimateTime = estimateTime;
-
-      return result;
+      oftParams.idl = SOLANA_IDL;
     }
+
+    const result = await wallet.quote(Service.Usdt0, {
+      idl: SOLANA_IDL,
+      ...oftParams,
+    });
+
+    result.estimateTime = estimateTime;
+
+    return result;
   }
 
   public async send(params: any) {

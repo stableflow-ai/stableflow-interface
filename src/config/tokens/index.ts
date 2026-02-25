@@ -1,5 +1,5 @@
 import { usdcEvm, usdcNear, usdcSol, usdcChains, usdcAptos } from "@/config/tokens/usdc";
-import { usdtAptos, usdtEvm, usdtNear, usdtSol, usdtTron, usdtChains } from "@/config/tokens/usdt";
+import { usdtAptos, usdtEvm, usdtNear, usdtSol, usdtTron, usdtChains, usdtTon } from "@/config/tokens/usdt";
 import { usdt0Chains, usdt0Evm } from "./usdt0";
 import type { TokenChain } from "../chains";
 
@@ -71,6 +71,9 @@ export const stablecoinWithChains: any = {
   aptos: {
     "USDT": usdtAptos,
     "USDC": usdcAptos,
+  },
+  ton: {
+    "USDT": usdtTon,
   },
 };
 

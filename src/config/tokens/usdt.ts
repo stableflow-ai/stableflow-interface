@@ -73,6 +73,13 @@ export const usdtChains: Record<string, TokenChain> = {
     ...chains.aptos,
     services: [Service.OneClick],
   },
+  ton: {
+    ...usdt,
+    assetId: "nep245:v2_1.omni.hot.tg:1117_3tsdfyziyc7EJbP2aULWSKU4toBaAcN4FdTgfm5W1mC4ouR",
+    contractAddress: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
+    ...chains.ton,
+    services: [Service.OneClick, Service.Usdt0],
+  },
 };
 
 export const usdtSol = {
@@ -102,4 +109,10 @@ export const usdtAptos = {
   ...usdt,
   ...usdtChains.aptos,
   chains: [usdtChains.aptos],
+};
+
+export const usdtTon = {
+  ...usdt,
+  ...usdtChains.ton,
+  chains: [usdtChains.ton],
 };

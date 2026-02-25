@@ -98,7 +98,7 @@ class OneClickService {
           const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
           let sourceGasFee = res.data.transferSourceGasFee;
-          if (params.acceptTronEnergy) {
+          if (isFromTronEnergy) {
             sourceGasFee = energySourceGasFee;
           }
 
