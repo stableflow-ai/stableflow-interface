@@ -503,6 +503,8 @@ export default class RainbowWallet {
         return await this.quoteOFT(params);
       case Service.OneClick:
         return await this.quoteOneClickProxy(params);
+      case Service.Native:
+        return await this.quoteNative(params);
       default:
         throw new Error(`Unsupported quote type: ${type}`);
     }
@@ -770,6 +772,103 @@ export default class RainbowWallet {
         { gasLimit: proxyTransferGasLimit }
       ],
     };
+
+    return result;
+  }
+
+  async quoteNative(params: any) {
+    const {
+      quoteResponse,
+      bridgeRouterAddress,
+      ...restParams
+    } = params;
+    const {
+      dry,
+      amountWei,
+      refundTo,
+      fromToken,
+      toToken,
+      prices,
+    } = restParams;
+
+    const result: any = {
+      ...quoteResponse,
+      fees: {},
+      needApprove: false,
+      approveSpender: bridgeRouterAddress,
+      quoteParam: {
+        ...restParams,
+      },
+      sendParam: {
+        txRequest: quoteResponse.txRequest,
+      },
+      totalFeesUsd: void 0,
+      estimateSourceGas: void 0,
+      estimateSourceGasUsd: void 0,
+      estimateTime: Math.floor(Math.random() * 6) + 40,
+      outputAmount: 0,
+    };
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    const allowanceResult = await this.allowance({
+      contractAddress: fromToken.contractAddress,
+      spender: bridgeRouterAddress,
+      address: refundTo,
+      amountWei,
+    });
+    result.needApprove = allowanceResult.needApprove;
+
+    if (dry) {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: DEFAULT_GAS_LIMIT,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+
+      result.outputAmount = quoteResponse.buyerTokenAmount + "";
+      result.fees = {
+        sourceGasFeeUsd: usd,
+        widgetFeeUsd: quoteResponse.widgetFeeUsd,
+        liquidityProviderFeeUsd: quoteResponse.liquidityProviderFeeUsd,
+      };
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+      result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.totalFeeUsd).toFixed(20));
+    }
+    else {
+      let gasEstimate = DEFAULT_GAS_LIMIT;
+      try {
+        gasEstimate = await provider.estimateGas({
+          to: quoteResponse.txRequest.target,
+          data: quoteResponse.txRequest.calldata,
+          from: refundTo,
+        });
+        result.txRequest.gasLimit = gasEstimate;
+      } catch (error) {
+        result.txRequest.gasLimit = 4000000n;
+      }
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: gasEstimate,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+
+      result.outputAmount = Big(quoteResponse.amountOut || 0).div(10 ** (toToken.decimals || 6)).toFixed(toToken.decimals || 6, 0);
+      result.fees = {
+        sourceGasFeeUsd: usd,
+        // maybe 100 = 1%
+        widgetFeeUsd: numberRemoveEndZero(Big(amountWei || 0).div(10 ** (fromToken.decimals || 6)).times(quoteResponse.widgetFee.feeRate || 0).toFixed(20, 0)),
+        // not return by api
+        liquidityProviderFeeUsd: "0",
+      };
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+      result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.amountOutBeforeFee || 0).minus(quoteResponse.amountOut).div(10 ** (fromToken.decimals || 6)).toFixed(20, 0));
+    }
 
     return result;
   }

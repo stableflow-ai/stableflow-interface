@@ -4,7 +4,7 @@ import Big from "big.js";
 import clsx from "clsx";
 
 const ResultFeeItem = (props: any) => {
-  const { label, children, precision = 2, loading, isFormat = true, isDelete } = props;
+  const { label, children, precision = 2, loading, isFormat = true, isDelete, isZero = false } = props;
 
   return (
     <div className="w-full flex items-center justify-between gap-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]">
@@ -17,7 +17,7 @@ const ResultFeeItem = (props: any) => {
             (isFormat
               ? (
                 Big(children || 0).lte(0)
-                  ? "-"
+                  ? (isZero ? "0" : "-")
                   : formatNumber(children, precision, true, { prefix: "$", isZeroPrecision: true })
               )
               : children
