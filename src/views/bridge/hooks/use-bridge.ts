@@ -173,13 +173,13 @@ export default function useBridge(props?: any) {
       const quoteParams = await formatQuoteParams();
       const quoteRes = await ServiceMap[service].quote(quoteParams);
 
+      bridgeStore.setQuoting(service, false);
+
       // Check request ID again before setting result to ensure it's still the latest request
       if (requestId !== undefined && requestId !== requestIdRef.current) {
-        // bridgeStore.setQuoting(service, false);
         throw new Error("Request cancelled: outdated request");
       }
 
-      bridgeStore.setQuoting(service, false);
       bridgeStore.setQuoteData(service, quoteRes);
 
       if (service === Service.OneClick) {
