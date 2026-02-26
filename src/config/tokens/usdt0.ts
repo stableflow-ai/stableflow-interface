@@ -15,14 +15,14 @@ export const usdt0Chains: Record<string, TokenChain> = {
     assetId: "nep141:eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near",
     contractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
     ...chains.eth,
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick, Service.Usdt0, Service.Native],
   },
   arb: {
     ...usdt0,
     assetId: "nep141:arb-0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9.omft.near",
     contractAddress: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
     ...chains.arb,
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick, Service.Usdt0, Service.Native],
   },
   pol: {
     ...usdt0,
