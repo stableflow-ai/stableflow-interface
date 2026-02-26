@@ -9,13 +9,8 @@ export default function TonProvider({
 }: {
   children: React.ReactNode;
 }) {
-  let manifestHost = window?.location?.origin || "https://app.stableflow.ai";
-  if (manifestHost.includes("localhost")) {
-    manifestHost = "https://test.stableflow.ai";
-  }
-
   return (
-    <TonConnectUIProvider manifestUrl={`${manifestHost}/tonconnect-manifest.json`}>
+    <TonConnectUIProvider manifestUrl={`https://app.stableflow.ai/tonconnect-manifest.json`}>
       <WalletProvider>
         {children}
       </WalletProvider>
