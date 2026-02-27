@@ -76,6 +76,14 @@ class NativeService {
           errorMessage = `Amount is too low, at least ${formatNumber(minAmount, fromToken.decimals, true)} ${fromToken.symbol}`;
         }
       }
+      if (errorMessage.includes("requested amount smaller than token out minimum wei")) {
+        const match = errorMessage.match(/\[(\d+)\]/);
+        if (match) {
+          const minWei = match[1];
+          const minAmount = Big(minWei).div(10 ** toToken.decimals);
+          errorMessage = `Amount is too low. A minimum of ${formatNumber(minAmount, toToken.decimals, true)} ${toToken.symbol} must be output.`;
+        }
+      }
       throw new Error(errorMessage);
     }
 
