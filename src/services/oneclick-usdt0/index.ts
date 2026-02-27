@@ -115,6 +115,7 @@ class OneClickUsdt0Service {
         ...oneClickResult.quoteParam,
         toToken: params.toToken,
         middleToken: MIDDLE_TOKEN_CHAIN,
+        recipient: params.recipient,
       },
       usdt0SendParam: usdt0Result.sendParam?.param?.[0],
       usdt0MessageFee: usdt0Result.sendParam?.param?.[1],

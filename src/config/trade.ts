@@ -1,3 +1,5 @@
+import { Service } from "@/services/constants";
+
 export const TradeStatus = {
   Pending: 0,
   Success: 1,
@@ -29,11 +31,11 @@ export const TradeProject = {
 
 export type TradeProject = (typeof TradeProject)[keyof typeof TradeProject];
 
-export const TradeProjectMap: Record<TradeProject, { logo: string; name: string; }> = {
-  [TradeProject.OneClick]: { logo: "/bridge/logo-near-intents.svg", name: "OneClick" },
-  [TradeProject.USDT0]: { logo: "/bridge/logo-usdt0.svg", name: "USDT0" },
-  [TradeProject.CCTP]: { logo: "/bridge/logo-circle.avif", name: "CCTP" },
-  [TradeProject.USDT0OneClick]: { logo: "/bridge/logo-usdt0-near-intents.svg", name: "USDT0OneClick" },
-  [TradeProject.OneClickUSDT0]: { logo: "/bridge/logo-near-intents-usdt0.svg", name: "OneClickUSDT0" },
-  [TradeProject.Native]: { logo: "/bridge/logo-native.svg", name: "Native" },
+export const TradeProjectMap: Record<TradeProject, { logo: string; name: string; service: Service }> = {
+  [TradeProject.OneClick]: { logo: "/bridge/logo-near-intents.svg", name: "OneClick", service: Service.OneClick },
+  [TradeProject.USDT0]: { logo: "/bridge/logo-usdt0.svg", name: "USDT0", service: Service.Usdt0 },
+  [TradeProject.CCTP]: { logo: "/bridge/logo-circle.avif", name: "CCTP", service: Service.CCTP },
+  [TradeProject.USDT0OneClick]: { logo: "/bridge/logo-usdt0-near-intents.svg", name: "USDT0OneClick", service: Service.Usdt0OneClick },
+  [TradeProject.OneClickUSDT0]: { logo: "/bridge/logo-near-intents-usdt0.svg", name: "OneClickUSDT0", service: Service.OneClickUsdt0 },
+  [TradeProject.Native]: { logo: "/bridge/logo-native.svg", name: "Native", service: Service.Native },
 };
