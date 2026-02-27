@@ -905,6 +905,34 @@ export default class RainbowWallet {
     const deadline = Math.floor(Date.now() / 1000) + 86400;
     const account = this.signer.address;
 
+    // check is smart account
+    const smartAccountContract = async (address: string) => {
+      const contract = new ethers.Contract(address, [
+        "function VERSION() view returns (string)",
+        "function getOwners() view returns (address[])",
+        "function entryPoint() view returns (address)",
+        "function getImplementation() view returns (address)"
+      ], provider);
+
+      try {
+        const version = await contract.VERSION();
+        return `Safe wallet (version: ${version})`;
+      } catch (e) { }
+
+      try {
+        const ep = await contract.entryPoint();
+        if (ep !== "0x0000000000000000000000000000000000000000") {
+          return "ERC-4337 smart account (OKX belongs to this type)";
+        }
+      } catch (e) { }
+
+      return "Unknown smart contract account";
+    };
+    const code = await provider.getCode(account);
+    console.log("code %s: %o", account, code);
+    const smart = await smartAccountContract(account);
+    console.log("%s smart account: %o", account, smart);
+
     const erc20 = new ethers.Contract(
       tokenAddress,
       [
