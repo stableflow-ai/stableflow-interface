@@ -24,6 +24,7 @@ export const TradeProject = {
   CCTP: 2,
   USDT0OneClick: 3,
   OneClickUSDT0: 4,
+  Native: 5,
 };
 
 export type TradeProject = (typeof TradeProject)[keyof typeof TradeProject];
@@ -34,4 +35,5 @@ export const TradeProjectMap: Record<TradeProject, { logo: string; name: string;
   [TradeProject.CCTP]: { logo: "/bridge/logo-circle.avif", name: "CCTP" },
   [TradeProject.USDT0OneClick]: { logo: "/bridge/logo-usdt0-near-intents.svg", name: "USDT0OneClick" },
   [TradeProject.OneClickUSDT0]: { logo: "/bridge/logo-near-intents-usdt0.svg", name: "OneClickUSDT0" },
+  [TradeProject.Native]: { logo: "/bridge/logo-native.svg", name: "Native" },
 };
