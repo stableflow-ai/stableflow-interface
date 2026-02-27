@@ -1,3 +1,4 @@
+// native chain name
 export const NativeChains: Record<string, string> = {
   "Ethereum": "ethereum",
   "Arbitrum": "arbitrum",
