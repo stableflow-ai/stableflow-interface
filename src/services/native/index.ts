@@ -1,5 +1,4 @@
 import { formatNumber } from "@/utils/format/number";
-import { getPrice } from "@/utils/format/price";
 import type { AxiosInstance } from "axios";
 import axios from "axios";
 import Big from "big.js";
@@ -84,7 +83,7 @@ class NativeService {
       ...params,
       ...quoteParams,
       quoteResponse: res.data,
-      bridgeRouterAddress: NativeV4Routes[fromToken.chainName],
+      bridgeRouterAddress: isSwap ? NativeV4Routes[fromToken.chainName].swap : NativeV4Routes[fromToken.chainName].bridge,
     });
   }
 
