@@ -42,6 +42,7 @@ class NativeService {
       from_address: refundTo,
       to_address: recipient,
       beneficiary_address: recipient,
+      refund_to: recipient,
       src_chain: NativeChains[fromToken.chainName],
       dst_chain: NativeChains[toToken.chainName],
       token_in: fromToken.contractAddress,
@@ -138,11 +139,12 @@ class NativeService {
     }
 
     // Possible values: https://docs.native.org/native-dev/build-with-native/swap-aggregators/crosschain-swap-api/get-transaction-status
+    // description: https://docs.native.org/native-dev/build-with-native/swap-aggregators/crosschain-swap-api/old-docs/get-tx-status
     // USER_REQUESTED | USER_COMMITTED | MM_FAILED | MM_FILLED | CLAIMED | REFUNDED
     const { tx_status } = statusResponse.data ?? {};
 
-    const isPending = ["USER_REQUESTED", "USER_COMMITTED", "MM_FILLED"].includes(tx_status);
-    const isSuccess = ["CLAIMED"].includes(tx_status);
+    const isPending = ["USER_REQUESTED", "USER_COMMITTED"].includes(tx_status);
+    const isSuccess = ["MM_FILLED", "CLAIMED"].includes(tx_status);
 
     if (isPending) {
       return result;
