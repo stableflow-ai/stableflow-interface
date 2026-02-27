@@ -1000,6 +1000,11 @@ export default function useBridge(props?: any) {
         if (Big(quoteData?.quote?.amountInFormatted || 0).gt(balance)) {
           return "Insufficient balance";
         }
+
+        const oneClickUsdt0PendingNumber = historyStore.servicePendingNumber?.[Service.OneClickUsdt0];
+        if (oneClickUsdt0PendingNumber && oneClickUsdt0PendingNumber > 0) {
+          return "Please wait for the previous transaction to complete";
+        }
       }
 
       return "";
@@ -1023,6 +1028,7 @@ export default function useBridge(props?: any) {
     liquidityErrorMssage,
     evmAccount?.chainId,
     balancesStore,
+    historyStore.servicePendingNumber
   ]);
 
   useEffect(() => {
