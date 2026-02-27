@@ -55,8 +55,9 @@ class OneClickUsdt0Service {
 
     // OneClick charges a proportional fee
     // The OneClick fee ratio is calculated based on usdt0MessageFeeAmount
+    // fee bp = fee amount / (fee amount + amount), minimum is 1, maximum is 10000
     const oneClickFeeRatio = Big(usdt0MessageFeeAmount || 0)
-      .div(Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals))
+      .div(Big(usdt0MessageFeeAmount || 0).plus(Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals)))
       .times(10000)
       .toFixed(0, Big.roundUp);
 

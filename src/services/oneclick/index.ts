@@ -53,8 +53,16 @@ class OneClickService {
       res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
       res.data.outputAmount = numberRemoveEndZero(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
       let priceImpact = Big(0);
+      let _amountInUsd = res.data?.quote?.amountInUsd || 0;
+      let _amountOutUsd = res.data?.quote?.amountOutUsd || 0;
+      if (isExactOutput) {
+        res.data.quote.amountInFormatted = numberRemoveEndZero(Big(res.data?.quote?.minAmountIn || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, Big.roundUp));
+        // Since 1click does not return minAmountInUsd, we calculate it using our own price
+        _amountInUsd = Big(res.data.quote.amountInFormatted).times(getPrice(params.prices, params.fromToken.symbol));
+        _amountOutUsd = Big(res.data?.quote?.amountOutFormatted || 0).times(getPrice(params.prices, params.toToken.symbol));
+      }
       try {
-        priceImpact = Big(Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0)).div(res.data?.quote?.amountInUsd || 1);
+        priceImpact = Big(Big(_amountInUsd).minus(_amountOutUsd)).div(_amountInUsd || 1);
         if (Big(priceImpact).lt(0)) {
           priceImpact = Big(0);
         }
@@ -66,7 +74,7 @@ class OneClickService {
         //   return acc.plus(Big(item.fee).div(100));
         // }, Big(0)).toFixed(2) + "%";
         // const netFee = Big(params.amount).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
-        const netFee = Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0);
+        const netFee = Big(_amountInUsd).minus(_amountOutUsd);
         const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
           return acc.plus(
             Big(params.amount)
@@ -132,7 +140,7 @@ class OneClickService {
           fromToken: params.fromToken,
           refundTo: params.refundTo,
           recipient: params.recipient,
-          amountWei: isExactOutput ? res.data?.quote?.amountIn : params.amount,
+          amountWei: isExactOutput ? res.data?.quote?.minAmountIn : params.amount,
           prices: params.prices,
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };

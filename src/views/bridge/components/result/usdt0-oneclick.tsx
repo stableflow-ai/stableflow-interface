@@ -86,13 +86,17 @@ const ResultUsdt0OneClick = (props: any) => {
                 </ResultFeeItem>
               )
             }
-            <ResultFeeItem
-              label="Messaging Fee"
-              isFormat={false}
-              loading={bridgeStore.quotingMap.get(service)}
-            >
-              {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
-            </ResultFeeItem>
+            {
+              service !== Service.OneClickUsdt0 && (
+                <ResultFeeItem
+                  label="Messaging Fee"
+                  isFormat={false}
+                  loading={bridgeStore.quotingMap.get(service)}
+                >
+                  {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
+                </ResultFeeItem>
+              )
+            }
             <ResultFeeItem
               label="Net fee"
               loading={bridgeStore.quotingMap.get(service)}

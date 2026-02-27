@@ -602,7 +602,7 @@ export default function useBridge(props?: any) {
       const localHistoryData: any = {
         type: bridgeStore.quoteDataService,
         depositAddress: isOneClickService ? _quote.data.quote.depositAddress : "",
-        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountIn : bridgeStore.amount,
+        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
         fromToken: walletStore.fromToken,
         toToken: walletStore.toToken,
         fromAddress: wallet.account,
