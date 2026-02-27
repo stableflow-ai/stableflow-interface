@@ -96,7 +96,7 @@ export const useHistoryStore = create(
           set({ servicePendingNumber: {} });
           return;
         }
-        set({ servicePendingNumber: { ...get().servicePendingNumber, ...services } });
+        set({ servicePendingNumber: { ...services } });
       },
     }),
     {
