@@ -44,10 +44,13 @@ class OneClickUsdt0Service {
 
     const usdt0Result = await usdt0Service.quote(usdt0Params);
 
+    const usdt0MessageFeeBuffer = 0.2;
+    usdt0Result.fees.nativeFeeUsd = numberRemoveEndZero(Big(usdt0Result.fees?.nativeFeeUsd || 0).times(1 + usdt0MessageFeeBuffer).toFixed(20));
+    usdt0Result.fees.nativeFee = numberRemoveEndZero(Big(usdt0Result.fees?.nativeFee || 0).times(1 + usdt0MessageFeeBuffer).toFixed(fromToken.nativeToken.decimals));
     // LZ message fee to USD
     const usdt0MessageFeeUsd = usdt0Result.fees.nativeFeeUsd;
     // add 20% buffer
-    const usdt0MessageFeeAmount = Big(usdt0MessageFeeUsd || 0).div(getPrice(prices, MIDDLE_TOKEN_CHAIN.symbol) || 1).times(1.2).toFixed(MIDDLE_TOKEN_CHAIN.decimals);
+    const usdt0MessageFeeAmount = Big(usdt0MessageFeeUsd || 0).div(getPrice(prices, MIDDLE_TOKEN_CHAIN.symbol) || 1).toFixed(MIDDLE_TOKEN_CHAIN.decimals);
 
     if (usdt0Result.errMsg) {
       return usdt0Result;
@@ -90,8 +93,13 @@ class OneClickUsdt0Service {
     });
 
     let totalFeesUsd = Big(0);
+    let _destinationGasFeeUsd = Big(oneClickResult.fees?.destinationGasFeeUsd || 0).minus(usdt0MessageFeeUsd);
+    if (Big(_destinationGasFeeUsd).lt(0)) {
+      _destinationGasFeeUsd = Big(0);
+    }
     const fees = {
       ...oneClickResult.fees,
+      destinationGasFeeUsd: numberRemoveEndZero(Big(_destinationGasFeeUsd).toFixed(20)),
     };
     for (const feeKey in usdt0Result.fees) {
       if (usdt0ExcludeFees.includes(feeKey)) {

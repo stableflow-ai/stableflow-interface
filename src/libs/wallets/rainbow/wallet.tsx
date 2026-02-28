@@ -905,43 +905,7 @@ export default class RainbowWallet {
     const deadline = Math.floor(Date.now() / 1000) + 86400;
     const account = this.signer.address;
 
-    // check is smart account
-    const smartAccountContract = async (address: string) => {
-      const contract = new ethers.Contract(address, [
-        "function VERSION() view returns (string)",
-        "function getOwners() view returns (address[])",
-        "function entryPoint() view returns (address)",
-        "function getImplementation() view returns (address)"
-      ], provider);
-
-      try {
-        const version = await contract.VERSION();
-        return `Safe wallet (version: ${version})`;
-      } catch (e) { }
-
-      try {
-        const ep = await contract.entryPoint();
-        if (ep !== "0x0000000000000000000000000000000000000000") {
-          return "ERC-4337 smart account (OKX belongs to this type)";
-        }
-      } catch (e) { }
-
-      return "Unknown smart contract account";
-    };
-    const code = await provider.getCode(account);
-    console.log("code %s: %o", account, code);
-    const smart = await smartAccountContract(account);
-    console.log("%s smart account: %o", account, smart);
-
-    const erc20 = new ethers.Contract(
-      tokenAddress,
-      [
-        "function name() view returns (string)",
-        "function nonces(address) view returns (uint256)",
-        "function decimals() view returns (uint8)"
-      ],
-      provider
-    );
+    const erc20 = new ethers.Contract(tokenAddress, erc20Abi, provider);
     const nonce = await erc20.nonces(account);
     const name = await erc20.name();
 
@@ -973,6 +937,24 @@ export default class RainbowWallet {
     const signature = await this.signer?.signTypedData(domain, types, values);
 
     const { v, r, s } = ethers.Signature.from(signature);
+
+    // Check if signature is available
+    try {
+      const permitParams = [
+        account,
+        spender,
+        value,
+        deadline,
+        v,
+        r,
+        s,
+      ];
+      const permitResponse = await erc20.permit.staticCall(...permitParams);
+      console.log("permit response: %o", permitResponse);
+    } catch (error: any) {
+      console.log("check permit signature failed: %o", error);
+      throw new Error("Permit signature verification failed");
+    }
 
     return {
       owner: account,
