@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 import energyService, { type EnergyAmount, type EnergyPeriod } from "@/libs/energy";
 import usePricesStore from "@/stores/use-prices";
 import { numberRemoveEndZero } from "@/utils/format/number";
+import { csl } from "@/utils/log";
 
 export function useTronEnergy(props?: any) {
   const { } = props ?? {};
@@ -33,8 +34,8 @@ export function useTronEnergy(props?: any) {
     const availableEnergy = accountResources.energy;
     const availableBandwidth = accountResources.bandwidth;
 
-    console.log(`Estimated energy: ${estimatedEnergy}, available energy: ${availableEnergy}`);
-    console.log(`accountTRXBalance: %o`, accountTRXBalance);
+    csl("useTronEnergy getEstimateNeedsEnergy", "teal-500", "Estimated energy: %s, available energy: %s", estimatedEnergy, availableEnergy);
+    csl("useTronEnergy getEstimateNeedsEnergy", "teal-500", "accountTRXBalance: %o", accountTRXBalance);
 
     const needsEnergy = availableEnergy < estimatedEnergy;
     let estimatedBandwidth = TronBandwidthTransferToken;
@@ -53,8 +54,8 @@ export function useTronEnergy(props?: any) {
     const needsBandwidth = estimatedBandwidth > availableBandwidth;
     const insufficientBandwidth = needsBandwidth && Big(accountTRXBalance || 0).lt(Big(estimatedBandwidth).times(10 ** 3).div(10 ** 6));
 
-    console.log(`Estimated bandwidth: ${estimatedBandwidth}, available bandwidth: ${availableBandwidth}`);
-    console.log(`bandwidth payment required: %o TRX`, Big(needsBandwidthAmount).times(10 ** 3).div(10 ** 6).toString());
+    csl("useTronEnergy getEstimateNeedsEnergy", "teal-500", "Estimated bandwidth: %s, available bandwidth: %s", estimatedBandwidth, availableBandwidth);
+    csl("useTronEnergy getEstimateNeedsEnergy", "teal-500", "bandwidth payment required: %s TRX", Big(needsBandwidthAmount).times(10 ** 3).div(10 ** 6).toString());
 
     return {
       estimatedEnergy,
@@ -81,7 +82,7 @@ export function useTronEnergy(props?: any) {
         const poll = async () => {
           checkTransactionTimer.current && clearTimeout(checkTransactionTimer.current);
           pollCount++;
-          console.log(`Polling transaction status from TronScan (${txHash}), attempt ${pollCount}`);
+          csl("useTronEnergy checkTransactionStatusFromScan", "teal-500", "Polling transaction status from TronScan (%s), attempt %s", txHash, pollCount);
 
           try {
             const response = await axios.get(
@@ -92,10 +93,10 @@ export function useTronEnergy(props?: any) {
 
             // Check if empty object or no data is returned
             if (!data || Object.keys(data).length === 0) {
-              console.log(`Transaction not confirmed (${txHash}), empty object, continue polling...`);
+              csl("useTronEnergy checkTransactionStatusFromScan", "teal-500", "Transaction not confirmed (%s), empty object, continue polling...", txHash);
             } else if (data.confirmed === undefined || data.confirmed === null) {
               // No confirmed field, transaction may not yet be on chain
-              console.log(`Transaction not confirmed (${txHash}), missing confirmed field, continue polling...`);
+              csl("useTronEnergy checkTransactionStatusFromScan", "teal-500", "Transaction not confirmed (%s), missing confirmed field, continue polling...", txHash);
             } else if (data.confirmed === true) {
               // Transaction confirmed, check if successful
               const isSuccess =
@@ -103,7 +104,7 @@ export function useTronEnergy(props?: any) {
                 data.revert === false;
 
               if (isSuccess) {
-                console.log(`Transaction successful (${txHash})`);
+                csl("useTronEnergy checkTransactionStatusFromScan", "teal-500", "Transaction successful (%s)", txHash);
                 resolve({
                   success: true,
                   confirmed: true,
@@ -114,7 +115,7 @@ export function useTronEnergy(props?: any) {
                 return;
               } else {
                 // Transaction confirmed but failed
-                console.log(`Transaction failed (${txHash}), contractRet: ${data.contractRet}, revert: ${data.revert}`);
+                csl("useTronEnergy checkTransactionStatusFromScan", "teal-500", "Transaction failed (%s), contractRet: %s, revert: %s", txHash, data.contractRet, data.revert);
                 resolve({
                   success: false,
                   confirmed: true,
@@ -127,7 +128,7 @@ export function useTronEnergy(props?: any) {
               }
             } else {
               // confirmed === false, transaction not confirmed, continue polling
-              console.log(`Transaction not confirmed (${txHash}), confirmed=false, continue polling...`);
+              csl("useTronEnergy checkTransactionStatusFromScan", "teal-500", "Transaction not confirmed (%s), confirmed=false, continue polling...", txHash);
             }
           } catch (error: any) {
             // If transaction does not exist (still in the process of being packaged), continue polling
@@ -138,16 +139,16 @@ export function useTronEnergy(props?: any) {
             if (statusCode === 404 ||
               errorMessage.includes("not found") ||
               errorMessage.includes("does not exist")) {
-              console.log(`Transaction not yet on chain (${txHash}), continue polling...`);
+              csl("useTronEnergy checkTransactionStatusFromScan", "teal-500", "Transaction not yet on chain (%s), continue polling...", txHash);
             } else {
               // Other errors, log and continue polling
-              console.log(`Error querying transaction status from TronScan (${txHash}):`, errorMessage);
+              csl("useTronEnergy checkTransactionStatusFromScan", "red-500", "Error querying transaction status from TronScan (%s): %s", txHash, errorMessage);
             }
           }
 
           // Check if maximum polling attempts have been reached
           if (pollCount >= maxPolls) {
-            console.log(`Polling timed out (${txHash}), maximum polling attempts reached: ${maxPolls}`);
+            csl("useTronEnergy checkTransactionStatusFromScan", "red-500", "Polling timed out (%s), maximum polling attempts reached: %s", txHash, maxPolls);
             resolve({
               success: false,
               confirmed: false,
@@ -181,7 +182,7 @@ export function useTronEnergy(props?: any) {
         pollingTimer.current && clearTimeout(pollingTimer.current);
         currentPollCount++;
         setPollCount(currentPollCount);
-        console.log("Polling energy result for order: %s, count: %d", orderId, currentPollCount);
+        csl("useTronEnergy pollEnergyResult", "teal-500", "Polling energy result for order: %s, count: %d", orderId, currentPollCount);
 
         try {
           const result = await energyService.getEnergyStatus({ orderId });
@@ -227,7 +228,7 @@ export function useTronEnergy(props?: any) {
     const rentalFee = TRON_RENTAL_FEE.Normal;
 
     // 1. First, pay the energy rental fee
-    console.log("1. Start paying energy rental fee... %o", rentalFee);
+    csl("useTronEnergy getEnergy", "teal-500", "1. Start paying energy rental fee... %o", rentalFee);
 
     if (rentalFee > 0) {
       const transferResult = await params.wallet.transfer({
@@ -236,7 +237,7 @@ export function useTronEnergy(props?: any) {
         amount: rentalFee.toString(),
       });
       // const transferResult = "3343cf067ed0f06eaf2a34b701ad6a24582bca4e14da970d762c7fb3340a72b8";
-      console.log("Energy rental fee transfer sent, TXID: %o", transferResult);
+      csl("useTronEnergy getEnergy", "teal-500", "Energy rental fee transfer sent, TXID: %o", transferResult);
 
       if (!transferResult) {
         throw new Error("Failed to pay rental fee, please try again later");
@@ -244,7 +245,7 @@ export function useTronEnergy(props?: any) {
       report?.();
 
       // 2. Poll for transfer result
-      console.log("2. Start polling for transfer result...");
+      csl("useTronEnergy getEnergy", "teal-500", "2. Start polling for transfer result...");
 
       setTronTransferStep(TronTransferStepStatus.EnergyPaying);
       const transferTRXResult = await checkTransactionStatusFromScan(transferResult, {
@@ -261,7 +262,7 @@ export function useTronEnergy(props?: any) {
       }
     }
 
-    console.log("%cEnergy rental fee payment successful", "background:green;color:white;");
+    csl("useTronEnergy getEnergy", "green-500", "Energy rental fee payment successful");
 
     // 3. After completion, place an order for rental energy
     setTronTransferStep(TronTransferStepStatus.EnergyRequest);

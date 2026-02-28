@@ -1,6 +1,7 @@
 import { BASE_API_URL } from "@/config/api";
 import chains from "@/config/chains";
 import { stablecoinLogoMap } from "@/config/tokens";
+import { TradeProjectMap } from "@/config/trade";
 import { useHistoryStore } from "@/stores/use-history";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn, useRequest } from "ahooks";
@@ -51,6 +52,8 @@ export function usePendingHistory(history?: any) {
         return;
       }
 
+      const servicePendingNumber: any = {};
+
       const _list = response.data.data.data;
       _list.forEach((item: any) => {
         item.token_icon = stablecoinLogoMap[item.symbol];
@@ -68,6 +71,15 @@ export function usePendingHistory(history?: any) {
         if (item.to_chain === "tron") {
           item.to_tx_hash = item.to_tx_hash?.replace(/^0x/, "");
         }
+
+        if (TradeProjectMap[item.project]) {
+          const _service = TradeProjectMap[item.project].service;
+          if (servicePendingNumber[_service]) {
+            servicePendingNumber[_service] = servicePendingNumber[_service] + 1;
+          } else {
+            servicePendingNumber[_service] = 1;
+          }
+        }
       });
 
       setList((prev: any) => {
@@ -78,6 +90,7 @@ export function usePendingHistory(history?: any) {
           });
         }
         historyStore.updatePendingNumber(_list.length);
+        historyStore.updateServicePendingNumber({ services: servicePendingNumber });
         return _list;
       });
       setPage((prev: any) => {
@@ -109,6 +122,7 @@ export function usePendingHistory(history?: any) {
     if (!accounts || accounts.length === 0) {
       setList([]);
       historyStore.updatePendingNumber(0);
+      historyStore.updateServicePendingNumber({ isClear: true });
       setPage(() => {
         return {
           current: 1,

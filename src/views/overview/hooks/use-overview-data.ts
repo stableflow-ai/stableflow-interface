@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRequest } from "ahooks";
 import { DB3_API_URL } from "@/config/api";
+import { csl } from "@/utils/log";
 
 interface DashboardData {
   symbol: string;
@@ -93,7 +94,7 @@ export default function useOverviewData(
     try {
       const res = await axios.get(`${DB3_API_URL}/stableflow/dashboard/chain?symbol=${selectedToken}`);
       if (res.status !== 200 || res.data?.code !== 200) {
-        console.log("get /stableflow/dashboard/chain failed: %o", res);
+        csl("useOverviewData getChainData", "red-500", "get /stableflow/dashboard/chain failed: %o", res);
         return;
       }
       const _list = res.data.data || [];
@@ -111,7 +112,7 @@ export default function useOverviewData(
         links: _links,
       };
     } catch (error) {
-      console.log("get /stableflow/dashboard/chain failed: %o", error);
+      csl("useOverviewData getChainData", "red-500", "get /stableflow/dashboard/chain failed: %o", error);
     }
   }, {
     refreshDeps: [selectedToken],

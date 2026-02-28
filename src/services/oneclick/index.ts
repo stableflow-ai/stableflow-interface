@@ -7,6 +7,7 @@ import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
+import { csl } from "@/utils/log";
 
 export const BridgeFee = [
   {
@@ -53,8 +54,16 @@ class OneClickService {
       res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
       res.data.outputAmount = numberRemoveEndZero(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
       let priceImpact = Big(0);
+      let _amountInUsd = res.data?.quote?.amountInUsd || 0;
+      let _amountOutUsd = res.data?.quote?.amountOutUsd || 0;
+      if (isExactOutput) {
+        res.data.quote.amountInFormatted = numberRemoveEndZero(Big(res.data?.quote?.minAmountIn || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, Big.roundUp));
+        // Since 1click does not return minAmountInUsd, we calculate it using our own price
+        _amountInUsd = Big(res.data.quote.amountInFormatted).times(getPrice(params.prices, params.fromToken.symbol));
+        _amountOutUsd = Big(res.data?.quote?.amountOutFormatted || 0).times(getPrice(params.prices, params.toToken.symbol));
+      }
       try {
-        priceImpact = Big(Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0)).div(res.data?.quote?.amountInUsd || 1);
+        priceImpact = Big(Big(_amountInUsd).minus(_amountOutUsd)).div(_amountInUsd || 1);
         if (Big(priceImpact).lt(0)) {
           priceImpact = Big(0);
         }
@@ -66,7 +75,7 @@ class OneClickService {
         //   return acc.plus(Big(item.fee).div(100));
         // }, Big(0)).toFixed(2) + "%";
         // const netFee = Big(params.amount).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
-        const netFee = Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0);
+        const netFee = Big(_amountInUsd).minus(_amountOutUsd);
         const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
           return acc.plus(
             Big(params.amount)
@@ -107,7 +116,7 @@ class OneClickService {
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
           res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
         } catch (err) {
-          // console.log("oneclick estimate gas failed: %o", err);
+          // csl("OneClickService formatQuoteData", "red-500", "oneclick estimate gas failed: %o", err);
         }
 
         // calculate total fees
@@ -120,7 +129,7 @@ class OneClickService {
         res.data.totalFeesUsd = numberRemoveEndZero(Big(res.data.totalFeesUsd).toFixed(20));
 
       } catch (error) {
-        console.log("oneclick estimate failed: %o", error);
+        csl("OneClickService formatQuoteData", "red-500", "oneclick estimate failed: %o", error);
       }
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
@@ -132,7 +141,7 @@ class OneClickService {
           fromToken: params.fromToken,
           refundTo: params.refundTo,
           recipient: params.recipient,
-          amountWei: isExactOutput ? res.data?.quote?.amountIn : params.amount,
+          amountWei: isExactOutput ? res.data?.quote?.minAmountIn : params.amount,
           prices: params.prices,
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };
@@ -161,7 +170,7 @@ class OneClickService {
           const transferSourceGasFeeUsd = Big(proxyResult.estimateSourceGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
         } catch (error) {
-          console.log("oneclick quote proxy failed: %o", error);
+          csl("OneClickService formatQuoteData", "red-500", "oneclick quote proxy failed: %o", error);
         }
       }
 

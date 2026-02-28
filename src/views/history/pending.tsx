@@ -12,6 +12,7 @@ import useToast from "@/hooks/use-toast";
 import { useAccount, useSwitchChain } from "wagmi";
 import { arbitrum } from "viem/chains";
 import Loading from "@/components/loading/icon";
+import { csl } from "@/utils/log";
 
 export default function Pending(props: any) {
   const { className, isTitle = true, contentClassName, history } = props;
@@ -153,7 +154,7 @@ const PendingItem = ({ className, data, layerzeroData, wallets, toast, evmAccoun
         });
       }
     } catch (error: any) {
-      console.log("retry layerzero lz compose failed: %o", error);
+      csl("PendingItem handleRetry", "red-500", "retry layerzero lz compose failed: %o", error);
       let errorMessage = error.message;
       if (errorMessage.includes("user rejected action")) {
         errorMessage = "User rejected transaction";
