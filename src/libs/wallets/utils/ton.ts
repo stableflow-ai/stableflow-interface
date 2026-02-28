@@ -1,3 +1,100 @@
+import { csl } from "@/utils/log";
+import { Address, beginCell, Cell } from "@ton/ton";
+
+const TONCENTER_API = "https://toncenter.com/api/v3";
+
+export interface PollTransactionByBocOptions {
+  maxPollCount?: number;
+  pollInterval?: number;
+}
+
+export interface PollTransactionByBocResult {
+  hexHash: string;
+  txHash: string;
+  transaction: Record<string, unknown>;
+}
+
+/**
+ * Poll TON transaction by boc, returns tx hash when confirmed on-chain
+ * @param boc base64-encoded boc
+ * @param options maxPollCount - max poll attempts, pollInterval - interval in ms
+ * @returns hex hash and raw transaction data
+ */
+export async function pollTransactionByBoc(
+  boc: string,
+  options: PollTransactionByBocOptions = {}
+): Promise<PollTransactionByBocResult> {
+  const { maxPollCount = 60, pollInterval = 3000 } = options;
+
+  const bocCell = Cell.fromBoc(Buffer.from(boc, "base64"))[0];
+  const messageHash = bocCell.hash().toString("hex");
+  const url = `${TONCENTER_API}/transactionsByMessage?msg_hash=${messageHash}&direction=in&limit=1`;
+
+  for (let i = 0; i < maxPollCount; i++) {
+    csl("TON pollTransactionByBoc", "rose-600", "polling transaction status (%s), %d times", messageHash, i + 1);
+    const response = await fetch(url);
+    const data = (await response.json()) as { transactions?: Array<{ hash: string }> };
+    csl("TON pollTransactionByBoc", "rose-600", "polling transaction response: %o", data);
+
+    if (data.transactions && data.transactions.length > 0) {
+      const txHash = data.transactions[0].hash;
+      const hexHash = Buffer.from(txHash, "base64").toString("hex");
+      return {
+        hexHash,
+        txHash,
+        transaction: data.transactions[0] as Record<string, unknown>,
+      };
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+  }
+
+  throw new Error(
+    "Query timeout, transaction hash not found. Please check if the wallet transaction was successful."
+  );
+}
+
+export const buildJettonWalletTransferBody = (params: {
+  memo?: string;
+  amount: string;
+  recipient: string;
+  refundTo: string;
+  forwardTonAmount?: bigint;
+  forwardPayload?: Cell;
+}) => {
+  const {
+    memo,
+    amount,
+    recipient,
+    refundTo,
+    forwardTonAmount,
+    forwardPayload,
+  } = params;
+
+  let _forwardPayload = forwardPayload;
+  if (!_forwardPayload) {
+    _forwardPayload = beginCell().endCell(); // empty payload reference
+    if (memo) {
+      _forwardPayload = beginCell()
+        .storeUint(0, 32) // op code for comment
+        .storeStringTail(memo) // memo text
+        .endCell();
+    }
+  }
+
+  return beginCell()
+    .storeUint(0x0f8a7ea5, 32) // Jetton transfer op code
+    .storeUint(0, 64) // query_id
+    .storeCoins(BigInt(amount)) // Jetton amount (VarUInteger 16)
+    .storeAddress(Address.parse(recipient)) // destination
+    .storeAddress(Address.parse(refundTo)) // response_destination
+    .storeBit(0) // custom_payload:(Maybe ^Cell)
+    .storeCoins(forwardTonAmount ?? 0n) // forward_ton_amount (VarUInteger 16) - if >0, will send notification message
+    .storeBit(1) // forward_payload:(Either Cell ^Cell) - as a reference
+    .storeRef(_forwardPayload)
+    .endCell();
+};
+
 export const tonObjects = {
   OApp: {
     name: 'oAppStore',

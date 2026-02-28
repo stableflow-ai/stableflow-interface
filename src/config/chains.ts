@@ -300,7 +300,7 @@ const chains = {
     chainIcon: "/chains/ton.png",
     chainIconGray: "/chains/ton-gray.png",
     chainType: chainTypes.ton.value,
-    blockExplorerUrl: "https://tonscan.org/tx/",
+    blockExplorerUrl: "https://tonviewer.com/transaction/",
     primaryColor: "#0098EA",
     nativeToken: {
       symbol: "TON",
