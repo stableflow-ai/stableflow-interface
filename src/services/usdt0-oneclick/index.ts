@@ -80,6 +80,7 @@ class Usdt0OneClickService {
       estimateTime: usdt0Result.estimateTime + oneClickResult.estimateTime,
       outputAmount: oneClickResult.outputAmount,
       priceImpact: oneClickResult.priceImpact,
+      exchangeRate: oneClickResult.exchangeRate,
       quoteParam: {
         ...usdt0Result.quoteParam,
         toToken: params.toToken,
