@@ -1,3 +1,4 @@
+import { csl } from "@/utils/log";
 import { useEffect, useState } from "react";
 
 /**
@@ -28,7 +29,7 @@ export default function ZendeskWidget() {
       return;
     }
 
-    console.log("Loading Zendesk Widget...");
+    csl("Zendesk Widget", "gray-900", "Loading Zendesk Widget...");
 
     // @ts-ignore Doesn't work
     window.zESettings = {
@@ -49,10 +50,10 @@ export default function ZendeskWidget() {
 
     // Optional: Customize Widget settings
     script.onload = () => {
-      console.log("Zendesk Widget script loaded successfully");
+      csl("Zendesk Widget", "gray-900", "Zendesk Widget script loaded successfully");
       if (window.zE) {
         setMounted(true);
-        console.log("Zendesk API available");
+        csl("Zendesk Widget", "gray-900", "Zendesk API available");
 
         // Customize button color (optional)
         window.zE("webWidget", "updateSettings", {

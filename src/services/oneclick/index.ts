@@ -7,6 +7,7 @@ import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
+import { csl } from "@/utils/log";
 
 export const BridgeFee = [
   {
@@ -115,7 +116,7 @@ class OneClickService {
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
           res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
         } catch (err) {
-          // console.log("oneclick estimate gas failed: %o", err);
+          // csl("OneClickService formatQuoteData", "red-500", "oneclick estimate gas failed: %o", err);
         }
 
         // calculate total fees
@@ -128,7 +129,7 @@ class OneClickService {
         res.data.totalFeesUsd = numberRemoveEndZero(Big(res.data.totalFeesUsd).toFixed(20));
 
       } catch (error) {
-        console.log("oneclick estimate failed: %o", error);
+        csl("OneClickService formatQuoteData", "red-500", "oneclick estimate failed: %o", error);
       }
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
@@ -169,7 +170,7 @@ class OneClickService {
           const transferSourceGasFeeUsd = Big(proxyResult.estimateSourceGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
         } catch (error) {
-          console.log("oneclick quote proxy failed: %o", error);
+          csl("OneClickService formatQuoteData", "red-500", "oneclick quote proxy failed: %o", error);
         }
       }
 

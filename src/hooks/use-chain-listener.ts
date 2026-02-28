@@ -1,3 +1,4 @@
+import { csl } from "@/utils/log";
 import { useEffect } from "react";
 import { useChainId, useAccount } from "wagmi";
 
@@ -8,13 +9,13 @@ export function useChainListener() {
   useEffect(() => {
     // Listen for chain changes
     const handleChainChange = (event: CustomEvent) => {
-      console.log("Chain changed:", event.detail);
+      csl("useChainListener", "gray-400", "Chain changed: %o", event.detail);
       // Add your chain change logic here
     };
 
     // Listen for account changes
     const handleAccountChange = (event: CustomEvent) => {
-      console.log("Account changed:", event.detail);
+      csl("useChainListener", "gray-400", "Account changed: %o", event.detail);
       // Add your account change logic here
     };
 

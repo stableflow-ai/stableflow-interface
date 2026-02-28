@@ -8,6 +8,7 @@ import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "./config";
 import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { BridgeDefaultWallets } from "@/config";
+import { csl } from "@/utils/log";
 
 class Usdt0OneClickService {
   public async quote(params: any) {
@@ -52,8 +53,8 @@ class Usdt0OneClickService {
 
     const usdt0Result = await usdt0Service.quote(usdt0Params);
 
-    console.log("oneClickResult: %o", oneClickResult);
-    console.log("usdt0Result: %o", usdt0Result);
+    csl("Usdt0OneClickService quote", "rose-600", "oneClickResult: %o", oneClickResult);
+    csl("Usdt0OneClickService quote", "rose-600", "usdt0Result: %o", usdt0Result);
 
     let totalFeesUsd = Big(0);
     const fees = {

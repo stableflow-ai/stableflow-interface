@@ -8,6 +8,7 @@ import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { BridgeDefaultWallets } from "@/config";
 import { getPrice } from "@/utils/format/price";
+import { csl } from "@/utils/log";
 
 class OneClickUsdt0Service {
   public async quote(params: any) {
@@ -64,9 +65,9 @@ class OneClickUsdt0Service {
       .times(10000)
       .toFixed(0, Big.roundUp);
 
-    console.log("usdt0MessageFeeAmount: %o", usdt0MessageFeeAmount);
-    console.log("amount: %o", Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
-    console.log("oneClickFeeRatio: %o", oneClickFeeRatio);
+    csl("OneClickUsdt0Service quote", "rose-400", "usdt0MessageFeeAmount: %o", usdt0MessageFeeAmount);
+    csl("OneClickUsdt0Service quote", "rose-400", "amount: %o", Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
+    csl("OneClickUsdt0Service quote", "rose-400", "oneClickFeeRatio: %o", oneClickFeeRatio);
 
     if (Big(oneClickFeeRatio).gt(10000)) {
       return { errMsg: `Amount is too low, at least ${usdt0MessageFeeAmount}` };

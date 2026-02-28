@@ -1,3 +1,4 @@
+import { csl } from "@/utils/log";
 import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 import { useDebounceFn } from "ahooks";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -46,7 +47,7 @@ const OKXConnectProvider = (props: any) => {
         // redirect: "https://next-rainbowkit-demo.vercel.app"
       }
     });
-    console.log("connected session: %o", session);
+    csl("OKXConnect", "green-400", "connected session: %o", session);
     setUpdated((prev) => prev + 1);
   };
 
