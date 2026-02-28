@@ -19,6 +19,7 @@ import { useState } from "react";
 import { formatNumber } from "@/utils/format/number";
 import { formatAddress } from "@/utils/format/address";
 import Skeleton from "@/components/skeleton";
+import { csl } from "@/utils/log";
 
 const ContinueTransfer = (props: any) => {
   const { history, reload } = props;
@@ -115,7 +116,7 @@ const ContinueTransfer = (props: any) => {
         const nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
         const nativeTokenName = fromToken.nativeToken.symbol;
 
-        console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
+        csl("ContinueTransfer handleContinue", "teal-400", "estimate %s balance. Required: %s %s, Available: %s %s", nativeTokenName, estimateGas, nativeTokenName, nativeBalance, nativeTokenName);
 
         if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
           throw new Error(`Insufficient ${nativeTokenName} balance: You need at least ${TRON_RENTAL_FEE.Normal} ${nativeTokenName} to continue this transaction`);
@@ -188,7 +189,7 @@ const ContinueTransfer = (props: any) => {
           ...reportData,
         });
       } catch (error) {
-        console.log("report failed: %o", error);
+        csl("ContinueTransfer handleContinue", "red-500", "report failed: %o", error);
       }
 
       toast.success({

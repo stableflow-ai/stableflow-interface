@@ -31,6 +31,7 @@ import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-
 import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { ethers } from "ethers";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
+import { csl } from "@/utils/log";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -263,12 +264,10 @@ export default class SolanaWallet {
             return false;
           }
         } else {
-          console.log(
-            `polling attempt ${attempt}/${maxAttempts}: transaction not confirmed...`
-          );
+          csl("Solana checkTransactionStatus", "purple-400", "polling attempt %d/%d: transaction not confirmed...", attempt, maxAttempts);
         }
       } catch (error: any) {
-        console.log("checkTransactionStatus failed:", error.message);
+        csl("Solana checkTransactionStatus", "red-500", "checkTransactionStatus failed: %o", error.message);
       }
 
       await new Promise((resolve) => {
@@ -279,7 +278,7 @@ export default class SolanaWallet {
       });
     }
 
-    console.log("checkTransactionStatus failed: timeout");
+    csl("Solana checkTransactionStatus", "red-500", "checkTransactionStatus failed: timeout");
     return false;
   }
 
@@ -301,7 +300,7 @@ export default class SolanaWallet {
 
     if (sim.value.err) console.error("Error:", sim.value.err);
 
-    console.log("sim: %o", sim);
+    csl("Solana simulateIx", "purple-400", "sim: %o", sim);
 
     return sim.value;
   }
@@ -559,7 +558,7 @@ export default class SolanaWallet {
           replaceRecentBlockhash: true,
         });
 
-        // console.log("sendSim: %o", JSON.stringify(sendSim));
+        csl("Solana quoteOFT", "purple-400", "sendSim: %o", JSON.stringify(sendSim));
 
         // Even if simulation fails (e.g., insufficient funds), we can still get the fee estimate
         if (!sendSim.value.err) {
@@ -609,7 +608,7 @@ export default class SolanaWallet {
 
       return result;
     } catch (error: any) {
-      console.log("quoteOFT failed: %o", error);
+      csl("Solana quoteOFT", "red-500", "quoteOFT failed: %o", error);
       return { errMsg: error.message };
     }
   }
@@ -637,7 +636,7 @@ export default class SolanaWallet {
       }
     );
 
-    console.log("Transaction sent with signature:", signature);
+    csl("Solana sendTransaction", "green-400", "Transaction sent with signature: %o", signature);
 
     // Confirm the transaction
     const confirmation = await this.connection.confirmTransaction(
@@ -790,7 +789,7 @@ export default class SolanaWallet {
 
       return result;
     } catch (error: any) {
-      console.log("error: %o", error);
+      csl("Solana quoteOneClickProxy", "red-500", "error: %o", error);
       return result;
     }
   }
@@ -850,7 +849,7 @@ export default class SolanaWallet {
         }
       } catch (error) {
         // If UserState doesn't exist, nonce is 0
-        console.log("UserState not found, using nonce 0");
+        csl("Solana quoteCCTP", "red-500", "UserState not found, using nonce 0");
       }
 
       // Get user's token account (ATA)
@@ -893,9 +892,9 @@ export default class SolanaWallet {
       const operatorTx = Transaction.from(Buffer.from(signature, 'base64'));
 
       if (!operatorTx.verifySignatures(false)) {
-        console.log('❌ Signature verification failed');
+        csl("Solana quoteCCTP", "red-500", "Signature verification failed");
       } else {
-        // console.log('✅ Signature verification success');
+        csl("Solana quoteCCTP", "purple-400", "Signature verification success");
       }
 
       // Simulate entire transaction (including account creation if needed) to estimate fees
@@ -904,7 +903,7 @@ export default class SolanaWallet {
       const simulation = await this.connection.simulateTransaction(versionedTx, {
         sigVerify: false
       });
-      // console.log("depositWithFee simulation: %o", JSON.stringify(simulation.value));
+      csl("Solana quoteCCTP", "purple-400", "depositWithFee simulation: %o", JSON.stringify(simulation.value));
 
       // Estimate gas cost (Solana fees are typically fixed, but we can use simulation)
       // @ts-ignore Solana base fee is 5000 lamports per signature
@@ -931,7 +930,7 @@ export default class SolanaWallet {
 
       return result;
     } catch (error: any) {
-      console.log("quoteCCTP failed: %o", error);
+      csl("Solana quoteCCTP", "red-500", "quoteCCTP failed: %o", error);
       return { errMsg: error.message };
     }
   }
@@ -949,7 +948,7 @@ export default class SolanaWallet {
     const mint = new PublicKey(tokenMint);
     const associatedTokenAccount = getAssociatedTokenAddressSync(mint, ownerPubkey);
 
-    console.log("associatedTokenAccount: %o", associatedTokenAccount);
+    csl("Solana createAssociatedTokenAddress", "purple-400", "associatedTokenAccount: %o", associatedTokenAccount);
 
     const createTokenAccount = async () => {
       const transaction = new Transaction();
@@ -980,10 +979,10 @@ export default class SolanaWallet {
 
     try {
       const accountRes = await getAccount(this.connection, associatedTokenAccount);
-      console.log("associatedTokenAccount account: %o", accountRes);
+      csl("Solana createAssociatedTokenAddress", "purple-400", "associatedTokenAccount account: %o", accountRes);
       return associatedTokenAccount;
     } catch (error) {
-      console.log("get ata failed: %o", error);
+      csl("Solana createAssociatedTokenAddress", "red-500", "get ata failed: %o", error);
     }
 
     return createTokenAccount();

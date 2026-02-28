@@ -8,6 +8,7 @@ import MainTitle from "@/components/main-title";
 import guide from "../../../DEVELOPER_GUIDE.md?raw";
 import { ApplayAPIAccess } from "./config";
 import { useDebounceFn } from "ahooks";
+import { csl } from "@/utils/log";
 
 // Normalize certain markdown quirks before rendering
 function preprocessMarkdown(md: string): string {
@@ -46,7 +47,7 @@ renderer.link = ({ href, text }: { href: string; text: string }) => {
 
   // Check if this is a badge link (contains img.shields.io or similar badge services)
   if (href.includes('img.shields.io') || href.includes('badge') || text.includes('Apply for API Access')) {
-    console.log('Badge link detected:', { href, text });
+    csl("DeveloperDocs renderer.link", "sky-500", "Badge link detected: %o", { href, text });
     return `<a href="${href}" onclick="event.preventDefault(); window.open('${href}', '_blank', 'noopener,noreferrer');" class="md-btn">${text}</a>`;
   }
 

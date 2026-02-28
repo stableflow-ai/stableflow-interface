@@ -2,6 +2,7 @@ import { getChainRpcUrl } from "@/config/chains";
 import { ethers } from "ethers";
 import { USDT0_CONFIG } from "./config";
 import { OFT_ABI } from "./contract";
+import { csl } from "@/utils/log";
 
 export const getHopMsgFee = async (params: any) => {
   const {
@@ -30,7 +31,7 @@ export const getHopMsgFee = async (params: any) => {
 
     return nativeFee * 100n / 100n;
   } catch (error) {
-    console.log("getHopMsgFee failed: %o", error);
+    csl("getHopMsgFee", "red-500", "getHopMsgFee failed: %o", error);
     throw new Error("Quote multi hop message fee failed");
   }
 };

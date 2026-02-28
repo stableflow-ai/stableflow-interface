@@ -12,6 +12,7 @@ import { Service } from "@/services/constants";
 import { DATA_HEX_PROTOBUF_EXTRA, LZ_RECEIVE_VALUE, SIGNATURE_SIZE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
+import { csl } from "@/utils/log";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -37,7 +38,6 @@ export default class TronWallet {
     return new Promise((resolve) => {
       if (this.tronWeb) {
         const address = this.tronWeb.defaultAddress.base58 || DefaultTronWalletAddress;
-        // console.log("%cCustomTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
         customTronWeb.setAddress(address);
         this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
@@ -48,7 +48,6 @@ export default class TronWallet {
         if ((window as any).tronWeb) {
           this.tronWeb = (window as any).tronWeb;
           const address = this.tronWeb.defaultAddress.base58 || DefaultTronWalletAddress;
-          // console.log("%cCheckTronWeb customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", address);
           customTronWeb.setAddress(address);
           this.tronWeb = customTronWeb;
           resolve(this.tronWeb);
@@ -61,10 +60,9 @@ export default class TronWallet {
 
       setTimeout(() => {
         customTronWeb.setAddress(DefaultTronWalletAddress);
-        // console.log("%cCheck timeout customTronWeb set address is: %o", "background:#423c27;color:#fdf4aa;", DefaultTronWalletAddress);
         this.tronWeb = customTronWeb;
         resolve(this.tronWeb);
-        console.log(new Error("TronWeb initialization timeout"));
+        csl("TronWallet waitForTronWeb", "red-500", "TronWeb initialization timeout");
       }, 10000);
     });
   }
@@ -234,11 +232,11 @@ export default class TronWallet {
     return new Promise((resolve) => {
       const poll = async () => {
         pollCount++;
-        console.log(`polling transaction status (${txHash}), ${pollCount} times`);
+        csl("TronWallet pollingTransactionStatus", "teal-400", "polling transaction status (%s), %d times", txHash, pollCount);
 
         try {
           const txInfo = await this.tronWeb.trx.getTransactionInfo(txHash);
-          console.log(`transaction info (${txHash}): %o`, txInfo);
+          csl("TronWallet pollingTransactionStatus", "teal-400", "transaction info (%s): %o", txHash, txInfo);
 
           // if the transaction info exists and has receipt, the transaction has been on-chain
           if (txInfo && txInfo.receipt) {
@@ -250,20 +248,20 @@ export default class TronWallet {
             const result = txInfo.receipt.result;
 
             if (result === "SUCCESS") {
-              console.log(`transaction success (${txHash})`);
+              csl("TronWallet pollingTransactionStatus", "teal-400", "transaction success (%s)", txHash);
               resolve(true);
               return;
             } else if (result === "FAILED" || result === "REVERT") {
-              console.log(`transaction failed (${txHash}), result: ${result}`);
+              csl("TronWallet pollingTransactionStatus", "red-500", "transaction failed (%s), result: %s", txHash, result);
               resolve(false);
               return;
             } else {
               // other status, continue polling
-              console.log(`unknown transaction status (${txHash}), result: ${result}, continue polling...`);
+              csl("TronWallet pollingTransactionStatus", "teal-400", "unknown transaction status (%s), result: %s, continue polling...", txHash, result);
             }
           } else {
             // transaction info exists but no receipt, maybe still being packed, continue polling
-            console.log(`transaction not confirmed (${txHash}), continue polling...`);
+            csl("TronWallet pollingTransactionStatus", "teal-400", "transaction not confirmed (%s), continue polling...", txHash);
           }
         } catch (error: any) {
           // if the transaction does not exist (maybe still being packed), continue polling
@@ -274,7 +272,7 @@ export default class TronWallet {
             errorMessage.includes("does not exist") ||
             errorMessage.includes("not exist")
           ) {
-            console.log(`transaction not on-chain (${txHash}), continue polling...`);
+            csl("TronWallet pollingTransactionStatus", "teal-400", "transaction not on-chain (%s), continue polling...", txHash);
           } else {
             // other error, log but continue polling
             console.warn(`query transaction status error (${txHash}): %o`, errorMessage);
@@ -344,7 +342,7 @@ export default class TronWallet {
         const allowanceResult = await contract.allowance(address, spender).call();
         allowance = allowanceResult.toString();
       } catch (error) {
-        console.log("Error getting allowance: %o", error);
+        csl("TronWallet allowance", "red-500", "Error getting allowance: %o", error);
       }
 
       return {
@@ -353,7 +351,7 @@ export default class TronWallet {
         needApprove: Big(amountWei || 0).gt(allowance || 0),
       };
     } catch (error) {
-      console.log("Error in allowance: %o", error);
+      csl("TronWallet allowance", "red-500", "Error in allowance: %o", error);
       // Return default values on error
       return {
         contract: null,
@@ -403,7 +401,7 @@ export default class TronWallet {
 
       return result.txid;
     } catch (error) {
-      console.log("Error approve: %o", error);
+      csl("TronWallet approve", "red-500", "Error approve: %o", error);
       return false;
     }
   }
@@ -414,7 +412,7 @@ export default class TronWallet {
     // try {
     //   const params = await this.tronWeb.trx.getChainParameters();
     //   energyFee = params.find((p: any) => p.key === "getEnergyFee")?.value || 280;
-    //   console.log('Energy Fee:', energyFee, 'Sun/Energy');
+    //   csl("TronWallet getEnergyPrice", "teal-400", "Energy Fee: %d Sun/Energy", energyFee);
     // } catch (err) {
     //   console.error("Error getting energy price:", err);
     // }
@@ -473,7 +471,7 @@ export default class TronWallet {
     // 1. check if need approve
     const approvalRequired = await oftContract.approvalRequired().call();
     // check approve status
-    // console.log("%cApprovalRequired: %o", "background:blue;color:white;", result.needApprove);
+    csl("TronWallet quoteOFT", "teal-400", "ApprovalRequired: %o", result.needApprove);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -490,7 +488,7 @@ export default class TronWallet {
         });
         result.needApprove = allowanceResult.needApprove;
       } catch (error) {
-        console.log("Error checking allowance: %o", error);
+        csl("TronWallet quoteOFT", "red-500", "Error checking allowance: %o", error);
       }
     }
 
@@ -576,7 +574,7 @@ export default class TronWallet {
     }
     result.estimateSourceGas = nativeMsgFee;
 
-    // console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+    csl("TronWallet quoteOFT", "teal-400", "MsgFee: %o", msgFee);
 
     result.sendParam = {
       param: [
@@ -595,7 +593,7 @@ export default class TronWallet {
       options: { callValue: nativeMsgFee.toString() },
     };
 
-    // console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
+    csl("TronWallet quoteOFT", "teal-400", "Params: %o", result.sendParam);
 
     // 3. estimate gas
     const nativeFeeUsd = Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
@@ -682,7 +680,7 @@ export default class TronWallet {
 
     console.log("%cTron send transaction result: %o, %s", "background:#f00;color:#fff;", result, result);
     if (typeof result === "object" && result.message) {
-      console.log("%cTron send transaction message: %o", "background:#f00;color:#fff;", result.message);
+      csl("TronWallet sendTransaction", "red-500", "Tron send transaction message: %o", result.message);
       if (/user rejected the transaction/i.test(result.message)) {
         throw new Error("User rejected the transaction");
       }
@@ -753,7 +751,7 @@ export default class TronWallet {
       result.needApprove = allowance.needApprove;
       result.approveSpender = proxyAddress;
     } catch (error) {
-      console.log("oneclick check allowance failed: %o", error);
+      csl("TronWallet quoteOneClickProxy", "red-500", "oneclick check allowance failed: %o", error);
     }
 
     const proxyParam: any = [
@@ -847,7 +845,7 @@ export default class TronWallet {
       try {
         if (this.tronWeb.trx.getAccountResources) {
           const resources: any = await this.tronWeb.trx.getAccountResources(account);
-          console.log("resources: %o", resources);
+          csl("TronWallet getAccountResources", "teal-400", "resources: %o", resources);
           if (resources) {
             // Get available energy (EnergyLimit - EnergyUsed)
             availableEnergy = (resources.EnergyLimit || 0) - (resources.EnergyUsed || 0);

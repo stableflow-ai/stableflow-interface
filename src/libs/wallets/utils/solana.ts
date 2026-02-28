@@ -1,4 +1,5 @@
 import { getChainRpcUrl } from "@/config/chains";
+import { csl } from "@/utils/log";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Connection, PublicKey } from "@solana/web3.js";
 
@@ -26,7 +27,7 @@ export const getDestinationAssociatedTokenAddress = async (params: any) => {
 
     const accountInfo = await connection.getAccountInfo(ata);
 
-    console.log("accountInfo: %o", accountInfo);
+    csl("getDestinationAssociatedTokenAddress", "purple-400", "accountInfo: %o", accountInfo);
 
     if (!accountInfo) {
       result.needCreateTokenAccount = true;
@@ -35,7 +36,7 @@ export const getDestinationAssociatedTokenAddress = async (params: any) => {
 
     result.associatedTokenAddress = ata.toBase58();
   } catch (error) {
-    console.log("getDestinationAssociatedTokenAddress failed: %o", error);
+    csl("getDestinationAssociatedTokenAddress", "red-500", "getDestinationAssociatedTokenAddress failed: %o", error);
   }
 
   return result;

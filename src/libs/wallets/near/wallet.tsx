@@ -4,6 +4,7 @@ import { getPrice } from "@/utils/format/price";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "../types";
 import { Service } from "@/services/constants";
+import { csl } from "@/utils/log";
 
 export default class NearWallet {
   private selector: any;
@@ -226,10 +227,10 @@ export default class NearWallet {
         })
       });
       const txStatus = await response.json();
-      console.log("fetch rpc success: %o", txStatus);
-      console.log("fetch rpc status success: %o", typeof txStatus.result?.status?.SuccessValue !== "undefined");
+      csl("Near checkTransactionStatus", "green-400", "fetch rpc success: %o", txStatus);
+      csl("Near checkTransactionStatus", "green-400", "fetch rpc status success: %o", typeof txStatus.result?.status?.SuccessValue !== "undefined");
     } catch (error) {
-      console.log("fetch rpc failed: %o", error);
+      csl("Near checkTransactionStatus", "red-500", "fetch rpc failed: %o", error);
     }
   }
 
@@ -375,7 +376,7 @@ export default class NearWallet {
       };
 
     } catch (error) {
-      console.log("oneclick quote proxy failed: %o", error);
+      csl("Near quoteOneClickProxy", "red-500", "oneclick quote proxy failed: %o", error);
       // Use default gas estimation
       const defaultGasLimit = BigInt("80000000000000"); // default gas limit
       const gasPrice = BigInt("100000000");

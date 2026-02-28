@@ -27,6 +27,7 @@ import { BridgeFee } from "@/services/oneclick";
 import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
+import { csl } from "@/utils/log";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 0.01;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -97,7 +98,7 @@ export default function useBridge(props?: any) {
     try {
       await axios.post(`${BASE_API_URL}/v1/api/error`, params);
     } catch (error) {
-      console.log("Report error failed: %o", error);
+      csl("onReportError", "gray-500", "Report error failed: %o", error);
     }
   };
 
@@ -375,7 +376,7 @@ export default function useBridge(props?: any) {
       const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
       // Sync calls don't need request ID check
       const _quoteRes = await currentQuoteService.quote();
-      console.log("%c[%s]Sync Quote Result: %o", "background:#A3D78A;color:#0D4715;", bridgeStore.quoteDataService, _quoteRes);
+      csl("quote", "green-400", "[%s]Sync Quote Result: %o", bridgeStore.quoteDataService, _quoteRes);
       return _quoteRes;
     }
 
@@ -385,20 +386,20 @@ export default function useBridge(props?: any) {
       quoteService.quote(currentRequestId).then((_quoteRes: any) => {
         // Check if it's the latest request, ignore result if not
         if (currentRequestId !== requestIdRef.current) {
-          console.log(`%c[${quoteService.service}] Ignored outdated quote result, current requestId: ${requestIdRef.current}, result requestId: ${currentRequestId}`, "background:#423c27;color:#fdf4aa;");
+          csl("quote", "gray-500", "[%s] Ignored outdated quote result, current requestId: %s, result requestId: %s", quoteService.service, requestIdRef.current, currentRequestId);
           return;
         }
 
-        console.log("%c[%s]Quote Result: %o", "background:#A3D78A;color:#0D4715;", quoteService.service, _quoteRes);
+        csl("quote", "green-400", "[%s]Quote Result: %o", quoteService.service, _quoteRes);
       }).catch((error: any) => {
         // Silently ignore if it's a cancelled request error
         if (error?.message === "Request cancelled: outdated request") {
-          console.log(`%c[${quoteService.service}] Request cancelled: outdated request`, "background:#423c27;color:#fdf4aa;");
+          csl("quote", "gray-500", "[%s] Request cancelled: outdated request", quoteService.service);
           return;
         }
         // Also check request ID to avoid old request errors overwriting new requests
         if (currentRequestId !== requestIdRef.current) {
-          console.log(`%c[${quoteService.service}] Ignored outdated quote error, current requestId: ${requestIdRef.current}, error requestId: ${currentRequestId}`, "background:#423c27;color:#fdf4aa;");
+          csl("quote", "gray-500", "[%s] Ignored outdated quote error, current requestId: %s, error requestId: %s", quoteService.service, requestIdRef.current, currentRequestId);
           return;
         }
         // Re-throw other errors for the caller to handle
@@ -414,20 +415,20 @@ export default function useBridge(props?: any) {
       //   const _quoteRes: any = await quoteService.quote(currentRequestId);
       //   // Check if it's the latest request, ignore result if not
       //   if (currentRequestId !== requestIdRef.current) {
-      //     console.log(`%c[${quoteService.service}] Ignored outdated quote result, current requestId: ${requestIdRef.current}, result requestId: ${currentRequestId}`, "background:#423c27;color:#fdf4aa;");
+      //     csl("quote", "gray-500", "[%s] Ignored outdated quote result, current requestId: %s, result requestId: %s", quoteService.service, requestIdRef.current, currentRequestId);
       //     return;
       //   }
 
-      //   console.log("%c[%s]Quote Result: %o", "background:#A3D78A;color:#0D4715;", quoteService.service, _quoteRes);
+      //   csl("quote", "green-400", "[%s]Quote Result: %o", quoteService.service, _quoteRes);
       // } catch (error: any) {
       //   // Silently ignore if it's a cancelled request error
       //   if (error?.message === "Request cancelled: outdated request") {
-      //     console.log(`%c[${quoteService.service}] Request cancelled: outdated request`, "background:#423c27;color:#fdf4aa;");
+      //     csl("quote", "gray-500", "[%s] Request cancelled: outdated request", quoteService.service);
       //     return;
       //   }
       //   // Also check request ID to avoid old request errors overwriting new requests
       //   if (currentRequestId !== requestIdRef.current) {
-      //     console.log(`%c[${quoteService.service}] Ignored outdated quote error, current requestId: ${requestIdRef.current}, error requestId: ${currentRequestId}`, "background:#423c27;color:#fdf4aa;");
+      //     csl("quote", "gray-500", "[%s] Ignored outdated quote error, current requestId: %s, error requestId: %s", quoteService.service, requestIdRef.current, currentRequestId);
       //     return;
       //   }
       //   // Re-throw other errors for the caller to handle
@@ -446,7 +447,7 @@ export default function useBridge(props?: any) {
       });
       getPendingList();
     } catch (error) {
-      console.log("Report failed: %o", error);
+      csl("report", "red-500", "Report failed: %o", error);
     }
   };
 
@@ -483,10 +484,10 @@ export default function useBridge(props?: any) {
       if (!params?.estimateGas && _quoteData?.quoteParam?.fromToken?.chainType === "tron") {
         const tronAccountResources = await wallet.wallet.getAccountResources({ account: wallet.account });
         const tronAccountEnergyAsTRX = Big(tronAccountResources.energy || 0).times(10 ** 3);
-        console.log(`%cEstimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}, Available Energy: ${tronAccountResources.energy}(as ${Big(tronAccountEnergyAsTRX).toFixed(0)} ${nativeTokenName}), Total Available: ${Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX).toFixed(0)} ${nativeTokenName}`, "background:#4D2FB2;color:#ffffff;");
+        csl("estimateNativeTokenBalance", "teal-700", "Estimate %s balance. Required: %s %s, Available: %s %s, Available Energy: %s(as %s %s), Total Available: %s %s", nativeTokenName, estimateGas, nativeTokenName, nativeBalance, nativeTokenName, tronAccountResources.energy, Big(tronAccountEnergyAsTRX).toFixed(0), nativeTokenName, Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX).toFixed(0), nativeTokenName);
         nativeBalance = Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX);
       } else {
-        console.log(`%cEstimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`, "background:#4D2FB2;color:#ffffff;");
+        csl("estimateNativeTokenBalance", "teal-700", "Estimate %s balance. Required: %s %s, Available: %s %s", nativeTokenName, estimateGas, nativeTokenName, nativeBalance, nativeTokenName);
       }
 
       // Check if balance is sufficient
@@ -495,7 +496,7 @@ export default function useBridge(props?: any) {
         return result;
       }
     } catch (error) {
-      console.log("check estimate gas failed: %o", error);
+      csl("estimateNativeTokenBalance", "red-500", "check estimate gas failed: %o", error);
     }
     return result;
   };
@@ -656,9 +657,9 @@ export default function useBridge(props?: any) {
           if (walletStore.fromToken.chainType === "evm") {
             await switchChainAsync({ chainId: walletStore.fromToken.chainId! });
           }
-          console.log("permit signature: %o", signature);
-          console.log("permit SendParam: %o", _quote?.data?.usdt0SendParam);
-          console.log("permit MessageFee: %o", _quote?.data?.usdt0MessageFee);
+          csl("transfer", "sky-600", "permit signature: %o", signature);
+          csl("transfer", "sky-600", "permit SendParam: %o", _quote?.data?.usdt0SendParam);
+          csl("transfer", "sky-600", "permit MessageFee: %o", _quote?.data?.usdt0MessageFee);
           reportData.layer_zero_permit = {
             amount: signature.value,
             deadline: signature.deadline,
@@ -676,7 +677,7 @@ export default function useBridge(props?: any) {
             to: _quote?.data?.usdt0SendParam?.to,
             native_fee: _quote?.data?.usdt0MessageFee?.nativeFee?.toString(),
           };
-          console.log("layer_zero_permit: %o", reportData.layer_zero_permit);
+          csl("transfer", "sky-600", "layer_zero_permit: %o", reportData.layer_zero_permit);
         }
 
         if (!_quote?.data?.quote?.depositAddress) {
@@ -732,7 +733,7 @@ export default function useBridge(props?: any) {
               pollInterval: 3000,
             });
           } catch (error) {
-            console.log("polling transaction status failed: %o", error);
+            csl("transfer", "red-500", "polling transaction status failed: %o", error);
           }
           if (!pollingResult) {
             toast.fail({
@@ -1078,8 +1079,8 @@ export default function useBridge(props?: any) {
         netB = netB.minus(dataB.fees?.destinationGasFeeUsd || 0);
       }
 
-      // console.log("%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));
-      // console.log("%s data: %o,  output amount: %o", _serviceB, dataB, netB.toFixed(6, 0));
+      // csl("quoteRoutes", "green-500", "%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));
+      // csl("quoteRoutes", "green-500", "%s data: %o,  output amount: %o", _serviceB, dataB, netB.toFixed(6, 0));
 
       if (netB.gt(netA)) return 1;
       if (netA.gt(netB)) return -1;
@@ -1088,7 +1089,7 @@ export default function useBridge(props?: any) {
 
       return 0;
     });
-    console.log("%cQuote Sorted Result: %o", "background:#f00;color:#fff;", sortedQuoteData);
+    csl("quoteRoutes", "green-700", "Quote Sorted Result: %o", sortedQuoteData);
     bridgeStore.set({ quoteDataService: sortedQuoteData[0][0], showFee: true });
     setAutoSelect(false);
   }, [
@@ -1142,7 +1143,7 @@ export default function useBridge(props?: any) {
           walletStore.fromToken?.symbol === "USDC" &&
           walletStore.toToken?.symbol === "USDC"
         ) {
-          console.log("Auto requoting after", CCTP_AUTO_REQUOTE_DURATION, "ms");
+          csl("autoRequote", "gray-800", "Auto requoting after %s ms", CCTP_AUTO_REQUOTE_DURATION);
           debouncedQuote({ dry: true });
         }
         // Clear timer ref after execution
