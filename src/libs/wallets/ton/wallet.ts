@@ -1,6 +1,6 @@
 import { getChainRpcUrl } from '@/config/chains';
 import { Service } from '@/services/constants';
-import { Address, beginCell, toNano, TonClient } from '@ton/ton';
+import { Address, beginCell, Cell, storeMessage, toNano, TonClient } from '@ton/ton';
 import type { TupleItem } from '@ton/ton';
 import { TonConnectUI } from '@tonconnect/ui-react';
 import { SendType } from '../types';
@@ -11,7 +11,7 @@ import {
   generateBuildClass,
   generateDecodeClass,
 } from '@layerzerolabs/lz-ton-sdk-v2';
-import { tonObjects } from '../utils/ton';
+import { buildJettonWalletTransferBody, pollTransactionByBoc, tonObjects } from '../utils/ton';
 import { numberRemoveEndZero } from '@/utils/format/number';
 import Big from 'big.js';
 import { Options } from '@layerzerolabs/lz-v2-utilities';
@@ -19,6 +19,8 @@ import { LZ_RECEIVE_VALUE } from '@/services/usdt0/config';
 import { addressToBytes32 } from '@/utils/address-validation';
 import { getHopMsgFee } from '@/services/usdt0/hop-composer';
 import { ethers } from 'ethers';
+import { csl } from '@/utils/log';
+import { getPrice } from '@/utils/format/price';
 
 const oftBuildClass = generateBuildClass(tonObjects);
 
@@ -100,26 +102,12 @@ export default class TonWallet {
 
       const senderJettonWallet = await this.getSenderJettonWallet(originAsset);
 
-      // Create forward payload with memo if provided
-      let forwardPayload = beginCell().endCell(); // empty payload reference
-      if (memo) {
-        forwardPayload = beginCell()
-          .storeUint(0, 32) // op code for comment
-          .storeStringTail(memo) // memo text
-          .endCell();
-      }
-
-      const body = beginCell()
-        .storeUint(0xf8a7ea5, 32) // Jetton transfer op code
-        .storeUint(0, 64) // query_id
-        .storeCoins(BigInt(amount)) // Jetton amount (VarUInteger 16)
-        .storeAddress(Address.parse(depositAddress)) // destination
-        .storeAddress(Address.parse(this.account)) // response_destination
-        .storeUint(0, 1) // custom_payload:(Maybe ^Cell)
-        .storeCoins(0) // forward_ton_amount (VarUInteger 16) - if >0, will send notification message
-        .storeBit(1) // forward_payload:(Either Cell ^Cell) - as a reference
-        .storeRef(forwardPayload)
-        .endCell();
+      const body = buildJettonWalletTransferBody({
+        memo,
+        amount,
+        recipient: depositAddress,
+        refundTo: this.account,
+      });
 
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 360,
@@ -171,25 +159,55 @@ export default class TonWallet {
     gasPrice: bigint;
     estimateGas: bigint;
   }> {
-    const { fromToken } = data;
+    const { fromToken, amount, depositAddress, account } = data;
 
-    // TON uses fixed fees: native transfer ~0.01 TON, jetton transfer ~0.02 TON
-    // 1 TON = 10^9 nanotons
     let estimateGas: bigint;
 
     if (this.isNativeToken(fromToken.symbol)) {
-      estimateGas = toNano("0.02");
+      estimateGas = toNano("0.01");
     } else {
-      estimateGas = toNano("0.06");
+      const senderJettonWallet = await this.getSenderJettonWallet(fromToken.contractAddress, account);
+      const body = buildJettonWalletTransferBody({
+        amount,
+        recipient: depositAddress,
+        refundTo: account,
+      });
+      try {
+        const estimation = await this.tonClient.estimateExternalMessageFee(senderJettonWallet, {
+          body,
+          initCode: null,
+          initData: null,
+          ignoreSignature: true,
+        });
+        const { in_fwd_fee, storage_fee, gas_fee, fwd_fee } = estimation.source_fees;
+        estimateGas = BigInt(in_fwd_fee) + BigInt(storage_fee) + BigInt(gas_fee) + BigInt(fwd_fee);
+        csl("TON estimateTransferGas", "blue-300", "estimateGas: %o", estimateGas);
+        estimateGas = estimateGas + toNano("0.1");
+      } catch {
+        estimateGas = toNano("0.12");
+      }
     }
-
-    // Increase fee by 20% to provide buffer
-    estimateGas = (estimateGas * 120n) / 100n;
 
     return {
       gasLimit: estimateGas,
       gasPrice: 1n, // TON has no gas price concept, use 1 for compatibility
       estimateGas,
+    };
+  }
+
+  async getEstimateGas(params: any) {
+    const { estimateGas, prices, fromToken } = params;
+
+    const price = getPrice(prices, fromToken.nativeToken.symbol);
+
+    const estimateGasAmount = Big(estimateGas.toString()).div(10 ** fromToken.nativeToken.decimals);
+    const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
+
+    return {
+      gasPrice: 1n,
+      usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
+      wei: estimateGas,
+      amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(fromToken.nativeToken.decimals)),
     };
   }
 
@@ -221,7 +239,8 @@ export default class TonWallet {
     } = params;
 
     const result = await this.tonConnectUI.sendTransaction(transaction);
-    return result.boc;
+    const { hexHash } = await pollTransactionByBoc(result.boc, { maxPollCount: 60, pollInterval: 3000 });
+    return hexHash;
   }
 
   async quoteOFT(params: any) {
@@ -345,5 +364,71 @@ export default class TonWallet {
     return { errMsg: "Not supported yet" };
   }
 
-  async quoteOneClickProxy(params: any) { }
+  async quoteOneClickProxy(params: any) {
+    const {
+      proxyAddress,
+      fromToken,
+      refundTo,
+      depositAddress,
+      amountWei,
+      prices,
+    } = params;
+
+    const result: any = { fees: {} };
+
+    const forwardTonAmount = toNano("0.085");
+    const buffer = toNano("0.01");
+    const estimatedGas = await this.estimateTransferGas({
+      fromToken,
+      amount: amountWei,
+      depositAddress: proxyAddress,
+      account: refundTo,
+    });
+    const totalValue = forwardTonAmount + buffer + estimatedGas.estimateGas;
+    csl("TON quoteOneClickProxy", "blue-300", "totalValue: %o", totalValue);
+
+    const userJettonWallet = await this.getSenderJettonWallet(fromToken.contractAddress, refundTo);
+    csl("TON quoteOneClickProxy", "blue-300", "userJettonWallet: %o", userJettonWallet);
+
+    const forwardPayload = beginCell().storeAddress(Address.parse(depositAddress)).endCell();
+    const body = buildJettonWalletTransferBody({
+      amount: amountWei,
+      recipient: proxyAddress,
+      refundTo: refundTo,
+      forwardTonAmount: forwardTonAmount,
+      forwardPayload,
+    });
+    csl("TON quoteOneClickProxy", "blue-300", "body: %o", body);
+
+    const transaction = {
+      validUntil: Math.floor(Date.now() / 1000) + 360,
+      messages: [
+        {
+          address: userJettonWallet.toString(),
+          amount: totalValue.toString(),
+          payload: body.toBoc().toString("base64"),
+        },
+      ],
+    };
+    csl("TON quoteOneClickProxy", "blue-300", "transaction: %o", transaction);
+
+    result.sendParam = {
+      transaction,
+    };
+
+    try {
+      const { usd, wei } = await this.getEstimateGas({
+        estimateGas: estimatedGas.estimateGas,
+        prices,
+        fromToken,
+      });
+      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+    } catch (error) {
+      csl("TON quoteOneClickProxy", "red-500", "getEstimateGas failed: %o", error);
+    }
+
+    return result;
+  }
 }
