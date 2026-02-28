@@ -41,6 +41,7 @@ const ResultOneClick = (props: any) => {
         bridgeFee: totalBridgeFeeLabel,
         bridgeFeeValue: 0,
         netFee: 0,
+        exchangeRate: 1,
         slippage,
       });
       return;
@@ -51,6 +52,7 @@ const ResultOneClick = (props: any) => {
       bridgeFee: totalBridgeFeeLabel,
       bridgeFeeValue: totalBridgeFeeValue,
       netFee: _quoteData?.fees?.destinationGasFeeUsd,
+      exchangeRate: _quoteData?.exchangeRate,
       slippage,
     });
   }, { wait: 500 });
@@ -71,6 +73,12 @@ const ResultOneClick = (props: any) => {
     return Big(energySourceGasFee).minus(_quoteData?.quoteParam?.needsEnergyAmount || 0).toFixed(0);
   }, [isFromTron, _quoteData]);
 
+  const isExchangeToken = useMemo(() => {
+    const fromTokenSymbol = _quoteData?.quoteParam.fromToken.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam.fromToken.symbol;
+    const toTokenSymbol = _quoteData?.quoteParam.toToken.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam.toToken.symbol;
+    return fromTokenSymbol !== toTokenSymbol;
+  }, [_quoteData]);
+
   return (
     <AnimatePresence>
       {
@@ -82,12 +90,24 @@ const ResultOneClick = (props: any) => {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
           >
-            <ResultFeeItem
-              label="Net fee"
-              loading={bridgeStore.quotingMap.get(Service.OneClick)}
-            >
-              {fees?.netFee}
-            </ResultFeeItem>
+            {
+              isExchangeToken ? (
+                <ResultFeeItem
+                  label="Exchange Rate"
+                  loading={bridgeStore.quotingMap.get(Service.OneClick)}
+                  isFormat={false}
+                >
+                  1 {_quoteData?.quoteParam.fromToken.symbol} ~ {fees?.exchangeRate} {_quoteData?.quoteParam.toToken.symbol}
+                </ResultFeeItem>
+              ) : (
+                <ResultFeeItem
+                  label="Net fee"
+                  loading={bridgeStore.quotingMap.get(Service.OneClick)}
+                >
+                  {fees?.netFee}
+                </ResultFeeItem>
+              )
+            }
             <ResultFeeItem
               label={(
                 <>

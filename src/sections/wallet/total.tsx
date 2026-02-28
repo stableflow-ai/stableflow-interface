@@ -29,7 +29,7 @@ export default function Total() {
       if (!key.includes("Balances")) return;
       const chainType = key.split("Balances")[0];
       const currentChain = chainTypes[chainType];
-      const currentTokenWithChains = stablecoinWithChains[chainType][walletStore.selectedToken];
+      const currentTokenWithChains = stablecoinWithChains[chainType]?.[walletStore.selectedToken];
       _balanceSummaries[chainType] = {
         balance: Big(0),
         balanceString: "0.00",
