@@ -39,6 +39,8 @@ export function validateAddress(
       return validateAptosAddress(trimmedAddress);
     case "tron":
       return validateTronAddress(trimmedAddress);
+    case "ton":
+      return validateTonAddress(trimmedAddress);
     default:
       return {
         isValid: false,
@@ -159,6 +161,22 @@ function validateAptosAddress(address: string): AddressValidationResult {
   }
 
   return { isValid: true };
+}
+
+/**
+ * Validates a TON address
+ * TON addresses can be in user-friendly format (EQ...) or raw format (workchain:hash)
+ */
+function validateTonAddress(address: string): AddressValidationResult {
+  try {
+    Address.parse(address);
+    return { isValid: true };
+  } catch {
+    return {
+      isValid: false,
+      error: "Invalid TON address"
+    };
+  }
 }
 
 /**
