@@ -11,6 +11,7 @@ import { useWatchOKXConnect } from "../okxconnect";
 import { OKXAptosProvider } from "@okxconnect/aptos-provider";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import WalletSelector from "../components/wallet-selector";
+import { csl } from "@/utils/log";
 
 export default function AptosProvider({
   children
@@ -22,7 +23,7 @@ export default function AptosProvider({
       autoConnect={true}
       dappConfig={{ network: Network.MAINNET }}
       onError={(error) => {
-        console.log("error", error);
+        csl("AptosProvider", "red-500", "error: %o", error);
       }}
       optInWallets={[
         "OKX Wallet",

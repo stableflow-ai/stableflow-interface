@@ -4,6 +4,7 @@ import { CCTP_DOMAINS, IRIS_API_URL } from "./config";
 import { BASE_API_URL } from "@/config/api";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
+import { csl } from "@/utils/log";
 
 export const PayInLzToken = false;
 
@@ -37,7 +38,7 @@ class CCTPService {
       }
       return standard;
     } catch (error) {
-      console.log("cctp get fees failed: %o", error);
+      csl("CCTPService getCCTPFees", "red-500", "cctp get fees failed: %o", error);
     }
     return {
       finalityThreshold: 1000,

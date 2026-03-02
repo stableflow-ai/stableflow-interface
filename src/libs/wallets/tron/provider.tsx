@@ -12,6 +12,7 @@ import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter } from "@tronwe
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
 import { metadata } from "../rainbow/provider";
+import { csl } from "@/utils/log";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
@@ -165,7 +166,7 @@ const Content = () => {
     });
 
     adapter.on("connect", (address: any) => {
-      console.log("%cAdaptor connected, address is: %o", "background:#423c27;color:#fdf4aa;", address);
+      csl("TronProvider", "teal-400", "Adaptor connected, address is: %o", address);
       setWindowWallet(address);
       setWallets({
         tron: {
@@ -202,7 +203,7 @@ const Content = () => {
           : accounts
         : null;
 
-      console.log("%cAccounts changed, new address is: %o", "background:#423c27;color:#fdf4aa;", newAccount);
+      csl("TronProvider", "teal-400", "Accounts changed, new address is: %o", newAccount);
 
       setWindowWallet(newAccount);
       setWallets({
