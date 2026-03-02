@@ -56,6 +56,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Celo": ["https://forno.celo.org", "https://celo-rpc.publicnode.com"],
   "Sei": ["https://sei-evm-rpc.publicnode.com"],
   "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
+  "Fraxtal": ["https://rpc.frax.com"],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
@@ -391,6 +392,21 @@ const chains = {
       decimals: 18,
     },
     ...getChainRpcUrl("Flare"),
+  },
+  frax: {
+    chainName: "Fraxtal",
+    blockchain: "frax",
+    chainIcon: "/chains/frax.png",
+    chainIconGray: "/chains/frax-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 252,
+    blockExplorerUrl: "https://fraxscan.com/tx/",
+    primaryColor: "#000",
+    nativeToken: {
+      symbol: "FRAX",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Fraxtal"),
   },
 };
 

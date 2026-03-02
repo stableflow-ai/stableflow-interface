@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 interface WalletState {
   showWallet: boolean;
   usdtExpand: boolean;
-  selectedToken: "USDT" | "USDC" | "USD₮0";
+  selectedToken: "USDT" | "USDC" | "USD₮0" | "frxUSD";
   fromToken: any;
   toToken: any;
   isTo: boolean;
