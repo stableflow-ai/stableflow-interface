@@ -1,28 +1,28 @@
 import { usdcEvm, usdcNear, usdcSol, usdcChains, usdcAptos } from "@/config/tokens/usdc";
 import { usdtAptos, usdtEvm, usdtNear, usdtSol, usdtTron, usdtChains } from "@/config/tokens/usdt";
 
-export const evmBalancesTokens = (() => {
+const evmTokenChains = [
+  usdcEvm.chains,
+  usdtEvm.chains,
+];
+export const evmBalancesTokens: { chain_id: number; tokens: string[]; decimals: number[]; }[] = (() => {
   const map: any = {};
-  usdcEvm.chains.forEach((chain: any) => {
-    if (map[chain.chainName]) {
-      map[chain.chainName].tokens.push(chain.contractAddress);
-    } else {
-      map[chain.chainName] = {
-        chain_id: chain.chainId,
-        tokens: [chain.contractAddress]
-      };
-    }
-  });
-  usdtEvm.chains.forEach((chain: any) => {
-    if (map[chain.chainName]) {
-      map[chain.chainName].tokens.push(chain.contractAddress);
-    } else {
-      map[chain.chainName] = {
-        chain_id: chain.chainId,
-        tokens: [chain.contractAddress]
-      };
-    }
-  });
+  for (const chains of evmTokenChains) {
+    chains.forEach((chain: any) => {
+      if (map[chain.chainName]) {
+        map[chain.chainName].tokens.push(chain.contractAddress);
+        map[chain.chainName].decimals.push(chain.decimals);
+        map[chain.chainName].symbols.push(chain.symbol);
+      } else {
+        map[chain.chainName] = {
+          chain_id: chain.chainId,
+          tokens: [chain.contractAddress],
+          decimals: [chain.decimals],
+          symbols: [chain.symbol],
+        };
+      }
+    });
+  }
 
   return Object.values(map);
 })();

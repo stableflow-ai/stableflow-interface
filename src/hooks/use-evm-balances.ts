@@ -35,6 +35,43 @@ export default function useEvmBalances(auto = false) {
       const _balances: any = {};
       const _data = res.data.data;
 
+      const setBalances = (__data: any) => {
+        let usdcBalance = Big(0);
+        let usdtBalance = Big(0);
+
+        Object.entries(__data).forEach(([key, item]: any) => {
+          if (!item) return;
+          const currentTokenChain = evmBalancesTokens.find((token) => Number(token.chain_id) === Number(key));
+          item.forEach((sl: any) => {
+            const currentTokenIndex = currentTokenChain?.tokens?.map?.((address) => address.toLowerCase())?.indexOf?.(sl.address.toLowerCase());
+            let currentTokenDecimals = 6;
+            if (currentTokenChain && typeof currentTokenIndex === "number" && currentTokenIndex > -1) {
+              currentTokenDecimals = currentTokenChain.decimals[currentTokenIndex];
+            }
+            const _balance = Big(sl.balance).div(10 ** currentTokenDecimals);
+            if (usdcAddresses.includes(sl.address)) {
+              usdcBalance = usdcBalance.plus(_balance);
+            }
+            if (usdtAddresses.includes(sl.address)) {
+              usdtBalance = usdtBalance.plus(_balance);
+            }
+            _balances[sl.address] = _balance.toString();
+          });
+        });
+
+        if (wallet?.account) {
+          balancesStore.set({
+            evmBalances: {
+              ..._balances,
+              usdcBalance: usdcBalance.toString(),
+              usdtBalance: usdtBalance.toString()
+            }
+          });
+        }
+      };
+
+      setBalances(_data);
+
       const unsupportedChainIds = evmBalancesTokens.map((token: any) => Object.keys(_data).includes(token.chain_id.toString()) ? null : token.chain_id).filter(Boolean);
       const unsupportedBalances: any = {};
       // get unsupported tokens balances from provider
@@ -69,8 +106,9 @@ export default function useEvmBalances(auto = false) {
             return _result;
           });
 
-          const balances = await Promise.all(balancePromises);
-          unsupportedBalances[_token.chain_id] = balances;
+          const balances = await Promise.allSettled(balancePromises);
+          const validBalances = balances.filter((balance) => balance.status === "fulfilled").map((balance) => balance.value);
+          unsupportedBalances[_token.chain_id] = validBalances;
         }
       }
 
@@ -80,34 +118,7 @@ export default function useEvmBalances(auto = false) {
         }
       }
 
-      let usdcBalance = Big(0);
-      let usdtBalance = Big(0);
-
-      Object.entries(_data).forEach(([key, item]: any) => {
-        if (!item) return;
-        item.forEach((sl: any) => {
-          const _balance = Big(sl.balance).div(
-            10 ** (Number(key) === 56 ? 18 : 6)
-          );
-          if (usdcAddresses.includes(sl.address)) {
-            usdcBalance = usdcBalance.plus(_balance);
-          }
-          if (usdtAddresses.includes(sl.address)) {
-            usdtBalance = usdtBalance.plus(_balance);
-          }
-          _balances[sl.address] = _balance.toString();
-        });
-      });
-
-      if (wallet?.account) {
-        balancesStore.set({
-          evmBalances: {
-            ..._balances,
-            usdcBalance: usdcBalance.toString(),
-            usdtBalance: usdtBalance.toString()
-          }
-        });
-      }
+      setBalances(_data);
 
       setLoading(false);
     } catch (error) {
