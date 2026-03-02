@@ -3,38 +3,29 @@ import { usdtAptos, usdtEvm, usdtNear, usdtSol, usdtTron, usdtChains } from "@/c
 import { usdt0Chains, usdt0Evm } from "./usdt0";
 import type { TokenChain } from "../chains";
 
-export const evmBalancesTokens = (() => {
+const evmTokenChains = [
+  usdcEvm.chains,
+  usdtEvm.chains,
+  usdt0Evm.chains,
+];
+export const evmBalancesTokens: { chain_id: number; tokens: string[]; decimals: number[]; }[] = (() => {
   const map: any = {};
-  usdcEvm.chains.forEach((chain: any) => {
-    if (map[chain.chainName]) {
-      map[chain.chainName].tokens.push(chain.contractAddress);
-    } else {
-      map[chain.chainName] = {
-        chain_id: chain.chainId,
-        tokens: [chain.contractAddress]
-      };
-    }
-  });
-  usdtEvm.chains.forEach((chain: any) => {
-    if (map[chain.chainName]) {
-      map[chain.chainName].tokens.push(chain.contractAddress);
-    } else {
-      map[chain.chainName] = {
-        chain_id: chain.chainId,
-        tokens: [chain.contractAddress]
-      };
-    }
-  });
-  usdt0Evm.chains.forEach((chain: any) => {
-    if (map[chain.chainName]) {
-      map[chain.chainName].tokens.push(chain.contractAddress);
-    } else {
-      map[chain.chainName] = {
-        chain_id: chain.chainId,
-        tokens: [chain.contractAddress]
-      };
-    }
-  });
+  for (const chains of evmTokenChains) {
+    chains.forEach((chain: any) => {
+      if (map[chain.chainName]) {
+        map[chain.chainName].tokens.push(chain.contractAddress);
+        map[chain.chainName].decimals.push(chain.decimals);
+        map[chain.chainName].symbols.push(chain.symbol);
+      } else {
+        map[chain.chainName] = {
+          chain_id: chain.chainId,
+          tokens: [chain.contractAddress],
+          decimals: [chain.decimals],
+          symbols: [chain.symbol],
+        };
+      }
+    });
+  }
 
   return Object.values(map);
 })();
