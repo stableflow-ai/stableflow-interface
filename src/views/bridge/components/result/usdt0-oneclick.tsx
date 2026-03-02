@@ -68,9 +68,9 @@ const ResultUsdt0OneClick = (props: any) => {
   }, [bridgeStore, configStore.slippage]);
 
   const isExchangeToken = useMemo(() => {
-    const fromTokenSymbol = _quoteData?.quoteParam.fromToken.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam.fromToken.symbol;
-    const toTokenSymbol = _quoteData?.quoteParam.toToken.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam.toToken.symbol;
-    return fromTokenSymbol !== toTokenSymbol;
+    const fromTokenSymbol = _quoteData?.quoteParam?.fromToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.fromToken?.symbol;
+    const toTokenSymbol = _quoteData?.quoteParam?.toToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.toToken?.symbol;
+    return fromTokenSymbol && toTokenSymbol && fromTokenSymbol !== toTokenSymbol;
   }, [_quoteData]);
 
   return (
