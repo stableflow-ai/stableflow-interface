@@ -47,7 +47,7 @@ const ResultOneClick = (props: any) => {
       bridgeFee: totalBridgeFeeLabel,
       bridgeFeeValue: totalBridgeFeeValue,
       netFee: _quoteData?.fees?.destinationGasFeeUsd,
-      exchangeRate: _quoteData?.exchangeRate,
+      exchangeRate: formatNumber(_quoteData?.exchangeRate, 6, true, { round: Big.roundDown }),
       slippage,
     });
   }, { wait: 500 });
@@ -57,9 +57,9 @@ const ResultOneClick = (props: any) => {
   }, [bridgeStore, configStore.slippage]);
 
   const isExchangeToken = useMemo(() => {
-    const fromTokenSymbol = _quoteData?.quoteParam.fromToken.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam.fromToken.symbol;
-    const toTokenSymbol = _quoteData?.quoteParam.toToken.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam.toToken.symbol;
-    return fromTokenSymbol !== toTokenSymbol;
+    const fromTokenSymbol = _quoteData?.quoteParam?.fromToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.fromToken?.symbol;
+    const toTokenSymbol = _quoteData?.quoteParam?.toToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.toToken?.symbol;
+    return fromTokenSymbol && toTokenSymbol && fromTokenSymbol !== toTokenSymbol;
   }, [_quoteData]);
 
   return (
