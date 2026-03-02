@@ -892,6 +892,8 @@ export default class RainbowWallet {
   async signTypedData(params: any) {
     const { fromToken, amountWei, spender } = params;
 
+    csl("EVM signTypedData", "blue-900", "params: %o", params);
+
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
