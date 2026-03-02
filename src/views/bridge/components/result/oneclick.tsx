@@ -7,6 +7,7 @@ import { useEffect, useState, useMemo } from "react";
 import ResultFeeItem from "./fee-item";
 import { Service } from "@/services/constants";
 import { BridgeFee } from "@/services/oneclick";
+import { formatNumber } from "@/utils/format/number";
 
 const ResultOneClick = (props: any) => {
   const { } = props;
