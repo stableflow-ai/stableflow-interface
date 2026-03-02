@@ -58,7 +58,7 @@ const ResultUsdt0OneClick = (props: any) => {
       bridgeFee: totalBridgeFeeLabel,
       bridgeFeeValue: totalBridgeFeeValue,
       netFee: _quoteData?.fees?.destinationGasFeeUsd,
-      exchangeRate: _quoteData?.exchangeRate,
+      exchangeRate: formatNumber(_quoteData?.exchangeRate, 6, true, { round: Big.roundDown }),
       slippage,
     });
   }, { wait: 500 });
