@@ -24,7 +24,13 @@ export default function BridgeButton({
   const solanaWallet = wallets["sol"];
 
   const quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
-  const loading = Array.from(bridgeStore.quotingMap.values()).some((value) => value === true) || bridgeStore.transferring;
+  const loading =
+    Array.from(bridgeStore.quotingMap.values()).some((record) => {
+      const requestIds = Object.keys(record);
+      if (requestIds.length === 0) return false;
+      const maxRequestId = String(Math.max(...requestIds.map(Number)));
+      return record[maxRequestId] === true;
+    }) || bridgeStore.transferring;
 
   const [wallet, evmWallet] = useMemo(() => {
     // @ts-ignore
