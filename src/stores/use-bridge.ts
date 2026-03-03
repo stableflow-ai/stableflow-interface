@@ -7,7 +7,7 @@ interface BridgeState {
   recipientAddress: string;
   quoteDataService: Service;
   quoteDataMap: Map<string, any>;
-  quotingMap: Map<string, boolean>;
+  quotingMap: Map<string, Record<string, boolean>>;
   transferring: boolean;
   errorTips: string;
   showFee: boolean;
@@ -18,7 +18,7 @@ interface BridgeState {
   setQuoteData: (key: string, value: any) => void;
   modifyQuoteData: (key: string, value: any) => void;
   clearQuoteData: () => void;
-  setQuoting: (key: string, value: boolean) => void;
+  setQuoting: (key: string, requestId: number, value: boolean) => void;
   setAcceptPriceImpact: (value: boolean) => void;
 
   // tron energy rental
@@ -69,10 +69,20 @@ const useBridgeStore = create<BridgeState>((set) => ({
       };
     });
   },
-  setQuoting: (key, value) => {
+  setQuoting: (key, requestId, value) => {
     set((state) => {
       const _quotingMap = new Map(state.quotingMap);
-      _quotingMap.set(key, value);
+      if (_quotingMap.has(key)) {
+        const _quoting = _quotingMap.get(key);
+        if (value) {
+          _quoting![requestId] = value;
+        } else {
+          delete _quoting![requestId];
+        }
+        _quotingMap.set(key, _quoting!);
+      } else {
+        _quotingMap.set(key, { [requestId]: value });
+      }
       return { ...state, quotingMap: _quotingMap };
     });
   },
