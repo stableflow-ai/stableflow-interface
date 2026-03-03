@@ -512,13 +512,18 @@ export default function useBridge(props?: any) {
       const wallet = wallets[walletStore.fromToken.chainType];
       // @ts-ignore
       const toWallet = wallets[walletStore.toToken.chainType];
-      const _amount = Big(bridgeStore.amount)
+      let _amount = Big(bridgeStore.amount)
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
       const isFromTron = walletStore.fromToken.chainType === "tron";
       const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
       const isOneClickService = ([Service.OneClickUsdt0, Service.OneClick] as Service[]).includes(bridgeStore.quoteDataService);
+      const isExactOutput = bridgeStore.quoteDataService === Service.OneClickUsdt0;
+
+      if (isExactOutput) {
+        _amount = _quote.data.quote.minAmountIn;
+      }
 
       // approve
       if (_quote?.data?.needApprove && !isFromTronEnergy) {
@@ -539,7 +544,7 @@ export default function useBridge(props?: any) {
             });
           }
         }
-        const approveAmount = bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
+        const approveAmount = isExactOutput ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
         const approveAmountWei = Big(approveAmount || 0).times(10 ** walletStore.fromToken.decimals).toFixed(0);
         const approveResult = await wallet.wallet.approve({
           contractAddress: walletStore.fromToken.contractAddress,
@@ -587,7 +592,7 @@ export default function useBridge(props?: any) {
       const reportData: any = {
         project: ServiceBackend[bridgeStore.quoteDataService],
         address: wallet.account,
-        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
+        amount: isExactOutput ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
         out_amount: _quote.data.outputAmount,
         deposit_address: isOneClickService ? _quote.data.quote.depositAddress : "",
         receive_address: _quote.data.quoteParam.recipient,
@@ -600,7 +605,7 @@ export default function useBridge(props?: any) {
       const localHistoryData: any = {
         type: bridgeStore.quoteDataService,
         depositAddress: isOneClickService ? _quote.data.quote.depositAddress : "",
-        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
+        amount: isExactOutput ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
         fromToken: walletStore.fromToken,
         toToken: walletStore.toToken,
         fromAddress: wallet.account,
