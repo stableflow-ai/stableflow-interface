@@ -801,7 +801,7 @@ export default class RainbowWallet {
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
       estimateSourceGasUsd: void 0,
-      estimateTime: Math.floor(Math.random() * 6) + 40,
+      estimateTime: quoteResponse.priority === "fast" ? Math.floor(Math.random() * 10) + 50 : Math.floor(Math.random() * 60) + 300,
       outputAmount: 0,
     };
 
