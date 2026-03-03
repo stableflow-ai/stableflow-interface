@@ -7,6 +7,7 @@ const QuoteRoutes = (props: any) => {
 
   const {
     quotingMap,
+    getQuoting,
     quoteDataMap,
     quoteDataService,
     set,
@@ -14,7 +15,7 @@ const QuoteRoutes = (props: any) => {
   } = useBridgeStore();
 
   const isQuoting = useMemo(() => {
-    return Array.from(quotingMap.values()).some(Boolean);
+    return getQuoting();
   }, [quotingMap]);
 
   const quoteDataList = useMemo(() => {

@@ -192,6 +192,8 @@ export default function useBridge(props?: any) {
         data: quoteRes,
       };
     } catch (error: any) {
+      bridgeStore.setQuoting(service, requestId, false);
+
       // If it's a cancelled request error, return directly without setting error state
       if (error?.message === "Request cancelled: outdated request") {
         throw error;
@@ -253,7 +255,6 @@ export default function useBridge(props?: any) {
         type: service,
         errMsg: _finalErrorMessage,
       };
-      bridgeStore.setQuoting(service, requestId, false);
       bridgeStore.setQuoteData(service, _quoteData);
 
       return _quoteData;
@@ -376,6 +377,8 @@ export default function useBridge(props?: any) {
       csl("quote", "green-400", "[%s]Sync Quote Result: %o", bridgeStore.quoteDataService, _quoteRes);
       return _quoteRes;
     }
+
+    csl("quote", "pink-950", "quoteServices: %o", quoteServices);
 
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
@@ -937,7 +940,7 @@ export default function useBridge(props?: any) {
         return "Please enter amount";
       }
       // const validQuote = Array.from(bridgeStore.quoteDataMap.values()).filter((quote) => !quote.errMsg);
-      // if (!Array.from(bridgeStore.quotingMap.values()).some(Boolean) && validQuote.length <= 0) {
+      // if (!bridgeStore.getQuoting() && validQuote.length <= 0) {
       //   return "No routes found";
       // }
       if (bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg) {
@@ -1027,7 +1030,7 @@ export default function useBridge(props?: any) {
   useEffect(() => {
     const allQuoteList = Array.from(bridgeStore.quoteDataMap.entries());
     const validQuoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
-    const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
+    const isQuoting = bridgeStore.getQuoting();
 
     if (bridgeStore.transferring || isQuoting || !isAutoSelect) {
       return;

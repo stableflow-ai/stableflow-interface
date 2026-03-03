@@ -96,7 +96,7 @@ export default function Bottom({ token }: { token: any }) {
         progressBarRef={progressBarRef}
       />
       <div className="shrink-0 w-[100px] flex justify-end">
-        {bridgeStore.quotingMap.get(bridgeStore.quoteDataService) ? (
+        {bridgeStore.getQuoting(bridgeStore.quoteDataService) ? (
           <Loading size={12} />
         ) : _quoteData?.outputAmount ? (
           <div

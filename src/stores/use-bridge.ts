@@ -19,6 +19,7 @@ interface BridgeState {
   modifyQuoteData: (key: string, value: any) => void;
   clearQuoteData: () => void;
   setQuoting: (key: string, requestId: number, value: boolean) => void;
+  getQuoting: (key?: string) => boolean;
   setAcceptPriceImpact: (value: boolean) => void;
 
   // tron energy rental
@@ -31,7 +32,7 @@ interface BridgeState {
   setAcceptTronEnergy: (value: boolean) => void;
 }
 
-const useBridgeStore = create<BridgeState>((set) => ({
+const useBridgeStore = create<BridgeState>((set, get) => ({
   amount: "",
   recipientAddress: "",
   quoteDataService: Service.OneClick,
@@ -85,6 +86,23 @@ const useBridgeStore = create<BridgeState>((set) => ({
       }
       return { ...state, quotingMap: _quotingMap };
     });
+  },
+  getQuoting: (key) => {
+    const _quotingMap = get().quotingMap;
+    if (!key) {
+      return Array.from(_quotingMap.values()).some((record) => {
+        const requestIds = Object.keys(record);
+        if (requestIds.length === 0) return false;
+        const maxRequestId = String(Math.max(...requestIds.map(Number)));
+        return record[maxRequestId] === true;
+      });
+    }
+    const _quoting = _quotingMap.get(key);
+    if (!_quoting) return false;
+    const requestIds = Object.keys(_quoting);
+    if (requestIds.length === 0) return false;
+    const maxRequestId = String(Math.max(...requestIds.map(Number)));
+    return _quoting[maxRequestId] === true;
   },
   setAcceptPriceImpact: (value) => {
     set((state) => {
