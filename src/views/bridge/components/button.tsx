@@ -24,7 +24,7 @@ export default function BridgeButton({
   const solanaWallet = wallets["sol"];
 
   const quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
-  const loading = Array.from(bridgeStore.quotingMap.values()).some((value) => value === true) || bridgeStore.transferring;
+  const loading = bridgeStore.getQuoting() || bridgeStore.transferring;
 
   const [wallet, evmWallet] = useMemo(() => {
     // @ts-ignore

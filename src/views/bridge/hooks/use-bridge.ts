@@ -28,6 +28,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_LAYERZERO_EXECUTOR_LEGACY, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { csl } from "@/utils/log";
+import { sortQuoteData } from "../utils";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -102,13 +103,13 @@ export default function useBridge(props?: any) {
     }
   };
 
-  const quoteRoutes = async (service: Service, params: any, requestId?: number): Promise<QuoteData> => {
+  const quoteRoutes = async (service: Service, params: any, requestId: number): Promise<QuoteData> => {
     try {
       // Check request ID, skip setting loading state if not the latest request
       if (requestId !== undefined && requestId !== requestIdRef.current) {
         throw new Error("Request cancelled: outdated request");
       }
-      bridgeStore.setQuoting(service, true);
+      bridgeStore.setQuoting(service, requestId, true);
       const isFromTron = walletStore.fromToken.chainType === "tron";
 
       if (service === Service.OneClick) {
@@ -174,7 +175,7 @@ export default function useBridge(props?: any) {
       const quoteParams = await formatQuoteParams();
       const quoteRes = await ServiceMap[service].quote(quoteParams);
 
-      bridgeStore.setQuoting(service, false);
+      bridgeStore.setQuoting(service, requestId, false);
 
       // Check request ID again before setting result to ensure it's still the latest request
       if (requestId !== undefined && requestId !== requestIdRef.current) {
@@ -192,6 +193,8 @@ export default function useBridge(props?: any) {
         data: quoteRes,
       };
     } catch (error: any) {
+      bridgeStore.setQuoting(service, requestId, false);
+
       // If it's a cancelled request error, return directly without setting error state
       if (error?.message === "Request cancelled: outdated request") {
         throw error;
@@ -253,7 +256,6 @@ export default function useBridge(props?: any) {
         type: service,
         errMsg: _finalErrorMessage,
       };
-      bridgeStore.setQuoting(service, false);
       bridgeStore.setQuoteData(service, _quoteData);
 
       return _quoteData;
@@ -302,7 +304,7 @@ export default function useBridge(props?: any) {
       if (walletStore.fromToken.services.includes(service) && walletStore.toToken.services.includes(service)) {
         quoteServices.push({
           service,
-          quote: (_requestId?: number) => {
+          quote: (_requestId: number) => {
             return quoteRoutes(service, quoteParams, _requestId);
           }
         });
@@ -326,7 +328,7 @@ export default function useBridge(props?: any) {
         if (walletStore.toToken.chainName !== "Arbitrum") {
           quoteServices.push({
             service: Service.Usdt0OneClick,
-            quote: (_requestId?: number) => {
+            quote: (_requestId: number) => {
               return quoteRoutes(Service.Usdt0OneClick, quoteParams, _requestId);
             }
           });
@@ -334,7 +336,7 @@ export default function useBridge(props?: any) {
       } else {
         quoteServices.push({
           service: Service.Usdt0OneClick,
-          quote: (_requestId?: number) => {
+          quote: (_requestId: number) => {
             return quoteRoutes(Service.Usdt0OneClick, quoteParams, _requestId);
           }
         });
@@ -351,7 +353,7 @@ export default function useBridge(props?: any) {
         if (walletStore.fromToken.chainName !== "Arbitrum") {
           quoteServices.push({
             service: Service.OneClickUsdt0,
-            quote: (_requestId?: number) => {
+            quote: (_requestId: number) => {
               return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
             }
           });
@@ -359,7 +361,7 @@ export default function useBridge(props?: any) {
       } else {
         quoteServices.push({
           service: Service.OneClickUsdt0,
-          quote: (_requestId?: number) => {
+          quote: (_requestId: number) => {
             return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
           }
         });
@@ -372,10 +374,12 @@ export default function useBridge(props?: any) {
     if (isSync) {
       const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
       // Sync calls don't need request ID check
-      const _quoteRes = await currentQuoteService.quote();
+      const _quoteRes = await currentQuoteService.quote(currentRequestId);
       csl("quote", "green-400", "[%s]Sync Quote Result: %o", bridgeStore.quoteDataService, _quoteRes);
       return _quoteRes;
     }
+
+    csl("quote", "pink-950", "quoteServices: %o", quoteServices);
 
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
@@ -502,7 +506,7 @@ export default function useBridge(props?: any) {
     if (!walletStore.fromToken) return;
     try {
       bridgeStore.set({ transferring: true });
-      const _quote = await quote({ dry: false }, true);
+      const _quote = await quoteWithRequestId({ dry: false }, true);
 
       if (!_quote.data) {
         throw new Error(_quote.errMsg || "Transfer failed");
@@ -512,13 +516,18 @@ export default function useBridge(props?: any) {
       const wallet = wallets[walletStore.fromToken.chainType];
       // @ts-ignore
       const toWallet = wallets[walletStore.toToken.chainType];
-      const _amount = Big(bridgeStore.amount)
+      let _amount = Big(bridgeStore.amount)
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
       const isFromTron = walletStore.fromToken.chainType === "tron";
       const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
       const isOneClickService = ([Service.OneClickUsdt0, Service.OneClick] as Service[]).includes(bridgeStore.quoteDataService);
+      const isExactOutput = bridgeStore.quoteDataService === Service.OneClickUsdt0;
+
+      if (isExactOutput) {
+        _amount = _quote.data.quote.minAmountIn;
+      }
 
       // approve
       if (_quote?.data?.needApprove && !isFromTronEnergy) {
@@ -539,7 +548,7 @@ export default function useBridge(props?: any) {
             });
           }
         }
-        const approveAmount = bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
+        const approveAmount = isExactOutput ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
         const approveAmountWei = Big(approveAmount || 0).times(10 ** walletStore.fromToken.decimals).toFixed(0);
         const approveResult = await wallet.wallet.approve({
           contractAddress: walletStore.fromToken.contractAddress,
@@ -587,7 +596,7 @@ export default function useBridge(props?: any) {
       const reportData: any = {
         project: ServiceBackend[bridgeStore.quoteDataService],
         address: wallet.account,
-        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
+        amount: isExactOutput ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
         out_amount: _quote.data.outputAmount,
         deposit_address: isOneClickService ? _quote.data.quote.depositAddress : "",
         receive_address: _quote.data.quoteParam.recipient,
@@ -600,7 +609,7 @@ export default function useBridge(props?: any) {
       const localHistoryData: any = {
         type: bridgeStore.quoteDataService,
         depositAddress: isOneClickService ? _quote.data.quote.depositAddress : "",
-        amount: bridgeStore.quoteDataService === Service.OneClickUsdt0 ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
+        amount: isExactOutput ? _quote.data.quote.amountInFormatted : bridgeStore.amount,
         fromToken: walletStore.fromToken,
         toToken: walletStore.toToken,
         fromAddress: wallet.account,
@@ -932,7 +941,7 @@ export default function useBridge(props?: any) {
         return "Please enter amount";
       }
       // const validQuote = Array.from(bridgeStore.quoteDataMap.values()).filter((quote) => !quote.errMsg);
-      // if (!Array.from(bridgeStore.quotingMap.values()).some(Boolean) && validQuote.length <= 0) {
+      // if (!bridgeStore.getQuoting() && validQuote.length <= 0) {
       //   return "No routes found";
       // }
       if (bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg) {
@@ -1022,7 +1031,7 @@ export default function useBridge(props?: any) {
   useEffect(() => {
     const allQuoteList = Array.from(bridgeStore.quoteDataMap.entries());
     const validQuoteList = Array.from(bridgeStore.quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
-    const isQuoting = Array.from(bridgeStore.quotingMap.values()).some(Boolean);
+    const isQuoting = bridgeStore.getQuoting();
 
     if (bridgeStore.transferring || isQuoting || !isAutoSelect) {
       return;
@@ -1044,39 +1053,8 @@ export default function useBridge(props?: any) {
       return;
     }
     // sort and select the best one
-    const sortedQuoteData = validQuoteList.sort((a: any, b: any) => {
-      const [_serviceA, dataA] = a;
-      const [_serviceB, dataB] = b;
-
-      let netA = Big(dataA.outputAmount || 0);
-      let netB = Big(dataB.outputAmount || 0);
-
-      // Usdt0 should minus message fee
-      if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceA)) {
-        netA = netA.minus(dataA.fees?.nativeFeeUsd || 0);
-      }
-      if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceB)) {
-        netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
-      }
-
-      if ([Service.OneClickUsdt0].includes(_serviceA)) {
-        netA = netA.minus(dataA.fees?.destinationGasFeeUsd || 0);
-      }
-      if ([Service.OneClickUsdt0].includes(_serviceB)) {
-        netB = netB.minus(dataB.fees?.destinationGasFeeUsd || 0);
-      }
-
-      // csl("quoteRoutes", "green-500", "%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));
-      // csl("quoteRoutes", "green-500", "%s data: %o,  output amount: %o", _serviceB, dataB, netB.toFixed(6, 0));
-
-      if (netB.gt(netA)) return 1;
-      if (netA.gt(netB)) return -1;
-
-      if (netA.eq(netB)) return 0;
-
-      return 0;
-    });
-    csl("quoteRoutes", "green-700", "Quote Sorted Result: %o", sortedQuoteData);
+    const sortedQuoteData = sortQuoteData(bridgeStore.quoteDataMap);
+    csl("QuoteRoutes", "pink-950", "Quote Sorted Result: %o", sortedQuoteData);
     bridgeStore.set({ quoteDataService: sortedQuoteData[0][0], showFee: true });
     setAutoSelect(false);
   }, [

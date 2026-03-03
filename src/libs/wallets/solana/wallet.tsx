@@ -558,7 +558,7 @@ export default class SolanaWallet {
           replaceRecentBlockhash: true,
         });
 
-        csl("Solana quoteOFT", "purple-400", "sendSim: %o", JSON.stringify(sendSim));
+        // csl("Solana quoteOFT", "purple-400", "sendSim: %o", JSON.stringify(sendSim));
 
         // Even if simulation fails (e.g., insufficient funds), we can still get the fee estimate
         if (!sendSim.value.err) {

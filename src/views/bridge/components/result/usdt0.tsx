@@ -68,7 +68,7 @@ const ResultUsdt0 = (props: any) => {
               !!fees?.legacyMeshFee && Big(fees?.legacyMeshFee).gt(0) && (
                 <ResultFeeItem
                   label="Legacy Mesh Fee"
-                  loading={bridgeStore.quotingMap.get(Service.Usdt0)}
+                  loading={bridgeStore.getQuoting(Service.Usdt0)}
                 >
                   {fees?.legacyMeshFee}
                 </ResultFeeItem>
@@ -77,14 +77,14 @@ const ResultUsdt0 = (props: any) => {
             <ResultFeeItem
               label="Messaging Fee"
               isFormat={false}
-              loading={bridgeStore.quotingMap.get(Service.Usdt0)}
+              loading={bridgeStore.getQuoting(Service.Usdt0)}
             >
               {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
             </ResultFeeItem>
             {/* <ResultFeeItem 
             label="Swap Slippage"
              precision={2} 
-             loading={bridgeStore.quotingMap.get(Service.Usdt0)} 
+             loading={bridgeStore.getQuoting(Service.Usdt0)} 
              isFormat={false}
              >
           {fees?.slippage}
