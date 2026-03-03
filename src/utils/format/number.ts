@@ -25,6 +25,7 @@ export const formatNumber = (
     isShort?: boolean;
     isShortUppercase?: boolean;
     round?: Big.RoundingMode;
+    isLessPrecision?: boolean;
   }
 ): any => {
   const {
@@ -33,7 +34,8 @@ export const formatNumber = (
     isZeroPrecision,
     isShort,
     isShortUppercase,
-    round = Big.roundHalfUp
+    round = Big.roundHalfUp,
+    isLessPrecision = true,
   } = options || {};
 
   const isValid = () => {
@@ -65,7 +67,7 @@ export const formatNumber = (
     };
   }
 
-  if (Big(value).lt(Big(10).pow(-precision))) {
+  if (isLessPrecision && Big(value).lt(Big(10).pow(-precision))) {
     if (isSimple) {
       return `< ${prefix}${Big(10).pow(-precision).toFixed(precision, round)}`;
     }

@@ -3,7 +3,7 @@ import { useConfigStore } from "@/stores/use-config";
 import { useDebounceFn } from "ahooks";
 import Big from "big.js";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ResultFeeItem from "./fee-item";
 import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
@@ -42,6 +42,7 @@ const ResultUsdt0OneClick = (props: any) => {
         bridgeFee: totalBridgeFeeLabel,
         bridgeFeeValue: 0,
         netFee: 0,
+        exchangeRate: 1,
         slippage,
       });
       return;
@@ -57,6 +58,7 @@ const ResultUsdt0OneClick = (props: any) => {
       bridgeFee: totalBridgeFeeLabel,
       bridgeFeeValue: totalBridgeFeeValue,
       netFee: _quoteData?.fees?.destinationGasFeeUsd,
+      exchangeRate: formatNumber(_quoteData?.exchangeRate, 6, true, { round: Big.roundDown }),
       slippage,
     });
   }, { wait: 500 });
@@ -64,6 +66,12 @@ const ResultUsdt0OneClick = (props: any) => {
   useEffect(() => {
     calculateFees();
   }, [bridgeStore, configStore.slippage]);
+
+  const isExchangeToken = useMemo(() => {
+    const fromTokenSymbol = _quoteData?.quoteParam?.fromToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.fromToken?.symbol;
+    const toTokenSymbol = _quoteData?.quoteParam?.toToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.toToken?.symbol;
+    return fromTokenSymbol && toTokenSymbol && fromTokenSymbol !== toTokenSymbol;
+  }, [_quoteData]);
 
   return (
     <AnimatePresence>
@@ -93,12 +101,24 @@ const ResultUsdt0OneClick = (props: any) => {
             >
               {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
             </ResultFeeItem>
-            <ResultFeeItem
-              label="Net fee"
-              loading={bridgeStore.quotingMap.get(service)}
-            >
-              {fees?.netFee}
-            </ResultFeeItem>
+            {
+              isExchangeToken ? (
+                <ResultFeeItem
+                  label="Exchange Rate"
+                  loading={bridgeStore.quotingMap.get(Service.OneClick)}
+                  isFormat={false}
+                >
+                  1 {_quoteData?.quoteParam.fromToken.symbol} ~ {fees?.exchangeRate} {_quoteData?.quoteParam.toToken.symbol}
+                </ResultFeeItem>
+              ) : (
+                <ResultFeeItem
+                  label="Net fee"
+                  loading={bridgeStore.quotingMap.get(service)}
+                >
+                  {fees?.netFee}
+                </ResultFeeItem>
+              )
+            }
             <ResultFeeItem
               label={(
                 <>

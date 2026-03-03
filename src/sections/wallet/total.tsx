@@ -106,7 +106,7 @@ export default function Total() {
       _balanceSummariesListWithBalance.length,
       finalPercentages.map(percent => percent + "%").join(" ")
     ];
-  }, [balancesStore]);
+  }, [balancesStore, walletStore.selectedToken]);
 
   return (
     <div className="flex flex-col justify-center items-center border-b border-[#EDF0EF] pb-[40px] mt-[20px]">
@@ -115,7 +115,7 @@ export default function Total() {
           <div className="">
             Total {walletStore.selectedToken}
           </div>
-          {total && Big(total).gt(0) ? (
+          {total && typeof total !== "undefined" ? (
             <Amount
               amount={total}
               className="mt-[4px]"

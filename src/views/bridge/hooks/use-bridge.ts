@@ -26,7 +26,7 @@ import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
 import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
-import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
+import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_LAYERZERO_EXECUTOR_LEGACY, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { csl } from "@/utils/log";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 1;
@@ -648,7 +648,7 @@ export default function useBridge(props?: any) {
           const signature = await evmWallet?.signTypedData({
             fromToken: permitToken,
             amountWei: _quote?.data?.quote?.amountOut,
-            spender: MIDDLE_CHAIN_LAYERZERO_EXECUTOR,
+            spender: _quote?.data?.quoteParam?.isOriginLegacy ? MIDDLE_CHAIN_LAYERZERO_EXECUTOR_LEGACY : MIDDLE_CHAIN_LAYERZERO_EXECUTOR,
           });
           // After signing, need to switch back to the source chain
           if (walletStore.fromToken.chainType === "evm") {

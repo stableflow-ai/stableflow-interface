@@ -126,6 +126,8 @@ class OneClickUsdt0Service {
         toToken: params.toToken,
         middleToken: MIDDLE_TOKEN_CHAIN,
         recipient: params.recipient,
+        isOriginLegacy: usdt0Result.quoteParam?.isOriginLegacy,
+        isDestinationLegacy: usdt0Result.quoteParam?.isDestinationLegacy,
       },
       usdt0SendParam: usdt0Result.sendParam?.param?.[0],
       usdt0MessageFee: usdt0Result.sendParam?.param?.[1],

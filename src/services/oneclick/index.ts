@@ -70,6 +70,13 @@ class OneClickService {
       } catch (error) { }
       res.data.priceImpact = numberRemoveEndZero(Big(priceImpact).toFixed(4));
 
+      const fromTokenSymbol = params.fromToken.symbol === "USD₮0" ? "USDT" : params.fromToken.symbol;
+      const toTokenSymbol = params.toToken.symbol === "USD₮0" ? "USDT" : params.toToken.symbol;
+      res.data.exchangeRate = "1";
+      if (fromTokenSymbol !== toTokenSymbol) {
+        res.data.exchangeRate = numberRemoveEndZero(Big(res.data.quote?.amountOutFormatted || 0).div(res.data.quote?.amountInFormatted || 1).toFixed(params.toToken.decimals, 0));
+      }
+
       try {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
         //   return acc.plus(Big(item.fee).div(100));
