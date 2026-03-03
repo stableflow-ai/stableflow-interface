@@ -28,6 +28,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_LAYERZERO_EXECUTOR_LEGACY, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { csl } from "@/utils/log";
+import { sortQuoteData } from "../utils";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -1052,39 +1053,8 @@ export default function useBridge(props?: any) {
       return;
     }
     // sort and select the best one
-    const sortedQuoteData = validQuoteList.sort((a: any, b: any) => {
-      const [_serviceA, dataA] = a;
-      const [_serviceB, dataB] = b;
-
-      let netA = Big(dataA.outputAmount || 0);
-      let netB = Big(dataB.outputAmount || 0);
-
-      // Usdt0 should minus message fee
-      if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceA)) {
-        netA = netA.minus(dataA.fees?.nativeFeeUsd || 0);
-      }
-      if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceB)) {
-        netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
-      }
-
-      if ([Service.OneClickUsdt0].includes(_serviceA)) {
-        netA = netA.minus(dataA.fees?.destinationGasFeeUsd || 0);
-      }
-      if ([Service.OneClickUsdt0].includes(_serviceB)) {
-        netB = netB.minus(dataB.fees?.destinationGasFeeUsd || 0);
-      }
-
-      // csl("QuoteRoutes", "green-500", "%s data: %o, output amount: %o", _serviceA, dataA, netA.toFixed(6, 0));
-      // csl("QuoteRoutes", "green-500", "%s data: %o,  output amount: %o", _serviceB, dataB, netB.toFixed(6, 0));
-
-      if (netB.gt(netA)) return 1;
-      if (netA.gt(netB)) return -1;
-
-      if (netA.eq(netB)) return 0;
-
-      return 0;
-    });
-    csl("QuoteRoutes", "green-700", "Quote Sorted Result: %o", sortedQuoteData);
+    const sortedQuoteData = sortQuoteData(bridgeStore.quoteDataMap);
+    csl("QuoteRoutes", "pink-950", "Quote Sorted Result: %o", sortedQuoteData);
     bridgeStore.set({ quoteDataService: sortedQuoteData[0][0], showFee: true });
     setAutoSelect(false);
   }, [
