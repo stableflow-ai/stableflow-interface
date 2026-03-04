@@ -39,7 +39,7 @@ const QuoteRoute = (props: any) => {
           alt=""
           className={clsx(
             "object-center object-contain shrink-0",
-            [Service.OneClickUsdt0, Service.Usdt0OneClick].includes(service) ? "w-[118px] h-[24px]" : "w-[62px] h-[16px]",
+            [Service.OneClickUsdt0, Service.Usdt0OneClick, Service.FraxZero].includes(service) ? "w-[118px] h-[24px]" : "w-[62px] h-[16px]",
           )}
         />
       </div>
