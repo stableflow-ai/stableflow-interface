@@ -4,6 +4,7 @@ import { Service } from "@/services/constants";
 import { FRAXZERO_CONFIG, FRAXZERO_REQUIRED_DVN_COUNT } from "./config";
 import { FRAXZERO_ABI } from "./contract";
 import { calculateEstimateTime } from "../utils";
+import { OFT_ABI } from "../usdt0/contract";
 
 export const PayInLzToken = false;
 
@@ -25,11 +26,33 @@ class FraxZeroService {
     const originLayerzero = FRAXZERO_CONFIG[fromToken.chainName];
     const destinationLayerzero = FRAXZERO_CONFIG[toToken.chainName];
 
+    const isFromEthereumOrFraxtal = fromToken.chainId === 1 || fromToken.chainId === 252;
+    const isToEthereumOrFraxtal = toToken.chainId === 1 || toToken.chainId === 252;
+    const isFraxtal = fromToken.chainId === 252 || toToken.chainId === 252;
+
     const estimateTime = calculateEstimateTime({
       requiredDvnCount: FRAXZERO_REQUIRED_DVN_COUNT,
       originConfig: originLayerzero,
       destinationConfig: destinationLayerzero,
     });
+
+    if (isFraxtal) {
+      const result = await wallet.quote(Service.Usdt0, {
+        ...params,
+        abi: OFT_ABI,
+        dstEid: destinationLayerzero.eid,
+        payInLzToken: PayInLzToken,
+        originLayerzeroAddress: isFromEthereumOrFraxtal ? originLayerzero.lockbox : fromToken.contractAddress,
+        destinationLayerzeroAddress: isToEthereumOrFraxtal ? destinationLayerzero.lockbox : toToken.contractAddress,
+        excludeFees,
+        originLayerzero,
+        destinationLayerzero,
+      });
+
+      result.estimateTime = estimateTime;
+
+      return result;
+    }
 
     const result = await wallet.quote(Service.FraxZero, {
       ...params,

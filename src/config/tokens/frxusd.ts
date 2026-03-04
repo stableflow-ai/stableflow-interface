@@ -7,6 +7,7 @@ export const frxusd = {
   icon: "/frxusd.png"
 };
 
+// https://docs.frax.com/frxusd/frxusd-contracts
 export const frxusdChains: Record<string, TokenChain> = {
   frax: {
     ...frxusd,

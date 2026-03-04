@@ -266,7 +266,7 @@ export default class RainbowWallet {
 
     // 1. check if need approve
     const approvalRequired = await oftContractRead.approvalRequired();
-    // csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
+    csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -284,7 +284,7 @@ export default class RainbowWallet {
       }
     }
 
-    const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
+    const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : (destinationLayerzero.lzReceiveOptionGas || 200000);
     let lzReceiveOptionValue = 0;
 
     const destATA = await getDestinationAssociatedTokenAddress({
