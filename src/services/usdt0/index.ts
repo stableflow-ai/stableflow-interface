@@ -9,7 +9,7 @@ export const PayInLzToken = false;
 
 export const excludeFees: string[] = ["estimateGasUsd"];
 
-class Usdt0Service {
+export class Usdt0Service {
   public async quote(params: any) {
     const {
       wallet,

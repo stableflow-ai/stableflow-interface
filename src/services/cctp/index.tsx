@@ -10,7 +10,7 @@ export const PayInLzToken = false;
 
 const excludeFees: string[] = ["estimateApproveGasUsd"];
 
-class CCTPService {
+export class CCTPService {
   private api: AxiosInstance;
 
   constructor() {

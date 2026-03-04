@@ -10,7 +10,7 @@ import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { BridgeDefaultWallets } from "@/config";
 import { csl } from "@/utils/log";
 
-class Usdt0OneClickService {
+export class Usdt0OneClickService {
   public async quote(params: any) {
     const {
       dry,

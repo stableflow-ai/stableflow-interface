@@ -19,7 +19,7 @@ export const BridgeFee = [
 
 export const excludeFees: string[] = ["sourceGasFeeUsd"];
 
-class OneClickService {
+export class OneClickService {
   private api: AxiosInstance;
   private offsetTime = 1000 * 60 * 30;
   constructor() {
