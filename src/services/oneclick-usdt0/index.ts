@@ -37,6 +37,7 @@ class OneClickUsdt0Service {
     // params.amountWei is the input amount for the second step
     const usdt0Params = {
       ...params,
+      amountWei: Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0),
       fromToken: MIDDLE_TOKEN_CHAIN,
       originChain: MIDDLE_TOKEN_CHAIN.chainName,
       refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
