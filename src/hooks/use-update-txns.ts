@@ -1,6 +1,7 @@
 import { useHistoryStore } from "@/stores/use-history";
 import { useEffect } from "react";
-import { Service, ServiceMap, type ServiceType } from "@/services";
+import { ServiceMap } from "@/services";
+import { Service } from "@/services/constants";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 
 export default function useUpdateTxns() {
@@ -14,7 +15,7 @@ export default function useUpdateTxns() {
     while (pendingStatus.length > 0) {
       const address = pendingStatus.pop();
       const currentHistory = historyStore.history[address];
-      const historyType: ServiceType = currentHistory?.type ?? Service.OneClick;
+      const historyType: Service = currentHistory?.type ?? Service.OneClick;
       const wallet = wallets[currentHistory?.fromToken?.chainType as WalletType];
 
       let getStatusParams: any = {

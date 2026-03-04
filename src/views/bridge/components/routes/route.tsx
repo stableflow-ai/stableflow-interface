@@ -1,6 +1,7 @@
 import InputRadio from "@/components/input-radio";
 import { stablecoinLogoMap } from "@/config/tokens";
-import { Service, ServiceLogoMap, type ServiceType } from "@/services";
+import { ServiceLogoMap } from "@/services";
+import { Service } from "@/services/constants";
 import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";
 import { formatNumber } from "@/utils/format/number";
@@ -34,9 +35,12 @@ const QuoteRoute = (props: any) => {
           onChange={onSelect}
         />
         <img
-          src={ServiceLogoMap[service as ServiceType]}
+          src={ServiceLogoMap[service as Service]}
           alt=""
-          className="w-[62px] h-[16px] object-center object-contain shrink-0"
+          className={clsx(
+            "object-center object-contain shrink-0",
+            [Service.OneClickUsdt0, Service.Usdt0OneClick].includes(service) ? "w-[118px] h-[24px]" : "w-[62px] h-[16px]",
+          )}
         />
       </div>
       <div className="flex items-center justify-end gap-[10px] text-[12px] font-[400] text-[#444C59] leading-[100%]">
@@ -49,7 +53,7 @@ const QuoteRoute = (props: any) => {
           />
           <div className="">
             {
-              (service === Service.OneClick && isFromTron) ? (
+              ([Service.OneClick, Service.OneClickUsdt0].includes(service) && isFromTron) ? (
                 bridgeStore.acceptTronEnergy ?
                   formatNumber(data.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
                   formatNumber(data.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
@@ -65,8 +69,13 @@ const QuoteRoute = (props: any) => {
             alt=""
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />
-          <div className="">
-            ~{formatDuration(data.estimateTime)}
+          <div
+            className={clsx(
+              data.estimateTime > 300 && "text-[#E53935]",
+              data.estimateTime > 60 && data.estimateTime <= 300 && "text-[#F9A825]",
+            )}
+          >
+            ~{formatDuration(data.estimateTime, { compound: true })}
           </div>
         </div>
         <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>

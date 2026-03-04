@@ -2,11 +2,11 @@ import { USDT0_CONFIG, USDT0_DVN_COUNT } from "./config";
 import { OFT_ABI, SOLANA_IDL } from "./contract";
 import axios from "axios";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 
 export const PayInLzToken = false;
 
-const excludeFees: string[] = ["estimateGasUsd"];
+export const excludeFees: string[] = ["estimateGasUsd"];
 
 /**
  * Calculate USDT0 cross-chain estimated time using LayerZero formula
@@ -77,10 +77,18 @@ class Usdt0Service {
     if (fromToken.chainType === "evm") {
       destinationLayerzeroAddress = destinationLayerzero.oft || destinationLayerzero.oftLegacy;
       let isOriginLegacy = false;
-      const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
+      let isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
       if (isDestinationLegacy) {
         originLayerzeroAddress = originLayerzero.oftLegacy || originLayerzero.oft;
         isOriginLegacy = originLayerzeroAddress === originLayerzero.oftLegacy;
+      }
+      if (!originLayerzeroAddress) {
+        originLayerzeroAddress = originLayerzero.oftLegacy;
+        isOriginLegacy = true;
+        if (destinationLayerzero.oftLegacy) {
+          destinationLayerzeroAddress = destinationLayerzero.oftLegacy;
+          isDestinationLegacy = true;
+        }
       }
       const isBothLegacy = isOriginLegacy && isDestinationLegacy;
       const isBothOUpgradeable = !isOriginLegacy && !isDestinationLegacy;

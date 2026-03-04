@@ -9,7 +9,8 @@ import { tokens } from "@/config/tokens";
 import usePricesStore from "@/stores/use-prices";
 import { TRON_RENTAL_FEE, TronTransferStepStatus } from "@/config/tron";
 import Big from "big.js";
-import { Service, ServiceMap } from "@/services";
+import { ServiceMap } from "@/services";
+import { Service } from "@/services/constants";
 import { useHistoryStore } from "@/stores/use-history";
 import axios from "axios";
 import { BASE_API_URL } from "@/config/api";
@@ -18,6 +19,7 @@ import { useState } from "react";
 import { formatNumber } from "@/utils/format/number";
 import { formatAddress } from "@/utils/format/address";
 import Skeleton from "@/components/skeleton";
+import { csl } from "@/utils/log";
 
 const ContinueTransfer = (props: any) => {
   const { history, reload } = props;
@@ -114,7 +116,7 @@ const ContinueTransfer = (props: any) => {
         const nativeBalance = await wallet.wallet.getBalance({ symbol: "native" }, wallet.account);
         const nativeTokenName = fromToken.nativeToken.symbol;
 
-        console.log(`estimate ${nativeTokenName} balance. Required: ${estimateGas} ${nativeTokenName}, Available: ${nativeBalance} ${nativeTokenName}`);
+        csl("ContinueTransfer handleContinue", "teal-400", "estimate %s balance. Required: %s %s, Available: %s %s", nativeTokenName, estimateGas, nativeTokenName, nativeBalance, nativeTokenName);
 
         if (Big(nativeBalance || 0).lt(estimateGas || 0)) {
           throw new Error(`Insufficient ${nativeTokenName} balance: You need at least ${TRON_RENTAL_FEE.Normal} ${nativeTokenName} to continue this transaction`);
@@ -125,7 +127,7 @@ const ContinueTransfer = (props: any) => {
 
       const localHistoryData = {
         type: Service.OneClick,
-        despoitAddress: quoteData.data.quote.depositAddress,
+        depositAddress: quoteData.data.quote.depositAddress,
         amount: bridgeStore.amount,
         fromToken: fromToken,
         toToken: toToken,
@@ -187,7 +189,7 @@ const ContinueTransfer = (props: any) => {
           ...reportData,
         });
       } catch (error) {
-        console.log("report failed: %o", error);
+        csl("ContinueTransfer handleContinue", "red-500", "report failed: %o", error);
       }
 
       toast.success({

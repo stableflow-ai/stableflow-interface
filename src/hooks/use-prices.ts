@@ -1,4 +1,5 @@
 import usePricesStore from "@/stores/use-prices";
+import { csl } from "@/utils/log";
 import { useRequest } from "ahooks";
 import axios from "axios";
 
@@ -15,7 +16,7 @@ export function usePrices() {
         prices: res.data.data,
       });
     } catch (error) {
-      console.log("get prices failed: %o", error);
+      csl("get-token-price-by-dapdap", "red-500", "get prices failed: %o", error);
     }
   }, {
     pollingInterval: 120000, // 2 minute

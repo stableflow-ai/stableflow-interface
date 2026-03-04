@@ -3,7 +3,8 @@ import Big from "big.js";
 import { getPrice } from "@/utils/format/price";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "../types";
-import { Service, type ServiceType } from "@/services";
+import { Service } from "@/services/constants";
+import { csl } from "@/utils/log";
 
 export default class AptosWallet {
   connection: any;
@@ -43,13 +44,13 @@ export default class AptosWallet {
 
       const executedTransaction = await this.aptos.waitForTransaction({ transactionHash: typeof result === "string" ? result : result.hash });
       if (executedTransaction.success !== true) {
-        console.log("Transfer APT token failed: %o", executedTransaction);
+        csl("Aptos transferAPT", "red-500", "Transfer APT token failed: %o", executedTransaction);
         throw new Error("Transfer token failed");
       }
 
       return typeof result === "string" ? result : result.hash;
     } catch (error) {
-      console.log("Transfer APT failed:", error);
+      csl("Aptos transferAPT", "red-500", "Transfer APT failed: %o", error);
       throw error;
     }
   }
@@ -72,13 +73,13 @@ export default class AptosWallet {
 
       const executedTransaction = await this.aptos.waitForTransaction({ transactionHash: typeof result === "string" ? result : result.hash });
       if (executedTransaction.success !== true) {
-        console.log("Transfer token failed: %o", executedTransaction);
+        csl("Aptos transferToken", "red-500", "Transfer token failed: %o", executedTransaction);
         throw new Error("Transfer token failed");
       }
 
       return typeof result === "string" ? result : result.hash;
     } catch (error) {
-      console.log("Transfer token failed:", error);
+      csl("Aptos transferToken", "red-500", "Transfer token failed: %o", error);
       throw error;
     }
   }
@@ -112,7 +113,7 @@ export default class AptosWallet {
       });
       return accountAPTAmount.toString();
     } catch (error) {
-      console.log("Get APT balance failed:", error);
+      csl("Aptos getAPTBalance", "red-500", "Get APT balance failed: %o", error);
       return "0";
     }
   }
@@ -125,7 +126,7 @@ export default class AptosWallet {
       });
       return balance.toString();
     } catch (error) {
-      console.log("Get token balance failed:", error);
+      csl("Aptos getTokenBalance", "red-500", "Get token balance failed: %o", error);
       return "0";
     }
   }
@@ -147,7 +148,7 @@ export default class AptosWallet {
    * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateTransferGas(data: {
-    originAsset: string;
+    fromToken: any;
     depositAddress: string;
     amount: string;
   }): Promise<{
@@ -159,7 +160,8 @@ export default class AptosWallet {
       throw new Error("Wallet not connected");
     }
 
-    const { originAsset, depositAddress, amount } = data;
+    const { fromToken, depositAddress, amount } = data;
+    const originAsset = fromToken.contractAddress;
     const isOriginNative = originAsset === "APT" || originAsset === "apt";
     const sender = this.account?.address?.toString();
 
@@ -326,7 +328,7 @@ export default class AptosWallet {
       // The transaction object should have a success property or we can check the status
       return (transaction as any).success === true || (transaction as any).status === "success";
     } catch (error) {
-      console.log("Check transaction status failed:", error);
+      csl("Aptos checkTransactionStatus", "red-500", "Check transaction status failed: %o", error);
       return false;
     }
   }
@@ -395,7 +397,7 @@ export default class AptosWallet {
         });
         simulation = simulationResult[0];
       } catch (error: any) {
-        console.log("oneclick proxy simulation failed: %o", error);
+        csl("Aptos quoteOneClickProxy", "red-500", "oneclick proxy simulation failed: %o", error);
         // Use default gas estimation if simulation fails
         const defaultGasLimit = 5000n;
         const defaultGasPrice = 100n;
@@ -465,7 +467,7 @@ export default class AptosWallet {
       };
 
     } catch (error) {
-      console.log("oneclick quote proxy failed: %o", error);
+      csl("Aptos quoteOneClickProxy", "red-500", "oneclick quote proxy failed: %o", error);
       // Return default values on error
       const defaultGasLimit = 5000n;
       const defaultGasPrice = 100n;
@@ -513,23 +515,23 @@ export default class AptosWallet {
       });
 
       if (executedTransaction.success !== true) {
-        console.log("Proxy transfer failed: %o", executedTransaction);
+        csl("Aptos sendTransaction", "red-500", "Proxy transfer failed: %o", executedTransaction);
         throw new Error("Proxy transfer failed");
       }
 
       return typeof result === "string" ? result : result.hash;
     } catch (error) {
-      console.log("Send transaction failed:", error);
+      csl("Aptos sendTransaction", "red-500", "Send transaction failed: %o", error);
       throw error;
     }
   }
 
   /**
   * Unified quote method that routes to specific quote methods based on type
-  * @param type Service type from ServiceType
+  * @param type Service type from Service
   * @param params Parameters for the quote
   */
-  async quote(type: ServiceType, params: any) {
+  async quote(type: Service, params: any) {
     switch (type) {
       case Service.OneClick:
         return await this.quoteOneClickProxy(params);

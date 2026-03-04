@@ -1,10 +1,10 @@
-import { usdtChains } from "@/config/tokens/usdt";
+import { allUsdtChains } from "@/config/tokens";
 import { motion } from "framer-motion";
 
 const SupportedNetworks = (props: any) => {
   const { } = props;
 
-  const networks = Object.values(usdtChains);
+  const networks = Object.values(allUsdtChains);
 
   return (
     <div className="w-full shrink-0 mt-auto pt-[100px]">

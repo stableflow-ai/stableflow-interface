@@ -8,12 +8,13 @@ import { addressToBytes32 } from "@/utils/address-validation";
 import { LZ_RECEIVE_VALUE, USDT0_CONFIG, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { quoteSignature } from "../utils/cctp";
 import { SendType } from "../types";
-import { Service, type ServiceType } from "@/services";
+import { Service } from "@/services/constants";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
-import { usdtChains } from "@/config/tokens/usdt";
+import { allUsdtChains } from "@/config/tokens";
 import { buildEndpointV2LzComposePayload } from "../utils/layerzero";
 import { OFT_ABI } from "@/services/usdt0/contract";
+import { csl } from "@/utils/log";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -52,10 +53,9 @@ export default class RainbowWallet {
 
   async getBalance(token: any, account: string) {
     try {
-      // Use token's rpcUrls if available, otherwise fall back to current provider
       let provider = this.provider;
       if (token.rpcUrls) {
-        const providers = token.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+        const providers = token.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, token.chainId));
         provider = new ethers.FallbackProvider(providers);
       }
 
@@ -64,15 +64,15 @@ export default class RainbowWallet {
         return balance.toString();
       }
 
-      // Use provider instead of signer for read-only operations
+      // Use provider instead of _signer for read-only operations
       const contract = new ethers.Contract(token.contractAddress, erc20Abi, provider);
 
       const balance = await contract.balanceOf(account);
-      // console.log("Success getting %s token balance: %o", token.contractAddress, balance);
+      csl("EVM getBalance", "green-500", "Success getting %s token balance: %o", token.contractAddress, balance);
 
       return balance.toString();
     } catch (err) {
-      console.log("Error getting token balance: %o", err);
+      console.error("Error getting token balance: %o", err);
       return "0";
     }
   }
@@ -87,35 +87,33 @@ export default class RainbowWallet {
    * @returns Gas limit estimate, gas price, and estimated gas cost
    */
   async estimateTransferGas(data: {
-    originAsset: string;
+    fromToken: any;
     depositAddress: string;
     amount: string;
+    account: string;
   }): Promise<{
     gasLimit: bigint;
     gasPrice: bigint;
     estimateGas: bigint;
   }> {
-    const { originAsset, depositAddress, amount } = data;
-
-    if (!this.signer) {
-      throw new Error("Signer not available");
-    }
-
-    const fromAddress = await this.signer.getAddress();
+    const { fromToken, depositAddress, amount, account } = data;
+    const originAsset = fromToken.contractAddress;
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
 
     let gasLimit: bigint;
 
     if (originAsset === "eth") {
       // Estimate gas for ETH transfer
       const tx = {
-        from: fromAddress,
+        from: account,
         to: depositAddress,
         value: ethers.parseEther(amount)
       };
-      gasLimit = await this.provider.estimateGas(tx);
+      gasLimit = await provider.estimateGas(tx);
     } else {
       // Estimate gas for ERC20 token transfer
-      const contract = new ethers.Contract(originAsset, erc20Abi, this.signer);
+      const contract = new ethers.Contract(originAsset, erc20Abi, provider);
       gasLimit = await contract.transfer.estimateGas(depositAddress, amount);
     }
 
@@ -123,7 +121,7 @@ export default class RainbowWallet {
     gasLimit = (gasLimit * 120n) / 100n;
 
     // Get gas price
-    const feeData = await this.provider.getFeeData();
+    const feeData = await provider.getFeeData();
     const gasPrice = feeData.gasPrice || 0n;
 
     // Calculate estimated gas cost: gasLimit * gasPrice
@@ -161,7 +159,7 @@ export default class RainbowWallet {
       allowance = await contract.allowance(address, spender);
       allowance = allowance.toString();
     } catch (error) {
-      // console.log("Error getting allowance: %o", error)
+      csl("EVM allowance", "red-500", "Error getting allowance: %o", error);
     }
 
     return {
@@ -194,16 +192,16 @@ export default class RainbowWallet {
       }
       return false;
     } catch (error) {
-      console.log("Error approve: %o", error)
+      console.error("Error approve: %o", error)
     }
 
     return false;
   }
 
   async getEstimateGas(params: any) {
-    const { gasLimit, price, nativeToken } = params;
+    const { gasLimit, price, nativeToken, provider } = params;
 
-    const feeData = await this.provider.getFeeData();
+    const feeData = await provider.getFeeData();
     const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
 
     const estimateGas = BigInt(gasLimit) * BigInt(gasPrice);
@@ -258,12 +256,17 @@ export default class RainbowWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
 
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
     const oftContract = new ethers.Contract(originLayerzeroAddress, abi, this.signer);
-    const oftContractRead = new ethers.Contract(originLayerzeroAddress, abi, this.provider);
+    const oftContractRead = new ethers.Contract(originLayerzeroAddress, abi, provider);
+
+    // csl("EVM quoteOFT", "blue-900", "params: %o", params);
 
     // 1. check if need approve
     const approvalRequired = await oftContractRead.approvalRequired();
-    // console.log("%cApprovalRequired: %o", "background:blue;color:white;", approvalRequired);
+    // csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -277,7 +280,7 @@ export default class RainbowWallet {
         });
         result.needApprove = allowanceResult.needApprove;
       } catch (error) {
-        console.log("Error checking allowance: %o", error);
+        csl("EVM checking allowance", "red-500", "Error checking allowance: %o", error);
       }
     }
 
@@ -308,6 +311,7 @@ export default class RainbowWallet {
       oftCmd: "0x"
     };
 
+    // csl("EVM quoteOFT", "blue-900", "isMultiHopComposer: %o", isMultiHopComposer);
     if (isMultiHopComposer) {
       // multiHopComposer: Arbitrum legacy mesh MultiHopComposer, eid = 30110
       sendParam.dstEid = multiHopComposer.eid;
@@ -342,15 +346,18 @@ export default class RainbowWallet {
       );
     }
 
+    // csl("EVM quoteOFT", "blue-900", "sendParam: %o", sendParam);
+
     const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
+    // csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
 
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     result.estimateSourceGas = msgFee[0];
-    // console.log("%cMsgFee: %o", "background:blue;color:white;", msgFee);
+    csl("EVM quoteOFT", "blue-900", "msgFee: %o", msgFee);
 
-    // console.log("%cParams: %o", "background:blue;color:white;", result.sendParam);
+    // csl("EVM quoteOFT", "blue-900", "Params: %o", result.sendParam);
 
     // 3. estimate gas
     const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
@@ -372,6 +379,7 @@ export default class RainbowWallet {
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.estimateGasUsd = usd;
       result.estimateSourceGas += wei;
@@ -381,6 +389,7 @@ export default class RainbowWallet {
         gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.estimateGasUsd = usd;
       result.estimateSourceGas += wei;
@@ -439,7 +448,7 @@ export default class RainbowWallet {
           overrides.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
         }
       } catch (error) {
-        console.log("Failed to get fee data for gas buffer: %o", error);
+        csl("EVM sendTransaction", "red-500", "Failed to get fee data for gas buffer: %o", error);
       }
     }
 
@@ -450,9 +459,18 @@ export default class RainbowWallet {
       finalParam.push(overrides);
     }
 
-    const tx = await contract[method](...finalParam);
+    try {
+      const tx = await contract[method](...finalParam);
 
-    return tx.hash;
+      return tx.hash;
+    } catch (error: any) {
+      csl("EVM sendTransaction", "red-500", "Error sending transaction: %o, message: %o", error, error.message);
+      let _finalErrorMessage = "Transaction failed";
+      if (error?.message?.includes("user rejected action")) {
+        _finalErrorMessage = error.message;
+      }
+      throw new Error(_finalErrorMessage);
+    }
 
     // const DefaultErrorMsg = "Transaction failed";
     // try {
@@ -470,10 +488,10 @@ export default class RainbowWallet {
 
   /**
    * Unified quote method that routes to specific quote methods based on type
-   * @param type Service type from ServiceType
+   * @param type Service type from Service
    * @param params Parameters for the quote
    */
-  async quote(type: ServiceType, params: any) {
+  async quote(type: Service, params: any) {
     switch (type) {
       case Service.CCTP:
         return await this.quoteCCTP(params);
@@ -536,8 +554,11 @@ export default class RainbowWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
     };
 
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
-    const proxyContractRead = new ethers.Contract(proxyAddress, abi, this.provider);
+    const proxyContractRead = new ethers.Contract(proxyAddress, abi, provider);
 
     let realRecipient = recipient;
     // get ATA address
@@ -611,6 +632,7 @@ export default class RainbowWallet {
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.estimateDepositGasUsd = usd;
       result.estimateSourceGas = wei;
@@ -620,6 +642,7 @@ export default class RainbowWallet {
         gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.estimateDepositGasUsd = usd;
       result.estimateSourceGas = wei;
@@ -651,10 +674,11 @@ export default class RainbowWallet {
           gasLimit,
           price: getPrice(prices, fromToken.nativeToken.symbol),
           nativeToken: fromToken.nativeToken,
+          provider,
         });
         result.fees.estimateApproveGasUsd = usd;
       } catch (error) {
-        console.log("cctp estimate approve gas failed: %o", error);
+        csl("EVM quoteCCTP", "red-500", "estimate approve gas failed: %o", error);
       }
     }
 
@@ -693,8 +717,11 @@ export default class RainbowWallet {
       result.needApprove = allowance.needApprove;
       result.approveSpender = proxyAddress;
     } catch (error) {
-      console.log("oneclick check allowance failed: %o", error);
+      csl("EVM quoteOneClickProxy", "red-500", "check allowance failed: %o", error);
     }
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
 
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
     const proxyParam: any = [
@@ -714,6 +741,7 @@ export default class RainbowWallet {
         gasLimit,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
       result.estimateSourceGas = wei;
@@ -723,6 +751,7 @@ export default class RainbowWallet {
         gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
         nativeToken: fromToken.nativeToken,
+        provider,
       });
       result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
       result.estimateSourceGas = wei;
@@ -791,7 +820,7 @@ export default class RainbowWallet {
     // lzCompose(address _from,address _to,bytes32 _guid,uint16 _index,bytes _message,bytes _extraData)
     const LayerZeroEndpointV2Contract = new ethers.Contract(LayerZeroEndpointV2, LayerZeroEndpointV2ABI, this.signer);
 
-    const toToken: any = usdtChains[history.destination_chain.blockchain as keyof typeof usdtChains];
+    const toToken: any = allUsdtChains[history.destination_chain.blockchain as keyof typeof allUsdtChains];
     const amountWei = Big(history.token_in_amount).times(10 ** (toToken.decimals || 6)).toFixed(0);
 
     const originLayerzero = USDT0_CONFIG["Arbitrum"];
@@ -858,5 +887,81 @@ export default class RainbowWallet {
     }
 
     return null;
+  }
+
+  async signTypedData(params: any) {
+    const { fromToken, amountWei, spender } = params;
+
+    csl("EVM signTypedData", "blue-900", "params: %o", params);
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    const value = amountWei;
+    const tokenAddress = fromToken.contractAddress;
+    const chainId = fromToken.chainId;
+    const deadline = Math.floor(Date.now() / 1000) + 86400;
+    const account = this.signer.address;
+
+    const erc20 = new ethers.Contract(tokenAddress, erc20Abi, provider);
+    const nonce = await erc20.nonces(account);
+    const name = await erc20.name();
+
+    const domain = {
+      name,
+      version: "1",
+      chainId: Number(chainId),
+      verifyingContract: tokenAddress
+    };
+
+    const types = {
+      Permit: [
+        { name: "owner", type: "address" },
+        { name: "spender", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" }
+      ]
+    };
+
+    const values = {
+      owner: account,
+      spender,
+      value,
+      nonce: nonce.toString(),
+      deadline
+    };
+
+    const signature = await this.signer?.signTypedData(domain, types, values);
+
+    const { v, r, s } = ethers.Signature.from(signature);
+
+    // Check if signature is available
+    try {
+      const permitParams = [
+        account,
+        spender,
+        value,
+        deadline,
+        v,
+        r,
+        s,
+      ];
+      const permitResponse = await erc20.permit.staticCall(...permitParams);
+      csl("EVM signTypedData", "green-500", "permit response: %o", permitResponse);
+    } catch (error: any) {
+      csl("EVM signTypedData", "red-500", "check permit signature failed: %o", error);
+      throw new Error("Permit signature verification failed");
+    }
+
+    return {
+      owner: account,
+      value,
+      deadline,
+      nonce: Number(nonce),
+      v,
+      r,
+      s,
+    };
   }
 }

@@ -52,7 +52,9 @@ export default function TokenSimple({ token }: any) {
       ) : (
         <Amount
           amount={
-            balancesStore[`${token.chainType}Balances` as keyof BalancesState]?.[token.contractAddress]
+            balancesStore[`${token.chainType}Balances` as keyof BalancesState]?.[token.blockchain]?.[
+              token.contractAddress
+            ]
           }
         />
       )}

@@ -1,3 +1,5 @@
+import type { Service } from "@/services/constants";
+
 export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
   near: {
     value: "near",
@@ -47,9 +49,16 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Near": ["https://nearinner.deltarpc.com"],
   "X Layer": ["https://rpc.xlayer.tech", "https://xlayer.drpc.org"],
   "Plasma": ["https://rpc.plasma.to", "https://plasma.drpc.org"],
+  "Mantle": ["https://rpc.mantle.xyz", "https://mantle-rpc.publicnode.com"],
+  "MegaETH": ["https://mainnet.megaeth.com/rpc"],
+  "Ink": ["https://rpc-gel.inkonchain.com", "https://rpc-qnd.inkonchain.com"],
+  "Stable": ["https://rpc.stable.xyz"],
+  "Celo": ["https://forno.celo.org", "https://celo-rpc.publicnode.com"],
+  "Sei": ["https://sei-evm-rpc.publicnode.com"],
+  "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
 };
 
-export const getChainRpcUrl = (chainName: string) => {
+export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
   return {
     rpcUrls: chainsRpcUrls[chainName],
     rpcUrl: chainsRpcUrls[chainName][0],
@@ -278,6 +287,132 @@ const chains = {
     },
     ...getChainRpcUrl("Plasma"),
   },
+  mantle: {
+    chainName: "Mantle",
+    blockchain: "mantle",
+    chainIcon: "/chains/mantle.png",
+    chainIconGray: "/chains/mantle-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 5000,
+    blockExplorerUrl: "https://mantlescan.xyz/tx/",
+    primaryColor: "#162F29",
+    nativeToken: {
+      symbol: "MNT",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Mantle"),
+  },
+  megaeth: {
+    chainName: "MegaETH",
+    blockchain: "megaeth",
+    chainIcon: "/chains/megaeth.png",
+    chainIconGray: "/chains/megaeth-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 4326,
+    blockExplorerUrl: "https://mega.etherscan.io/tx/",
+    primaryColor: "#19191A",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("MegaETH"),
+  },
+  ink: {
+    chainName: "Ink",
+    blockchain: "ink",
+    chainIcon: "/chains/ink.png",
+    chainIconGray: "/chains/ink-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 57073,
+    blockExplorerUrl: "https://explorer.inkonchain.com/tx/",
+    primaryColor: "#7132F5",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Ink"),
+  },
+  stable: {
+    chainName: "Stable",
+    blockchain: "stable",
+    chainIcon: "/chains/stable.png",
+    chainIconGray: "/chains/stable-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 988,
+    blockExplorerUrl: "https://uniscan.xyz/tx/",
+    primaryColor: "#01241D",
+    nativeToken: {
+      symbol: "USDT0",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Stable"),
+  },
+  celo: {
+    chainName: "Celo",
+    blockchain: "celo",
+    chainIcon: "/chains/celo.png",
+    chainIconGray: "/chains/celo-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 42_220,
+    blockExplorerUrl: "https://celoscan.io/tx/",
+    primaryColor: "#FCFF52",
+    nativeToken: {
+      symbol: "CELO",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Celo"),
+  },
+  sei: {
+    chainName: "Sei",
+    blockchain: "sei",
+    chainIcon: "/chains/sei.png",
+    chainIconGray: "/chains/sei-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 1329,
+    blockExplorerUrl: "https://seitrace.com/tx/",
+    primaryColor: "#991717",
+    nativeToken: {
+      symbol: "SEI",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Sei"),
+  },
+  flare: {
+    chainName: "Flare",
+    blockchain: "flare",
+    chainIcon: "/chains/flare.png",
+    chainIconGray: "/chains/flare-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 14,
+    blockExplorerUrl: "https://flare-explorer.flare.network/tx/",
+    primaryColor: "#E62058",
+    nativeToken: {
+      symbol: "FLR",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Flare"),
+  },
 };
 
 export default chains;
+
+export interface TokenChain {
+  symbol: string;
+  decimals: number;
+  icon: string;
+  assetId?: string;
+  contractAddress: string;
+  services: Service[];
+
+  chainName: string;
+  blockchain: string;
+  chainIcon: string;
+  chainIconGray: string;
+  chainType: string;
+  chainId?: number;
+  blockExplorerUrl: string;
+  primaryColor: string;
+  nativeToken: { symbol: string; decimals: number; };
+  rpcUrls: string[];
+  rpcUrl: string;
+}

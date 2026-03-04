@@ -79,7 +79,7 @@ export default function Token({
                       }
 
                       if (walletStore.isTo) {
-                        if (mergedToken.contractAddress === walletStore.fromToken?.contractAddress) {
+                        if (mergedToken.contractAddress === walletStore.fromToken?.contractAddress && mergedToken.chainName === walletStore.fromToken?.chainName) {
                           walletStore.set({
                             toToken: mergedToken,
                             fromToken: null,
@@ -88,7 +88,7 @@ export default function Token({
                           return;
                         }
                       } else {
-                        if (mergedToken.contractAddress === walletStore.toToken?.contractAddress) {
+                        if (mergedToken.contractAddress === walletStore.toToken?.contractAddress && mergedToken.chainName === walletStore.toToken?.chainName) {
                           walletStore.set({
                             fromToken: mergedToken,
                             toToken: null,
@@ -110,10 +110,16 @@ export default function Token({
                       <span className="text-[14px] text-[#444C59]">
                         {chain.chainName}
                       </span>
-                      {(walletStore.fromToken?.contractAddress ===
-                        chain.contractAddress ||
-                        walletStore.toToken?.contractAddress ===
-                        chain.contractAddress) && (
+                      {(
+                        (
+                          walletStore.fromToken?.contractAddress === chain.contractAddress
+                          && walletStore.fromToken?.chainName === chain.chainName
+                        )
+                        || (
+                          walletStore.toToken?.contractAddress === chain.contractAddress
+                          && walletStore.toToken?.chainName === chain.chainName
+                        )
+                      ) && (
                           <CheckIcon circleColor={"#fff"} />
                         )}
                     </div>
@@ -121,7 +127,7 @@ export default function Token({
                       <Loading size={14} />
                     ) : (
                       <Amount
-                        amount={balances[chain.contractAddress]}
+                        amount={balances?.[chain.chainId]?.[chain.contractAddress]}
                       />
                     )}
                   </div>

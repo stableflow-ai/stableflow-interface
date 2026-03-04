@@ -9,7 +9,6 @@ import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
 import NavigationMenu, { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
-import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -111,7 +110,6 @@ export default function UserActions() {
 }
 
 const HistoryButton = ({ onClick }: any) => {
-  usePendingHistory();
   const pendingNumber = useHistoryStore((state) => state.pendingNumber);
   return (
     <>

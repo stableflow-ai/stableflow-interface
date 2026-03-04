@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
 import type { SankeyNode, SankeyLink } from 'd3-sankey';
-import { usdtChains } from '@/config/tokens/usdt';
+import { allUsdtChains } from '@/config/tokens';
 import Loading from '@/components/loading/icon';
 import Big from 'big.js';
 import { formatNumber } from '@/utils/format/number';
@@ -74,11 +74,11 @@ const Sankey = (props: any) => {
     // Get selected chains
     const leftChains = selectedLeftChains.map(key => ({
       key,
-      ...usdtChains[key as keyof typeof usdtChains]
+      ...allUsdtChains[key as keyof typeof allUsdtChains]
     }));
     const rightChains = selectedRightChains.map(key => ({
       key,
-      ...usdtChains[key as keyof typeof usdtChains]
+      ...allUsdtChains[key as keyof typeof allUsdtChains]
     }));
 
     // Check if we have at least one chain on each side
@@ -414,7 +414,7 @@ const Sankey = (props: any) => {
   }, [dimensions, selectedLeftChains, selectedRightChains, data]);
 
   // Get available chains for selection
-  const availableChains = Object.entries(usdtChains).map(([key, chain]) => ({
+  const availableChains = Object.entries(allUsdtChains).map(([key, chain]) => ({
     key,
     name: chain.chainName,
     color: chain.primaryColor

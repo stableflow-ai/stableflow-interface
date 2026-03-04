@@ -1,3 +1,4 @@
+import { Service } from "@/services/constants";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
@@ -9,12 +10,14 @@ interface HistoryState {
   latestHistories?: string[];
   openDrawer: boolean;
   pendingNumber: number;
+  servicePendingNumber: Partial<Record<Service, number>>;
   setOpenDrawer: (open?: boolean) => void;
   addHistory: (item: any) => void;
   updateStatus: (address: string, status: any) => void;
   closeLatestHistory: (address?: string) => void;
   updateHistory: (address?: string, item?: any) => void;
   updatePendingNumber: (number: number) => void;
+  updateServicePendingNumber: (params: { services?: Partial<Record<Service, number>>, isClear?: boolean }) => void;
 }
 
 export const useHistoryStore = create(
@@ -25,12 +28,13 @@ export const useHistoryStore = create(
       pendingStatus: [],
       completeStatus: [],
       pendingNumber: 0,
+      servicePendingNumber: {},
       addHistory: (item: any) => {
         const _history = get().history;
-        _history[item.despoitAddress] = item;
+        _history[item.depositAddress] = item;
         set({
           history: _history,
-          latestHistories: [item.despoitAddress],
+          latestHistories: [item.depositAddress],
         });
       },
       updateStatus: (address: string, status: any) => {
@@ -85,6 +89,14 @@ export const useHistoryStore = create(
       },
       updatePendingNumber: (number: number) => {
         set({ pendingNumber: number });
+      },
+      updateServicePendingNumber: (params) => {
+        const { services, isClear } = params;
+        if (isClear) {
+          set({ servicePendingNumber: {} });
+          return;
+        }
+        set({ servicePendingNumber: { ...services } });
       },
     }),
     {

@@ -29,7 +29,7 @@ export default function Total() {
       if (!key.includes("Balances")) return;
       const chainType = key.split("Balances")[0];
       const currentChain = chainTypes[chainType];
-      const currentTokenWithChains = stablecoinWithChains[chainType][walletStore.selectedToken];
+      const currentTokenWithChains = stablecoinWithChains[chainType]?.[walletStore.selectedToken];
       _balanceSummaries[chainType] = {
         balance: Big(0),
         balanceString: "0.00",
@@ -37,14 +37,16 @@ export default function Total() {
         color: currentChain?.color,
         name: currentChain?.name,
       };
-      Object.entries(value).forEach(([address, value]) => {
-        if (value === "-") return;
-        if (address.includes("Balance")) return;
-        if (!currentTokenWithChains?.chains?.some((chain: any) => chain.contractAddress === address)) {
-          return;
-        }
-        _total = _total.plus(Big(value as string));
-        _balanceSummaries[chainType].balance = Big(_balanceSummaries[chainType].balance).plus(Big(value as string));
+      Object.entries(value).forEach(([blockchain, balances]) => {
+        if (typeof value === "string") return;
+        if (blockchain.includes("Balance")) return;
+        Object.entries(balances as any).forEach(([address, balance]) => {
+          if (!currentTokenWithChains?.chains?.some((chain: any) => chain.contractAddress === address)) {
+            return;
+          }
+          _total = _total.plus(Big(balance as string));
+          _balanceSummaries[chainType].balance = Big(_balanceSummaries[chainType].balance).plus(Big(balance as string));
+        });
       });
     });
     const _balanceSummariesList = Object.values(_balanceSummaries);
@@ -104,7 +106,7 @@ export default function Total() {
       _balanceSummariesListWithBalance.length,
       finalPercentages.map(percent => percent + "%").join(" ")
     ];
-  }, [balancesStore]);
+  }, [balancesStore, walletStore.selectedToken]);
 
   return (
     <div className="flex flex-col justify-center items-center border-b border-[#EDF0EF] pb-[40px] mt-[20px]">
@@ -113,7 +115,7 @@ export default function Total() {
           <div className="">
             Total {walletStore.selectedToken}
           </div>
-          {total && Big(total).gt(0) ? (
+          {total && typeof total !== "undefined" ? (
             <Amount
               amount={total}
               className="mt-[4px]"

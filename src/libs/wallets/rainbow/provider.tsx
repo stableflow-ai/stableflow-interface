@@ -11,7 +11,14 @@ import {
   berachain,
   xLayer,
   plasma,
-} from "wagmi/chains";
+  mantle,
+  megaeth,
+  ink,
+  stable,
+  celo,
+  sei,
+  flare,
+} from "viem/chains";
 import {
   WagmiProvider,
   useAccount,
@@ -61,6 +68,13 @@ const RpcUrls: any = {
   [berachain.id]: fallback(getChainRpcUrl("Berachain").rpcUrls.map((rpc) => http(rpc))),
   [xLayer.id]: fallback(getChainRpcUrl("X Layer").rpcUrls.map((rpc) => http(rpc))),
   [plasma.id]: fallback(getChainRpcUrl("Plasma").rpcUrls.map((rpc) => http(rpc))),
+  [mantle.id]: fallback(getChainRpcUrl("Mantle").rpcUrls.map((rpc) => http(rpc))),
+  [megaeth.id]: fallback(getChainRpcUrl("MegaETH").rpcUrls.map((rpc) => http(rpc))),
+  [ink.id]: fallback(getChainRpcUrl("Ink").rpcUrls.map((rpc) => http(rpc))),
+  [stable.id]: fallback(getChainRpcUrl("Stable").rpcUrls.map((rpc) => http(rpc))),
+  [celo.id]: fallback(getChainRpcUrl("Celo").rpcUrls.map((rpc) => http(rpc))),
+  [sei.id]: fallback(getChainRpcUrl("Sei").rpcUrls.map((rpc) => http(rpc))),
+  [flare.id]: fallback(getChainRpcUrl("Flare").rpcUrls.map((rpc) => http(rpc))),
 };
 
 const config = getDefaultConfig({
@@ -80,7 +94,14 @@ const config = getDefaultConfig({
     gnosis,
     berachain,
     xLayer,
-    plasma
+    plasma,
+    mantle,
+    megaeth,
+    ink,
+    stable,
+    celo,
+    sei,
+    flare,
   ],
   transports: {
     [mainnet.id]: RpcUrls[mainnet.id] || http(),
@@ -94,6 +115,13 @@ const config = getDefaultConfig({
     [berachain.id]: RpcUrls[berachain.id] || http(),
     [xLayer.id]: RpcUrls[xLayer.id] || http(),
     [plasma.id]: RpcUrls[plasma.id] || http(),
+    [mantle.id]: RpcUrls[mantle.id] || http(),
+    [megaeth.id]: RpcUrls[megaeth.id] || http(),
+    [ink.id]: RpcUrls[ink.id] || http(),
+    [stable.id]: RpcUrls[stable.id] || http(),
+    [celo.id]: RpcUrls[celo.id] || http(),
+    [sei.id]: RpcUrls[sei.id] || http(),
+    [flare.id]: RpcUrls[flare.id] || http(),
   },
 });
 const connectors: any = connectorsForWallets(

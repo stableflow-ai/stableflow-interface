@@ -55,9 +55,9 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
 
   const key = `${token.chainType}Balances` as keyof BalancesState;
   const balance = useMemo(() => {
-    const _balance = balancesStore[key]?.[token.contractAddress];
+    const _balance = balancesStore[key]?.[token.chainId || token.blockchain]?.[token.contractAddress];
     return _balance ? formatNumber(_balance, 2, true, { round: Big.roundDown }) : "0.00";
-  }, [token, balancesStore[key]?.[token.contractAddress]]);
+  }, [token, balancesStore[key]?.[token.chainId || token.blockchain]?.[token.contractAddress]]);
 
   return (
     <div

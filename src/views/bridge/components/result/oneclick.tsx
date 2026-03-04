@@ -3,15 +3,11 @@ import { useConfigStore } from "@/stores/use-config";
 import { useDebounceFn } from "ahooks";
 import Big from "big.js";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import ResultFeeItem from "./fee-item";
-import clsx from "clsx";
-import { Service } from "@/services";
-import { formatNumber } from "@/utils/format/number";
-import Checkbox from "@/components/checkbox";
+import { Service } from "@/services/constants";
 import { BridgeFee } from "@/services/oneclick";
-
-const LargeTransactionTip = "Large transactions can take a bit longer to process — usually no more than 3-5 minutes.";
+import { formatNumber } from "@/utils/format/number";
 
 const ResultOneClick = (props: any) => {
   const { } = props;
@@ -41,6 +37,7 @@ const ResultOneClick = (props: any) => {
         bridgeFee: totalBridgeFeeLabel,
         bridgeFeeValue: 0,
         netFee: 0,
+        exchangeRate: 1,
         slippage,
       });
       return;
@@ -51,6 +48,7 @@ const ResultOneClick = (props: any) => {
       bridgeFee: totalBridgeFeeLabel,
       bridgeFeeValue: totalBridgeFeeValue,
       netFee: _quoteData?.fees?.destinationGasFeeUsd,
+      exchangeRate: formatNumber(_quoteData?.exchangeRate, 6, true, { round: Big.roundDown }),
       slippage,
     });
   }, { wait: 500 });
@@ -59,17 +57,11 @@ const ResultOneClick = (props: any) => {
     calculateFees();
   }, [bridgeStore, configStore.slippage]);
 
-  const isFromTron = useMemo(() => {
-    return _quoteData?.quoteParam?.fromToken?.chainType === "tron";
+  const isExchangeToken = useMemo(() => {
+    const fromTokenSymbol = _quoteData?.quoteParam?.fromToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.fromToken?.symbol;
+    const toTokenSymbol = _quoteData?.quoteParam?.toToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.toToken?.symbol;
+    return fromTokenSymbol && toTokenSymbol && fromTokenSymbol !== toTokenSymbol;
   }, [_quoteData]);
-
-  const savedTRX = useMemo(() => {
-    if (!isFromTron) {
-      return "0";
-    }
-    const energySourceGasFee = Big(_quoteData?.transferSourceGasFee || 0).div(10 ** 6);
-    return Big(energySourceGasFee).minus(_quoteData?.quoteParam?.needsEnergyAmount || 0).toFixed(0);
-  }, [isFromTron, _quoteData]);
 
   return (
     <AnimatePresence>
@@ -82,12 +74,24 @@ const ResultOneClick = (props: any) => {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
           >
-            <ResultFeeItem
-              label="Net fee"
-              loading={bridgeStore.quotingMap.get(Service.OneClick)}
-            >
-              {fees?.netFee}
-            </ResultFeeItem>
+            {
+              isExchangeToken ? (
+                <ResultFeeItem
+                  label="Exchange Rate"
+                  loading={bridgeStore.getQuoting(Service.OneClick)}
+                  isFormat={false}
+                >
+                  1 {_quoteData?.quoteParam.fromToken.symbol} ~ {fees?.exchangeRate} {_quoteData?.quoteParam.toToken.symbol}
+                </ResultFeeItem>
+              ) : (
+                <ResultFeeItem
+                  label="Net fee"
+                  loading={bridgeStore.getQuoting(Service.OneClick)}
+                >
+                  {fees?.netFee}
+                </ResultFeeItem>
+              )
+            }
             <ResultFeeItem
               label={(
                 <>
@@ -95,7 +99,7 @@ const ResultOneClick = (props: any) => {
                 </>
               )}
               precision={2}
-              loading={bridgeStore.quotingMap.get(Service.OneClick)}
+              loading={bridgeStore.getQuoting(Service.OneClick)}
               isDelete={false}
             >
               {fees?.bridgeFeeValue}
@@ -103,66 +107,11 @@ const ResultOneClick = (props: any) => {
             {/* <ResultFeeItem 
             label="Swap Slippage"
              precision={2} 
-             loading={bridgeStore.quotingMap.get(Service.OneClick)} 
+             loading={bridgeStore.getQuoting(Service.OneClick)} 
              isFormat={false}
              >
             {fees?.slippage}
           </ResultFeeItem> */}
-          </motion.div>
-        )
-      }
-      {
-        Big(bridgeStore.amount || 0).gte(100000) && (
-          <motion.div
-            key="duration"
-            className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-          >
-            {LargeTransactionTip}
-          </motion.div>
-        )
-      }
-      {
-        /* && _quoteData?.quoteParam?.needsEnergy && Big(_quoteData?.quoteParam?.needsEnergyAmount ?? 0).gt(0) */
-        isFromTron && (
-          <motion.div
-            key="energy"
-            className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-          >
-            <Checkbox
-              checked={bridgeStore.acceptTronEnergy}
-              checkedColor="#6284F5"
-              onChange={(checked) => {
-                bridgeStore.setAcceptTronEnergy(checked);
-              }}
-            >
-              Gas optimized: ~{savedTRX} TRX saved via energy rental sponsorship.
-            </Checkbox>
-          </motion.div>
-        )
-      }
-      {
-        _quoteData?.quoteParam?.needsBandwidth && (
-          <motion.div
-            key="bandwidth"
-            className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-          >
-            <img
-              src="/icon-gas.svg"
-              alt=""
-              className="inline-block -translate-y-0.5 w-[14px] h-[14px] object-center object-contain shrink-0"
-            />
-            <span className="pl-1">
-              Small TRX charges for bandwidth may still apply. Please keep at least <strong className="text-[#6284F5]">{_quoteData?.quoteParam?.needsBandwidthTRX} TRX</strong> to ensure success.
-            </span>
           </motion.div>
         )
       }

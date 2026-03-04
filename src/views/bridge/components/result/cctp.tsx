@@ -5,7 +5,7 @@ import Big from "big.js";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import ResultFeeItem from "./fee-item";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
 
 const ResultCCTP = (props: any) => {
   const { } = props;
@@ -59,14 +59,14 @@ const ResultCCTP = (props: any) => {
           >
             <ResultFeeItem
               label="Bridge fee"
-              loading={bridgeStore.quotingMap.get(Service.CCTP)}
+              loading={bridgeStore.getQuoting(Service.CCTP)}
             >
               {fees?.bridgeFee}
             </ResultFeeItem>
             <ResultFeeItem
               label="Mint Gas fee"
               precision={2}
-              loading={bridgeStore.quotingMap.get(Service.CCTP)}
+              loading={bridgeStore.getQuoting(Service.CCTP)}
             >
               {fees?.mintGasFee}
             </ResultFeeItem>

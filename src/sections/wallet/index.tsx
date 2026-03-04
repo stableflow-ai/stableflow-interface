@@ -39,7 +39,7 @@ export default function Wallet() {
       <Suspense fallback={null}>
         <Total />
       </Suspense>
-      <div className="h-[calc(100%-255px)] overflow-y-auto pt-[8px] pb-[20px] px-[10px]">
+      <div className="h-[calc(100%-265px)] overflow-y-auto pt-[8px] pb-[20px] px-[10px]">
         {
           !!stablecoinWithChains.evm[walletStore.selectedToken] && (
             <div
@@ -52,16 +52,6 @@ export default function Wallet() {
                 type="evm"
                 token={stablecoinWithChains.evm[walletStore.selectedToken]}
               />
-              {/* <Token
-              token={usdcEvm}
-              expand={walletStore.usdcExpand}
-              onExpand={() => {
-                walletStore.set({ usdcExpand: !walletStore.usdcExpand });
-              }}
-              balances={balancesStore.evmBalances}
-              loading={loading}
-              totalBalance={balancesStore.evmBalances.usdcBalance}
-            /> */}
               <Token
                 token={stablecoinWithChains.evm[walletStore.selectedToken]}
                 expand={walletStore.usdtExpand}

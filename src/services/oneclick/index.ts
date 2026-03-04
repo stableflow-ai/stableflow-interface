@@ -6,7 +6,8 @@ import axios, { type AxiosInstance } from "axios";
 import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services";
+import { Service } from "@/services/constants";
+import { csl } from "@/utils/log";
 
 export const BridgeFee = [
   {
@@ -16,7 +17,7 @@ export const BridgeFee = [
   },
 ];
 
-const excludeFees: string[] = ["sourceGasFeeUsd"];
+export const excludeFees: string[] = ["sourceGasFeeUsd"];
 
 class OneClickService {
   private api: AxiosInstance;
@@ -34,9 +35,11 @@ class OneClickService {
 
   public async formatQuoteData(res: { data: any; params: any; }) {
     const { params } = res;
+    const { isProxy = true } = params;
 
     const isFromTron = params.fromToken.chainType === "tron";
     const isFromTronEnergy = isFromTron && params.acceptTronEnergy;
+    const isExactOutput = params.swapType === "EXACT_OUTPUT";
 
     if (res.data) {
       // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
@@ -51,20 +54,35 @@ class OneClickService {
       res.data.estimateTime = res.data?.quote?.timeEstimate; // seconds
       res.data.outputAmount = numberRemoveEndZero(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
       let priceImpact = Big(0);
+      let _amountInUsd = res.data?.quote?.amountInUsd || 0;
+      let _amountOutUsd = res.data?.quote?.amountOutUsd || 0;
+      if (isExactOutput) {
+        res.data.quote.amountInFormatted = numberRemoveEndZero(Big(res.data?.quote?.minAmountIn || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, Big.roundUp));
+        // Since 1click does not return minAmountInUsd, we calculate it using our own price
+        _amountInUsd = Big(res.data.quote.amountInFormatted).times(getPrice(params.prices, params.fromToken.symbol));
+        _amountOutUsd = Big(res.data?.quote?.amountOutFormatted || 0).times(getPrice(params.prices, params.toToken.symbol));
+      }
       try {
-        priceImpact = Big(Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0)).div(res.data?.quote?.amountInUsd || 1);
+        priceImpact = Big(Big(_amountInUsd).minus(_amountOutUsd)).div(_amountInUsd || 1);
         if (Big(priceImpact).lt(0)) {
           priceImpact = Big(0);
         }
       } catch (error) { }
       res.data.priceImpact = numberRemoveEndZero(Big(priceImpact).toFixed(4));
 
+      const fromTokenSymbol = params.fromToken.symbol === "USD₮0" ? "USDT" : params.fromToken.symbol;
+      const toTokenSymbol = params.toToken.symbol === "USD₮0" ? "USDT" : params.toToken.symbol;
+      res.data.exchangeRate = "1";
+      if (fromTokenSymbol !== toTokenSymbol) {
+        res.data.exchangeRate = numberRemoveEndZero(Big(res.data.quote?.amountOutFormatted || 0).div(res.data.quote?.amountInFormatted || 1).toFixed(params.toToken.decimals, 0));
+      }
+
       try {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
         //   return acc.plus(Big(item.fee).div(100));
         // }, Big(0)).toFixed(2) + "%";
         // const netFee = Big(params.amount).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
-        const netFee = Big(res.data?.quote?.amountInUsd || 0).minus(res.data?.quote?.amountOutUsd || 0);
+        const netFee = Big(_amountInUsd).minus(_amountOutUsd);
         const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
           return acc.plus(
             Big(params.amount)
@@ -82,9 +100,10 @@ class OneClickService {
 
         try {
           res.data.transferSourceGasFee = await params.wallet.estimateTransferGas({
-            originAsset: params.fromToken.contractAddress,
+            fromToken: params.fromToken,
             depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
             amount: params.amount,
+            account: params.refundTo,
           });
           const transferSourceGasFeeUsd = Big(res.data.transferSourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
@@ -95,7 +114,7 @@ class OneClickService {
           const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
           let sourceGasFee = res.data.transferSourceGasFee;
-          if (params.acceptTronEnergy) {
+          if (isFromTronEnergy) {
             sourceGasFee = energySourceGasFee;
           }
 
@@ -104,7 +123,7 @@ class OneClickService {
           res.data.estimateSourceGas = sourceGasFee.estimateGas;
           res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
         } catch (err) {
-          // console.log("oneclick estimate gas failed: %o", err);
+          // csl("OneClickService formatQuoteData", "red-500", "oneclick estimate gas failed: %o", err);
         }
 
         // calculate total fees
@@ -117,19 +136,19 @@ class OneClickService {
         res.data.totalFeesUsd = numberRemoveEndZero(Big(res.data.totalFeesUsd).toFixed(20));
 
       } catch (error) {
-        console.log("oneclick estimate failed: %o", error);
+        csl("OneClickService formatQuoteData", "red-500", "oneclick estimate failed: %o", error);
       }
 
       const proxyAddress = ONECLICK_PROXY[params.fromToken.chainName];
       let proxyParams: any = {};
-      if (proxyAddress) {
+      if (proxyAddress && isProxy) {
         proxyParams = {
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
           fromToken: params.fromToken,
           refundTo: params.refundTo,
           recipient: params.recipient,
-          amountWei: params.amount,
+          amountWei: isExactOutput ? res.data?.quote?.minAmountIn : params.amount,
           prices: params.prices,
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };
@@ -158,7 +177,7 @@ class OneClickService {
           const transferSourceGasFeeUsd = Big(proxyResult.estimateSourceGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
           res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
         } catch (error) {
-          console.log("oneclick quote proxy failed: %o", error);
+          csl("OneClickService formatQuoteData", "red-500", "oneclick quote proxy failed: %o", error);
         }
       }
 
@@ -185,10 +204,28 @@ class OneClickService {
     recipient: string;
     connectedWallets?: string[];
     prices: Record<string, string>;
+    appFees: any[];
+    isProxy?: boolean;
+    swapType?: "EXACT_INPUT" | "EXACT_OUTPUT" | "FLEX_INPUT";
   }) {
-    const res = await this.api.post("/quote", {
+    const {
+      fromToken,
+      toToken,
+      refundTo,
+      recipient,
+      slippageTolerance,
+      dry,
+      originAsset,
+      destinationAsset,
+      amount,
+      refundType,
+      appFees,
+      swapType,
+    } = params;
+
+    const quoteParams = {
       depositMode: "SIMPLE",
-      swapType: "EXACT_INPUT",
+      swapType: swapType || "EXACT_INPUT",
       depositType: "ORIGIN_CHAIN",
       sessionId: `session_${Date.now()}_${Math.random()
         .toString(36)
@@ -198,19 +235,26 @@ class OneClickService {
       quoteWaitingTimeMs: 3000,
       appFees: BridgeFee,
       referral: "stableflow",
-      ...params,
-      // delete params
-      wallet: void 0,
-      fromToken: void 0,
-      toToken: void 0,
-      prices: void 0,
-      amountWei: void 0,
-      needsEnergy: void 0,
-      needsEnergyAmount: void 0,
-      needsBandwidth: void 0,
-      needsBandwidthTRX: void 0,
-      acceptTronEnergy: void 0,
-    });
+      refundTo,
+      recipient,
+      slippageTolerance,
+      dry,
+      originAsset,
+      destinationAsset,
+      amount,
+      refundType,
+    };
+    if (appFees) {
+      quoteParams.appFees = [
+        ...BridgeFee,
+        ...appFees,
+      ];
+    }
+    if (swapType === "EXACT_OUTPUT") {
+      quoteParams.amount = Big(amount || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
+    }
+
+    const res = await this.api.post("/quote", quoteParams);
 
     return this.formatQuoteData({ data: res.data, params });
   }

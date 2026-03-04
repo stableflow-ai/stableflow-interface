@@ -6,6 +6,7 @@ import chains from "@/config/chains";
 import { useMemo } from "react";
 import Big from "big.js";
 import { BASE_API_URL } from "@/config/api";
+import { csl } from "@/utils/log";
 
 export function useLiquidityQuote() {
   const walletStore = useWalletStore();
@@ -15,12 +16,12 @@ export function useLiquidityQuote() {
     try {
       const res = await axios.get(`${BASE_API_URL}/v1/nearintents/quote`);
       if (res.status !== 200 || res.data?.code !== 200) {
-        console.log("get liquidity quote failed: %o", res);
+        csl("useLiquidityQuote", "gray-500", "get liquidity quote failed: %o", res);
         return;
       }
       return res.data.data;
     } catch (error) {
-      console.log("get liquidity quote failed: %o", error);
+      csl("useLiquidityQuote", "red-500", "get liquidity quote failed: %o", error);
     }
   }, {
     // 30 mins

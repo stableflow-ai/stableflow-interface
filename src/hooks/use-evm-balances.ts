@@ -4,7 +4,8 @@ import axios from "axios";
 import {
   evmBalancesTokens,
   usdcAddresses,
-  usdtAddresses
+  usdt0Addresses,
+  usdtAddresses,
 } from "@/config/tokens";
 import Big from "big.js";
 import useBalancesStore from "@/stores/use-balances";
@@ -35,18 +36,67 @@ export default function useEvmBalances(auto = false) {
       const _balances: any = {};
       const _data = res.data.data;
 
+      const setBalances = (__data: any) => {
+        let usdcBalance = Big(0);
+        let usdtBalance = Big(0);
+        let usdt0Balance = Big(0);
+
+        Object.entries(__data).forEach(([key, item]: any) => {
+          if (!item) return;
+          const currentTokenChain = evmBalancesTokens.find((token) => Number(token.chain_id) === Number(key));
+          item.forEach((sl: any) => {
+            const currentTokenIndex = currentTokenChain?.tokens?.map?.((address) => address.toLowerCase())?.indexOf?.(sl.address.toLowerCase());
+            let currentTokenDecimals = 6;
+            if (currentTokenChain && typeof currentTokenIndex === "number" && currentTokenIndex > -1) {
+              currentTokenDecimals = currentTokenChain.decimals[currentTokenIndex];
+            }
+            const _balance = Big(sl.balance).div(10 ** currentTokenDecimals);
+            if (Object.values(usdcAddresses).includes(sl.address.toLowerCase())) {
+              usdcBalance = usdcBalance.plus(_balance);
+            }
+            if (Object.values(usdtAddresses).includes(sl.address.toLowerCase())) {
+              usdtBalance = usdtBalance.plus(_balance);
+            }
+            if (Object.values(usdt0Addresses).includes(sl.address.toLowerCase())) {
+              usdt0Balance = usdt0Balance.plus(_balance);
+            }
+
+            if (_balances[key]) {
+              _balances[key][sl.address] = _balance.toString();
+            } else {
+              _balances[key] = {
+                [sl.address]: _balance.toString()
+              };
+            }
+          });
+        });
+
+        if (wallet?.account) {
+          balancesStore.set({
+            evmBalances: {
+              ..._balances,
+              usdcBalance: usdcBalance.toString(),
+              usdtBalance: usdtBalance.toString(),
+              "usd₮0Balance": usdt0Balance.toString(),
+            }
+          });
+        }
+      };
+
+      setBalances(_data);
+
       const unsupportedChainIds = evmBalancesTokens.map((token: any) => Object.keys(_data).includes(token.chain_id.toString()) ? null : token.chain_id).filter(Boolean);
       const unsupportedBalances: any = {};
       // get unsupported tokens balances from provider
       for (const token of evmBalancesTokens) {
         const _token: any = token;
         if (unsupportedChainIds.includes(_token.chain_id)) {
-          const currentChain = Object.values(chains).find((chain: any) => chain.chainId === _token.chain_id);
+          const currentChain: any = Object.values(chains).find((chain: any) => chain.chainId === _token.chain_id);
           if (!currentChain) {
             return;
           }
 
-          const providers = currentChain.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+          const providers = currentChain.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, currentChain.chainId));
           const provider = new ethers.FallbackProvider(providers);
 
           const balancePromises = _token.tokens.map(async (address: string) => {
@@ -69,8 +119,9 @@ export default function useEvmBalances(auto = false) {
             return _result;
           });
 
-          const balances = await Promise.all(balancePromises);
-          unsupportedBalances[_token.chain_id] = balances;
+          const balances = await Promise.allSettled(balancePromises);
+          const validBalances = balances.filter((balance) => balance.status === "fulfilled").map((balance) => balance.value);
+          unsupportedBalances[_token.chain_id] = validBalances;
         }
       }
 
@@ -80,34 +131,7 @@ export default function useEvmBalances(auto = false) {
         }
       }
 
-      let usdcBalance = Big(0);
-      let usdtBalance = Big(0);
-
-      Object.entries(_data).forEach(([key, item]: any) => {
-        if (!item) return;
-        item.forEach((sl: any) => {
-          const _balance = Big(sl.balance).div(
-            10 ** (Number(key) === 56 ? 18 : 6)
-          );
-          if (usdcAddresses.includes(sl.address)) {
-            usdcBalance = usdcBalance.plus(_balance);
-          }
-          if (usdtAddresses.includes(sl.address)) {
-            usdtBalance = usdtBalance.plus(_balance);
-          }
-          _balances[sl.address] = _balance.toString();
-        });
-      });
-
-      if (wallet?.account) {
-        balancesStore.set({
-          evmBalances: {
-            ..._balances,
-            usdcBalance: usdcBalance.toString(),
-            usdtBalance: usdtBalance.toString()
-          }
-        });
-      }
+      setBalances(_data);
 
       setLoading(false);
     } catch (error) {

@@ -1,6 +1,7 @@
 import { BASE_API_URL } from "@/config/api";
 import chains from "@/config/chains";
 import { stablecoinLogoMap } from "@/config/tokens";
+import { TradeProjectMap } from "@/config/trade";
 import { useHistoryStore } from "@/stores/use-history";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn, useRequest } from "ahooks";
@@ -24,6 +25,7 @@ export function usePendingHistory(history?: any) {
     return _accounts;
   }, [wallets]);
 
+  const listPollingRef = useRef<any>(null);
   const { runAsync: getList, loading } = useRequest(async (params?: any) => {
     try {
       const response = await axios({
@@ -50,6 +52,8 @@ export function usePendingHistory(history?: any) {
         return;
       }
 
+      const servicePendingNumber: any = {};
+
       const _list = response.data.data.data;
       _list.forEach((item: any) => {
         item.token_icon = stablecoinLogoMap[item.symbol];
@@ -67,6 +71,15 @@ export function usePendingHistory(history?: any) {
         if (item.to_chain === "tron") {
           item.to_tx_hash = item.to_tx_hash?.replace(/^0x/, "");
         }
+
+        if (TradeProjectMap[item.project]) {
+          const _service = TradeProjectMap[item.project].service;
+          if (servicePendingNumber[_service]) {
+            servicePendingNumber[_service] = servicePendingNumber[_service] + 1;
+          } else {
+            servicePendingNumber[_service] = 1;
+          }
+        }
       });
 
       setList((prev: any) => {
@@ -77,6 +90,7 @@ export function usePendingHistory(history?: any) {
           });
         }
         historyStore.updatePendingNumber(_list.length);
+        historyStore.updateServicePendingNumber({ services: servicePendingNumber });
         return _list;
       });
       setPage((prev: any) => {
@@ -87,6 +101,12 @@ export function usePendingHistory(history?: any) {
           totalPage: response.data.data.total_page,
         };
       });
+
+      if (_list.length > 0) {
+        listPollingRef.current = setTimeout(() => {
+          getList(params);
+        }, 10000);
+      }
     } catch (error) {
       console.error("get pending history failed: %o", error);
     }
@@ -98,41 +118,11 @@ export function usePendingHistory(history?: any) {
     wait: 1000,
   });
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
-    cancelGetList();
-
-    // Stop polling function
-    const stopPolling = () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-
-    // Start polling function
-    const startPolling = () => {
-      if (!accounts || accounts.length === 0) {
-        return;
-      }
-      const address = accounts.join(",");
-
-      // Clear existing timer
-      stopPolling();
-
-      // Start timer
-      timerRef.current = setInterval(() => {
-        getList({
-          address,
-          page: 1,
-        });
-      }, 10000);
-    };
-
     if (!accounts || accounts.length === 0) {
       setList([]);
       historyStore.updatePendingNumber(0);
+      historyStore.updateServicePendingNumber({ isClear: true });
       setPage(() => {
         return {
           current: 1,
@@ -141,7 +131,6 @@ export function usePendingHistory(history?: any) {
           totaPage: 0,
         };
       });
-      stopPolling();
       return;
     }
 
@@ -151,27 +140,8 @@ export function usePendingHistory(history?: any) {
       page: 1,
     });
 
-    // Start polling based on page visibility
-    if (document.visibilityState === 'visible') {
-      startPolling();
-    }
-
-    // Listen to page visibility changes
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Start polling when page becomes visible
-        startPolling();
-      } else {
-        // Stop polling when page becomes hidden
-        stopPolling();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
     return () => {
-      stopPolling();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      cancelGetList();
     };
   }, [accounts]);
 
@@ -180,5 +150,6 @@ export function usePendingHistory(history?: any) {
     page,
     loading,
     getList,
+    debouncedGetList,
   };
 }
