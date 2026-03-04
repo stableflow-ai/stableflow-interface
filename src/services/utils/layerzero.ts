@@ -1,3 +1,5 @@
+import { csl } from "@/utils/log";
+
 export interface LayerZeroChainConfig {
   eid: number;
   chainKey: string;
@@ -108,3 +110,53 @@ export const LAYERZZERO_CHAINS: Record<string, LayerZeroChainConfig> = {
     blockTime: 2.71,
   },
 };
+
+/**
+ * Calculates cross-chain estimated time using the LayerZero formula.
+ * Formula: Total Time ≈ (sourceBlockTime × blockConfirmations) + (destinationBlockTime × (2 blocks + DVN count))
+ *
+ * @param params - Object containing configuration and DVN details.
+ * @param params.requiredDvnCount - The number of DVNs for this bridge (typically fixed per application, e.g., 2 or 3)
+ * @param params.originConfig - Source chain configuration; should include blockTime (number) and confirmations (number)
+ * @param params.destinationConfig - Destination chain configuration; should include blockTime (number)
+ * @returns Estimated time in seconds. Returns 32 if configuration is missing or invalid.
+ */
+export function calculateEstimateTime(params: {
+  requiredDvnCount: number;
+  originConfig: { blockTime: number; confirmations: number; };
+  destinationConfig: { blockTime: number; confirmations: number; };
+}): number {
+  const {
+    requiredDvnCount,
+    originConfig,
+    destinationConfig,
+  } = params;
+
+  // Return default value if config is missing
+  if (!originConfig || !destinationConfig) {
+    csl("calculate layerzero EstimateTime", "red-500", "Missing config for chains: origin=%s, destination=%s, using default 32s", originConfig, destinationConfig);
+    return 32;
+  }
+
+  // Validate required configuration fields
+  if (
+    typeof originConfig.blockTime !== 'number' ||
+    typeof originConfig.confirmations !== 'number' ||
+    typeof destinationConfig.blockTime !== 'number'
+  ) {
+    csl("calculate layerzero EstimateTime", "red-500", "Invalid config for chains: origin=%s, destination=%s, using default 32s", originConfig, destinationConfig);
+    return 32;
+  }
+
+  const sourceBlockTime = originConfig.blockTime;
+  const blockConfirmations = originConfig.confirmations;
+  const destinationBlockTime = destinationConfig.blockTime;
+  const dvnCount = requiredDvnCount;
+
+  // Calculate: source chain part + destination chain part
+  const sourceTime = sourceBlockTime * blockConfirmations;
+  const destinationTime = destinationBlockTime * (2 + dvnCount);
+  const totalTime = Math.ceil(sourceTime + destinationTime);
+
+  return totalTime;
+}

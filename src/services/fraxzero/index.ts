@@ -1,8 +1,9 @@
 import axios from "axios";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
-import { FRAXZERO_CONFIG } from "./config";
+import { FRAXZERO_CONFIG, FRAXZERO_REQUIRED_DVN_COUNT } from "./config";
 import { FRAXZERO_ABI } from "./contract";
+import { calculateEstimateTime } from "../utils";
 
 export const PayInLzToken = false;
 
@@ -24,6 +25,12 @@ class FraxZeroService {
     const originLayerzero = FRAXZERO_CONFIG[fromToken.chainName];
     const destinationLayerzero = FRAXZERO_CONFIG[toToken.chainName];
 
+    const estimateTime = calculateEstimateTime({
+      requiredDvnCount: FRAXZERO_REQUIRED_DVN_COUNT,
+      originConfig: originLayerzero,
+      destinationConfig: destinationLayerzero,
+    });
+
     const result = await wallet.quote(Service.FraxZero, {
       ...params,
       abi: FRAXZERO_ABI,
@@ -31,6 +38,8 @@ class FraxZeroService {
       destinationLayerzero,
       excludeFees,
     });
+
+    result.estimateTime = estimateTime;
 
     return result;
   }

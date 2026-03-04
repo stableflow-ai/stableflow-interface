@@ -12,6 +12,7 @@ import clsx from "clsx";
 const ResultOneClick = lazy(() => import("./oneclick"));
 const ResultUsdt0 = lazy(() => import("./usdt0"));
 const ResultCCTP = lazy(() => import("./cctp"));
+const ResultFraxZero = lazy(() => import("./fraxzero"));
 const ResultUsdt0OneClick = lazy(() => import("./usdt0-oneclick"));
 
 const LargeTransactionTip = "Large transactions can take a bit longer to process — usually no more than 3-5 minutes.";
@@ -137,6 +138,11 @@ export default function Result() {
         {
           bridgeStore.quoteDataService === Service.CCTP && (
             <ResultCCTP />
+          )
+        }
+        {
+          bridgeStore.quoteDataService === Service.FraxZero && (
+            <ResultFraxZero />
           )
         }
         {

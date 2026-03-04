@@ -1,7 +1,5 @@
 import { LAYERZZERO_CHAINS, type LayerZeroChainConfig } from "../utils";
 
-export const USDT0_REQUIRED_DVN_COUNT = 2;
-
 interface Usdt0Config extends LayerZeroChainConfig {
   contractAddress: string;
   oft?: string;

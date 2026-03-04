@@ -847,12 +847,17 @@ export default class RainbowWallet {
     const msgFee = await remoteHopContractRead.quote.staticCall(...sendParams);
     result.estimateSourceGas = msgFee[0];
 
+    const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFee = numberRemoveEndZero(Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
+    result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
+    result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
+
     csl("EVM quoteFraxZero", "blue-700", "msgFee: %o", msgFee);
 
     // 3. estimate send gas
     let sendWithFeeGasLimit = 4000000n;
     try {
-      const gasLimit = await remoteHopContract.sendOFT.estimateGas(...sendParams);
+      const gasLimit = await remoteHopContract.sendOFT.estimateGas(...sendParams, { value: msgFee[0] });
       sendWithFeeGasLimit = gasLimit * 120n / 100n;
       const { usd, wei } = await this.getEstimateGas({
         gasLimit,
@@ -864,6 +869,7 @@ export default class RainbowWallet {
       result.estimateSourceGas += wei;
       result.estimateSourceGasUsd = usd;
     } catch (error) {
+      csl("EVM quoteFraxZero", "red-500", "estimate send gas failed: %o", error);
       const { usd, wei } = await this.getEstimateGas({
         gasLimit: DEFAULT_GAS_LIMIT,
         price: getPrice(prices, fromToken.nativeToken.symbol),
@@ -880,7 +886,7 @@ export default class RainbowWallet {
       contract: remoteHopContract,
       method: "sendOFT",
       param: [
-        sendParams,
+        ...sendParams,
         { value: msgFee[0], gasLimit: sendWithFeeGasLimit }
       ],
     };
