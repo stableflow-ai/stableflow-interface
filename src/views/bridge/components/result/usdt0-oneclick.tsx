@@ -88,7 +88,7 @@ const ResultUsdt0OneClick = (props: any) => {
               !!fees?.legacyMeshFee && Big(fees?.legacyMeshFee).gt(0) && (
                 <ResultFeeItem
                   label="Legacy Mesh Fee"
-                  loading={bridgeStore.quotingMap.get(service)}
+                  loading={bridgeStore.getQuoting(service)}
                 >
                   {fees?.legacyMeshFee}
                 </ResultFeeItem>
@@ -97,7 +97,7 @@ const ResultUsdt0OneClick = (props: any) => {
             <ResultFeeItem
               label="Messaging Fee"
               isFormat={false}
-              loading={bridgeStore.quotingMap.get(service)}
+              loading={bridgeStore.getQuoting(service)}
             >
               {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
             </ResultFeeItem>
@@ -105,7 +105,7 @@ const ResultUsdt0OneClick = (props: any) => {
               isExchangeToken ? (
                 <ResultFeeItem
                   label="Exchange Rate"
-                  loading={bridgeStore.quotingMap.get(Service.OneClick)}
+                  loading={bridgeStore.getQuoting(Service.OneClick)}
                   isFormat={false}
                 >
                   1 {_quoteData?.quoteParam.fromToken.symbol} ~ {fees?.exchangeRate} {_quoteData?.quoteParam.toToken.symbol}
@@ -113,7 +113,7 @@ const ResultUsdt0OneClick = (props: any) => {
               ) : (
                 <ResultFeeItem
                   label="Net fee"
-                  loading={bridgeStore.quotingMap.get(service)}
+                  loading={bridgeStore.getQuoting(service)}
                 >
                   {fees?.netFee}
                 </ResultFeeItem>
@@ -126,7 +126,7 @@ const ResultUsdt0OneClick = (props: any) => {
                 </>
               )}
               precision={2}
-              loading={bridgeStore.quotingMap.get(service)}
+              loading={bridgeStore.getQuoting(service)}
               isDelete={false}
             >
               {fees?.bridgeFeeValue}

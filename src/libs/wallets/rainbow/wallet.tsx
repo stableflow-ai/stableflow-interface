@@ -262,11 +262,11 @@ export default class RainbowWallet {
     const oftContract = new ethers.Contract(originLayerzeroAddress, abi, this.signer);
     const oftContractRead = new ethers.Contract(originLayerzeroAddress, abi, provider);
 
-    csl("EVM quoteOFT", "blue-900", "params: %o", params);
+    // csl("EVM quoteOFT", "blue-900", "params: %o", params);
 
     // 1. check if need approve
     const approvalRequired = await oftContractRead.approvalRequired();
-    csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
+    // csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -311,7 +311,7 @@ export default class RainbowWallet {
       oftCmd: "0x"
     };
 
-    csl("EVM quoteOFT", "blue-900", "isMultiHopComposer: %o", isMultiHopComposer);
+    // csl("EVM quoteOFT", "blue-900", "isMultiHopComposer: %o", isMultiHopComposer);
     if (isMultiHopComposer) {
       // multiHopComposer: Arbitrum legacy mesh MultiHopComposer, eid = 30110
       sendParam.dstEid = multiHopComposer.eid;
@@ -346,12 +346,12 @@ export default class RainbowWallet {
       );
     }
 
-    csl("EVM quoteOFT", "blue-900", "sendParam: %o", sendParam);
+    // csl("EVM quoteOFT", "blue-900", "sendParam: %o", sendParam);
 
     const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
-    csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
+    // csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
 
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     result.estimateSourceGas = msgFee[0];

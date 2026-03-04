@@ -471,7 +471,7 @@ export default class TronWallet {
     // 1. check if need approve
     const approvalRequired = await oftContract.approvalRequired().call();
     // check approve status
-    csl("TronWallet quoteOFT", "teal-400", "ApprovalRequired: %o", result.needApprove);
+    // csl("TronWallet quoteOFT", "teal-400", "ApprovalRequired: %o", result.needApprove);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -593,7 +593,7 @@ export default class TronWallet {
       options: { callValue: nativeMsgFee.toString() },
     };
 
-    csl("TronWallet quoteOFT", "teal-400", "Params: %o", result.sendParam);
+    // csl("TronWallet quoteOFT", "teal-400", "Params: %o", result.sendParam);
 
     // 3. estimate gas
     const nativeFeeUsd = Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
