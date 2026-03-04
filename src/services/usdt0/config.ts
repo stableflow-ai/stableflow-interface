@@ -51,7 +51,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     contractAddress: "0x01bFF41798a0BcF287b996046Ca68b395DbC1071",
     oft: "0xF03b4d9AC1D5d1E7c4cEf54C2A313b9fe051A0aD",
     ...LAYERZZERO_CHAINS["Optimism"],
-    confirmations: 20, // Default confirmations from layerzeroscan.com
+    confirmations: 450, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
