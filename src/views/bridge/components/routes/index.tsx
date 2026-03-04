@@ -1,12 +1,14 @@
 import QuoteRoute from "./route";
 import useBridgeStore from "@/stores/use-bridge";
 import { useMemo } from "react";
+import { sortQuoteData } from "../../utils";
 
 const QuoteRoutes = (props: any) => {
   const { } = props;
 
   const {
     quotingMap,
+    getQuoting,
     quoteDataMap,
     quoteDataService,
     set,
@@ -14,14 +16,15 @@ const QuoteRoutes = (props: any) => {
   } = useBridgeStore();
 
   const isQuoting = useMemo(() => {
-    return Array.from(quotingMap.values()).some(Boolean);
+    return getQuoting();
   }, [quotingMap]);
 
   const quoteDataList = useMemo(() => {
-    quoteDataMap.forEach((data, service) => {
-      data.service = service;
-    });
-    const list = Array.from(quoteDataMap.values()).filter((data) => !data.errMsg);
+    const sortedQuoteData = sortQuoteData(quoteDataMap);
+    const list = sortedQuoteData.map(([service, data]) => ({
+      service,
+      ...data,
+    }));
     // Sort selected item to the first position
     // return list.sort((a, b) => {
     //   const aSelected = quoteDataService === a.service;

@@ -7,6 +7,7 @@ import { useEffect, useState, useMemo } from "react";
 import ResultFeeItem from "./fee-item";
 import { Service } from "@/services/constants";
 import { BridgeFee } from "@/services/oneclick";
+import { formatNumber } from "@/utils/format/number";
 
 const ResultOneClick = (props: any) => {
   const { } = props;
@@ -77,7 +78,7 @@ const ResultOneClick = (props: any) => {
               isExchangeToken ? (
                 <ResultFeeItem
                   label="Exchange Rate"
-                  loading={bridgeStore.quotingMap.get(Service.OneClick)}
+                  loading={bridgeStore.getQuoting(Service.OneClick)}
                   isFormat={false}
                 >
                   1 {_quoteData?.quoteParam.fromToken.symbol} ~ {fees?.exchangeRate} {_quoteData?.quoteParam.toToken.symbol}
@@ -85,7 +86,7 @@ const ResultOneClick = (props: any) => {
               ) : (
                 <ResultFeeItem
                   label="Net fee"
-                  loading={bridgeStore.quotingMap.get(Service.OneClick)}
+                  loading={bridgeStore.getQuoting(Service.OneClick)}
                 >
                   {fees?.netFee}
                 </ResultFeeItem>
@@ -98,7 +99,7 @@ const ResultOneClick = (props: any) => {
                 </>
               )}
               precision={2}
-              loading={bridgeStore.quotingMap.get(Service.OneClick)}
+              loading={bridgeStore.getQuoting(Service.OneClick)}
               isDelete={false}
             >
               {fees?.bridgeFeeValue}
@@ -106,7 +107,7 @@ const ResultOneClick = (props: any) => {
             {/* <ResultFeeItem 
             label="Swap Slippage"
              precision={2} 
-             loading={bridgeStore.quotingMap.get(Service.OneClick)} 
+             loading={bridgeStore.getQuoting(Service.OneClick)} 
              isFormat={false}
              >
             {fees?.slippage}
