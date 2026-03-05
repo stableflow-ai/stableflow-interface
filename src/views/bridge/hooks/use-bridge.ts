@@ -779,6 +779,10 @@ export default function useBridge(props?: any) {
         historyStore.updateStatus(hash, "PENDING_DEPOSIT");
         reportData.deposit_address = _depositAddress;
         reportData.tx_hash = hash;
+        if (bridgeStore.quoteDataService === Service.CCTP) {
+          reportData.source_domain_id = _quote.data.quoteParam.sourceDomain;
+          reportData.destination_domain_id = _quote.data.quoteParam.destinationDomain;
+        }
         report(reportData);
       }
 
