@@ -48,6 +48,7 @@
     "ahooks": "^3.9.5",
     "axios": "^1.11.0",
     "big.js": "^7.0.1",
+    "bigint-buffer": "^1.1.5",
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
@@ -88,5 +89,10 @@
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2",
     "vite-plugin-node-polyfills": "^0.24.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@ton/core": "0.60.0"
+    }
   }
 }
