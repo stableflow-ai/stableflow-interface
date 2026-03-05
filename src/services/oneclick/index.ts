@@ -209,6 +209,8 @@ class OneClickService {
     swapType?: "EXACT_INPUT" | "EXACT_OUTPUT" | "FLEX_INPUT";
   }) {
     const {
+      fromToken,
+      toToken,
       refundTo,
       recipient,
       slippageTolerance,
@@ -247,6 +249,9 @@ class OneClickService {
         ...BridgeFee,
         ...appFees,
       ];
+    }
+    if (swapType === "EXACT_OUTPUT") {
+      quoteParams.amount = Big(amount || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
     }
 
     const res = await this.api.post("/quote", quoteParams);
