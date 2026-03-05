@@ -34,7 +34,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     eid: 30109,
     chainKey: "polygon",
     blockTime: 2, // Polygon average block time ~2 seconds
-    confirmations: 20, // Default confirmations from layerzeroscan.com 
+    confirmations: 32, // Default confirmations from layerzeroscan.com 
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
@@ -45,7 +45,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     eid: 30111,
     chainKey: "optimism",
     blockTime: 2, // Optimism average block time ~2 seconds
-    confirmations: 20, // Default confirmations from layerzeroscan.com
+    confirmations: 450, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
@@ -57,7 +57,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     eid: 30362,
     chainKey: "berachain",
     blockTime: 2, // Optimism average block time ~2 seconds
-    confirmations: 20, // Default confirmations from layerzeroscan.com
+    confirmations: 60, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
@@ -68,7 +68,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     eid: 30168,
     chainKey: "solana",
     blockTime: 0.4, // Solana average block time ~0.4 seconds
-    confirmations: 32, // Default confirmations from layerzeroscan.com
+    confirmations: 128, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 200000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 500000,
