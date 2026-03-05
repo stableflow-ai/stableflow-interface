@@ -24,7 +24,7 @@ export const USDT0_CONFIG: Record<string, any> = {
     eid: 30110,
     chainKey: "arbitrum",
     blockTime: 0.25, // Arbitrum average block time ~0.25 seconds
-    confirmations: 20, // Default confirmations from layerzeroscan.com
+    confirmations: 60, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
   },
