@@ -1,33 +1,26 @@
 import { getChainRpcUrl } from '@/config/chains';
 import { Service } from '@/services/constants';
-import { Address, beginCell, Cell, storeMessage, toNano, TonClient } from '@ton/ton';
+import { Address, beginCell, Cell, internal, toNano, TonClient } from '@ton/ton';
 import type { TupleItem } from '@ton/ton';
 import { TonConnectUI } from '@tonconnect/ui-react';
 import { SendType } from '../types';
 import {
+  addressToBigInt,
   buildClass,
   decodeClass,
-  emptyCell,
-  generateBuildClass,
-  generateDecodeClass,
+  parseTonAddress,
 } from '@layerzerolabs/lz-ton-sdk-v2';
-import { buildJettonWalletTransferBody, pollTransactionByBoc, tonObjects } from '../utils/ton';
+import { bigIntToAddress, buildJettonWalletTransferBody, buildTonTransferCell, buildUlnConnnection, computeTonChannelAddress, computeTonEndpointAddress, computeTonUlnAddress, computeTonUlnConnectionAddress, objectBuild, objectDecode, pollTransactionByBoc, tonObjects, ulnConfigs } from '../utils/ton';
 import { numberRemoveEndZero } from '@/utils/format/number';
 import Big from 'big.js';
 import { Options } from '@layerzerolabs/lz-v2-utilities';
-import { LZ_RECEIVE_VALUE } from '@/services/usdt0/config';
+import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from '@/services/usdt0/config';
 import { addressToBytes32 } from '@/utils/address-validation';
 import { getHopMsgFee } from '@/services/usdt0/hop-composer';
 import { ethers } from 'ethers';
 import { csl } from '@/utils/log';
 import { getPrice } from '@/utils/format/price';
-
-const oftBuildClass = generateBuildClass(tonObjects);
-
-const _log = (str: string, ...params: any) => {
-  if (import.meta.env.VITE_BASE_API_URL === "https://api.stableflow.ai") return;
-  console.log(`%c[TON]${str}`, "background:#0098EA;color:#fff;", ...params);
-};
+import { getDestinationAssociatedTokenAddress } from '../utils/solana';
 
 export default class TonWallet {
   private tonConnectUI: TonConnectUI;
@@ -279,57 +272,389 @@ export default class TonWallet {
       estimateTime: 0,
     };
 
+    // TON contract addresses (mainnet)
+    const TON_ULN_MANAGER = "0x06b52b11abaf65bf1ff47c57e890ba4ad6a75a68859bbe5a51c1fc451954c54c";
+    const TON_CONTROLLER = "0x1eb2bbea3d8c0d42ff7fd60f0264c866c934bbff727526ca759e7374cae0c166";
+
+    const srcAddress = parseTonAddress("0:933ef20686fe0b3121443d6813e9457bca975336fcb481446f3c7d131517e7f8");
+    csl("TON quoteOFT", "yellow-600", "srcAddress: %o", srcAddress.toString());
+
+    const tonUlnManagerBigInt = BigInt(TON_ULN_MANAGER);
+    const tonControllerBigInt = BigInt(TON_CONTROLLER);
+    const proxyAddress = Address.parse(originLayerzeroAddress);
+
+    // Gas constants
+    const JETTON_TRANSFER_GAS = 0.07; // TON for the Jetton transfer hop
+    const GAS_ASSERT_MULTIPLIER = 440n; // Based on contract gas asserts × safety margin
+
+    // Cell builders/decoders for the USDT0 OFT protocol
+    const oftBuild = objectBuild(tonObjects);
+    const oftDecode = objectDecode(tonObjects);
+
     const amountLd = BigInt(amountWei);
     const slippage = slippageTolerance;
     const minAmountLd = BigInt(Big(amountWei).times(Big(1).minus(Big(slippage).div(100))).toFixed(0));
 
     const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
-    const lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
-
-    let unMultiHopExtraOptions = Options.newOptions().toBytes();
-    if (!isMultiHopComposer && lzReceiveOptionValue) {
-      unMultiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toBytes();
+    let lzReceiveOptionValue = 0;
+    const destATA = await getDestinationAssociatedTokenAddress({
+      recipient,
+      toToken,
+    });
+    if (destATA.needCreateTokenAccount) {
+      lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
     }
 
     let _dstEid: any = dstEid;
-    let to = addressToBytes32(toToken.chainType, recipient);
+    const finalDstAddress = addressToBytes32(toToken.chainType, recipient);
+    let to = finalDstAddress;
+    csl("TON quoteOFT", "blue-300", "_dstEid: %o", _dstEid);
+    csl("TON quoteOFT", "blue-300", "to: %o", to);
 
-    let extraOptions = unMultiHopExtraOptions;
-    let composeMsg = null;
+    let dstProxyAddress = addressToBytes32(toToken.chainType, destinationLayerzeroAddress);
     if (isMultiHopComposer) {
       _dstEid = multiHopComposer.eid;
       to = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer);
+      dstProxyAddress = addressToBytes32("evm", multiHopComposer.oftLegacy);
+      csl("TON quoteOFT", "blue-300", "MultiHop _dstEid: %o", _dstEid);
+      csl("TON quoteOFT", "blue-300", "MultiHop to: %o", to);
+    }
 
-      let multiHopExtraOptions = Options.newOptions().toHex();
-      if (lzReceiveOptionValue) {
-        multiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+    const dstProxyAddressBigInt = BigInt(dstProxyAddress);
+    const jettonWalletAddress = await this.getSenderJettonWallet(fromToken.contractAddress, refundTo);
+    csl("TON quoteOFT", "blue-300", "jettonWalletAddress: %o", jettonWalletAddress.toString());
+    csl("TON quoteOFT", "blue-300", "refundTo: %o", refundTo);
+    csl("TON quoteOFT", "blue-300", "Address.parse(refundTo): %o", Address.parse(refundTo));
+
+    // get Message fee
+    const oftProxyBigInt = addressToBigInt(proxyAddress);
+    csl("TON quoteOFT", "blue-300", "oftProxyBigInt: %o", oftProxyBigInt);
+
+    const buildForwardPayload = async (
+      dstAddress: string,
+      nativeFee: bigint,
+      minAmountOut: bigint
+    ): Promise<Cell> => {
+      let _composeMessage = beginCell().endCell();
+      const optionsV2Params = {
+        lzReceiveGas: 0n,
+        lzReceiveValue: 0n,
+        nativeDropAddress: BigInt(dstAddress),
+        nativeDropAmount: 0n,
+        lzComposeGas: 0n,
+        lzComposeValue: 0n,
+      };
+
+      if (isMultiHopComposer) {
+        let multiHopExtraOptions = Options.newOptions().toHex();
+        if (lzReceiveOptionValue) {
+          multiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+        }
+
+        const composeMsgSendParam = {
+          dstEid,
+          to: addressToBytes32(toToken.chainType, recipient),
+          amountLD: amountLd,
+          minAmountLD: minAmountLd,
+          extraOptions: multiHopExtraOptions,
+          composeMsg: "0x",
+          oftCmd: "0x",
+        };
+        const hopMsgFee = await getHopMsgFee({
+          sendParam: composeMsgSendParam,
+          toToken,
+        });
+
+        optionsV2Params.lzReceiveGas = 200000n;
+        optionsV2Params.nativeDropAddress = 0n;
+        optionsV2Params.lzComposeGas = originLayerzero.composeOptionGas || 800000n;
+        // It's important to add 20% buffer
+        // otherwise the lzcompose will fail
+        optionsV2Params.lzComposeValue = hopMsgFee * 120n / 100n;
+
+        const extraOptions = buildClass("md::OptionsV1", {
+          lzReceiveGas: BigInt(lzReceiveOptionGas),
+          lzReceiveValue: 0n,
+          nativeDropAddress: finalDstAddress,
+          nativeDropAmount: 0n,
+        });
+        try {
+          const response = await this.tonClient
+            .provider(proxyAddress)
+            .get("_encodeOftSendAsComposeMessage", [
+              { type: "int", value: 0n },
+              { type: "int", value: BigInt(params.dstEid) },
+              { type: "int", value: addressToBigInt(finalDstAddress) },
+              { type: "cell", cell: extraOptions },
+            ]);
+          _composeMessage = response.stack.readCell();
+        } catch (err) {
+          csl("TON quoteOFT", "red-500", "createComposePayload failed: %o", err);
+          throw "get compose message failed";
+        }
       }
 
-      const composeMsgSendParam = {
-        dstEid,
-        to: addressToBytes32(toToken.chainType, recipient),
-        amountLD: amountLd,
-        minAmountLD: minAmountLd,
-        extraOptions: multiHopExtraOptions,
-        composeMsg: "0x",
-        oftCmd: "0x",
-      };
-      const hopMsgFee = await getHopMsgFee({
-        sendParam: composeMsgSendParam,
-        toToken,
+      const extraOptions = buildClass("md::OptionsV2", optionsV2Params);
+
+      return oftBuild.OFTSend({
+        dstEid: BigInt(_dstEid),
+        to: BigInt(dstAddress),
+        minAmount: minAmountOut,
+        nativeFee,
+        zroFee: 0n, // ZRO token doesn't exist on TON
+        extraOptions,
+        composeMessage: _composeMessage,
       });
+    };
 
-      extraOptions = Options.newOptions()
-        .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 500000, hopMsgFee)
-        .toBytes();
+    // Build a preliminary forward payload with 0 fee (fee is determined by the quote)
+    const forwardPayload = await buildForwardPayload(to, 0n, minAmountLd);
+    const { composeMessage } = oftDecode.OFTSend(forwardPayload);
+    csl("TON quoteOFT", "blue-300", "composeMessage: %o", composeMessage);
 
-      const abiCoder = ethers.AbiCoder.defaultAbiCoder();
-      const composeEncoder = abiCoder.encode(
-        ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
-        [Object.values(composeMsgSendParam)]);
+    // Get the LzSend metadata from the OFT contract
+    const lzSendResult = await this.tonClient
+      .provider(proxyAddress)
+      .get("getLzSendMd", [
+        { type: "cell", cell: forwardPayload },
+        { type: "int", value: 2n }, // Msg type: SEND_OFT
+        { type: "cell", cell: composeMessage },
+      ]);
+    const lzSend = decodeClass("md::LzSend", lzSendResult.stack.readCell());
+    csl("TON quoteOFT", "blue-300", "lzSend: %o", lzSend);
 
-      composeMsg = ethers.getBytes(composeEncoder);
+    // Compute derived contract addresses for the ULN quote
+    const ulnAddress = bigIntToAddress(
+      computeTonUlnAddress("USDT", tonUlnManagerBigInt, BigInt(_dstEid))
+    );
+    csl("TON quoteOFT", "blue-300", "ulnAddress: %o", ulnAddress.toString());
+    const endpointAddress = bigIntToAddress(
+      computeTonEndpointAddress(
+        "USDT",
+        tonControllerBigInt,
+        BigInt(_dstEid)
+      )
+    );
+    csl("TON quoteOFT", "blue-300", "endpointAddress: %o", endpointAddress.toString());
+    const channelAddress = bigIntToAddress(
+      computeTonChannelAddress(
+        "USDT",
+        oftProxyBigInt,
+        BigInt(_dstEid),
+        dstProxyAddressBigInt,
+        tonControllerBigInt,
+        addressToBigInt(endpointAddress)
+      )
+    );
+    csl("TON quoteOFT", "blue-300", "channelAddress: %o", channelAddress.toString());
+
+    // Build the ULN connection initial storage (needed for the quote)
+    const connectionInitialStorage = buildUlnConnnection(
+      oftProxyBigInt,
+      BigInt(_dstEid),
+      dstProxyAddressBigInt,
+      tonUlnManagerBigInt,
+      addressToBigInt(ulnAddress)
+    );
+    csl("TON quoteOFT", "blue-300", "connectionInitialStorage: %o", connectionInitialStorage);
+
+    // Fetch the ULN connection config for the send path
+    const ulnConnectionAddress = bigIntToAddress(
+      computeTonUlnConnectionAddress(
+        "USDT",
+        oftProxyBigInt,
+        BigInt(_dstEid),
+        dstProxyAddressBigInt,
+        tonUlnManagerBigInt,
+        addressToBigInt(ulnAddress)
+      )
+    );
+    csl("TON quoteOFT", "blue-300", "ulnConnectionAddress: %o", ulnConnectionAddress);
+
+    let customUlnSendConfig;
+    try {
+      const ulnConnectionResult = await this.tonClient
+        .provider(ulnConnectionAddress)
+        .get("getContractStorage", []);
+      const ulnConnectionStorage = decodeClass(
+        "UlnConnection",
+        ulnConnectionResult.stack.readCell()
+      );
+      customUlnSendConfig = ulnConnectionStorage.UlnSendConfigOApp;
+    } catch (error) {
+      // ULN connection not yet deployed — fetch default send config from ULN itself
+      // const ulnStorageResult = await this.tonClient
+      //   .provider(ulnAddress)
+      //   .get("getContractStorage", []);
+      // const ulnStorage = decodeClass("Uln", ulnStorageResult.stack.readCell());
+      // customUlnSendConfig = ulnStorage.defaultUlnSendConfig;
+      customUlnSendConfig = ulnConfigs[toToken.chainName];
+      csl("TON quoteOFT", "gray-500", "get UlnConnectionStorage failed, get config from ulnConfigs: %o, error: %o", customUlnSendConfig, error);
     }
+    csl("TON quoteOFT", "blue-300", "customUlnSendConfig: %o", customUlnSendConfig);
+
+    // Build the full ULN send metadata
+    const mdUlnSend = buildClass("md::UlnSend", {
+      lzSend,
+      customUlnSendConfig,
+      connectionInitialStorage,
+      forwardingAddress: channelAddress,
+    });
+    csl("TON quoteOFT", "blue-300", "mdUlnSend: %o", mdUlnSend);
+
+    // Query the ULN for the actual fee quote
+    const quoteStack = (
+      await this.tonClient.provider(ulnAddress).get("ulnQuote", [
+        {
+          type: "cell",
+          cell: mdUlnSend,
+        },
+      ])
+    ).stack;
+    csl("TON quoteOFT", "blue-300", "quoteStack: %o", quoteStack);
+
+    const parsedArray = quoteStack.readTuple().skip(1).pop() as unknown as Cell[];
+    const parsedQuote = decodeClass("md::MsglibSendCallback", parsedArray[3]);
+    csl("TON quoteOFT", "blue-300", "parsedQuote: %o", parsedQuote);
+
+    // Add 30% buffer — unused fee is refunded to the sender
+    const FEE_BUFFER = 130n;
+    const FEE_DIVISOR = 100n;
+
+    const nativeFee = (parsedQuote.nativeFee * FEE_BUFFER) / FEE_DIVISOR;
+    const zroFee = 0n;
+    csl("TON quoteOFT", "blue-300", "nativeFee: %o", nativeFee);
+    csl("TON quoteOFT", "blue-300", "zroFee: %o", zroFee);
+
+    csl("TON quoteOFT", "blue-600", "Fee: %o TON (includes 30% buffer)", Number(nativeFee) / 1e9);
+    csl("TON quoteOFT", "blue-600", "Amount received: %o USDT (min)", Number(minAmountLd) / 1e6);
+
+    const sendForwardPayload = await buildForwardPayload(
+      to,
+      nativeFee,
+      minAmountLd
+    );
+    csl("TON quoteOFT", "blue-300", "sendForwardPayload: %o", sendForwardPayload);
+
+    const storage = await this.tonClient
+      .provider(proxyAddress)
+      .get("getContractStorage", []);
+    const cell = storage.stack.readCell();
+    const oftCell = oftDecode.UsdtOFT(cell);
+    const gasAsserts = oftDecode.GasAsserts(oftCell.gasAsserts);
+    const estimatedGas = gasAsserts.sendOFTGas * GAS_ASSERT_MULTIPLIER;
+    csl("TON quoteOFT", "blue-300", "estimatedGas: %o", estimatedGas);
+
+    const fwdAmount = nativeFee + estimatedGas;
+    csl("TON quoteOFT", "blue-300", "fwdAmount: %o", fwdAmount);
+    const totalValue = fwdAmount + toNano(JETTON_TRANSFER_GAS);
+    csl("TON quoteOFT", "blue-300", "totalValue: %o", totalValue);
+    const transferCell = buildTonTransferCell({
+      toAddress: proxyAddress,
+      fromAddress: Address.parse(refundTo),
+      value: totalValue,
+      fwdAmount,
+      jettonAmount: amountLd,
+      forwardPayload: sendForwardPayload,
+    });
+    csl("TON quoteOFT", "blue-300", "transferCell: %o", transferCell);
+
+    const transaction = {
+      validUntil: Math.floor(Date.now() / 1000) + 360,
+      messages: [
+        {
+          address: jettonWalletAddress.toString(),
+          amount: totalValue.toString(),
+          payload: transferCell.toBoc().toString("base64"),
+        }
+      ],
+    };
+    csl("TON quoteOFT", "blue-300", "transaction: %o", transaction);
+
+    result.sendParam = {
+      transaction,
+    };
+
+    if (prices && fromToken.nativeToken) {
+      const nativeFeeUsd = Big(nativeFee.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+      result.fees.nativeFeeUsd = numberRemoveEndZero(nativeFeeUsd.toFixed(20));
+
+      const estimateGasUsd = Big(estimatedGas.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+      result.fees.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+      result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+    }
+    result.fees.nativeFee = Big(nativeFee.toString())
+      .div(10 ** fromToken.nativeToken.decimals)
+      .toFixed(fromToken.nativeToken.decimals, 0);
+    result.fees.lzTokenFee = zroFee.toString();
+    result.estimateSourceGas = estimatedGas;
+
+    // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
+    result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
+    result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
+
+    for (const feeKey in result.fees) {
+      if (excludeFees && excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
+
+    return result;
+
+
+    // const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
+    // const lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
+
+    // let unMultiHopExtraOptions = Options.newOptions().toBytes();
+    // if (!isMultiHopComposer && lzReceiveOptionValue) {
+    //   unMultiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toBytes();
+    // }
+
+    // let _dstEid: any = dstEid;
+    // let to = addressToBytes32(toToken.chainType, recipient);
+
+    // let extraOptions = unMultiHopExtraOptions;
+    // let composeMsg = null;
+    // if (isMultiHopComposer) {
+    //   _dstEid = multiHopComposer.eid;
+    //   to = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer);
+
+    //   let multiHopExtraOptions = Options.newOptions().toHex();
+    //   if (lzReceiveOptionValue) {
+    //     multiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+    //   }
+
+    //   const composeMsgSendParam = {
+    //     dstEid,
+    //     to: addressToBytes32(toToken.chainType, recipient),
+    //     amountLD: amountLd,
+    //     minAmountLD: minAmountLd,
+    //     extraOptions: multiHopExtraOptions,
+    //     composeMsg: "0x",
+    //     oftCmd: "0x",
+    //   };
+    //   const hopMsgFee = await getHopMsgFee({
+    //     sendParam: composeMsgSendParam,
+    //     toToken,
+    //   });
+
+    //   extraOptions = Options.newOptions()
+    //     .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 500000, hopMsgFee)
+    //     .toBytes();
+
+    //   const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+    //   const composeEncoder = abiCoder.encode(
+    //     ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
+    //     [Object.values(composeMsgSendParam)]);
+
+    //   composeMsg = ethers.getBytes(composeEncoder);
+    // }
 
     // const parsedAddress = Address.parse(originLayerzeroAddress);
     // const contractStorage = await this.tonClient.runMethod(parsedAddress, "getContractStorage", []);
