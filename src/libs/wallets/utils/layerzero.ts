@@ -166,3 +166,6 @@ export function buildEndpointV2LzComposePayload(params: { nonce: string; srcEid:
   ]);
 }
 //#endregion
+
+// add buffer for native msg fee
+export const NATIVE_MSG_FEE_BUFFER: bigint = 105n;

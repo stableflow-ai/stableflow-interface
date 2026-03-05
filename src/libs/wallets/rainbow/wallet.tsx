@@ -12,7 +12,7 @@ import { Service } from "@/services/constants";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 import { allUsdtChains } from "@/config/tokens";
-import { buildEndpointV2LzComposePayload } from "../utils/layerzero";
+import { buildEndpointV2LzComposePayload, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 import { OFT_ABI } from "@/services/usdt0/contract";
 import { csl } from "@/utils/log";
 
@@ -354,16 +354,21 @@ export default class RainbowWallet {
     // csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
 
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
-    result.estimateSourceGas = msgFee[0];
-    csl("EVM quoteOFT", "blue-900", "msgFee: %o", msgFee);
+    let nativeMsgFee = msgFee[0];
+    const lzMsgFee = msgFee[1];
+    result.estimateSourceGas = nativeMsgFee;
+    csl("EVM quoteOFT", "blue-900", "msgFee: %o, nativeMsgFee: %o", msgFee, nativeMsgFee);
+    // add 5% buffer
+    nativeMsgFee = nativeMsgFee * NATIVE_MSG_FEE_BUFFER / 100n;
+    csl("EVM quoteOFT", "blue-900", "msgFee after buffer: %o", nativeMsgFee);
 
     // csl("EVM quoteOFT", "blue-900", "Params: %o", result.sendParam);
 
     // 3. estimate gas
-    const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
-    result.fees.nativeFee = numberRemoveEndZero(Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
+    const nativeFeeUsd = Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFee = numberRemoveEndZero(Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
-    result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
+    result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(lzMsgFee?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
 
     // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
     if (isOriginLegacy || isDestinationLegacy) {
@@ -402,11 +407,11 @@ export default class RainbowWallet {
       param: [
         sendParam,
         {
-          nativeFee: msgFee[0],
-          lzTokenFee: msgFee[1],
+          nativeFee: nativeMsgFee,
+          lzTokenFee: lzMsgFee,
         },
         refundTo,
-        { value: msgFee[0], gasLimit: sendWithFeeGasLimit }
+        { value: nativeMsgFee, gasLimit: sendWithFeeGasLimit }
       ],
     };
 
@@ -870,7 +875,8 @@ export default class RainbowWallet {
 
     const dstOFTContract = new ethers.Contract(dstOFT, OFT_ABI, this.provider);
     const msgFee = await dstOFTContract.quoteSend.staticCall(sendParam, false);
-    const nativeFee = msgFee[0];
+    let nativeFee = msgFee[0];
+    nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;
 
     const tx = await LayerZeroEndpointV2Contract.lzCompose(
       ...contractParams,
