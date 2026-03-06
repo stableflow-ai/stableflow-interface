@@ -15,9 +15,7 @@ export default function LearnMore() {
           className="absolute translate-x-[10px] translate-y-[-5px] md:translate-y-[10px] md:translate-x-[0px]"
         />
         
-        <MainTitle className="!hidden md:!flex" />
-        
-        <div className="px-[10px] md:px-0 mb-[40px]">
+        <div className="px-[10px] md:px-0 mb-[40px] pt-5">
           <Hero />
         </div>
 
