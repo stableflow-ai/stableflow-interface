@@ -28,6 +28,14 @@ export class FraxZeroService extends Usdt0Service {
     const isFromEthereumOrFraxtal = fromToken.chainId === 1 || fromToken.chainId === 252;
     const isToEthereumOrFraxtal = toToken.chainId === 1 || toToken.chainId === 252;
     const isFraxtal = fromToken.chainId === 252 || toToken.chainId === 252;
+    const isFromSolana = fromToken.chainName === "Solana";
+
+    if (isFromSolana) {
+      // only support Ethereum and Fraxtal
+      if (![1, 252].includes(toToken.chainId)) {
+        throw new Error("Invalid destination chain");
+      }
+    }
 
     const estimateTime = calculateEstimateTime({
       requiredDvnCount: FRAXZERO_REQUIRED_DVN_COUNT,
@@ -35,7 +43,7 @@ export class FraxZeroService extends Usdt0Service {
       destinationConfig: destinationLayerzero,
     });
 
-    if (isFraxtal) {
+    if (isFraxtal && !isFromSolana) {
       const result = await wallet.quote(Service.Usdt0, {
         ...params,
         abi: OFT_ABI,

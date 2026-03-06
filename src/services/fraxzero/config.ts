@@ -60,7 +60,6 @@ export const FRAXZERO_CONFIG: Record<string, FraxZeroConfig> = {
   Solana: {
     ...LAYERZZERO_CHAINS["Solana"],
     programId: "E1ht9dUh1ZkgWWRRPCuN3kExEoF2FXiyADXeN3XyMHaQ",
-    mint: "GzX1ireZDU865FiMaKrdVB1H6AE8LAqWYCg6chrMrfBw",
     escrow: "84AFSH3TSzyjbEFJX9z8sjpV7npTWq7f8ZR5zkLG22hX",
     confirmations: 32,
   },
