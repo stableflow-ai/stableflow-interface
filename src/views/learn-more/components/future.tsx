@@ -21,7 +21,7 @@ export default function Future() {
 
   return (
     <div className="w-full">
-      <h2 className="text-[20px] md:text-[24px] font-[700] text-[#6284F5] mb-[12px]">
+      <h2 className="text-[20px] md:text-[24px] font-[700] text-[#000000] mb-[12px]">
         The Future of Stablecoin Liquidity
       </h2>
 
