@@ -1,42 +1,27 @@
-export type ServiceType = "oneclick" | "usdt0" | "cctp";
+import oneClickService from "./oneclick";
 
-export const Service = {
-  OneClick: "oneclick",
-  Usdt0: "usdt0",
-  CCTP: "cctp",
-} as const;
+import { Service } from "./constants";
 
-export type Service = (typeof Service)[keyof typeof Service];
-
-// Used for backend data conversion
-export const Project = {
-  Nearintents: 0,
-  Layerzero: 1,
-  CCTP: 2,
+export const ServiceMap: Record<Service, any> = {
+  [Service.OneClick]: oneClickService,
+  [Service.Usdt0]: {},
+  [Service.CCTP]: {},
+  [Service.Usdt0OneClick]: {},
+  [Service.OneClickUsdt0]: {},
+  [Service.Native]: {},
+  [Service.FraxZero]: {},
+  [Service.FraxZeroOneClick]: {},
+  [Service.OneClickFraxZero]: {},
 };
 
-export type Project = (typeof Project)[keyof typeof Project];
-
-export const ProjectMap: Record<Project, { name: string; color: string; logo: string; value: string; tokens: ("USDT" | "USDC" | "USD1")[]; }> = {
-  [Project.Nearintents]: {
-    name: "Near Intents",
-    value: "nearintents",
-    color: "#4CD093",
-    logo: "/bridge/logo-near-intents.png",
-    tokens: ["USDT", "USDC"],
-  },
-  [Project.Layerzero]: {
-    name: "USDT0",
-    value: "layerzero",
-    color: "#00b988",
-    logo: "/bridge/logo-usdt0.svg",
-    tokens: ["USDT"],
-  },
-  [Project.CCTP]: {
-    name: "CCTP",
-    value: "cctp",
-    color: "#29233b",
-    logo: "/bridge/logo-circle.avif",
-    tokens: ["USDC"],
-  },
+export const ServiceLogoMap: Record<Service, string> = {
+  [Service.OneClick]: "/bridge/logo-near-intents.svg",
+  [Service.Usdt0]: "/bridge/logo-usdt0.svg",
+  [Service.CCTP]: "/bridge/logo-circle.avif",
+  [Service.Usdt0OneClick]: "/bridge/logo-usdt0-near-intents.svg",
+  [Service.OneClickUsdt0]: "/bridge/logo-near-intents-usdt0.svg",
+  [Service.Native]: "/bridge/logo-native.svg",
+  [Service.FraxZero]: "/bridge/logo-fraxzero.svg",
+  [Service.FraxZeroOneClick]: "/bridge/logo-fraxzero.svg",
+  [Service.OneClickFraxZero]: "/bridge/logo-fraxzero.svg",
 };

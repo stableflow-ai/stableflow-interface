@@ -1,3 +1,5 @@
+import type { Service } from "@/services/constants";
+
 export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
   near: {
     value: "near",
@@ -29,24 +31,46 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
     color: "#000000",
     bg: "linear-gradient(90deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.00) 50%)",
   },
+  ton: {
+    value: "ton",
+    name: "Ton",
+    color: "#0098EA",
+    bg: "linear-gradient(90deg, rgba(0, 152, 234, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
+  },
 };
 
-export const chainsRpcUrls: Record<string, string> = {
-  "Ethereum": "https://eth.merkle.io",
-  "Arbitrum": "https://arb1.arbitrum.io/rpc",
-  "BNB Chain": "https://56.rpc.thirdweb.com",
-  "Avalanche": "https://api.avax.network/ext/bc/C/rpc",
-  "Base": "https://mainnet.base.org",
-  "Polygon": "https://polygon-rpc.com",
-  "Gnosis": "https://rpc.gnosischain.com",
-  "Optimism": "https://mainnet.optimism.io",
-  "Berachain": "https://rpc.berachain.com",
-  "Tron": "https://tron-rpc.publicnode.com",
-  "Aptos": "https://api.mainnet.aptoslabs.com/v1",
-  "Solana": "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
-  "Near": "",
-  "X Layer": "https://rpc.xlayer.tech",
-  "Plasma": "https://rpc.plasma.to",
+export const chainsRpcUrls: Record<string, string[]> = {
+  "Ethereum": ["https://0xrpc.io/eth", "https://ethereum-rpc.publicnode.com"],
+  "Arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"],
+  "BNB Chain": ["https://56.rpc.thirdweb.com", "https://bsc-rpc.publicnode.com"],
+  "Avalanche": ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche-c-chain-rpc.publicnode.com"],
+  "Base": ["https://mainnet.base.org", "https://base-rpc.publicnode.com"],
+  "Polygon": ["https://polygon.drpc.org", "https://polygon-bor-rpc.publicnode.com"],
+  "Gnosis": ["https://rpc.gnosischain.com", "https://gnosis-rpc.publicnode.com"],
+  "Optimism": ["https://mainnet.optimism.io", "https://optimism-rpc.publicnode.com"],
+  "Berachain": ["https://rpc.berachain.com", "https://berachain-rpc.publicnode.com"],
+  "Tron": ["https://tron-rpc.publicnode.com"],
+  "Aptos": ["https://api.mainnet.aptoslabs.com/v1"],
+  "Solana": ["https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170", "https://solana-rpc.publicnode.com"],
+  "Near": ["https://nearinner.deltarpc.com"],
+  "X Layer": ["https://rpc.xlayer.tech", "https://xlayer.drpc.org"],
+  "Plasma": ["https://rpc.plasma.to", "https://plasma.drpc.org"],
+  "Mantle": ["https://rpc.mantle.xyz", "https://mantle-rpc.publicnode.com"],
+  "MegaETH": ["https://mainnet.megaeth.com/rpc"],
+  "Ink": ["https://rpc-gel.inkonchain.com", "https://rpc-qnd.inkonchain.com"],
+  "Stable": ["https://rpc.stable.xyz"],
+  "Celo": ["https://forno.celo.org", "https://celo-rpc.publicnode.com"],
+  "Sei": ["https://sei-evm-rpc.publicnode.com"],
+  "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
+  "Ton": ["https://toncenter.com/api/v2/jsonRPC"],
+  "Fraxtal": ["https://rpc.frax.com"],
+};
+
+export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
+  return {
+    rpcUrls: chainsRpcUrls[chainName],
+    rpcUrl: chainsRpcUrls[chainName][0],
+  };
 };
 
 interface Chain {
@@ -62,6 +86,7 @@ interface Chain {
     symbol: string;
     decimals: number;
   };
+  rpcUrls: string[];
   rpcUrl: string;
 }
 
@@ -78,7 +103,7 @@ const chains: Record<string, Chain> = {
       symbol: "NEAR",
       decimals: 24,
     },
-    rpcUrl: chainsRpcUrls["Near"],
+    ...getChainRpcUrl("Near"),
   },
   sol: {
     chainName: "Solana",
@@ -92,7 +117,7 @@ const chains: Record<string, Chain> = {
       symbol: "SOL",
       decimals: 9,
     },
-    rpcUrl: chainsRpcUrls["Solana"],
+    ...getChainRpcUrl("Solana"),
   },
   eth: {
     chainName: "Ethereum",
@@ -107,7 +132,7 @@ const chains: Record<string, Chain> = {
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Ethereum"],
+    ...getChainRpcUrl("Ethereum"),
   },
   arb: {
     chainName: "Arbitrum",
@@ -122,7 +147,7 @@ const chains: Record<string, Chain> = {
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Arbitrum"],
+    ...getChainRpcUrl("Arbitrum"),
   },
   bsc: {
     chainName: "BNB Chain",
@@ -137,7 +162,7 @@ const chains: Record<string, Chain> = {
       symbol: "BNB",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["BNB Chain"],
+    ...getChainRpcUrl("BNB Chain"),
   },
   avax: {
     chainName: "Avalanche",
@@ -152,7 +177,7 @@ const chains: Record<string, Chain> = {
       symbol: "AVAX",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Avalanche"],
+    ...getChainRpcUrl("Avalanche"),
   },
   base: {
     chainName: "Base",
@@ -167,7 +192,7 @@ const chains: Record<string, Chain> = {
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Base"],
+    ...getChainRpcUrl("Base"),
   },
   pol: {
     chainName: "Polygon",
@@ -182,7 +207,7 @@ const chains: Record<string, Chain> = {
       symbol: "POL",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Polygon"],
+    ...getChainRpcUrl("Polygon"),
   },
   gnosis: {
     chainName: "Gnosis",
@@ -197,7 +222,7 @@ const chains: Record<string, Chain> = {
       symbol: "XDAI",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Gnosis"],
+    ...getChainRpcUrl("Gnosis"),
   },
   op: {
     chainName: "Optimism",
@@ -212,7 +237,7 @@ const chains: Record<string, Chain> = {
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Optimism"],
+    ...getChainRpcUrl("Optimism"),
   },
   tron: {
     chainName: "Tron",
@@ -220,13 +245,13 @@ const chains: Record<string, Chain> = {
     chainIcon: "/chains/tron.png",
     chainIconGray: "/chains/tron-gray.png",
     chainType: chainTypes.tron.value,
-    blockExplorerUrl: "https://tronscan.org/tx",
+    blockExplorerUrl: "https://tronscan.org/#/transaction",
     primaryColor: "#BC3221",
     nativeToken: {
       symbol: "TRX",
       decimals: 6,
     },
-    rpcUrl: chainsRpcUrls["Tron"],
+    ...getChainRpcUrl("Tron"),
   },
   aptos: {
     chainName: "Aptos",
@@ -240,7 +265,7 @@ const chains: Record<string, Chain> = {
       symbol: "APT",
       decimals: 8,
     },
-    rpcUrl: chainsRpcUrls["Aptos"],
+    ...getChainRpcUrl("Aptos"),
   },
   bera: {
     chainName: "Berachain",
@@ -255,7 +280,7 @@ const chains: Record<string, Chain> = {
       symbol: "BERA",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Berachain"],
+    ...getChainRpcUrl("Berachain"),
   },
   xlayer: {
     chainName: "X Layer",
@@ -270,7 +295,7 @@ const chains: Record<string, Chain> = {
       symbol: "OKB",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["X Layer"],
+    ...getChainRpcUrl("X Layer"),
   },
   plasma: {
     chainName: "Plasma",
@@ -285,8 +310,163 @@ const chains: Record<string, Chain> = {
       symbol: "XPL",
       decimals: 18,
     },
-    rpcUrl: chainsRpcUrls["Plasma"],
+    ...getChainRpcUrl("Plasma"),
+  },
+  ton: {
+    chainName: "Ton",
+    blockchain: "ton",
+    chainIcon: "/chains/ton.png",
+    chainIconGray: "/chains/ton-gray.png",
+    chainType: chainTypes.ton.value,
+    blockExplorerUrl: "https://tonviewer.com/transaction/",
+    primaryColor: "#0098EA",
+    nativeToken: {
+      symbol: "TON",
+      decimals: 9,
+    },
+    ...getChainRpcUrl("Ton"),
+  },
+  mantle: {
+    chainName: "Mantle",
+    blockchain: "mantle",
+    chainIcon: "/chains/mantle.png",
+    chainIconGray: "/chains/mantle-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 5000,
+    blockExplorerUrl: "https://mantlescan.xyz/tx/",
+    primaryColor: "#162F29",
+    nativeToken: {
+      symbol: "MNT",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Mantle"),
+  },
+  megaeth: {
+    chainName: "MegaETH",
+    blockchain: "megaeth",
+    chainIcon: "/chains/megaeth.png",
+    chainIconGray: "/chains/megaeth-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 4326,
+    blockExplorerUrl: "https://mega.etherscan.io/tx/",
+    primaryColor: "#19191A",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("MegaETH"),
+  },
+  ink: {
+    chainName: "Ink",
+    blockchain: "ink",
+    chainIcon: "/chains/ink.png",
+    chainIconGray: "/chains/ink-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 57073,
+    blockExplorerUrl: "https://explorer.inkonchain.com/tx/",
+    primaryColor: "#7132F5",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Ink"),
+  },
+  stable: {
+    chainName: "Stable",
+    blockchain: "stable",
+    chainIcon: "/chains/stable.png",
+    chainIconGray: "/chains/stable-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 988,
+    blockExplorerUrl: "https://uniscan.xyz/tx/",
+    primaryColor: "#01241D",
+    nativeToken: {
+      symbol: "USDT0",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Stable"),
+  },
+  celo: {
+    chainName: "Celo",
+    blockchain: "celo",
+    chainIcon: "/chains/celo.png",
+    chainIconGray: "/chains/celo-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 42_220,
+    blockExplorerUrl: "https://celoscan.io/tx/",
+    primaryColor: "#FCFF52",
+    nativeToken: {
+      symbol: "CELO",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Celo"),
+  },
+  sei: {
+    chainName: "Sei",
+    blockchain: "sei",
+    chainIcon: "/chains/sei.png",
+    chainIconGray: "/chains/sei-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 1329,
+    blockExplorerUrl: "https://seitrace.com/tx/",
+    primaryColor: "#991717",
+    nativeToken: {
+      symbol: "SEI",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Sei"),
+  },
+  flare: {
+    chainName: "Flare",
+    blockchain: "flare",
+    chainIcon: "/chains/flare.png",
+    chainIconGray: "/chains/flare-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 14,
+    blockExplorerUrl: "https://flare-explorer.flare.network/tx/",
+    primaryColor: "#E62058",
+    nativeToken: {
+      symbol: "FLR",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Flare"),
+  },
+  frax: {
+    chainName: "Fraxtal",
+    blockchain: "frax",
+    chainIcon: "/chains/frax.png",
+    chainIconGray: "/chains/frax-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 252,
+    blockExplorerUrl: "https://fraxscan.com/tx/",
+    primaryColor: "#000",
+    nativeToken: {
+      symbol: "FRAX",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Fraxtal"),
   },
 };
 
 export default chains;
+
+export interface TokenChain {
+  symbol: string;
+  decimals: number;
+  icon: string;
+  assetId?: string;
+  contractAddress: string;
+  services: Service[];
+
+  chainName: string;
+  blockchain: string;
+  chainIcon: string;
+  chainIconGray: string;
+  chainType: string;
+  chainId?: number;
+  blockExplorerUrl: string;
+  primaryColor: string;
+  nativeToken: { symbol: string; decimals: number; };
+  rpcUrls: string[];
+  rpcUrl: string;
+}

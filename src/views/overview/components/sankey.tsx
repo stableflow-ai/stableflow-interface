@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
 import type { SankeyNode, SankeyLink } from 'd3-sankey';
-import { usdtChains } from '@/config/tokens/usdt';
 import Loading from '@/components/loading/icon';
 import Big from 'big.js';
 import { formatNumber } from '@/utils/format/number';
 import useIsMobile from '@/hooks/use-is-mobile';
 import MultiSelect from '@/components/multi-select';
+import { tokens } from '@/config/tokens';
+import type { TokenChain } from '@/config/chains';
 
 interface CustomSankeyNode extends SankeyNode<any, any> {
   id: string;
@@ -21,14 +22,31 @@ interface CustomSankeyLink extends SankeyLink<any, any> {
   value: number;
 }
 
+const fixedSortChains = ["eth", "bsc", "arb", "tron", "sol"];
+const tempTokenChains: Record<string, TokenChain> = {};
+const uniqueBlockchains: string[] = [];
+tokens.forEach(item => {
+  if (!tempTokenChains[item.blockchain]) {
+    tempTokenChains[item.blockchain] = { ...item };
+    uniqueBlockchains.push(item.blockchain);
+  }
+});
+const allTokenChains: Record<string, TokenChain> = {};
+[
+  ...fixedSortChains.filter(b => tempTokenChains[b]),
+  ...uniqueBlockchains.filter(b => !fixedSortChains.includes(b)),
+].forEach(b => {
+  allTokenChains[b] = tempTokenChains[b];
+});
+
 const Sankey = (props: any) => {
   const { data, loading } = props;
 
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 600 });
-  const [selectedLeftChains, setSelectedLeftChains] = useState<string[]>(['eth', 'arb', 'pol', 'bsc', 'op']);
-  const [selectedRightChains, setSelectedRightChains] = useState<string[]>(['eth', 'arb', 'pol', 'bsc', 'op']);
+  const [selectedLeftChains, setSelectedLeftChains] = useState<string[]>(["eth", "bsc", "arb", "tron", "sol"]);
+  const [selectedRightChains, setSelectedRightChains] = useState<string[]>(Object.keys(allTokenChains));
   const isMobile = useIsMobile();
 
   // Function to update dimensions based on container size
@@ -72,13 +90,11 @@ const Sankey = (props: any) => {
       .style("background", "#ffffff");
 
     // Get selected chains
-    const leftChains = selectedLeftChains.map(key => ({
-      key,
-      ...usdtChains[key as keyof typeof usdtChains]
+    const leftChains = selectedLeftChains.map((blockchain) => ({
+      ...allTokenChains[blockchain]
     }));
-    const rightChains = selectedRightChains.map(key => ({
-      key,
-      ...usdtChains[key as keyof typeof usdtChains]
+    const rightChains = selectedRightChains.map((blockchain) => ({
+      ...allTokenChains[blockchain]
     }));
 
     // Check if we have at least one chain on each side
@@ -100,8 +116,8 @@ const Sankey = (props: any) => {
     leftChains.forEach((leftChain) => {
       rightChains.forEach((rightChain) => {
         // Only connect different chains
-        if (leftChain.key !== rightChain.key) {
-          const _link = data?.links?.find((item: any) => item.source === `${leftChain.key}-src` && item.target === `${rightChain.key}-tgt`);
+        if (leftChain.blockchain !== rightChain.blockchain) {
+          const _link = data?.links?.find((item: any) => item.source === `${leftChain.blockchain}-src` && item.target === `${rightChain.blockchain}-tgt`);
           _link && links.push(_link);
         }
       });
@@ -133,10 +149,10 @@ const Sankey = (props: any) => {
 
     // Add source nodes that have outgoing connections
     leftChains.forEach(chain => {
-      const hasOutgoing = links.some(link => link.source === `${chain.key}-src`);
+      const hasOutgoing = links.some(link => link.source === `${chain.blockchain}-src`);
       if (hasOutgoing) {
         nodes.push({
-          id: `${chain.key}-src`,
+          id: `${chain.blockchain}-src`,
           name: chain.chainName,
           color: chain.primaryColor
         });
@@ -145,10 +161,10 @@ const Sankey = (props: any) => {
 
     // Add target nodes that have incoming connections
     rightChains.forEach(chain => {
-      const hasIncoming = links.some(link => link.target === `${chain.key}-tgt`);
+      const hasIncoming = links.some(link => link.target === `${chain.blockchain}-tgt`);
       if (hasIncoming) {
         nodes.push({
-          id: `${chain.key}-tgt`,
+          id: `${chain.blockchain}-tgt`,
           name: chain.chainName,
           color: chain.primaryColor
         });
@@ -414,8 +430,8 @@ const Sankey = (props: any) => {
   }, [dimensions, selectedLeftChains, selectedRightChains, data]);
 
   // Get available chains for selection
-  const availableChains = Object.entries(usdtChains).map(([key, chain]) => ({
-    key,
+  const availableChains = Object.entries(allTokenChains).map(([blockchain, chain]) => ({
+    blockchain,
     name: chain.chainName,
     color: chain.primaryColor
   }));
@@ -452,7 +468,7 @@ const Sankey = (props: any) => {
                 />
               </div>
             </div>
-            
+
             {/* Chart Area - Full Width */}
             <div className="w-full">
               <div ref={containerRef} className="w-full h-full">
@@ -480,21 +496,21 @@ const Sankey = (props: any) => {
           // Desktop layout with side selectors
           <div className="flex gap-[20px]">
             {/* Left Chains - From */}
-            <div className="flex-shrink-0 w-[140px] flex flex-col">
+            <div className="flex-shrink-0 w-[140px] flex flex-col h-[500px] overflow-y-auto">
               <div className="text-[12px] font-[500] text-[#2B3337] mb-[12px] text-center">
                 From
               </div>
               <div className="flex-1 space-y-[8px] pr-[4px]">
                 {availableChains.map((chain) => {
-                  const isSelected = selectedLeftChains.includes(chain.key);
+                  const isSelected = selectedLeftChains.includes(chain.blockchain);
                   return (
                     <div
-                      key={chain.key}
+                      key={chain.blockchain}
                       onClick={() => {
                         if (isSelected && selectedLeftChains.length > 1) {
-                          setSelectedLeftChains(selectedLeftChains.filter(key => key !== chain.key));
+                          setSelectedLeftChains(selectedLeftChains.filter((blockchain) => blockchain !== chain.blockchain));
                         } else if (!isSelected) {
-                          setSelectedLeftChains([...selectedLeftChains, chain.key]);
+                          setSelectedLeftChains([...selectedLeftChains, chain.blockchain]);
                         }
                       }}
                       className={`
@@ -547,21 +563,21 @@ const Sankey = (props: any) => {
             </div>
 
             {/* Right Chains - To */}
-            <div className="flex-shrink-0 w-[140px] flex flex-col">
+            <div className="flex-shrink-0 w-[140px] flex flex-col h-[500px] overflow-y-auto">
               <div className="text-[12px] font-[500] text-[#2B3337] mb-[12px] text-center">
                 To
               </div>
               <div className="flex-1 space-y-[8px] pl-[4px]">
                 {availableChains.map((chain) => {
-                  const isSelected = selectedRightChains.includes(chain.key);
+                  const isSelected = selectedRightChains.includes(chain.blockchain);
                   return (
                     <div
-                      key={chain.key}
+                      key={chain.blockchain}
                       onClick={() => {
                         if (isSelected && selectedRightChains.length > 1) {
-                          setSelectedRightChains(selectedRightChains.filter(key => key !== chain.key));
+                          setSelectedRightChains(selectedRightChains.filter((blockchain) => blockchain !== chain.blockchain));
                         } else if (!isSelected) {
-                          setSelectedRightChains([...selectedRightChains, chain.key]);
+                          setSelectedRightChains([...selectedRightChains, chain.blockchain]);
                         }
                       }}
                       className={`

@@ -4,13 +4,12 @@ import clsx from "clsx";
 import chains from "@/config/chains";
 import { formatNumber } from "@/utils/format/number";
 import LazyImage from "@/components/layz-image";
-import { TradeStatus, TradeStatusMap } from "@/config/trade";
+import { TradeProject, TradeProjectMap, TradeStatus, TradeStatusMap } from "@/config/trade";
 import Pagination from "@/components/pagination";
 import TokenLogo from "./token-logo";
 import { formatAddress } from "@/utils/format/address";
-import { formatDuration, formatTimeAgo } from "@/utils/format/time";
+import { formatTimeAgo } from "@/utils/format/time";
 import useToast from "@/hooks/use-toast";
-import { ProjectMap, Project, type Project as ProjectType } from "@/services";
 import GridTable from "@/components/grid-table";
 import { BASE_API_URL } from "@/config/api";
 import { tokens } from "../config";
@@ -33,8 +32,10 @@ interface TransferData {
   asset_id: string;
   to_asset_id: string;
   create_time: string;
-  project: Project;
+  project: TradeProject;
   process_time: number;
+  tx_hash?: string;
+  to_tx_hash?: string;
 }
 
 interface ApiResponse {
@@ -128,59 +129,24 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
           <div className="">
             <div className="flex items-center gap-2">
               {/* From Chain */}
-              <div className="flex items-center gap-[6px]">
-                <LazyImage
-                  src={chains[transfer.from_chain]?.chainIcon}
-                  width={16}
-                  height={16}
-                  alt=""
-                  containerClassName="rounded-full shrink-0"
-                />
-                <span className="text-[12px] font-[500] text-[#2B3337]">
-                  {chains[transfer.from_chain]?.chainName || transfer.from_chain}
-                </span>
-              </div>
-
-              {/* Arrow */}
-              <img
-                src="/icon-arrow-right.svg"
-                alt=""
-                className="shrink-0 w-[5px] h-[8px] object-center object-contain"
+              <TransferChain
+                blockchain={transfer.from_chain}
+                hash={transfer.tx_hash}
               />
 
+              {/* Arrow */}
+              <IconArrowRight />
+
               {/* To Chain */}
-              <div className="flex items-center gap-[6px]">
-                <LazyImage
-                  src={chains[transfer.to_chain]?.chainIcon}
-                  width={16}
-                  height={16}
-                  alt=""
-                  containerClassName="rounded-full shrink-0"
-                />
-                <span className="text-[12px] font-[500] text-[#2B3337]">
-                  {chains[transfer.to_chain]?.chainName || transfer.to_chain}
-                </span>
-              </div>
+              <TransferChain
+                blockchain={transfer.to_chain}
+                hash={transfer.to_tx_hash}
+              />
             </div>
-            <div className="flex items-center gap-[8px] mt-2">
-              <div className="text-[10px] text-[#9FA7BA] flex items-center gap-1">
-                <div>
-                  {formatAddress(transfer.address, 5, 4)}
-                </div>
-                <button
-                  type="button"
-                  className="button w-[16px] h-[16px] shrink-0 bg-[url('/icon-copy.svg')] bg-center bg-no-repeat bg-[length:10px_10px]"
-                  onClick={() => {
-                    navigator.clipboard.writeText(transfer.address);
-                    toast.success({
-                      title: "Copied to clipboard",
-                    });
-                  }}
-                />
-              </div>
-              <span className={clsx("text-[10px] font-[500]", getStatusColor(transfer.status))}>
-                {TradeStatusMap[transfer.status as TradeStatus]?.name || "Unknown"}
-              </span>
+            <div className="flex items-center gap-1 mt-2">
+              <UserAddress address={transfer.address} />
+              <IconArrowRight />
+              <UserAddress address={transfer.receive_address} />
             </div>
           </div>
         );
@@ -191,7 +157,7 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
       dataIndex: "project",
       width: 100,
       render: (transfer: TransferData, idx: number) => {
-        const currentProject = ProjectMap[transfer.project];
+        const currentProject = TradeProjectMap[transfer.project];
         return (
           <LazyImage
             src={currentProject?.logo}
@@ -214,6 +180,18 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
             style={formatProcessTimeStyles(transfer.process_time)}
           >
             {transfer.process_time ? `~${transfer.process_time}s` : "-"}
+          </div>
+        );
+      },
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      width: 80,
+      render: (transfer: TransferData, idx: number) => {
+        return (
+          <div className={clsx("text-[12px] font-[500]", getStatusColor(transfer.status))}>
+            {TradeStatusMap[transfer.status as TradeStatus]?.name || "Unknown"}
           </div>
         );
       },
@@ -371,7 +349,7 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
               className="button w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
             >
               <option value="">All</option>
-              {Object.values(ProjectMap).filter((_project) => _project.tokens.includes(selectedToken)).map((_project) => {
+              {Object.values(TradeProjectMap).filter((_project) => _project.tokens.includes(selectedToken)).map((_project) => {
                 return (
                   <option
                     key={_project.value}
@@ -436,4 +414,67 @@ function formatProcessTimeStyles(process_time?: number): React.CSSProperties {
     return { color: "#FAAD14" };
   }
   return {};
+}
+
+function IconArrowRight() {
+  return (
+    <img
+      src="/icon-arrow-right.svg"
+      alt=""
+      className="shrink-0 w-[5px] h-[8px] object-center object-contain"
+    />
+  );
+}
+
+function TransferChain(props: any) {
+  const { blockchain, hash } = props;
+
+  return (
+    <div className="flex items-center gap-[6px]">
+      <LazyImage
+        src={chains[blockchain]?.chainIcon}
+        width={16}
+        height={16}
+        alt=""
+        containerClassName="rounded-full shrink-0"
+      />
+      <span className="text-[12px] font-[500] text-[#2B3337]">
+        {chains[blockchain]?.chainName || blockchain}
+      </span>
+      {
+        !!hash && (
+          <a
+            className="cursor-pointer block shrink-0 w-[10px] h-[10px] bg-center bg-no-repeat bg-contain bg-[url('/icon-link.svg')]"
+            target="_blank"
+            rel="noreferrer noopener nofollow"
+            href={`${chains[blockchain]?.blockExplorerUrl}/${hash}`}
+          />
+        )
+      }
+    </div>
+  );
+}
+
+function UserAddress(props: any) {
+  const { address } = props;
+
+  const toast = useToast();
+
+  return (
+    <div className="text-[10px] text-[#9FA7BA] flex items-center gap-0.5 flex-1 shrink-0">
+      <button
+        type="button"
+        className="button w-[16px] h-[16px] shrink-0 bg-[url('/icon-copy.svg')] bg-center bg-no-repeat bg-[length:10px_10px]"
+        onClick={() => {
+          navigator.clipboard.writeText(address);
+          toast.success({
+            title: "Copied to clipboard",
+          });
+        }}
+      />
+      <div>
+        {formatAddress(address, 5, 4)}
+      </div>
+    </div>
+  );
 }

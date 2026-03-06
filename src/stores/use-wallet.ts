@@ -5,7 +5,7 @@ interface WalletState {
   showWallet: boolean;
   usdcExpand: boolean;
   usdtExpand: boolean;
-  selectedToken: "USDT" | "USDC";
+  selectedToken: "USDT" | "USDC" | "USD₮0" | "frxUSD";
   fromToken: any;
   toToken: any;
   isTo: boolean;

@@ -2,13 +2,15 @@ import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
 import Address from "./address";
+import TipInfo from "@/components/tip-info";
 
 const LABEL = {
-  evm: "EVM-based",
+  evm: "EVM chains",
   sol: "Solana",
   near: "Near",
   tron: "Tron",
   aptos: "Aptos",
+  ton: "Ton",
 };
 
 export default function TypeItem({ type = "evm", token }: { type: WalletType; token: any; }) {
@@ -18,19 +20,30 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
 
   return (
     <div
-      className="button mx-[10px] py-[6px] flex justify-between items-center"
+      className="button pl-[10px] pr-[4px] py-[6px] flex justify-between items-center"
       onClick={() => {
-        if (!wallet.account || type === "evm" || !token) {
+        if (type === "evm" || !token) {
           return;
         }
 
-        if (
-          (walletStore.isTo &&
-            walletStore.fromToken?.contractAddress === token.contractAddress) ||
-          (!walletStore.isTo &&
-            walletStore.toToken?.contractAddress === token.contractAddress)
-        ) {
-          return;
+        if (walletStore.isTo) {
+          if (token.contractAddress === walletStore.fromToken?.contractAddress) {
+            walletStore.set({
+              toToken: token,
+              fromToken: null,
+              showWallet: false,
+            });
+            return;
+          }
+        } else {
+          if (token.contractAddress === walletStore.toToken?.contractAddress) {
+            walletStore.set({
+              fromToken: token,
+              toToken: null,
+              showWallet: false,
+            });
+            return;
+          }
         }
 
         walletStore.set({
@@ -48,13 +61,25 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
           />
         )}
 
-        <span className="text-[16px] font-[500]">{LABEL[type]}</span>
-        {(!!token &&
-          (walletStore.fromToken?.contractAddress === token.contractAddress ||
-            walletStore.toToken?.contractAddress === token.contractAddress)) ||
-          ((walletStore.fromToken?.chainType === "evm" ||
-            walletStore.toToken?.chainType === "evm") &&
-            type === "evm" && <CheckIcon circleColor="#fff" />)}
+        <span className="text-[15px] font-[500] flex items-center gap-[5px] whitespace-nowrap">
+          <span className="flex items-center gap-1">
+            <span className="">{LABEL[type]}</span>
+            {
+              type === "evm" && (
+                <TipInfo>
+                  Ethereum and other EVM-compatible networks
+                </TipInfo>
+              )
+            }
+          </span>
+          {
+            (walletStore.fromToken?.chainType === type || walletStore.toToken?.chainType === type)
+              ? (
+                <CheckIcon circleColor="#fff" />
+              )
+              : null
+          }
+        </span>
       </div>
       {wallet.account ? (
         <Address type={type} />

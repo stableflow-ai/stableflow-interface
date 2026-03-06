@@ -54,6 +54,7 @@ export default function Overview() {
         {/* Sankey Diagram */}
         <div className="px-[10px] md:px-0 mb-[20px]">
           <Sankey
+            selectedToken={selectedToken}
             data={chainData}
             loading={chainLoading}
           />

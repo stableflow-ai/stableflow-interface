@@ -3,9 +3,9 @@ import axios from "axios";
 import Loading from "@/components/loading/icon";
 import { formatNumber } from "@/utils/format/number";
 import { BASE_API_URL } from "@/config/api";
-import { ProjectMap, Project } from "@/services";
 import LazyImage from "@/components/layz-image";
 import Big from "big.js";
+import { TradeProject, TradeProjectMap } from "@/config/trade";
 
 interface DashboardData {
   symbol: string;
@@ -15,7 +15,7 @@ interface DashboardData {
 }
 
 interface ProjectVolume {
-  project: Project;
+  project: TradeProject;
   total_volume: string;
 }
 
@@ -129,13 +129,13 @@ export default function OverviewStats({ data, loading, selectedToken }: Overview
                   <div className="space-y-[8px]">
                     {projectVolumes
                       .filter((item) => {
-                        const project = ProjectMap[item.project];
+                        const project = TradeProjectMap[item.project];
                         if (!project) return false;
                         return project.tokens.includes(selectedToken);
                       })
                       .sort((a, b) => Big(b.total_volume || 0).minus(a.total_volume || 0).toNumber())
                       .map((item) => {
-                        const project = ProjectMap[item.project];
+                        const project = TradeProjectMap[item.project];
                         if (!project) return null;
                         return (
                           <div

@@ -1,46 +1,144 @@
-import Setting from "@/sections/setting";
+import { usdt0 } from "@/config/tokens/usdt0";
 import { usdt } from "@/config/tokens/usdt";
 import { usdc } from "@/config/tokens/usdc";
-import { usd1 } from "@/config/tokens/usd1";
+// import { usd1 } from "@/config/tokens/usd1";
 import clsx from "clsx";
 import useWalletStore from "@/stores/use-wallet";
+import { useRef } from "react";
+import { motion } from "framer-motion";
 
 export default function Assets() {
   const walletStore = useWalletStore();
+  const wrapperRef = useRef<any>(null);
+
+  const currentToken = walletStore.selectedToken;
+
+  const scrollTo = (direction: "left" | "right") => {
+    const el = wrapperRef.current;
+    if (el) {
+      el.scrollTo({
+        left: direction === "left" ? 0 : el.scrollWidth - el.clientWidth,
+        behavior: "smooth"
+      });
+    }
+  };
 
   return (
-    <div className="w-full px-[10px] md:px-0 md:mt-[20px]">
-      <div className="flex items-center justify-between">
-        <span className="text-[16px] font-[500] text-[#0E3616]">
-          Bridge Asset
-        </span>
-        <Setting />
-      </div>
-      <div className="mt-[8px] flex items-center gap-[16px]">
+    <div className="w-full px-[10px] mt-[8px]">
+      <div
+        ref={wrapperRef}
+        className="flex items-center gap-3 overflow-x-auto pb-2"
+      >
         <AssetItem
           asset={usdt}
-          active={walletStore.selectedToken === "USDT"}
+          active={currentToken === "USDT"}
           onClick={() => {
-            walletStore.set({
-              fromToken: usdt,
-              toToken: null,
+            const updateParams: any = {
               selectedToken: "USDT"
-            });
+            };
+            // if (walletStore.isTo) {
+            //   // Only update toToken if it doesn't have a specific chain selected
+            //   // If it has a chain, preserve it but update the symbol
+            //   if (walletStore.toToken?.chainType) {
+            //     // Keep the existing chain selection, just update the token info
+            //     updateParams.toToken = {
+            //       ...walletStore.toToken,
+            //       symbol: usdt.symbol,
+            //       decimals: usdt.decimals,
+            //       icon: usdt.icon
+            //     };
+            //   } else {
+            //     updateParams.toToken = usdt;
+            //   }
+            //   // Preserve fromToken when updating toToken
+            //   if (walletStore.fromToken) {
+            //     updateParams.fromToken = walletStore.fromToken;
+            //   }
+            // } else {
+            //   // Only update fromToken if it doesn't have a specific chain selected
+            //   // If it has a chain, preserve it but update the token info
+            //   if (walletStore.fromToken?.chainType) {
+            //     // Keep the existing chain selection, just update the token info
+            //     updateParams.fromToken = {
+            //       ...walletStore.fromToken,
+            //       symbol: usdt.symbol,
+            //       decimals: usdt.decimals,
+            //       icon: usdt.icon
+            //     };
+            //   } else {
+            //     updateParams.fromToken = usdt;
+            //   }
+            //   // Preserve toToken when updating fromToken
+            //   if (walletStore.toToken) {
+            //     updateParams.toToken = walletStore.toToken;
+            //   }
+            // }
+            walletStore.set(updateParams);
+
+            scrollTo("left");
+          }}
+        />
+        <AssetItem
+          asset={usdt0}
+          active={currentToken === "USD₮0"}
+          onClick={() => {
+            const updateParams: any = {
+              selectedToken: "USD₮0"
+            };
+            walletStore.set(updateParams);
           }}
         />
         <AssetItem
           asset={usdc}
-          active={walletStore.selectedToken === "USDC"}
-          disabled={true}
+          active={currentToken === "USDC"}
+          disabled={false}
           onClick={() => {
-            walletStore.set({
-              fromToken: usdc,
-              toToken: null,
+            const updateParams: any = {
               selectedToken: "USDC"
-            });
+            };
+            // if (walletStore.isTo) {
+            //   // Only update toToken if it doesn't have a specific chain selected
+            //   // If it has a chain, preserve it but update the symbol
+            //   if (walletStore.toToken?.chainType) {
+            //     // Keep the existing chain selection, just update the token info
+            //     updateParams.toToken = {
+            //       ...walletStore.toToken,
+            //       symbol: usdc.symbol,
+            //       decimals: usdc.decimals,
+            //       icon: usdc.icon
+            //     };
+            //   } else {
+            //     updateParams.toToken = usdc;
+            //   }
+            //   // Preserve fromToken when updating toToken
+            //   if (walletStore.fromToken) {
+            //     updateParams.fromToken = walletStore.fromToken;
+            //   }
+            // } else {
+            //   // Only update fromToken if it doesn't have a specific chain selected
+            //   // If it has a chain, preserve it but update the token info
+            //   if (walletStore.fromToken?.chainType) {
+            //     // Keep the existing chain selection, just update the token info
+            //     updateParams.fromToken = {
+            //       ...walletStore.fromToken,
+            //       symbol: usdc.symbol,
+            //       decimals: usdc.decimals,
+            //       icon: usdc.icon
+            //     };
+            //   } else {
+            //     updateParams.fromToken = usdc;
+            //   }
+            //   // Preserve toToken when updating fromToken
+            //   if (walletStore.toToken) {
+            //     updateParams.toToken = walletStore.toToken;
+            //   }
+            // }
+            walletStore.set(updateParams);
+
+            scrollTo("right");
           }}
         />
-        <AssetItem
+        {/* <AssetItem
           asset={usd1}
           active={false}
           disabled={true}
@@ -51,7 +149,7 @@ export default function Assets() {
             //   selectedToken: "USD1"
             // });
           }}
-        />
+        /> */}
       </div>
     </div>
   );
@@ -71,10 +169,10 @@ const AssetItem = ({
   return (
     <div
       className={clsx(
-        "flex items-center gap-[10px] p-[10px] w-[132px] h-[46px] md:h-[52px] rounded-[26px] duration-300",
+        "relative group hover:border-[#6284F5] hover:pr-[66px] flex items-center pl-[6px] gap-[10px] h-[46px] rounded-[26px] duration-150 shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] border-[2px] text-black shrink-0 overflow-hidden",
         active
-          ? "shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] bg-white border border-transparent text-black"
-          : "border-dashed border-[#B3BBCE] border",
+          ? "border-[#6284F5] pr-[66px]"
+          : "border-[#ffffff] pr-[6px]",
         disabled ? "cursor-not-allowed" : "cursor-pointer"
       )}
       onClick={() => {
@@ -88,11 +186,16 @@ const AssetItem = ({
         src={asset.icon}
         alt={asset.symbol}
         className={clsx(
-          "w-[24px] h-[24px]",
+          "w-[30px] h-[30px]",
           disabled && "grayscale opacity-50"
         )}
       />
-      <div>
+      <div
+        className={clsx(
+          "absolute left-[40px] duration-150 group-hover:opacity-100",
+          active ? "opacity-100" : "opacity-0",
+        )}
+      >
         <div
           className={clsx("text-[16px] font-[500]", disabled && "opacity-50")}
         >

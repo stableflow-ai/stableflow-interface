@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface Option {
-  key: string;
+  blockchain: string;
   name: string;
   color?: string;
 }
@@ -63,7 +63,7 @@ export default function MultiSelect({
   const getSelectedNames = () => {
     if (selectedValues.length === 0) return placeholder;
     if (selectedValues.length === 1) {
-      const option = options.find(opt => opt.key === selectedValues[0]);
+      const option = options.find(opt => opt.blockchain === selectedValues[0]);
       return option?.name || placeholder;
     }
     return `${selectedValues.length} selected`;
@@ -103,11 +103,11 @@ export default function MultiSelect({
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-[4px] bg-white border border-[#F2F2F2] rounded-[6px] shadow-lg z-50 max-h-[200px] overflow-y-auto">
           {options.map((option) => {
-            const isSelected = selectedValues.includes(option.key);
+            const isSelected = selectedValues.includes(option.blockchain);
             return (
               <div
-                key={option.key}
-                onClick={() => handleOptionClick(option.key)}
+                key={option.blockchain}
+                onClick={() => handleOptionClick(option.blockchain)}
                 className={`
                   px-[12px] py-[8px] text-[12px] cursor-pointer transition-colors duration-150
                   flex items-center gap-[8px]

@@ -1,5 +1,5 @@
-import chains from "@/config/chains";
-import { Service } from "@/services";
+import chains, { type TokenChain } from "@/config/chains";
+import { Service } from "@/services/constants";
 
 export const usdt = {
   symbol: "USDT",
@@ -7,27 +7,13 @@ export const usdt = {
   icon: "/usdt.png"
 };
 
-export const usdtChains = {
+export const usdtChains: Record<string, TokenChain> = {
   eth: {
     ...usdt,
     assetId: "nep141:eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near",
     contractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
     ...chains.eth,
-    services: [Service.OneClick, Service.Usdt0],
-  },
-  arb: {
-    ...usdt,
-    assetId: "nep141:arb-0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9.omft.near",
-    contractAddress: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
-    ...chains.arb,
-    services: [Service.OneClick, Service.Usdt0],
-  },
-  pol: {
-    ...usdt,
-    assetId: "nep245:v2_1.omni.hot.tg:137_3hpYoaLtt8MP1Z2GH1U473DMRKgr",
-    contractAddress: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-    ...chains.pol,
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick, Service.Usdt0, Service.Native],
   },
   bsc: {
     ...usdt,
@@ -35,14 +21,14 @@ export const usdtChains = {
     contractAddress: "0x55d398326f99059ff775485246999027b3197955",
     ...chains.bsc,
     decimals: 18,
-    services: [Service.OneClick],
+    services: [Service.OneClick, Service.Native],
   },
   op: {
     ...usdt,
     assetId: "nep245:v2_1.omni.hot.tg:10_359RPSJVdTxwTJT9TyGssr2rFoWo",
     contractAddress: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
     ...chains.op,
-    services: [Service.OneClick], // Service.Usdt0 is not supported yet, because the contract address is not the same as the USDT contract address
+    services: [Service.OneClick],
   },
   avax: {
     ...usdt,
@@ -87,18 +73,11 @@ export const usdtChains = {
     ...chains.aptos,
     services: [Service.OneClick],
   },
-  bera: {
+  ton: {
     ...usdt,
-    assetId: "nep141:bera-0x779ded0c9e1022225f8e0630b35a9b54be713736.omft.near",
-    contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
-    ...chains.bera,
-    services: [Service.OneClick, Service.Usdt0],
-  },
-  xlayer: {
-    ...usdt,
-    assetId: "nep245:v2_1.omni.hot.tg:196_2fezDCvVYRsG8wrK6deJ2VRPiAS1",
-    contractAddress: "0x779ded0c9e1022225f8e0630b35a9b54be713736",
-    ...chains.xlayer,
+    assetId: "nep245:v2_1.omni.hot.tg:1117_3tsdfyziyc7EJbP2aULWSKU4toBaAcN4FdTgfm5W1mC4ouR",
+    contractAddress: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
+    ...chains.ton,
     services: [Service.OneClick, Service.Usdt0],
   },
 };
@@ -130,4 +109,10 @@ export const usdtAptos = {
   ...usdt,
   ...usdtChains.aptos,
   chains: [usdtChains.aptos],
+};
+
+export const usdtTon = {
+  ...usdt,
+  ...usdtChains.ton,
+  chains: [usdtChains.ton],
 };

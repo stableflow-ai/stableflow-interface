@@ -7,7 +7,7 @@ import { chainTypes } from "@/config/chains";
 import { formatNumber } from "@/utils/format/number";
 import Popover from "@/components/popover";
 import clsx from "clsx";
-import { stablecoinWithChains } from "@/config/tokens";
+import { stablecoinLogoMap, stablecoinWithChains } from "@/config/tokens";
 
 export default function Total() {
   const walletStore = useWalletStore();
@@ -29,7 +29,7 @@ export default function Total() {
       if (!key.includes("Balances")) return;
       const chainType = key.split("Balances")[0];
       const currentChain = chainTypes[chainType];
-      const currentTokenWithChains = stablecoinWithChains[chainType][walletStore.selectedToken];
+      const currentTokenWithChains = stablecoinWithChains[chainType]?.[walletStore.selectedToken];
       _balanceSummaries[chainType] = {
         balance: Big(0),
         balanceString: "0.00",
@@ -37,14 +37,16 @@ export default function Total() {
         color: currentChain?.color,
         name: currentChain?.name,
       };
-      Object.entries(value).forEach(([address, value]) => {
-        if (value === "-") return;
-        if (address.includes("Balance")) return;
-        if (!currentTokenWithChains?.chains?.some((chain: any) => chain.contractAddress === address)) {
-          return;
-        }
-        _total = _total.plus(Big(value as string));
-        _balanceSummaries[chainType].balance = Big(_balanceSummaries[chainType].balance).plus(Big(value as string));
+      Object.entries(value).forEach(([blockchain, balances]) => {
+        if (typeof value === "string") return;
+        if (blockchain.includes("Balance")) return;
+        Object.entries(balances as any).forEach(([address, balance]) => {
+          if (!currentTokenWithChains?.chains?.some((chain: any) => chain.contractAddress === address)) {
+            return;
+          }
+          _total = _total.plus(Big(balance as string));
+          _balanceSummaries[chainType].balance = Big(_balanceSummaries[chainType].balance).plus(Big(balance as string));
+        });
       });
     });
     const _balanceSummariesList = Object.values(_balanceSummaries);
@@ -104,21 +106,16 @@ export default function Total() {
       _balanceSummariesListWithBalance.length,
       finalPercentages.map(percent => percent + "%").join(" ")
     ];
-  }, [balancesStore]);
+  }, [balancesStore, walletStore.selectedToken]);
 
   return (
-    <div className="flex flex-col justify-center items-center border-b border-[#EDF0EF] pb-[40px]">
-      <div className="w-full px-[25px] flex items-center gap-[7px]">
-        <img
-          src={walletStore.fromToken?.icon}
-          alt=""
-          className="w-[34px] h-[34px] object-center object-contain shrink-0"
-        />
+    <div className="flex flex-col justify-center items-center border-b border-[#EDF0EF] pb-[40px] mt-[20px]">
+      <div className="w-full px-[18px] flex items-center gap-[7px]">
         <div className="flex flex-col gap-[0px] text-black text-[14px] font-[500] leading-[100%]">
           <div className="">
-            Total {walletStore.fromToken?.symbol}
+            Total {walletStore.selectedToken}
           </div>
-          {total && Big(total).gt(0) ? (
+          {total && typeof total !== "undefined" ? (
             <Amount
               amount={total}
               className="mt-[4px]"
@@ -131,7 +128,7 @@ export default function Total() {
         </div>
       </div>
       <div
-        className="w-full h-[16px] px-[25px] grid grid-cols-1 gap-[2px] mt-[50px]"
+        className="w-full h-[16px] px-[25px] grid grid-cols-1 gap-[2px] mt-[30px]"
         style={{
           gridTemplateColumns,
         }}

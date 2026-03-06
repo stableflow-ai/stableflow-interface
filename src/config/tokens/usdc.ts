@@ -1,5 +1,5 @@
-import chains from "@/config/chains";
-import { Service } from "@/services";
+import chains, { type TokenChain } from "@/config/chains";
+import { Service } from "@/services/constants";
 
 export const usdc = {
   symbol: "USDC",
@@ -7,27 +7,27 @@ export const usdc = {
   icon: "/usdc.png"
 };
 
-export const usdcChains = {
+export const usdcChains: Record<string, TokenChain> = {
   eth: {
     ...usdc,
     assetId: "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near",
     contractAddress: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
     ...chains.eth,
-    services: [Service.OneClick, Service.CCTP],
+    services: [Service.OneClick, Service.CCTP, Service.Native],
   },
   arb: {
     ...usdc,
     assetId: "nep141:arb-0xaf88d065e77c8cc2239327c5edb3a432268e5831.omft.near",
     contractAddress: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
     ...chains.arb,
-    services: [Service.OneClick, Service.CCTP],
+    services: [Service.OneClick, Service.CCTP, Service.Native],
   },
   base: {
     ...usdc,
     assetId: "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
     contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
     ...chains.base,
-    services: [Service.OneClick, Service.CCTP],
+    services: [Service.OneClick, Service.CCTP, Service.Native],
   },
   // gnosis: {
   //   ...usdc,
@@ -50,7 +50,7 @@ export const usdcChains = {
     contractAddress: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
     ...chains.bsc,
     decimals: 18,
-    services: [Service.OneClick],
+    services: [Service.OneClick, Service.Native],
   },
   op: {
     ...usdc,
@@ -89,6 +89,13 @@ export const usdcChains = {
     ...chains.xlayer,
     services: [Service.OneClick],
   },
+  aptos: {
+    ...usdc,
+    assetId: "nep141:aptos-34ee497f210c5a511e8d5b53bc56d75b63612bb5.omft.near",
+    contractAddress: "0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b",
+    ...chains.aptos,
+    services: [Service.OneClick],
+  },
 };
 
 export const usdcSol = {
@@ -101,6 +108,12 @@ export const usdcNear = {
   ...usdc,
   ...usdcChains.near,
   chains: [usdcChains.near],
+};
+
+export const usdcAptos = {
+  ...usdc,
+  ...usdcChains.aptos,
+  chains: [usdcChains.aptos],
 };
 
 export const usdcEvm = {

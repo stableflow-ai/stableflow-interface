@@ -34,6 +34,7 @@ import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
 import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet } from "@rainbow-me/rainbowkit/wallets";
 import { createClient } from "viem";
+import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 export const metadata = {
@@ -110,6 +111,7 @@ function Content() {
   const { data: walletClient } = useWalletClient();
   const [mounted, setMounted] = useState(false);
   const setWallets = useWalletsStore((state) => state.set);
+  const evmWalletInfo = useEVMWalletInfo();
 
   const { run: debouncedDisconnect } = useDebounceFn(
     async () => {
@@ -134,6 +136,7 @@ function Content() {
           account: account.address || null,
           chainId: account.chainId,
           wallet: wallet,
+          walletIcon: evmWalletInfo.icon,
           connect: () => {
             openConnectModal?.();
           },
