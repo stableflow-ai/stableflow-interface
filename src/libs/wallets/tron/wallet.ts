@@ -13,6 +13,7 @@ import { DATA_HEX_PROTOBUF_EXTRA, LZ_RECEIVE_VALUE, SIGNATURE_SIZE, USDT0_LEGACY
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 import { csl } from "@/utils/log";
+import { NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -569,9 +570,11 @@ export default class TronWallet {
 
     const msgFee = await oftContract.quoteSend(sendParam, payInLzToken).call();
     let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
+    csl("Tron quoteOFT", "red-600", "nativeFee: %o", nativeMsgFee);
     if (nativeMsgFee) {
-      nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(1.2).toFixed(0));
+      nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(Number(NATIVE_MSG_FEE_BUFFER)/100).toFixed(0));
     }
+    csl("Tron quoteOFT", "red-600", "nativeFee after buffer: %o", nativeMsgFee);
     result.estimateSourceGas = nativeMsgFee;
 
     csl("TronWallet quoteOFT", "teal-400", "MsgFee: %o", msgFee);

@@ -34,7 +34,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     oftLegacy: "0x77652d5aba086137b595875263fc200182919b92",
     oftMultiHopComposer: "0x759BA420bF1ded1765F18C2DC3Fc57A1964A2Ad1",
     ...LAYERZZERO_CHAINS["Arbitrum"],
-    confirmations: 20, // Default confirmations from layerzeroscan.com
+    confirmations: 60, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
   },
@@ -42,7 +42,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     contractAddress: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
     oft: "0x6BA10300f0DC58B7a1e4c0e41f5daBb7D7829e13",
     ...LAYERZZERO_CHAINS["Polygon"],
-    confirmations: 20, // Default confirmations from layerzeroscan.com 
+    confirmations: 32, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
@@ -61,7 +61,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     oft: "0x3Dc96399109df5ceb2C226664A086140bD0379cB",
     oftTetherTokenOFTExtension: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
     ...LAYERZZERO_CHAINS["Berachain"],
-    confirmations: 20, // Default confirmations from layerzeroscan.com
+    confirmations: 60, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
@@ -70,7 +70,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     contractAddress: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
     oftLegacy: "Fuww9mfc8ntAwxPUzFia7VJFAdvLppyZwhPJoXySZXf7",
     ...LAYERZZERO_CHAINS["Solana"],
-    confirmations: 32, // Default confirmations from layerzeroscan.com
+    confirmations: 128, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 200000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 500000,
