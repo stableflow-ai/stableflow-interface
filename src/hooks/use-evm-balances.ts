@@ -6,6 +6,7 @@ import {
   usdcAddresses,
   usdt0Addresses,
   usdtAddresses,
+  frxusdAddresses,
 } from "@/config/tokens";
 import Big from "big.js";
 import useBalancesStore from "@/stores/use-balances";
@@ -40,6 +41,7 @@ export default function useEvmBalances(auto = false) {
         let usdcBalance = Big(0);
         let usdtBalance = Big(0);
         let usdt0Balance = Big(0);
+        let frxusdBalance = Big(0);
 
         Object.entries(__data).forEach(([key, item]: any) => {
           if (!item) return;
@@ -60,6 +62,9 @@ export default function useEvmBalances(auto = false) {
             if (Object.values(usdt0Addresses).includes(sl.address.toLowerCase())) {
               usdt0Balance = usdt0Balance.plus(_balance);
             }
+            if (Object.values(frxusdAddresses).includes(sl.address.toLowerCase())) {
+              frxusdBalance = frxusdBalance.plus(_balance);
+            }
 
             if (_balances[key]) {
               _balances[key][sl.address] = _balance.toString();
@@ -78,6 +83,7 @@ export default function useEvmBalances(auto = false) {
               usdcBalance: usdcBalance.toString(),
               usdtBalance: usdtBalance.toString(),
               "usd₮0Balance": usdt0Balance.toString(),
+              frxusdBalance: frxusdBalance.toString(),
             }
           });
         }

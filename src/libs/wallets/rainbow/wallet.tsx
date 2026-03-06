@@ -266,7 +266,7 @@ export default class RainbowWallet {
 
     // 1. check if need approve
     const approvalRequired = await oftContractRead.approvalRequired();
-    // csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
+    csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
@@ -284,7 +284,7 @@ export default class RainbowWallet {
       }
     }
 
-    const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
+    const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : (destinationLayerzero.lzReceiveOptionGas || 200000);
     let lzReceiveOptionValue = 0;
 
     const destATA = await getDestinationAssociatedTokenAddress({
@@ -506,6 +506,8 @@ export default class RainbowWallet {
         return await this.quoteOneClickProxy(params);
       case Service.Native:
         return await this.quoteNative(params);
+      case Service.FraxZero:
+        return await this.quoteFraxZero(params);
       default:
         throw new Error(`Unsupported quote type: ${type}`);
     }
@@ -874,6 +876,137 @@ export default class RainbowWallet {
     return result;
   }
 
+  async quoteFraxZero(params: any) {
+    const {
+      abi,
+      recipient,
+      amountWei,
+      slippageTolerance,
+      fromToken,
+      toToken,
+      prices,
+      excludeFees,
+      refundTo,
+      originLayerzero,
+      destinationLayerzero,
+    } = params;
+
+    const {
+      eid: srcEid,
+      remoteHop,
+      lockbox,
+    } = originLayerzero;
+    const {
+      eid: dstEid,
+    } = destinationLayerzero;
+
+    const isFromEthereum = fromToken.chainId === 1;
+
+    const result: any = {
+      needApprove: false,
+      approveSpender: remoteHop,
+      sendParam: void 0,
+      quoteParam: {
+        ...params,
+      },
+      fees: {},
+      totalFeesUsd: 0,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: 0,
+      estimateTime: 0,
+      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
+    };
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    const remoteHopContract = new ethers.Contract(remoteHop, abi, this.signer);
+    const remoteHopContractRead = new ethers.Contract(remoteHop, abi, provider);
+
+    // 1. check if need approve
+    try {
+      // Check allowance
+      const allowanceResult = await this.allowance({
+        contractAddress: fromToken.contractAddress,
+        spender: remoteHop,
+        address: refundTo,
+        amountWei,
+      });
+      result.needApprove = allowanceResult.needApprove;
+    } catch (error) {
+      csl("EVM quoteFraxZero", "red-500", "Error checking allowance: %o", error);
+    }
+
+    // 2. get message fee
+    const sendParams = [
+      // _oft
+      isFromEthereum ? lockbox : fromToken.contractAddress,
+      // _dstEid
+      dstEid,
+      // _to
+      addressToBytes32(toToken.chainType, recipient),
+      // _amountLD
+      amountWei
+    ];
+    const msgFee = await remoteHopContractRead.quote.staticCall(...sendParams);
+    result.estimateSourceGas = msgFee[0];
+
+    const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFee = numberRemoveEndZero(Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
+    result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
+    result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
+
+    csl("EVM quoteFraxZero", "blue-700", "msgFee: %o", msgFee);
+
+    // 3. estimate send gas
+    let sendWithFeeGasLimit = 4000000n;
+    try {
+      const gasLimit = await remoteHopContract.sendOFT.estimateGas(...sendParams, { value: msgFee[0] });
+      sendWithFeeGasLimit = gasLimit * 120n / 100n;
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas += wei;
+      result.estimateSourceGasUsd = usd;
+    } catch (error) {
+      csl("EVM quoteFraxZero", "red-500", "estimate send gas failed: %o", error);
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: DEFAULT_GAS_LIMIT,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas += wei;
+      result.estimateSourceGasUsd = usd;
+    }
+
+    // 4. generate transaction
+    result.sendParam = {
+      contract: remoteHopContract,
+      method: "sendOFT",
+      param: [
+        ...sendParams,
+        { value: msgFee[0], gasLimit: sendWithFeeGasLimit }
+      ],
+    };
+
+    // 5. calculate total fees
+    for (const feeKey in result.fees) {
+      if (excludeFees.includes(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
+    return result;
+  }
+
   async retryLayerzeroLzComponse(params: any) {
     const {
       layerzeroData,
@@ -928,7 +1061,7 @@ export default class RainbowWallet {
     const amountWei = Big(history.token_in_amount).times(10 ** (toToken.decimals || 6)).toFixed(0);
 
     const originLayerzero = USDT0_CONFIG["Arbitrum"];
-    const isOriginLegacy = layerzeroData.destination.lzCompose.failedTx[0].from.toLowerCase() === originLayerzero.oftLegacy.toLowerCase();
+    const isOriginLegacy = layerzeroData.destination.lzCompose.failedTx[0].from.toLowerCase() === originLayerzero.oftLegacy?.toLowerCase();
     const lzReceiveOptionGas = isOriginLegacy ? originLayerzero.lzReceiveOptionGasLegacy : originLayerzero.lzReceiveOptionGas;
     let lzReceiveOptionValue = 0;
 
@@ -972,7 +1105,7 @@ export default class RainbowWallet {
       oftCmd: "0x"
     };
 
-    const dstOFTContract = new ethers.Contract(dstOFT, OFT_ABI, this.provider);
+    const dstOFTContract = new ethers.Contract(dstOFT!, OFT_ABI, this.provider);
     const msgFee = await dstOFTContract.quoteSend.staticCall(sendParam, false);
     let nativeFee = msgFee[0];
     nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;

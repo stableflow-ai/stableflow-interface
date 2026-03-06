@@ -3,53 +3,13 @@ import { OFT_ABI, SOLANA_IDL } from "./contract";
 import axios from "axios";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
+import { calculateEstimateTime } from "../utils";
 
 export const PayInLzToken = false;
 
 export const excludeFees: string[] = ["estimateGasUsd"];
 
-/**
- * Calculate USDT0 cross-chain estimated time using LayerZero formula
- * Formula: Total Time ≈ (sourceBlockTime × blockConfirmations) + (destinationBlockTime × (2 blocks + DVN count))
- * 
- * @param originChain Source chain name (e.g., "Ethereum", "Arbitrum")
- * @param destinationChain Destination chain name
- * @returns Estimated time in seconds, returns default value 32 if config is missing
- */
-function calculateEstimateTime(originChain: string, destinationChain: string): number {
-  const originConfig = USDT0_CONFIG[originChain];
-  const destinationConfig = USDT0_CONFIG[destinationChain];
-
-  // Return default value if config is missing
-  if (!originConfig || !destinationConfig) {
-    console.warn(`Missing config for chains: origin=${originChain}, destination=${destinationChain}, using default 32s`);
-    return 32;
-  }
-
-  // Validate required configuration fields
-  if (
-    typeof originConfig.blockTime !== 'number' ||
-    typeof originConfig.confirmations !== 'number' ||
-    typeof destinationConfig.blockTime !== 'number'
-  ) {
-    console.warn(`Invalid config for chains: origin=${originChain}, destination=${destinationChain}, using default 32s`);
-    return 32;
-  }
-
-  const sourceBlockTime = originConfig.blockTime;
-  const blockConfirmations = originConfig.confirmations;
-  const destinationBlockTime = destinationConfig.blockTime;
-  const dvnCount = USDT0_DVN_COUNT;
-
-  // Calculate: source chain part + destination chain part
-  const sourceTime = sourceBlockTime * blockConfirmations;
-  const destinationTime = destinationBlockTime * (2 + dvnCount);
-  const totalTime = Math.ceil(sourceTime + destinationTime);
-
-  return totalTime;
-}
-
-class Usdt0Service {
+export class Usdt0Service {
   public async quote(params: any) {
     const {
       wallet,
@@ -72,7 +32,11 @@ class Usdt0Service {
     let dstEid = destinationLayerzero.eid;
 
     // Dynamically calculate estimated time
-    const estimateTime = calculateEstimateTime(originChain, destinationChain);
+    const estimateTime = calculateEstimateTime({
+      requiredDvnCount: USDT0_DVN_COUNT,
+      originConfig: originLayerzero,
+      destinationConfig: destinationLayerzero,
+    });
 
     if (fromToken.chainType === "evm") {
       destinationLayerzeroAddress = destinationLayerzero.oft || destinationLayerzero.oftLegacy;

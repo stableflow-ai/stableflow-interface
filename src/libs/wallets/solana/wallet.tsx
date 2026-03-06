@@ -7,6 +7,7 @@ import {
   LAMPORTS_PER_SOL,
   TransactionInstruction,
   ComputeBudgetProgram,
+  TransactionMessage,
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
@@ -32,6 +33,15 @@ import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/us
 import { ethers } from "ethers";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { csl } from "@/utils/log";
+import { publicKey } from "@metaplex-foundation/umi";
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import {
+  safeFetchToken,
+  findAssociatedTokenPda,
+  mplToolbox,
+} from "@metaplex-foundation/mpl-toolbox";
+import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
+import { fromWeb3JsPublicKey, toWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -664,11 +674,13 @@ export default class SolanaWallet {
   async quote(type: Service, params: any) {
     switch (type) {
       case Service.CCTP:
-        return await this.quoteCCTP(params);
+        return this.quoteCCTP(params);
       case Service.Usdt0:
-        return await this.quoteOFT(params);
+        return this.quoteOFT(params);
       case Service.OneClick:
-        return await this.quoteOneClickProxy(params);
+        return this.quoteOneClickProxy(params);
+      case Service.FraxZero:
+        return this.quoteFraxZero(params);
       default:
         throw new Error(`Unsupported quote type: ${type}`);
     }
@@ -989,5 +1001,224 @@ export default class SolanaWallet {
     }
 
     return createTokenAccount();
+  }
+
+  async quoteFraxZero(params: any) {
+    const {
+      recipient,
+      amountWei,
+      slippageTolerance,
+      fromToken,
+      toToken,
+      prices,
+      excludeFees,
+      refundTo,
+      originLayerzero,
+      destinationLayerzero,
+    } = params;
+
+    csl("Solana quoteFraxZero", "purple-500", "params: %o", params);
+    const result: any = {
+      needApprove: false,
+      approveSpender: void 0,
+      sendParam: void 0,
+      quoteParam: {
+        ...params,
+      },
+      fees: {},
+      totalFeesUsd: 0,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: 0,
+      estimateTime: 0,
+      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
+    };
+
+    const sender = this.publicKey!;
+    const userPubkey = fromWeb3JsPublicKey(new PublicKey(refundTo || sender.toString()));
+    const {
+      eid: srcEid,
+      remoteHop,
+      lockbox,
+    } = originLayerzero;
+    const {
+      eid: dstEid,
+    } = destinationLayerzero;
+
+    const ALT_ADDRESS = new PublicKey("AokBxha6VMLLgf97B5VYHEtqztamWmYERBmmFvjuTzJB");
+    const umi = createUmi(getChainRpcUrl("Solana").rpcUrl).use(mplToolbox());
+    const oftProgramId = publicKey(originLayerzero.programId);
+    const oftMint = publicKey(fromToken.contractAddress);
+    const oftEscrow = publicKey(originLayerzero.escrow);
+    const tokenProgramId = publicKey(TOKEN_PROGRAM_ID);
+    const tokenAccount = findAssociatedTokenPda(umi, {
+      mint: oftMint,
+      owner: userPubkey,
+      tokenProgramId,
+    });
+
+    await safeFetchToken(umi, tokenAccount[0]);
+
+    const recipientAddressBytes32 = addressToBytes32(recipient);
+    const amountLd = BigInt(amountWei);
+    const minAmountLd = (amountLd * 99n) / 100n;
+
+    const { value: lookupTableAccount } = await this.connection.getAddressLookupTable(ALT_ADDRESS);
+    if (!lookupTableAccount) {
+      throw new Error("ALT not found");
+    }
+
+    try {
+      await oft.quote(
+        umi.rpc,
+        {
+          payer: userPubkey,
+          tokenMint: oftMint,
+          tokenEscrow: oftEscrow,
+        },
+        {
+          payInLzToken: false,
+          to: Buffer.from(recipientAddressBytes32),
+          dstEid: dstEid,
+          amountLd,
+          minAmountLd,
+          options: Buffer.from(""),
+          composeMsg: undefined,
+        },
+        {
+          oft: oftProgramId,
+        },
+      );
+    } catch (error) {
+      csl("Solana quoteFraxZero", "red-500", "oft.quote failed: %o", error);
+    }
+
+    let { nativeFee, lzTokenFee } = await oft.quote(
+      umi.rpc,
+      {
+        payer: userPubkey,
+        tokenMint: oftMint,
+        tokenEscrow: oftEscrow,
+      },
+      {
+        payInLzToken: false,
+        to: Buffer.from(recipientAddressBytes32),
+        dstEid: dstEid,
+        amountLd,
+        minAmountLd,
+        options: Buffer.from(""),
+        composeMsg: undefined,
+      },
+      {
+        oft: oftProgramId,
+      },
+    );
+    csl("Solana quoteFraxZero", "purple-500", "nativeFee: %o", nativeFee);
+    nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;
+    csl("Solana quoteFraxZero", "purple-500", "nativeFee after buffer: %o", nativeFee);
+
+    const ix = await oft.send(
+      umi.rpc,
+      {
+        payer: {
+          ...this.signer,
+          publicKey: userPubkey,
+        },
+        tokenMint: oftMint,
+        tokenEscrow: oftEscrow,
+        tokenSource: tokenAccount[0],
+      },
+      {
+        to: Buffer.from(recipientAddressBytes32),
+        dstEid,
+        amountLd,
+        minAmountLd,
+        options: Buffer.from(''),
+        composeMsg: undefined,
+        nativeFee,
+        lzTokenFee: 0n,
+      },
+      {
+        oft: oftProgramId,
+        token: tokenProgramId,
+      },
+    );
+
+    const web3Instruction = toWeb3JsInstruction(ix.instruction);
+    const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 400000, // Increase to 400k units (default is 200k)
+    });
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    const messageV0 = new TransactionMessage({
+      payerKey: new PublicKey(userPubkey),
+      recentBlockhash: blockhash,
+      instructions: [computeBudgetIx, web3Instruction],
+    }).compileToV0Message([lookupTableAccount]);
+    const transaction = new VersionedTransaction(messageV0);
+
+    result.sendParam = {
+      transaction,
+    };
+
+    // Simulate send transaction to estimate gas fees
+    // Note: Simulation may fail due to insufficient funds, which is normal in quote phase
+    let estimatedFee = 5000n; // Default base fee per signature
+    try {
+      const sendSim = await this.connection.simulateTransaction(transaction, {
+        sigVerify: false,
+        replaceRecentBlockhash: true,
+      });
+
+      // csl("Solana quoteOFT", "purple-400", "sendSim: %o", JSON.stringify(sendSim));
+
+      // Even if simulation fails (e.g., insufficient funds), we can still get the fee estimate
+      if (!sendSim.value.err) {
+        // @ts-ignore Solana base fee is 5000 lamports per signature
+        estimatedFee = (sendSim.value as any).fee || 5000n;
+      } else {
+        // If simulation fails, log it but continue with default fee
+        console.warn('Send simulation failed (this is normal in quote phase):', sendSim.value.err);
+        // @ts-ignore Try to get fee even if simulation failed
+        const fee = (sendSim.value as any).fee;
+        if (fee) {
+          estimatedFee = fee;
+        }
+      }
+    } catch (simError: any) {
+      // If simulation throws an error, use default fee and continue
+      csl("Solana quoteFraxZero", "yellow-500", "Send simulation error (this is normal in quote phase): %o", simError.message);
+    }
+
+    if (fromToken.nativeToken) {
+      const nativeFeeUsd = Big(nativeFee.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+      result.fees.nativeFeeUsd = numberRemoveEndZero(nativeFeeUsd.toFixed(20));
+
+      const lzTokenFeeUsd = Big(lzTokenFee ? lzTokenFee.toString() : 0)
+        .div(10 ** fromToken.decimals)
+        .times(getPrice(prices, fromToken.symbol));
+      result.fees.lzTokenFeeUsd = numberRemoveEndZero(lzTokenFeeUsd.toFixed(20));
+
+      const estimateGasUsd = Big(estimatedFee.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+      result.fees.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+      result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+    }
+    result.fees.nativeFee = Big(nativeFee.toString())
+      .div(10 ** fromToken.nativeToken.decimals)
+      .toFixed(fromToken.nativeToken.decimals, 0);
+    result.fees.lzTokenFee = lzTokenFee.toString();
+    result.estimateSourceGas = estimatedFee;
+
+    for (const feeKey in result.fees) {
+      if (excludeFees && excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
+
+    return result;
   }
 }

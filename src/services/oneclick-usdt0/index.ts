@@ -10,7 +10,7 @@ import { BridgeDefaultWallets } from "@/config";
 import { getPrice } from "@/utils/format/price";
 import { csl } from "@/utils/log";
 
-class OneClickUsdt0Service {
+export class OneClickUsdt0Service {
   public async quote(params: any) {
     const {
       wallets,
