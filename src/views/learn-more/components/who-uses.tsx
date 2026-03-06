@@ -1,7 +1,7 @@
 export default function WhoUses() {
   return (
     <div className="w-full">
-      <h2 className="text-[20px] md:text-[24px] font-[700] text-[#6284F5] mb-[12px]">
+      <h2 className="text-[20px] md:text-[24px] font-[700] text-[#000000] mb-[12px]">
         Are you a partner or developer?
       </h2>
 
