@@ -34,8 +34,10 @@ export default function useEvmBalances(auto = false) {
         address: wallet.account,
         tokens: evmBalancesTokens
       });
-      const _balances: any = {};
       const _data = res.data.data;
+      const _balances: any = {
+        ...balancesStore.evmBalances,
+      };
 
       const setBalances = (__data: any) => {
         let usdcBalance = Big(0);
