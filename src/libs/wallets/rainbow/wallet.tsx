@@ -15,6 +15,7 @@ import { allUsdtChains } from "@/config/tokens";
 import { buildEndpointV2LzComposePayload, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 import { OFT_ABI } from "@/services/usdt0/contract";
 import { csl } from "@/utils/log";
+import { createMulticall3, type Call } from "@/utils/multicall3";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -151,7 +152,8 @@ export default class RainbowWallet {
       amountWei,
     } = params;
 
-    const contract = new ethers.Contract(contractAddress, erc20Abi, this.signer);
+    const runner = this.signer || this.provider;
+    const contract = new ethers.Contract(contractAddress, erc20Abi, runner);
 
     // get allowance
     let allowance = "0";
@@ -908,6 +910,206 @@ export default class RainbowWallet {
     return result;
   }
 
+  /**
+   * Redeem frxUSD to USDC via USDC and/or RWA custodian contracts.
+   * Uses mdwrComboView to get max redeemable liquidity and splits redemption across USDC/RWA paths.
+   * Uses previewRedeem to get accurate output amount (USDC).
+   */
+  async redeemFrxUSD(params: any) {
+    const {
+      recipient,
+      amountWei,
+      fromToken,
+      toToken,
+      prices,
+      refundTo,
+      abi,
+      usdcCustodianAddress,
+      rwaCustodianAddress,
+    } = params;
+
+    csl("EVM redeemFrxUSD", "blue-700", "params: %o", params);
+
+    // Ethereum average block time ~12s, random ±5 seconds
+    const ETH_AVG_BLOCK_TIME = 12;
+    const estimateTime = (ETH_AVG_BLOCK_TIME * 2) + Math.floor(Math.random() * 11) - 5;
+
+    const result: any = {
+      needApprove: [false, false], // set after allowance check below
+      approveSpender: [usdcCustodianAddress, rwaCustodianAddress],
+      sendParam: void 0,
+      quoteParam: {
+        ...params,
+      },
+      fees: {},
+      totalFeesUsd: 0,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: 0,
+      estimateTime,
+      outputAmount: "0",
+    };
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    const redeemInterface = new ethers.Interface(abi as any);
+
+    // Get maxSharesRedeemable (index 3) from mdwrComboView for both custodians
+    const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
+    const rwaCustodian = new ethers.Contract(rwaCustodianAddress, abi, provider);
+
+    const [usdcView, rwaView] = await Promise.all([
+      usdcCustodian.mdwrComboView.staticCall(),
+      rwaCustodian.mdwrComboView.staticCall(),
+    ]);
+
+    const maxUsdc = usdcView[3]; // maxSharesRedeemable
+    const maxRwa = rwaView[3]; // maxSharesRedeemable
+
+    const amountWeiBigInt = BigInt(amountWei || 0);
+    const totalMax = maxUsdc + maxRwa;
+
+    // Validate liquidity: revert if amount exceeds available redeemable
+    if (amountWeiBigInt > totalMax) {
+      throw new Error("Insufficient redeemable liquidity available");
+    }
+
+    // Amount needed per spender based on redeem path
+    const usdcAmountNeeded = amountWeiBigInt <= maxUsdc ? amountWeiBigInt : maxUsdc;
+    const rwaAmountNeeded = amountWeiBigInt <= maxUsdc ? 0n : amountWeiBigInt - maxUsdc;
+
+    // Check allowance via RainbowWallet.allowance for each custodian
+    const [usdcAllowanceResult, rwaAllowanceResult] = await Promise.all([
+      usdcAmountNeeded > 0n
+        ? this.allowance({
+            contractAddress: fromToken.contractAddress,
+            spender: usdcCustodianAddress,
+            address: refundTo,
+            amountWei: usdcAmountNeeded.toString(),
+          })
+        : Promise.resolve({ needApprove: false }),
+      rwaAmountNeeded > 0n
+        ? this.allowance({
+            contractAddress: fromToken.contractAddress,
+            spender: rwaCustodianAddress,
+            address: refundTo,
+            amountWei: rwaAmountNeeded.toString(),
+          })
+        : Promise.resolve({ needApprove: false }),
+    ]);
+
+    result.needApprove = [
+      usdcAmountNeeded > 0n ? usdcAllowanceResult.needApprove : false,
+      rwaAmountNeeded > 0n ? rwaAllowanceResult.needApprove : false,
+    ];
+
+    // Build redeem calls and get output via previewRedeem for each path
+    const calls: { target: string; callData: string }[] = [];
+    let totalAssetsOut = 0n;
+
+    if (amountWeiBigInt <= maxUsdc) {
+      // USDC path only
+      const assetsOut = await usdcCustodian.previewRedeem.staticCall(amountWeiBigInt);
+      totalAssetsOut = assetsOut;
+      calls.push({
+        target: usdcCustodianAddress,
+        callData: redeemInterface.encodeFunctionData("redeem", [
+          amountWeiBigInt,
+          recipient,
+          refundTo,
+        ]),
+      });
+    } else {
+      // USDC first (maxUsdc), then RWA for remainder
+      if (maxUsdc > 0n) {
+        const usdcAssetsOut = await usdcCustodian.previewRedeem.staticCall(maxUsdc);
+        totalAssetsOut += usdcAssetsOut;
+        calls.push({
+          target: usdcCustodianAddress,
+          callData: redeemInterface.encodeFunctionData("redeem", [
+            maxUsdc,
+            recipient,
+            refundTo,
+          ]),
+        });
+      }
+      const rwaAmount = amountWeiBigInt - maxUsdc;
+      if (rwaAmount > 0n) {
+        const rwaAssetsOut = await rwaCustodian.previewRedeem.staticCall(rwaAmount);
+        totalAssetsOut += rwaAssetsOut;
+        calls.push({
+          target: rwaCustodianAddress,
+          callData: redeemInterface.encodeFunctionData("redeem", [
+            rwaAmount,
+            recipient,
+            refundTo,
+          ]),
+        });
+      }
+    }
+
+    // outputAmount = USDC amount (6 decimals), human-readable
+    result.outputAmount = numberRemoveEndZero(
+      Big(totalAssetsOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
+    );
+
+    result.sendParam = {
+      multicallCalls: calls,
+      chainId: fromToken.chainId,
+    };
+
+    // Estimate gas for multicall aggregate and compute fees
+    if (fromToken.nativeToken) {
+      try {
+        const multicall = createMulticall3(provider, fromToken.chainId);
+        let gasLimit = DEFAULT_GAS_LIMIT;
+        try {
+          const estimated = await multicall.estimateAggregateGas(calls);
+          gasLimit = (estimated * 120n) / 100n;
+        } catch {
+          // use default if estimation fails
+        }
+        const { usd, wei } = await this.getEstimateGas({
+          gasLimit,
+          price: getPrice(prices, fromToken.nativeToken.symbol),
+          nativeToken: fromToken.nativeToken,
+          provider,
+        });
+        result.fees.estimateGasUsd = usd;
+        result.estimateSourceGas = wei;
+        result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+        result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      } catch {
+        // skip gas estimation if multicall not available for chain
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Execute multicall batch transaction (e.g. redeem frxUSD via multiple custodian contracts).
+   * Uses utils/multicall3 for transaction submission.
+   * @param params Must contain multicallCalls: { target, callData }[] and chainId
+   * @returns Transaction hash
+   */
+  async sendBatchCall(params: any) {
+    const { multicallCalls, chainId } = params;
+
+    if (!multicallCalls?.length || !chainId) {
+      throw new Error("sendBatchCall requires multicallCalls and chainId");
+    }
+
+    try {
+      const multicall = createMulticall3(this.provider, chainId);
+      return await multicall.sendAggregate(multicallCalls as Call[], this.signer);
+    } catch (error: any) {
+      csl("EVM sendBatchCall", "red-500", "Error executing multicall: %o", error);
+      const msg = error?.message?.includes("user rejected") ? error.message : "Transaction failed";
+      throw new Error(msg);
+    }
+  }
+
   async retryLayerzeroLzComponse(params: any) {
     const {
       layerzeroData,
@@ -1046,9 +1248,14 @@ export default class RainbowWallet {
     const nonce = await erc20.nonces(account);
     const name = await erc20.name();
 
+    let _version = "1";
+    if (fromToken.symbol === "USDC") {
+      _version = "2";
+    }
+
     const domain = {
       name,
-      version: "1",
+      version: _version,
       chainId: Number(chainId),
       verifyingContract: tokenAddress
     };

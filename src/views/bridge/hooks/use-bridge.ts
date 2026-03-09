@@ -118,22 +118,26 @@ export default function useBridge(props?: any) {
 
       const formatQuoteParams = async () => {
         const _params: any = {
+          dry: params.dry,
           amountWei: params.amountWei,
           refundTo: fromWalletAddress || "",
           recipient: bridgeStore.recipientAddress || toWalletAddress || "",
           wallet: params.wallet,
           wallets: params.wallets,
+          switchChainAsync: params.switchChainAsync,
           fromToken: walletStore.fromToken,
           toToken: walletStore.toToken,
           prices,
           slippageTolerance: configStore.slippage,
         };
-        if (([Service.OneClick, Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
-          _params.dry = params.dry;
-          _params.slippageTolerance = configStore.slippage * 100;
+        if (([
+          Service.OneClick,
+          Service.Usdt0OneClick,
+          Service.OneClickUsdt0,
+          Service.FraxZeroOneClick,
+        ] as Service[]).includes(service)) {
           _params.originAsset = walletStore.fromToken.assetId;
           _params.destinationAsset = walletStore.toToken.assetId;
-          _params.amount = params.amountWei;
           _params.refundType = "ORIGIN_CHAIN";
           _params.acceptTronEnergy = bridgeStore.acceptTronEnergy;
 
@@ -297,6 +301,7 @@ export default function useBridge(props?: any) {
       amountWei,
       wallet: wallet.wallet,
       wallets,
+      switchChainAsync,
     };
 
     const quoteServices: any = [];
@@ -366,6 +371,32 @@ export default function useBridge(props?: any) {
           }
         });
       }
+    }
+
+    // FraxZeroOneClick mode
+    if (
+      walletStore.fromToken.services.includes(Service.FraxZero)
+      && walletStore.toToken.services.includes(Service.OneClick)
+    ) {
+      quoteServices.push({
+        service: Service.FraxZeroOneClick,
+        quote: (_requestId: number) => {
+          return quoteRoutes(Service.FraxZeroOneClick, quoteParams, _requestId);
+        }
+      });
+    }
+
+    // OneClickFraxZero mode
+    if (
+      walletStore.fromToken.services.includes(Service.OneClick)
+      && walletStore.toToken.services.includes(Service.FraxZero)
+    ) {
+      quoteServices.push({
+        service: Service.OneClickFraxZero,
+        quote: (_requestId: number) => {
+          return quoteRoutes(Service.OneClickFraxZero, quoteParams, _requestId);
+        }
+      });
     }
 
     // Use request ID to ensure only the latest request results are processed
@@ -502,6 +533,60 @@ export default function useBridge(props?: any) {
     return result;
   };
 
+  const permitSignature = async (params: any) => {
+    const {
+      _quote,
+    } = params;
+
+    if (!_quote?.data || !_quote?.data?.needPermit) {
+      return void 0;
+    }
+
+    const {
+      permitToken,
+      permitSpender,
+      permitAmountWei,
+      permitAdditionalData,
+      quoteParam,
+    } = _quote.data;
+
+    const evmWallet = wallets.evm.wallet;
+
+    if (!evmWallet) {
+      throw new Error("Permit wallet not connected");
+    }
+
+    await switchChainAsync({ chainId: permitToken.chainId! });
+
+    const signature = await evmWallet?.signTypedData({
+      fromToken: permitToken,
+      amountWei: permitAmountWei,
+      spender: permitSpender,
+    });
+
+    // After signing, need to switch back to the source chain
+    if (quoteParam.fromToken.chainType === "evm") {
+      await switchChainAsync({ chainId: quoteParam.fromToken.chainId! });
+    }
+
+    csl("transfer", "sky-600", "permit signature: %o", signature);
+
+    const permitResult = {
+      amount: signature.value,
+      deadline: signature.deadline,
+      nonce: signature.nonce,
+      owner: signature.owner,
+      r: signature.r,
+      s: signature.s,
+      v: signature.v,
+      ...permitAdditionalData,
+    };
+
+    csl("transfer", "sky-600", "permit data: %o", permitResult);
+
+    return permitResult;
+  };
+
   const transfer = async () => {
     if (!walletStore.fromToken) return;
     try {
@@ -522,46 +607,61 @@ export default function useBridge(props?: any) {
 
       const isFromTron = walletStore.fromToken.chainType === "tron";
       const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
-      const isOneClickService = ([Service.OneClickUsdt0, Service.OneClick] as Service[]).includes(bridgeStore.quoteDataService);
+      const isOneClickService = ([Service.OneClickUsdt0, Service.OneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService);
       const isExactOutput = bridgeStore.quoteDataService === Service.OneClickUsdt0;
+      const isSecondStepOneClickService = ([Service.Usdt0OneClick, Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService);
 
       if (isExactOutput) {
         _amount = _quote.data.quote.minAmountIn;
       }
 
       // approve
-      if (_quote?.data?.needApprove && !isFromTronEnergy) {
+      const needApprove = Array.isArray(_quote?.data?.needApprove)
+        ? _quote.data.needApprove.some(Boolean)
+        : _quote?.data?.needApprove;
+      if (needApprove && !isFromTronEnergy) {
+        const approveSpenders = Array.isArray(_quote?.data?.approveSpender)
+          ? _quote.data.approveSpender
+          : [_quote?.data?.approveSpender];
+        const needApprovePerSpender = Array.isArray(_quote?.data?.needApprove)
+          ? _quote.data.needApprove
+          : approveSpenders.map(() => true);
+
         // check is from ethereum erc20
         if (walletStore.fromToken.chainName === "Ethereum") {
-          const allowance = await wallet.wallet.allowance({
-            contractAddress: walletStore.fromToken.contractAddress,
-            spender: _quote?.data?.approveSpender,
-            address: fromWalletAddress,
-            amountWei: _amount,
-          });
-          // if allowance is not enough, reset allowance first
-          if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
-            await wallet.wallet.approve({
+          for (let i = 0; i < approveSpenders.length; i++) {
+            if (!needApprovePerSpender[i]) continue;
+            const allowance = await wallet.wallet.allowance({
               contractAddress: walletStore.fromToken.contractAddress,
-              spender: _quote?.data?.approveSpender,
-              amountWei: "0",
+              spender: approveSpenders[i],
+              address: fromWalletAddress,
+              amountWei: _amount,
             });
+            if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
+              await wallet.wallet.approve({
+                contractAddress: walletStore.fromToken.contractAddress,
+                spender: approveSpenders[i],
+                amountWei: "0",
+              });
+            }
           }
         }
         const approveAmount = isExactOutput ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
         const approveAmountWei = Big(approveAmount || 0).times(10 ** walletStore.fromToken.decimals).toFixed(0);
-        const approveResult = await wallet.wallet.approve({
-          contractAddress: walletStore.fromToken.contractAddress,
-          spender: _quote?.data?.approveSpender,
-          amountWei: approveAmountWei,
-        });
-        // bridgeStore.set({ transferring: false });
-        if (!approveResult) {
-          toast.fail({
-            title: "Approve failed"
+        for (let i = 0; i < approveSpenders.length; i++) {
+          if (!needApprovePerSpender[i]) continue;
+          const approveResult = await wallet.wallet.approve({
+            contractAddress: walletStore.fromToken.contractAddress,
+            spender: approveSpenders[i],
+            amountWei: approveAmountWei,
           });
-          bridgeStore.set({ transferring: false });
-          return;
+          if (!approveResult) {
+            toast.fail({
+              title: "Approve failed"
+            });
+            bridgeStore.set({ transferring: false });
+            return;
+          }
         }
         toast.success({
           title: "Approve success"
@@ -621,7 +721,7 @@ export default function useBridge(props?: any) {
       };
 
       // 1click transfer
-      if (([Service.OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService)) {
+      if (isOneClickService) {
         const estNativeTokenParams: any = {};
         const fromTronParams = {
           wallet: wallet.wallet,
@@ -645,49 +745,19 @@ export default function useBridge(props?: any) {
           return;
         }
 
-        // oneclick-usdt0 permit signature
-        if (bridgeStore.quoteDataService === Service.OneClickUsdt0) {
-          const permitToken = MIDDLE_TOKEN_CHAIN;
-          // First, switch to the Arbitrum chain to perform the permit signature
-          const evmWallet = wallets.evm.wallet;
-          if (!evmWallet) {
-            throw new Error("Permit wallet not connected");
-          }
-          await switchChainAsync({ chainId: permitToken.chainId! });
-          const signature = await evmWallet?.signTypedData({
-            fromToken: permitToken,
-            amountWei: _quote?.data?.quote?.amountOut,
-            spender: MIDDLE_CHAIN_LAYERZERO_EXECUTOR,
-          });
-          // After signing, need to switch back to the source chain
-          if (walletStore.fromToken.chainType === "evm") {
-            await switchChainAsync({ chainId: walletStore.fromToken.chainId! });
-          }
-          csl("transfer", "sky-600", "permit signature: %o", signature);
-          csl("transfer", "sky-600", "permit SendParam: %o", _quote?.data?.usdt0SendParam);
-          csl("transfer", "sky-600", "permit MessageFee: %o", _quote?.data?.usdt0MessageFee);
-          reportData.layer_zero_permit = {
-            amount: signature.value,
-            deadline: signature.deadline,
-            nonce: signature.nonce,
-            owner: signature.owner,
-            r: signature.r,
-            s: signature.s,
-            v: signature.v,
-            amount_ld: _quote?.data?.usdt0SendParam?.amountLD,
-            compose_msg: _quote?.data?.usdt0SendParam?.composeMsg,
-            dst_eid: _quote?.data?.usdt0SendParam?.dstEid,
-            extra_options: _quote?.data?.usdt0SendParam?.extraOptions,
-            min_amount_ld: _quote?.data?.usdt0SendParam?.minAmountLD?.toString(),
-            oft_cmd: _quote?.data?.usdt0SendParam?.oftCmd,
-            to: _quote?.data?.usdt0SendParam?.to,
-            native_fee: _quote?.data?.usdt0MessageFee?.nativeFee?.toString(),
-          };
-          csl("transfer", "sky-600", "layer_zero_permit: %o", reportData.layer_zero_permit);
-        }
-
         if (!_quote?.data?.quote?.depositAddress) {
           throw new Error("Failed to get quote");
+        }
+
+        // oneclick-usdt0 permit signature
+        const permitResultData = await permitSignature({ _quote });
+        if (permitResultData) {
+          if (([Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService)) {
+            reportData.layer_zero_permit = permitResultData;
+          }
+          if (([Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService)) {
+            reportData.frax_zero_permit = permitResultData;
+          }
         }
 
         if (isFromTron && bridgeStore.acceptTronEnergy) {
@@ -763,13 +833,21 @@ export default function useBridge(props?: any) {
           return;
         }
 
+        // oneclick-usdt0 permit signature
+        const permitResultData = await permitSignature({ _quote });
+        if (permitResultData) {
+          if (([Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
+            reportData.frax_zero_permit = permitResultData;
+          }
+        }
+
         const sendParams: any = {
           ..._quote?.data?.sendParam,
           wallet: wallet.wallet,
         };
         const hash = await ServiceMap[bridgeStore.quoteDataService].send(sendParams);
         let _depositAddress = hash;
-        if (([Service.Usdt0OneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
+        if (isSecondStepOneClickService) {
           _depositAddress = _quote?.data?.quoteParam?.depositAddress;
         }
         localHistoryData.txHash = hash;
@@ -997,10 +1075,12 @@ export default function useBridge(props?: any) {
         if (Big(quoteData?.quote?.amountInFormatted || 0).gt(balance)) {
           return "Insufficient balance";
         }
+      }
 
-        const oneClickUsdt0PendingNumber = historyStore.servicePendingNumber?.[Service.OneClickUsdt0];
-        if (oneClickUsdt0PendingNumber && oneClickUsdt0PendingNumber > 0) {
-          return "Please wait for the previous transaction to complete";
+      if (([Service.OneClickUsdt0, Service.OneClickFraxZero, Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
+        const specailPendingNumber = historyStore.servicePendingNumber?.[bridgeStore.quoteDataService];
+        if (specailPendingNumber && specailPendingNumber > 0) {
+          // return "Please wait for the previous transaction to complete";
         }
       }
 

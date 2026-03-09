@@ -27,7 +27,7 @@ export default function Pending(props: any) {
   const [layerzeroDataMap, setLayerzeroDataMap] = useState<any>();
   const { run: getLayerzeroData, cancel: cancelGetLayerzeroData } = useDebounceFn(async () => {
     if (!history.list.length) return;
-    const layerzeroHistory = history.list.filter((_history: any) => _history.project === TradeProject.USDT0);
+    const layerzeroHistory = history.list.filter((_history: any) => _history.project === TradeProject.Usdt0);
     if (!layerzeroHistory.length) return;
     const layerzeroData = await Promise.all(layerzeroHistory.map((_history: any) => {
       return usdt0Service.getLayerzeroData(_history);
@@ -55,7 +55,7 @@ export default function Pending(props: any) {
 
   const layerzeroHistoryKey = useMemo(() => {
     if (!history.list.length) return "";
-    const layerzeroHistory = history.list.filter((_history: any) => _history.project === TradeProject.USDT0);
+    const layerzeroHistory = history.list.filter((_history: any) => _history.project === TradeProject.Usdt0);
     return layerzeroHistory.map((_history: any) => _history.deposit_address).sort().join(",");
   }, [history.list]);
 

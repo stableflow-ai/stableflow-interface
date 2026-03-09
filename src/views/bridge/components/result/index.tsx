@@ -146,7 +146,7 @@ export default function Result() {
           )
         }
         {
-          ([Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService) && (
+          ([Service.Usdt0OneClick, Service.OneClickUsdt0, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService) && (
             <ResultUsdt0OneClick service={bridgeStore.quoteDataService} />
           )
         }

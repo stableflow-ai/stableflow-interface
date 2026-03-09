@@ -36,7 +36,7 @@ export default function BridgeButton({
   }, [wallet]);
 
   const errorConnectEvm = useMemo(() => {
-    if (bridgeStore.quoteDataService === Service.OneClickUsdt0) {
+    if (([Service.OneClickUsdt0, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService)) {
       return !evmWallet?.account;
     }
     return false;
@@ -58,7 +58,10 @@ export default function BridgeButton({
     const quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
     const isFromTron = quoteData?.quoteParam?.fromToken?.chainType === "tron";
     const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
-    if (quoteData?.needApprove && !isFromTronEnergy) {
+    const needApprove = Array.isArray(quoteData?.needApprove)
+      ? quoteData.needApprove.some(Boolean)
+      : quoteData?.needApprove;
+    if (needApprove && !isFromTronEnergy) {
       return "Approve";
     }
     if (quoteData?.needCreateTokenAccount) {

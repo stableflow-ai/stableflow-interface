@@ -52,7 +52,7 @@ const ResultUsdt0OneClick = (props: any) => {
       totalFee: _quoteData?.totalFeesUsd,
       messagingFee: _quoteData?.fees?.nativeFeeUsd,
       messagingFeeAmount: _quoteData?.fees?.nativeFee,
-      messagingFeeUnit: service === Service.OneClickUsdt0 ? _quoteData?.quoteParam?.middleToken?.nativeToken?.symbol : _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
+      messagingFeeUnit: [Service.OneClickUsdt0, Service.OneClickFraxZero].includes(service) ? _quoteData?.quoteParam?.middleToken?.nativeToken?.symbol : _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
       legacyMeshFee: _quoteData?.fees?.legacyMeshFeeUsd,
       estimatedSourceGas: _quoteData?.fees?.estimateGasUsd,
       bridgeFee: totalBridgeFeeLabel,
@@ -67,10 +67,32 @@ const ResultUsdt0OneClick = (props: any) => {
     calculateFees();
   }, [bridgeStore, configStore.slippage]);
 
-  const isExchangeToken = useMemo(() => {
-    const fromTokenSymbol = _quoteData?.quoteParam?.fromToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.fromToken?.symbol;
-    const toTokenSymbol = _quoteData?.quoteParam?.toToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.toToken?.symbol;
-    return fromTokenSymbol && toTokenSymbol && fromTokenSymbol !== toTokenSymbol;
+  const [isOneClickExchangeToken, isOneClickBridge, isLayerzeroBridge] = useMemo(() => {
+    let _fromToken = _quoteData?.quoteParam?.fromToken;
+    let _toToken = _quoteData?.quoteParam?.toToken;
+    let _isOneClickBridge = true;
+    let _isLayerzeroBridge = true;
+    if ([Service.OneClickUsdt0, Service.OneClickFraxZero].includes(service)) {
+      _toToken = _quoteData?.quoteParam?.middleToken;
+    }
+    if ([Service.Usdt0OneClick, Service.FraxZeroOneClick].includes(service)) {
+      _fromToken = _quoteData?.quoteParam?.middleToken;
+    }
+    const fromTokenSymbol = _fromToken?.symbol === "USD₮0" ? "USDT" : _fromToken?.symbol;
+    const toTokenSymbol = _toToken?.symbol === "USD₮0" ? "USDT" : _toToken?.symbol;
+    if (Service.FraxZeroOneClick === service) {
+      if (_quoteData?.quoteParam?.isToEthereumUSDC) {
+        _isOneClickBridge = false;
+      }
+      if (_quoteData?.quoteParam?.isFromEthereumFrxUSD) {
+        _isLayerzeroBridge = false;
+      }
+    }
+    return [
+      fromTokenSymbol && toTokenSymbol && fromTokenSymbol !== toTokenSymbol,
+      _isOneClickBridge,
+      _isLayerzeroBridge,
+    ];
   }, [_quoteData]);
 
   return (
@@ -85,52 +107,64 @@ const ResultUsdt0OneClick = (props: any) => {
             exit={{ height: 0, opacity: 0 }}
           >
             {
-              !!fees?.legacyMeshFee && Big(fees?.legacyMeshFee).gt(0) && (
-                <ResultFeeItem
-                  label="Legacy Mesh Fee"
-                  loading={bridgeStore.getQuoting(service)}
-                >
-                  {fees?.legacyMeshFee}
-                </ResultFeeItem>
-              )
-            }
-            <ResultFeeItem
-              label="Messaging Fee"
-              isFormat={false}
-              loading={bridgeStore.getQuoting(service)}
-            >
-              {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
-            </ResultFeeItem>
-            {
-              isExchangeToken ? (
-                <ResultFeeItem
-                  label="Exchange Rate"
-                  loading={bridgeStore.getQuoting(Service.OneClick)}
-                  isFormat={false}
-                >
-                  1 {_quoteData?.quoteParam.fromToken.symbol} ~ {fees?.exchangeRate} {_quoteData?.quoteParam.toToken.symbol}
-                </ResultFeeItem>
-              ) : (
-                <ResultFeeItem
-                  label="Net fee"
-                  loading={bridgeStore.getQuoting(service)}
-                >
-                  {fees?.netFee}
-                </ResultFeeItem>
-              )
-            }
-            <ResultFeeItem
-              label={(
+              isLayerzeroBridge && (
                 <>
-                  Bridge fee({fees?.bridgeFee})
+                  {
+                    !!fees?.legacyMeshFee && Big(fees?.legacyMeshFee).gt(0) && (
+                      <ResultFeeItem
+                        label="Legacy Mesh Fee"
+                        loading={bridgeStore.getQuoting(service)}
+                      >
+                        {fees?.legacyMeshFee}
+                      </ResultFeeItem>
+                    )
+                  }
+                  <ResultFeeItem
+                    label="Messaging Fee"
+                    isFormat={false}
+                    loading={bridgeStore.getQuoting(service)}
+                  >
+                    {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
+                  </ResultFeeItem>
                 </>
-              )}
-              precision={2}
-              loading={bridgeStore.getQuoting(service)}
-              isDelete={false}
-            >
-              {fees?.bridgeFeeValue}
-            </ResultFeeItem>
+              )
+            }
+            {
+              isOneClickBridge && (
+                <>
+                  {
+                    isOneClickExchangeToken ? (
+                      <ResultFeeItem
+                        label="Exchange Rate"
+                        loading={bridgeStore.getQuoting(Service.OneClick)}
+                        isFormat={false}
+                      >
+                        1 {_quoteData?.quoteParam.fromToken.symbol} ~ {fees?.exchangeRate} {_quoteData?.quoteParam.toToken.symbol}
+                      </ResultFeeItem>
+                    ) : (
+                      <ResultFeeItem
+                        label="Net fee"
+                        loading={bridgeStore.getQuoting(service)}
+                      >
+                        {fees?.netFee}
+                      </ResultFeeItem>
+                    )
+                  }
+                  <ResultFeeItem
+                    label={(
+                      <>
+                        Bridge fee({fees?.bridgeFee})
+                      </>
+                    )}
+                    precision={2}
+                    loading={bridgeStore.getQuoting(service)}
+                    isDelete={false}
+                  >
+                    {fees?.bridgeFeeValue}
+                  </ResultFeeItem>
+                </>
+              )
+            }
           </motion.div>
         )
       }
