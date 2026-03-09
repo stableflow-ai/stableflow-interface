@@ -135,6 +135,7 @@ export default function useBridge(props?: any) {
           Service.Usdt0OneClick,
           Service.OneClickUsdt0,
           Service.FraxZeroOneClick,
+          Service.OneClickFraxZero,
         ] as Service[]).includes(service)) {
           _params.originAsset = walletStore.fromToken.assetId;
           _params.destinationAsset = walletStore.toToken.assetId;
@@ -608,7 +609,7 @@ export default function useBridge(props?: any) {
       const isFromTron = walletStore.fromToken.chainType === "tron";
       const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
       const isOneClickService = ([Service.OneClickUsdt0, Service.OneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService);
-      const isExactOutput = bridgeStore.quoteDataService === Service.OneClickUsdt0;
+      const isExactOutput = ([Service.OneClickUsdt0, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService);
       const isSecondStepOneClickService = ([Service.Usdt0OneClick, Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService);
 
       if (isExactOutput) {
@@ -1068,7 +1069,10 @@ export default function useBridge(props?: any) {
         }
       }
 
-      if (bridgeStore.quoteDataService === Service.OneClickUsdt0) {
+      const isExactOutput = ([Service.OneClickUsdt0, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService);
+      const isPermitWithNonce = ([Service.OneClickUsdt0, Service.OneClickFraxZero, Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService);
+
+      if (isExactOutput) {
         const balance = balancesStore[
           `${walletStore.fromToken.chainType}Balances` as keyof BalancesState
         ]?.[walletStore.fromToken.chainId || walletStore.fromToken.blockchain]?.[walletStore.fromToken.contractAddress] || 0;
@@ -1077,10 +1081,10 @@ export default function useBridge(props?: any) {
         }
       }
 
-      if (([Service.OneClickUsdt0, Service.OneClickFraxZero, Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
+      if (isPermitWithNonce) {
         const specailPendingNumber = historyStore.servicePendingNumber?.[bridgeStore.quoteDataService];
         if (specailPendingNumber && specailPendingNumber > 0) {
-          // return "Please wait for the previous transaction to complete";
+          return "Please wait for the previous transaction to complete";
         }
       }
 

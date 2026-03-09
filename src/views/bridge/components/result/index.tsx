@@ -24,13 +24,15 @@ export default function Result() {
     return bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
   }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
 
-  const [_duration, priceImpact, isLargePriceImpact] = useMemo(() => {
+  const [_duration, priceImpact, isLargePriceImpact, isExactOutput] = useMemo(() => {
+    const _isOutputMode = ([Service.OneClickUsdt0, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService);
     return [
       formatDuration(quoteData?.estimateTime),
       formatNumber(Big(quoteData?.priceImpact || 0).times(100), 2, true, { prefix: "-" }),
-      Big(quoteData?.priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD) && bridgeStore.quoteDataService !== Service.OneClickUsdt0
+      Big(quoteData?.priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD) && !_isOutputMode,
+      _isOutputMode
     ];
-  }, [quoteData]);
+  }, [quoteData, bridgeStore.quoteDataService]);
 
   const quoteDataList = useMemo(() => {
     bridgeStore.quoteDataMap.forEach((data, service) => {
@@ -227,7 +229,7 @@ export default function Result() {
           )
         }
         {
-          bridgeStore.quoteDataService === Service.OneClickUsdt0 && quoteData && (
+          isExactOutput && quoteData && (
             <div className="w-full px-[10px] text-[12px] text-[#70788A]">
               <img
                 src="/icon-info.svg"

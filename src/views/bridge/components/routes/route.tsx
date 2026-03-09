@@ -81,7 +81,7 @@ const QuoteRoute = (props: any) => {
         <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
         <div className="flex items-center gap-[4px]">
           <img
-            src={stablecoinLogoMap[walletStore.selectedToken]}
+            src={data?.quoteParam?.toToken?.icon}
             alt=""
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />

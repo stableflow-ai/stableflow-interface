@@ -150,9 +150,10 @@ export default class RainbowWallet {
       spender,
       address,
       amountWei,
+      provider,
     } = params;
 
-    const runner = this.signer || this.provider;
+    const runner = provider || this.provider;
     const contract = new ethers.Contract(contractAddress, erc20Abi, runner);
 
     // get allowance
@@ -279,6 +280,7 @@ export default class RainbowWallet {
           spender: originLayerzeroAddress,
           address: refundTo,
           amountWei,
+          provider,
         });
         result.needApprove = allowanceResult.needApprove;
       } catch (error) {
@@ -673,6 +675,7 @@ export default class RainbowWallet {
       address: refundTo,
       spender: proxyAddress,
       amountWei,
+      provider,
     });
     result.needApprove = allowance.needApprove;
     // get approve gas cost
@@ -716,21 +719,22 @@ export default class RainbowWallet {
 
     const result: any = { fees: {} };
 
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
     try {
       const allowance = await this.allowance({
         contractAddress: fromToken.contractAddress,
         address: refundTo,
         spender: proxyAddress,
         amountWei: amountWei,
+        provider,
       });
       result.needApprove = allowance.needApprove;
       result.approveSpender = proxyAddress;
     } catch (error) {
       csl("EVM quoteOneClickProxy", "red-500", "check allowance failed: %o", error);
     }
-
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
 
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
     const proxyParam: any = [
@@ -834,6 +838,7 @@ export default class RainbowWallet {
         spender: remoteHop,
         address: refundTo,
         amountWei,
+        provider,
       });
       result.needApprove = allowanceResult.needApprove;
     } catch (error) {
@@ -910,6 +915,96 @@ export default class RainbowWallet {
     return result;
   }
 
+  async preivewRedeemFrxUSD(params: any) {
+    const {
+      amountWei,
+      fromToken,
+      abi,
+      usdcCustodianAddress,
+      rwaCustodianAddress,
+    } = params;
+
+    csl("EVM preivewRedeemAndMintFrxUSD", "blue-700", "params: %o", params);
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    // Get maxSharesRedeemable (index 3) from mdwrComboView for both custodians
+    const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
+    const rwaCustodian = new ethers.Contract(rwaCustodianAddress, abi, provider);
+
+    const [usdcView, rwaView] = await Promise.all([
+      usdcCustodian.mdwrComboView.staticCall(),
+      rwaCustodian.mdwrComboView.staticCall(),
+    ]);
+
+    const maxUsdc = usdcView[3]; // maxSharesRedeemable
+    const maxRwa = rwaView[3]; // maxSharesRedeemable
+
+    const amountWeiBigInt = BigInt(amountWei || 0);
+    const totalMax = maxUsdc + maxRwa;
+
+    let totalAssetsOut = 0n;
+
+    if (amountWeiBigInt <= maxUsdc) {
+      // USDC path only
+      const assetsOut = await usdcCustodian.previewRedeem.staticCall(amountWeiBigInt);
+      totalAssetsOut = assetsOut;
+    } else {
+      // USDC first (maxUsdc), then RWA for remainder
+      if (maxUsdc > 0n) {
+        const usdcAssetsOut = await usdcCustodian.previewRedeem.staticCall(maxUsdc);
+        totalAssetsOut += usdcAssetsOut;
+      }
+      const rwaAmount = amountWeiBigInt - maxUsdc;
+      if (rwaAmount > 0n) {
+        const rwaAssetsOut = await rwaCustodian.previewRedeem.staticCall(rwaAmount);
+        totalAssetsOut += rwaAssetsOut;
+      }
+    }
+
+    return {
+      maxUsdc,
+      maxRwa,
+      amountWeiBigInt,
+      totalMax,
+      totalAssetsOut,
+    };
+  }
+
+  async previewMintFrxUSD(params: any) {
+    const {
+      amountWei,
+      fromToken,
+      abi,
+      usdcCustodianAddress,
+    } = params;
+
+    csl("EVM previewMintFrxUSD", "blue-700", "params: %o", params);
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    // Get maxAssetsDepositable (index 0) from mdwrComboView for both custodians
+    const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
+
+    const usdcView = await usdcCustodian.mdwrComboView.staticCall();
+
+    const maxUsdc = usdcView[0]; // maxAssetsDepositable
+
+    const amountWeiBigInt = BigInt(amountWei || 0);
+    const totalMax = maxUsdc;
+
+    const totalAssetsOut = await usdcCustodian.previewDeposit.staticCall(amountWeiBigInt);
+
+    return {
+      maxUsdc,
+      amountWeiBigInt,
+      totalMax,
+      totalAssetsOut,
+    };
+  }
+
   /**
    * Redeem frxUSD to USDC via USDC and/or RWA custodian contracts.
    * Uses mdwrComboView to get max redeemable liquidity and splits redemption across USDC/RWA paths.
@@ -954,20 +1049,13 @@ export default class RainbowWallet {
 
     const redeemInterface = new ethers.Interface(abi as any);
 
-    // Get maxSharesRedeemable (index 3) from mdwrComboView for both custodians
-    const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
-    const rwaCustodian = new ethers.Contract(rwaCustodianAddress, abi, provider);
-
-    const [usdcView, rwaView] = await Promise.all([
-      usdcCustodian.mdwrComboView.staticCall(),
-      rwaCustodian.mdwrComboView.staticCall(),
-    ]);
-
-    const maxUsdc = usdcView[3]; // maxSharesRedeemable
-    const maxRwa = rwaView[3]; // maxSharesRedeemable
-
-    const amountWeiBigInt = BigInt(amountWei || 0);
-    const totalMax = maxUsdc + maxRwa;
+    const {
+      maxUsdc,
+      maxRwa,
+      amountWeiBigInt,
+      totalMax,
+      totalAssetsOut,
+    } = await this.preivewRedeemFrxUSD(params);
 
     // Validate liquidity: revert if amount exceeds available redeemable
     if (amountWeiBigInt > totalMax) {
@@ -982,19 +1070,21 @@ export default class RainbowWallet {
     const [usdcAllowanceResult, rwaAllowanceResult] = await Promise.all([
       usdcAmountNeeded > 0n
         ? this.allowance({
-            contractAddress: fromToken.contractAddress,
-            spender: usdcCustodianAddress,
-            address: refundTo,
-            amountWei: usdcAmountNeeded.toString(),
-          })
+          contractAddress: fromToken.contractAddress,
+          spender: usdcCustodianAddress,
+          address: refundTo,
+          amountWei: usdcAmountNeeded.toString(),
+          provider,
+        })
         : Promise.resolve({ needApprove: false }),
       rwaAmountNeeded > 0n
         ? this.allowance({
-            contractAddress: fromToken.contractAddress,
-            spender: rwaCustodianAddress,
-            address: refundTo,
-            amountWei: rwaAmountNeeded.toString(),
-          })
+          contractAddress: fromToken.contractAddress,
+          spender: rwaCustodianAddress,
+          address: refundTo,
+          amountWei: rwaAmountNeeded.toString(),
+          provider,
+        })
         : Promise.resolve({ needApprove: false }),
     ]);
 
@@ -1005,12 +1095,9 @@ export default class RainbowWallet {
 
     // Build redeem calls and get output via previewRedeem for each path
     const calls: { target: string; callData: string }[] = [];
-    let totalAssetsOut = 0n;
 
     if (amountWeiBigInt <= maxUsdc) {
       // USDC path only
-      const assetsOut = await usdcCustodian.previewRedeem.staticCall(amountWeiBigInt);
-      totalAssetsOut = assetsOut;
       calls.push({
         target: usdcCustodianAddress,
         callData: redeemInterface.encodeFunctionData("redeem", [
@@ -1022,8 +1109,6 @@ export default class RainbowWallet {
     } else {
       // USDC first (maxUsdc), then RWA for remainder
       if (maxUsdc > 0n) {
-        const usdcAssetsOut = await usdcCustodian.previewRedeem.staticCall(maxUsdc);
-        totalAssetsOut += usdcAssetsOut;
         calls.push({
           target: usdcCustodianAddress,
           callData: redeemInterface.encodeFunctionData("redeem", [
@@ -1035,8 +1120,6 @@ export default class RainbowWallet {
       }
       const rwaAmount = amountWeiBigInt - maxUsdc;
       if (rwaAmount > 0n) {
-        const rwaAssetsOut = await rwaCustodian.previewRedeem.staticCall(rwaAmount);
-        totalAssetsOut += rwaAssetsOut;
         calls.push({
           target: rwaCustodianAddress,
           callData: redeemInterface.encodeFunctionData("redeem", [

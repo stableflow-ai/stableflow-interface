@@ -6,7 +6,6 @@ import { numberRemoveEndZero } from "@/utils/format/number";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "../usdt0-oneclick/config";
 import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
-import { BridgeDefaultWallets } from "@/config";
 import { getPrice } from "@/utils/format/price";
 import { csl } from "@/utils/log";
 
@@ -26,7 +25,7 @@ export class OneClickUsdt0Service {
       middleChainWallet = new RainbowWallet(provider, {});
     }
     if (!destinationRecipientAddress) {
-      destinationRecipientAddress = BridgeDefaultWallets.evm;
+      destinationRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
     // First, call the usdt0 quote method

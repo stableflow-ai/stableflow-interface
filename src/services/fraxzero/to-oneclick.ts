@@ -33,7 +33,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
     let middleChainWallet = wallets?.evm?.wallet;
     let middleChainRecipientAddress = wallets?.evm?.account;
     if (!middleChainWallet) {
-      const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
+      const providers = FRAXZERO_MIDDLE_TOKEN_USDC.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
       const provider = new ethers.FallbackProvider(providers);
       middleChainWallet = new RainbowWallet(provider, {});
     }
