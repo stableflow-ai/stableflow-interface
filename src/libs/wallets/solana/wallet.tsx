@@ -392,7 +392,7 @@ export default class SolanaWallet {
 
         const composeMsgSendParam = {
           dstEid,
-          to: addressToBytes32("evm", recipient),
+          to: addressToBytes32(toToken.chainType, recipient),
           amountLD: amountLd,
           minAmountLD: minAmountLd,
           extraOptions: multiHopExtraOptions,
