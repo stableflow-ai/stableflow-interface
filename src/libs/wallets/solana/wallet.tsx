@@ -383,7 +383,7 @@ export default class SolanaWallet {
       let composeMsg = null;
       if (isMultiHopComposer) {
         _dstEid = multiHopComposer.eid;
-        to = getBytes(addressToBytes32(toToken.chainType, multiHopComposer.oftMultiHopComposer));
+        to = getBytes(addressToBytes32("evm", multiHopComposer.oftMultiHopComposer));
 
         let multiHopExtraOptions = Options.newOptions().toHex();
         if (lzReceiveOptionValue) {
