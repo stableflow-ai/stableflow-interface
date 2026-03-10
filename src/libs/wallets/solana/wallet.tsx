@@ -17,7 +17,7 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import { getChainRpcUrl } from "@/config/chains";
-import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
@@ -29,9 +29,10 @@ import { Service } from "@/services/constants";
 import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress } from "../utils/layerzero";
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
 import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
-import { ethers } from "ethers";
+import { ethers, getBytes } from "ethers";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { csl } from "@/utils/log";
+import { addressToBytes32 } from "@/utils/address-validation";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -366,22 +367,13 @@ export default class SolanaWallet {
       }
 
       let _dstEid: any = dstEid;
-      let to = new Uint8Array(Buffer.from(addressToBytes32(recipient)));
-
-      if (toToken.chainType === "tron" && !isMultiHopComposer) {
-        const decodedRecipient = addressToBytes32(recipient);
-        const recipientBytes = decodedRecipient.slice(1, 21);
-        to = Buffer.concat([
-          Buffer.alloc(12, 0), // 12 zero bytes
-          recipientBytes         // 20-byte address
-        ]);
-      }
+      let to = getBytes(addressToBytes32(toToken.chainType, recipient));
 
       let extraOptions = unMultiHopExtraOptions;
       let composeMsg = null;
       if (isMultiHopComposer) {
         _dstEid = multiHopComposer.eid;
-        to = new Uint8Array(Buffer.from(addressToBytes32(multiHopComposer.oftMultiHopComposer)));
+        to = new Uint8Array(Buffer.from(addressToBytes32("evm", multiHopComposer.oftMultiHopComposer)));
 
         let multiHopExtraOptions = Options.newOptions().toHex();
         if (lzReceiveOptionValue) {
@@ -390,7 +382,7 @@ export default class SolanaWallet {
 
         const composeMsgSendParam = {
           dstEid,
-          to: addressToBytes32(recipient),
+          to: addressToBytes32(toToken.chainType, recipient),
           amountLD: amountLd,
           minAmountLD: minAmountLd,
           extraOptions: multiHopExtraOptions,
