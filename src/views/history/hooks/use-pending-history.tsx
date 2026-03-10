@@ -2,6 +2,8 @@ import { BASE_API_URL } from "@/config/api";
 import chains from "@/config/chains";
 import { stablecoinLogoMap } from "@/config/tokens";
 import { TradeProject, TradeProjectMap } from "@/config/trade";
+import { Service } from "@/services/constants";
+import { getQuoteModes } from "@/services/utils";
 import { useHistoryStore } from "@/stores/use-history";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn, useRequest } from "ahooks";
@@ -53,6 +55,7 @@ export function usePendingHistory(history?: any) {
       }
 
       const servicePendingNumber: any = {};
+      const servicePendingNumberWithPermit: any = {};
 
       const _list = response.data.data.data;
       _list.forEach((item: any) => {
@@ -79,6 +82,37 @@ export function usePendingHistory(history?: any) {
           } else {
             servicePendingNumber[_service] = 1;
           }
+
+          const setServicePendingNumberWithPermit = () => {
+            if (servicePendingNumberWithPermit[_service]) {
+              servicePendingNumberWithPermit[_service] = servicePendingNumberWithPermit[_service] + 1;
+            } else {
+              servicePendingNumberWithPermit[_service] = 1;
+            }
+          };
+          const { isPermitWithNonce } = getQuoteModes({
+            quoteData: {},
+            bridgeStore: ({ quoteDataService: _service } as any),
+          });
+          if (isPermitWithNonce) {
+            const isOneClickFraxZero = _service === Service.OneClickFraxZero;
+            const isFraxZeroOneClick = _service === Service.FraxZeroOneClick;
+            if (isOneClickFraxZero) {
+              const isFromEthereumUSDC = item.from_chain === "eth";
+              if (!isFromEthereumUSDC) {
+                setServicePendingNumberWithPermit();
+              }
+            }
+            else if (isFraxZeroOneClick) {
+              const isFromEthereumFrxUSD = item.from_chain === "eth";
+              if (!isFromEthereumFrxUSD) {
+                setServicePendingNumberWithPermit();
+              }
+            }
+            else {
+              setServicePendingNumberWithPermit();
+            }
+          }
         }
       });
 
@@ -91,6 +125,7 @@ export function usePendingHistory(history?: any) {
         }
         historyStore.updatePendingNumber(_list.length);
         historyStore.updateServicePendingNumber({ services: servicePendingNumber });
+        historyStore.updateServicePendingNumberWithPermit({ services: servicePendingNumberWithPermit });
         return _list;
       });
       setPage((prev: any) => {
@@ -123,6 +158,7 @@ export function usePendingHistory(history?: any) {
       setList([]);
       historyStore.updatePendingNumber(0);
       historyStore.updateServicePendingNumber({ isClear: true });
+      historyStore.updateServicePendingNumberWithPermit({ isClear: true });
       setPage(() => {
         return {
           current: 1,

@@ -29,6 +29,7 @@ import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { csl } from "@/utils/log";
 import { sortQuoteData } from "../utils";
+import { getQuoteModes } from "@/services/utils";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 0.01;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -611,9 +612,14 @@ export default function useBridge(props?: any) {
 
       const isFromTron = walletStore.fromToken.chainType === "tron";
       const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
-      const isOneClickService = ([Service.OneClickUsdt0, Service.OneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService);
-      const isExactOutput = ([Service.OneClickUsdt0, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService);
-      const isSecondStepOneClickService = ([Service.Usdt0OneClick, Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService);
+      const {
+        isExactOutput,
+        isOneClickService,
+        isQuoteParamDepositAddress,
+      } = getQuoteModes({
+        quoteData: _quote.data,
+        bridgeStore,
+      });
 
       if (isExactOutput) {
         _amount = _quote.data.quote.minAmountIn;
@@ -851,8 +857,8 @@ export default function useBridge(props?: any) {
         };
         const hash = await ServiceMap[bridgeStore.quoteDataService].send(sendParams);
         let _depositAddress = hash;
-        if (isSecondStepOneClickService) {
-          _depositAddress = _quote?.data?.quoteParam?.depositAddress;
+        if (isQuoteParamDepositAddress) {
+          _depositAddress = _quote?.data?.quoteParam?.depositAddress || hash;
         }
         localHistoryData.txHash = hash;
         localHistoryData.toChainTxHash = hash;
@@ -1082,8 +1088,10 @@ export default function useBridge(props?: any) {
         }
       }
 
-      const isExactOutput = ([Service.OneClickUsdt0, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService);
-      const isPermitWithNonce = ([Service.OneClickUsdt0, Service.OneClickFraxZero, Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService);
+      const { isExactOutput, isPermitWithNonce } = getQuoteModes({
+        quoteData,
+        bridgeStore,
+      });
 
       if (isExactOutput) {
         const balance = balancesStore[
@@ -1095,7 +1103,7 @@ export default function useBridge(props?: any) {
       }
 
       if (isPermitWithNonce) {
-        const specailPendingNumber = historyStore.servicePendingNumber?.[bridgeStore.quoteDataService];
+        const specailPendingNumber = historyStore.servicePendingNumberWithPermit?.[bridgeStore.quoteDataService];
         if (specailPendingNumber && specailPendingNumber > 0) {
           return "Please wait for the previous transaction to complete";
         }
@@ -1122,7 +1130,7 @@ export default function useBridge(props?: any) {
     liquidityErrorMssage,
     evmAccount?.chainId,
     balancesStore,
-    historyStore.servicePendingNumber
+    historyStore.servicePendingNumberWithPermit
   ]);
 
   useEffect(() => {

@@ -11,6 +11,7 @@ interface HistoryState {
   openDrawer: boolean;
   pendingNumber: number;
   servicePendingNumber: Partial<Record<Service, number>>;
+  servicePendingNumberWithPermit: Partial<Record<Service, number>>;
   setOpenDrawer: (open?: boolean) => void;
   addHistory: (item: any) => void;
   updateStatus: (address: string, status: any) => void;
@@ -18,6 +19,7 @@ interface HistoryState {
   updateHistory: (address?: string, item?: any) => void;
   updatePendingNumber: (number: number) => void;
   updateServicePendingNumber: (params: { services?: Partial<Record<Service, number>>, isClear?: boolean }) => void;
+  updateServicePendingNumberWithPermit: (params: { services?: Partial<Record<Service, number>>, isClear?: boolean }) => void;
 }
 
 export const useHistoryStore = create(
@@ -29,6 +31,7 @@ export const useHistoryStore = create(
       completeStatus: [],
       pendingNumber: 0,
       servicePendingNumber: {},
+      servicePendingNumberWithPermit: {},
       addHistory: (item: any) => {
         const _history = get().history;
         _history[item.depositAddress] = item;
@@ -97,6 +100,14 @@ export const useHistoryStore = create(
           return;
         }
         set({ servicePendingNumber: { ...services } });
+      },
+      updateServicePendingNumberWithPermit: (params) => {
+        const { services, isClear } = params;
+        if (isClear) {
+          set({ servicePendingNumberWithPermit: {} });
+          return;
+        }
+        set({ servicePendingNumberWithPermit: { ...services } });
       },
     }),
     {

@@ -956,10 +956,15 @@ export default class RainbowWallet {
       amountWei
     ];
     const msgFee = await remoteHopContractRead.quote.staticCall(...sendParams);
-    result.estimateSourceGas = msgFee[0];
+    let nativeMsgFee = msgFee[0];
+    csl("EVM quoteFraxZero", "blue-700", "nativeMsgFee: %o", nativeMsgFee);
+    // add 5% buffer
+    nativeMsgFee = nativeMsgFee * NATIVE_MSG_FEE_BUFFER / 100n;
+    csl("EVM quoteFraxZero", "blue-700", "nativeMsgFee after buffer: %o", nativeMsgFee);
+    result.estimateSourceGas = nativeMsgFee;
 
-    const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
-    result.fees.nativeFee = numberRemoveEndZero(Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
+    const nativeFeeUsd = Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFee = numberRemoveEndZero(Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
 
@@ -968,7 +973,7 @@ export default class RainbowWallet {
     // 3. estimate send gas
     let sendWithFeeGasLimit = 4000000n;
     try {
-      const gasLimit = await remoteHopContract.sendOFT.estimateGas(...sendParams, { value: msgFee[0] });
+      const gasLimit = await remoteHopContract.sendOFT.estimateGas(...sendParams, { value: nativeMsgFee });
       sendWithFeeGasLimit = gasLimit * 120n / 100n;
       const { usd, wei } = await this.getEstimateGas({
         gasLimit,
@@ -998,7 +1003,7 @@ export default class RainbowWallet {
       method: "sendOFT",
       param: [
         ...sendParams,
-        { value: msgFee[0], gasLimit: sendWithFeeGasLimit }
+        { value: nativeMsgFee, gasLimit: sendWithFeeGasLimit }
       ],
     };
 
@@ -1023,7 +1028,7 @@ export default class RainbowWallet {
       rwaCustodianAddress,
     } = params;
 
-    csl("EVM preivewRedeemAndMintFrxUSD", "blue-700", "params: %o", params);
+    csl("EVM preivewRedeemFrxUSD", "blue-700", "params: %o", params);
 
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
@@ -1120,6 +1125,7 @@ export default class RainbowWallet {
       abi,
       usdcCustodianAddress,
       rwaCustodianAddress,
+      redeemAndMintContractAddress,
     } = params;
 
     csl("EVM redeemFrxUSD", "blue-700", "params: %o", params);
@@ -1129,8 +1135,8 @@ export default class RainbowWallet {
     const estimateTime = (ETH_AVG_BLOCK_TIME * 2) + Math.floor(Math.random() * 11) - 5;
 
     const result: any = {
-      needApprove: [false, false], // set after allowance check below
-      approveSpender: [usdcCustodianAddress, rwaCustodianAddress],
+      needApprove: false,
+      approveSpender: redeemAndMintContractAddress,
       sendParam: void 0,
       quoteParam: {
         ...params,
@@ -1146,7 +1152,8 @@ export default class RainbowWallet {
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
-    const redeemInterface = new ethers.Interface(abi as any);
+    const redeemContractRead = new ethers.Contract(redeemAndMintContractAddress, abi, provider);
+    const redeemContract = new ethers.Contract(redeemAndMintContractAddress, abi, this.signer);
 
     const {
       maxUsdc,
@@ -1156,114 +1163,58 @@ export default class RainbowWallet {
       totalAssetsOut,
     } = await this.preivewRedeemFrxUSD(params);
 
-    // Validate liquidity: revert if amount exceeds available redeemable
-    if (amountWeiBigInt > totalMax) {
-      throw new Error("Insufficient redeemable liquidity available");
-    }
-
-    // Amount needed per spender based on redeem path
-    const usdcAmountNeeded = amountWeiBigInt <= maxUsdc ? amountWeiBigInt : maxUsdc;
-    const rwaAmountNeeded = amountWeiBigInt <= maxUsdc ? 0n : amountWeiBigInt - maxUsdc;
-
-    // Check allowance via RainbowWallet.allowance for each custodian
-    const [usdcAllowanceResult, rwaAllowanceResult] = await Promise.all([
-      usdcAmountNeeded > 0n
-        ? this.allowance({
-          contractAddress: fromToken.contractAddress,
-          spender: usdcCustodianAddress,
-          address: refundTo,
-          amountWei: usdcAmountNeeded.toString(),
-          provider,
-        })
-        : Promise.resolve({ needApprove: false }),
-      rwaAmountNeeded > 0n
-        ? this.allowance({
-          contractAddress: fromToken.contractAddress,
-          spender: rwaCustodianAddress,
-          address: refundTo,
-          amountWei: rwaAmountNeeded.toString(),
-          provider,
-        })
-        : Promise.resolve({ needApprove: false }),
-    ]);
-
-    result.needApprove = [
-      usdcAmountNeeded > 0n ? usdcAllowanceResult.needApprove : false,
-      rwaAmountNeeded > 0n ? rwaAllowanceResult.needApprove : false,
-    ];
-
-    // Build redeem calls and get output via previewRedeem for each path
-    const calls: { target: string; callData: string }[] = [];
-
-    if (amountWeiBigInt <= maxUsdc) {
-      // USDC path only
-      calls.push({
-        target: usdcCustodianAddress,
-        callData: redeemInterface.encodeFunctionData("redeem", [
-          amountWeiBigInt,
-          recipient,
-          refundTo,
-        ]),
-      });
-    } else {
-      // USDC first (maxUsdc), then RWA for remainder
-      if (maxUsdc > 0n) {
-        calls.push({
-          target: usdcCustodianAddress,
-          callData: redeemInterface.encodeFunctionData("redeem", [
-            maxUsdc,
-            recipient,
-            refundTo,
-          ]),
-        });
-      }
-      const rwaAmount = amountWeiBigInt - maxUsdc;
-      if (rwaAmount > 0n) {
-        calls.push({
-          target: rwaCustodianAddress,
-          callData: redeemInterface.encodeFunctionData("redeem", [
-            rwaAmount,
-            recipient,
-            refundTo,
-          ]),
-        });
-      }
-    }
-
     // outputAmount = USDC amount (6 decimals), human-readable
     result.outputAmount = numberRemoveEndZero(
       Big(totalAssetsOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
     );
 
+    // check allowance of fromToken for redeemAndMintContractAddress
+    try {
+      const allowanceResult = await this.allowance({
+        contractAddress: fromToken.contractAddress,
+        spender: redeemAndMintContractAddress,
+        address: refundTo,
+        amountWei,
+        provider,
+      });
+      result.needApprove = allowanceResult.needApprove;
+    } catch {
+    }
+
     result.sendParam = {
-      multicallCalls: calls,
-      chainId: fromToken.chainId,
+      contract: redeemContract,
+      method: "redeemToUsdcAndTransfer",
+      param: [
+        amountWei,
+        recipient,
+      ],
     };
 
+    let redeemGasLimit = DEFAULT_GAS_LIMIT;
+    try {
+      const gasLimit = await redeemContract[result.sendParam.method].estimateGas(...result.sendParam.param);
+      redeemGasLimit = (gasLimit * 120n) / 100n;
+    } catch (error) {
+      csl("EVM redeemFrxUSD", "red-500", "estimate redeem gas failed: %o", error);
+    }
+
+    result.sendParam.param[2] = { gasLimit: redeemGasLimit };
+
     // Estimate gas for multicall aggregate and compute fees
-    if (fromToken.nativeToken) {
-      try {
-        const multicall = createMulticall3(provider, fromToken.chainId);
-        let gasLimit = DEFAULT_GAS_LIMIT;
-        try {
-          const estimated = await multicall.estimateAggregateGas(calls);
-          gasLimit = (estimated * 120n) / 100n;
-        } catch {
-          // use default if estimation fails
-        }
-        const { usd, wei } = await this.getEstimateGas({
-          gasLimit,
-          price: getPrice(prices, fromToken.nativeToken.symbol),
-          nativeToken: fromToken.nativeToken,
-          provider,
-        });
-        result.fees.estimateGasUsd = usd;
-        result.estimateSourceGas = wei;
-        result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-        result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      } catch {
-        // skip gas estimation if multicall not available for chain
-      }
+    try {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: redeemGasLimit,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+    } catch (error) {
+      // skip gas estimation on error
+      // csl("EVM redeemFrxUSD", "red-500", "estimate redeem gas failed: %o", error);
     }
 
     return result;
@@ -1310,8 +1261,6 @@ export default class RainbowWallet {
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
-    const amountWeiBigInt = BigInt(amountWei || 0);
-
     // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
     try {
       const allowanceResult = await this.allowance({
@@ -1326,20 +1275,18 @@ export default class RainbowWallet {
       csl("EVM mintFrxUSD", "red-500", "Error checking allowance: %o", error);
     }
 
-    // Get sharesOut via previewDeposit (frxUSD amount in 18 decimals)
     const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
     const usdcCustodianWithSigner = new ethers.Contract(usdcCustodianAddress, abi, this.signer);
 
-    let sharesOut = 0n;
-    try {
-      sharesOut = await usdcCustodian.previewDeposit.staticCall(amountWeiBigInt);
-    } catch (error) {
-      csl("EVM mintFrxUSD", "red-500", "Error calling previewDeposit: %o", error);
-      return result;
-    }
+    const {
+      maxUsdc,
+      amountWeiBigInt,
+      totalMax,
+      totalAssetsOut,
+    } = await this.previewMintFrxUSD(params);
 
     result.outputAmount = numberRemoveEndZero(
-      Big(sharesOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
+      Big(totalAssetsOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
     );
 
     // Build sendParam for deposit(assetsIn, receiver)
@@ -1362,21 +1309,132 @@ export default class RainbowWallet {
     };
 
     // Estimate gas fees
-    if (fromToken.nativeToken) {
-      try {
-        const { usd, wei } = await this.getEstimateGas({
-          gasLimit: depositGasLimit,
-          price: getPrice(prices, fromToken.nativeToken.symbol),
-          nativeToken: fromToken.nativeToken,
-          provider,
-        });
-        result.fees.estimateGasUsd = usd;
-        result.estimateSourceGas = wei;
-        result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-        result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      } catch {
-        // skip gas estimation on error
-      }
+    try {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: depositGasLimit,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+    } catch {
+      // skip gas estimation on error
+    }
+
+    return result;
+  }
+
+  async mintAndSendFrxUSD(params: any) {
+    const {
+      recipient,
+      amountWei,
+      fromToken,
+      toToken,
+      prices,
+      refundTo,
+      abi,
+      usdcCustodianAddress,
+      redeemAndMintContractAddress,
+      originLayerzero,
+      destinationLayerzero,
+    } = params;
+
+    csl("EVM mintAndSendFrxUSD", "blue-700", "params: %o", params);
+
+    const {
+      eid: dstEid,
+    } = destinationLayerzero;
+
+    // Ethereum average block time ~12s, estimateTime = 12*2 + random(-5, 5) seconds
+    const ETH_AVG_BLOCK_TIME = 12;
+    const estimateTime = (ETH_AVG_BLOCK_TIME * 2) + Math.floor(Math.random() * 11) - 5;
+
+    const result: any = {
+      needApprove: false,
+      approveSpender: redeemAndMintContractAddress,
+      sendParam: void 0,
+      quoteParam: {
+        ...params,
+      },
+      fees: {},
+      totalFeesUsd: 0,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: 0,
+      estimateTime,
+      outputAmount: "0",
+    };
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
+    try {
+      const allowanceResult = await this.allowance({
+        contractAddress: fromToken.contractAddress,
+        spender: redeemAndMintContractAddress,
+        address: refundTo,
+        amountWei,
+        provider,
+      });
+      result.needApprove = allowanceResult.needApprove;
+    } catch (error) {
+      csl("EVM mintAndSendFrxUSD", "red-500", "Error checking allowance: %o", error);
+    }
+
+    const redeemAndMintContractWithSigner = new ethers.Contract(redeemAndMintContractAddress, abi, this.signer);
+
+    const {
+      totalAssetsOut,
+    } = await this.previewMintFrxUSD(params);
+    csl("EVM mintAndSendFrxUSD", "gray-600", "previewMintFrxUSD totalAssetsOut: %o", totalAssetsOut);
+
+    result.outputAmount = numberRemoveEndZero(
+      Big(totalAssetsOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
+    );
+
+    // Build sendParam for deposit(assetsIn, receiver)
+    const mintAndSendParam = [
+      // assetsIn
+      amountWei,
+      // dstEid
+      dstEid,
+      // receiver
+      addressToBytes32(toToken.chainType, recipient)
+    ];
+    let depositGasLimit = DEFAULT_GAS_LIMIT;
+    try {
+      const gasLimit = await redeemAndMintContractWithSigner.mintAndSend.estimateGas(...mintAndSendParam);
+      depositGasLimit = (gasLimit * 120n) / 100n;
+    } catch {
+      // use default if estimation fails
+    }
+
+    result.sendParam = {
+      contract: redeemAndMintContractWithSigner,
+      method: "mintAndSend",
+      param: [
+        ...mintAndSendParam,
+        { gasLimit: depositGasLimit },
+      ],
+    };
+
+    // Estimate gas fees
+    try {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: depositGasLimit,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+      result.fees.estimateGasUsd = usd;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+    } catch {
+      // skip gas estimation on error
     }
 
     return result;
