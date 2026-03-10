@@ -389,6 +389,18 @@ export const FRAXZERO_REDEEM_MINT_ABI = [
   },
   {
     "inputs": [
+      { "internalType": "uint256", "name": "assetsIn", "type": "uint256" },
+      { "internalType": "address", "name": "receiver", "type": "address" }
+    ],
+    "name": "deposit",
+    "outputs": [
+      { "internalType": "uint256", "name": "sharesOut", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
       { "internalType": "uint256", "name": "_assetsIn", "type": "uint256" }
     ],
     "name": "previewDeposit",

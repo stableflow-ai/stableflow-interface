@@ -48,7 +48,6 @@ export class OneClick2FraxZeroService extends FraxZeroService {
     }
 
     // use OneClick to bridge to Ethereum USDC first
-    let firstStepResult: any;
     if (!isFromEthereumUSDC) {
       // estimate gas
       let gasLimit = FRAXZERO_GAS_USED.MINT.SEND;
@@ -71,7 +70,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
       });
       const secondStepGasToAmount = Big(usd || 0).div(getPrice(prices, fromToken.symbol) || 1).toFixed(fromToken.decimals);
 
-      csl("OneClick2FraxZeroService quote", "gray-600", "EstimateGas usd: %o, wei: %o, amount: %o", usd, wei, amount);
+      csl("OneClick2FraxZeroService quote", "gray-600", "NOT FromEthereumUSDC EstimateGas usd: %o, wei: %o, amount: %o", usd, wei, amount);
 
       // Mint should be a 1:1 conversion from Ethereum USDC to Ethereum frxUSD.
       // The ratio can be obtained from the contract.
@@ -89,27 +88,27 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         wallet: middleChainWallet,
         amountWei: totalAssetsOut.toString(),
       });
-      csl("OneClick2FraxZeroService quote", "gray-600", "secondStepResult: %o", secondStepResult);
+      csl("OneClick2FraxZeroService quote", "gray-600", "NOT FromEthereumUSDC secondStepResult: %o", secondStepResult);
 
       let secondStepLzMsgFeeUsd = secondStepResult?.fees?.nativeFeeUsd;
       // add 20% buffer
       secondStepLzMsgFeeUsd = Big(secondStepLzMsgFeeUsd || 0).times(1.2);
-      csl("OneClick2FraxZeroService quote", "gray-600", "secondStepLzMsgFeeUsd: %o", secondStepLzMsgFeeUsd.toString());
+      csl("OneClick2FraxZeroService quote", "gray-600", "NOT FromEthereumUSDC secondStepLzMsgFeeUsd: %o", secondStepLzMsgFeeUsd.toString());
       const secondStepLzMsgFeeAmount = Big(secondStepLzMsgFeeUsd).div(getPrice(prices, fromToken.symbol) || 1).toFixed(fromToken.decimals);
 
       const totalAppFeesAmount = Big(secondStepGasToAmount).plus(secondStepLzMsgFeeAmount);
-      csl("OneClick2FraxZeroService quote", "gray-600", "totalAppFeesAmount: %o", totalAppFeesAmount.toString());
+      csl("OneClick2FraxZeroService quote", "gray-600", "NOT FromEthereumUSDC totalAppFeesAmount: %o", totalAppFeesAmount.toString());
       const oneClickFeeRatio = Big(totalAppFeesAmount)
         .div(Big(totalAppFeesAmount).plus(Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals)))
         .times(10000)
         .toFixed(0, Big.roundUp);
-      csl("OneClick2FraxZeroService quote", "gray-600", "oneClickFeeRatio: %o", oneClickFeeRatio.toString());
+      csl("OneClick2FraxZeroService quote", "gray-600", "NOT FromEthereumUSDC oneClickFeeRatio: %o", oneClickFeeRatio.toString());
 
       if (Big(oneClickFeeRatio).gt(10000)) {
         return { errMsg: `Amount is too low, at least ${totalAppFeesAmount}` };
       }
 
-      firstStepResult = await oneClickService.quote({
+      const firstStepResult = await oneClickService.quote({
         ...params,
         toToken: FRAXZERO_MIDDLE_TOKEN_USDC,
         destinationAsset: FRAXZERO_MIDDLE_TOKEN_USDC.assetId,
@@ -124,6 +123,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
           },
         ],
       });
+      csl("OneClick2FraxZeroService quote", "gray-600", "NOT FromEthereumUSDC firstStepResult: %o", firstStepResult);
 
       let totalFeesUsd = Big(0);
       let _destinationGasFeeUsd = Big(firstStepResult.fees?.destinationGasFeeUsd || 0).minus(secondStepLzMsgFeeUsd);
@@ -178,11 +178,29 @@ export class OneClick2FraxZeroService extends FraxZeroService {
     }
     // If is from Ethereum USDC, skip the first step
     // mint and bridge use contract directly
-    else {
+    const firstStepResult = await middleChainWallet.mintFrxUSD({
+      ...params,
+      toToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
+      abi: FRAXZERO_REDEEM_MINT_ABI,
+      usdcCustodianAddress: FRAXZERO_REDEEM_USDC_CONTRACT,
+    });
+    csl("OneClick2FraxZeroService quote", "gray-600", "FromEthereumUSDC firstStepResult: %o", firstStepResult);
 
+    if (isToEthereumFrxUSD) {
+      return firstStepResult;
     }
 
-    return { errMsg: "waiting dev..." };
+    const secondStepResult = await super.quote({
+      ...params,
+      amountWei: Big(firstStepResult.outputAmount).times(10 ** FRAXZERO_MIDDLE_TOKEN_FRXUSD.decimals).toFixed(0, Big.roundDown),
+      fromToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
+    });
+    csl("OneClick2FraxZeroService quote", "gray-600", "FromEthereumUSDC secondStepResult: %o", secondStepResult);
+
+    return {
+      ...firstStepResult,
+      
+    };
   }
 
   public override async send(params: any) {

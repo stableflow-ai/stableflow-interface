@@ -1171,6 +1171,119 @@ export default class RainbowWallet {
   }
 
   /**
+   * Mint frxUSD by depositing USDC into the custodian contract.
+   * Calls deposit(assetsIn, receiver) on usdcCustodianAddress.
+   * assetsIn = USDC amount (6 decimals), sharesOut = frxUSD amount (18 decimals).
+   */
+  async mintFrxUSD(params: any) {
+    const {
+      recipient,
+      amountWei,
+      fromToken,
+      toToken,
+      prices,
+      refundTo,
+      abi,
+      usdcCustodianAddress,
+    } = params;
+
+    csl("EVM mintFrxUSD", "blue-700", "params: %o", params);
+
+    // Ethereum average block time ~12s, estimateTime = 12*2 + random(-5, 5) seconds
+    const ETH_AVG_BLOCK_TIME = 12;
+    const estimateTime = (ETH_AVG_BLOCK_TIME * 2) + Math.floor(Math.random() * 11) - 5;
+
+    const result: any = {
+      needApprove: false,
+      approveSpender: usdcCustodianAddress,
+      sendParam: void 0,
+      quoteParam: {
+        ...params,
+      },
+      fees: {},
+      totalFeesUsd: 0,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: 0,
+      estimateTime,
+      outputAmount: "0",
+    };
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    const amountWeiBigInt = BigInt(amountWei || 0);
+
+    // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
+    try {
+      const allowanceResult = await this.allowance({
+        contractAddress: fromToken.contractAddress,
+        spender: usdcCustodianAddress,
+        address: refundTo,
+        amountWei,
+        provider,
+      });
+      result.needApprove = allowanceResult.needApprove;
+    } catch (error) {
+      csl("EVM mintFrxUSD", "red-500", "Error checking allowance: %o", error);
+    }
+
+    // Get sharesOut via previewDeposit (frxUSD amount in 18 decimals)
+    const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
+    const usdcCustodianWithSigner = new ethers.Contract(usdcCustodianAddress, abi, this.signer);
+
+    let sharesOut = 0n;
+    try {
+      sharesOut = await usdcCustodian.previewDeposit.staticCall(amountWeiBigInt);
+    } catch (error) {
+      csl("EVM mintFrxUSD", "red-500", "Error calling previewDeposit: %o", error);
+      return result;
+    }
+
+    result.outputAmount = numberRemoveEndZero(
+      Big(sharesOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
+    );
+
+    // Build sendParam for deposit(assetsIn, receiver)
+    let depositGasLimit = DEFAULT_GAS_LIMIT;
+    try {
+      const gasLimit = await usdcCustodianWithSigner.deposit.estimateGas(amountWeiBigInt, recipient);
+      depositGasLimit = (gasLimit * 120n) / 100n;
+    } catch {
+      // use default if estimation fails
+    }
+
+    result.sendParam = {
+      contract: usdcCustodianWithSigner,
+      method: "deposit",
+      param: [
+        amountWeiBigInt,
+        recipient,
+        { gasLimit: depositGasLimit },
+      ],
+    };
+
+    // Estimate gas fees
+    if (fromToken.nativeToken) {
+      try {
+        const { usd, wei } = await this.getEstimateGas({
+          gasLimit: depositGasLimit,
+          price: getPrice(prices, fromToken.nativeToken.symbol),
+          nativeToken: fromToken.nativeToken,
+          provider,
+        });
+        result.fees.estimateGasUsd = usd;
+        result.estimateSourceGas = wei;
+        result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+        result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      } catch {
+        // skip gas estimation on error
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Execute multicall batch transaction (e.g. redeem frxUSD via multiple custodian contracts).
    * Uses utils/multicall3 for transaction submission.
    * @param params Must contain multicallCalls: { target, callData }[] and chainId
