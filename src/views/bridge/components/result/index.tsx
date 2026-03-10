@@ -8,6 +8,8 @@ import { formatNumber } from "@/utils/format/number";
 import Big from "big.js";
 import Checkbox from "@/components/checkbox";
 import clsx from "clsx";
+import { FRAXZERO_MIDDLE_TOKEN_USDC } from "@/services/fraxzero/config";
+import { getQuoteModes } from "@/services/utils";
 
 const ResultOneClick = lazy(() => import("./oneclick"));
 const ResultUsdt0 = lazy(() => import("./usdt0"));
@@ -25,7 +27,10 @@ export default function Result() {
   }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
 
   const [_duration, priceImpact, isLargePriceImpact, isExactOutput] = useMemo(() => {
-    const _isOutputMode = ([Service.OneClickUsdt0, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService);
+    const { isExactOutput: _isOutputMode } = getQuoteModes({
+      quoteData,
+      bridgeStore,
+    });
     return [
       formatDuration(quoteData?.estimateTime),
       formatNumber(Big(quoteData?.priceImpact || 0).times(100), 2, true, { prefix: "-" }),

@@ -88,6 +88,14 @@ const ResultUsdt0OneClick = (props: any) => {
         _isLayerzeroBridge = false;
       }
     }
+    if (Service.OneClickFraxZero === service) {
+      if (_quoteData?.quoteParam?.isFromEthereumUSDC) {
+        _isOneClickBridge = false;
+      }
+      if (_quoteData?.quoteParam?.isToEthereumFrxUSD) {
+        _isLayerzeroBridge = false;
+      }
+    }
     return [
       fromTokenSymbol && toTokenSymbol && fromTokenSymbol !== toTokenSymbol,
       _isOneClickBridge,

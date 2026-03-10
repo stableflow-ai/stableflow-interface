@@ -2,7 +2,7 @@ import { create } from "zustand/index";
 import { Service } from "@/services/constants";
 import { TronTransferStepStatus } from "@/config/tron";
 
-interface BridgeState {
+export interface BridgeState {
   amount: string;
   recipientAddress: string;
   quoteDataService: Service;

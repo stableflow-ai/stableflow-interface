@@ -25,7 +25,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       switchChainAsync,
     } = params;
 
-    csl("FraxZero2OneClickService quote", "gray-500", "params: %o", params);
+    csl("FraxZero2OneClickService quote", "yellow-500", "params: %o", params);
 
     const isFromEthereumFrxUSD = fromToken.chainId === 1 && fromToken.symbol === FRAXZERO_MIDDLE_TOKEN_FRXUSD.symbol;
     const isToEthereumUSDC = toToken.chainId === 1 && toToken.symbol === FRAXZERO_MIDDLE_TOKEN_USDC.symbol;
@@ -51,7 +51,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
         toToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
       });
     }
-    csl("FraxZero2OneClickService quote", "gray-600", "firstStepResult: %o", firstStepResult);
+    csl("FraxZero2OneClickService quote", "yellow-600", "firstStepResult: %o", firstStepResult);
     const ethereumFrxUSDAmountWei = isFromEthereumFrxUSD ? amountWei : Big(firstStepResult.outputAmount || 0).times(10 ** FRAXZERO_MIDDLE_TOKEN_FRXUSD.decimals).toFixed(0, Big.roundDown);
 
     // oneclick quote result
@@ -106,7 +106,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
         ],
       });
     }
-    csl("FraxZero2OneClickService quote", "gray-600", "thirdStepResult: %o", thirdStepResult);
+    csl("FraxZero2OneClickService quote", "yellow-600", "thirdStepResult: %o", thirdStepResult);
 
     // redeem from ethereum frxUSD to ethereum USDC
     const secondStepResult = await middleChainWallet.redeemFrxUSD({
@@ -121,7 +121,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       rwaCustodianAddress: FRAXZERO_REDEEM_RWA_CONTRACT,
       redeemAndMintContractAddress: FRAXZERO_REDEEM_AND_MINT_CONTRACT,
     });
-    csl("FraxZero2OneClickService quote", "gray-600", "secondStepResult: %o", secondStepResult);
+    csl("FraxZero2OneClickService quote", "yellow-600", "secondStepResult: %o", secondStepResult);
 
     const withOneClick = (_result: any) => {
       let totalFeesUsd = Big(0);
