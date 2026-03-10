@@ -849,7 +849,7 @@ export default function useBridge(props?: any) {
         const hash = await ServiceMap[bridgeStore.quoteDataService].send(sendParams);
         let _depositAddress = hash;
         if (isSecondStepOneClickService) {
-          _depositAddress = _quote?.data?.quoteParam?.depositAddress;
+          _depositAddress = _quote?.data?.quoteParam?.depositAddress || hash;
         }
         localHistoryData.txHash = hash;
         localHistoryData.toChainTxHash = hash;

@@ -443,4 +443,30 @@ export const FRAXZERO_REDEEM_MINT_ABI = [
     "stateMutability": "view",
     "type": "function"
   },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "assetsIn", "type": "uint256" },
+      { "internalType": "uint32", "name": "dstEid", "type": "uint32" },
+      { "internalType": "bytes32", "name": "receiver", "type": "bytes32" }
+    ],
+    "name": "mintAndSend",
+    "outputs": [
+      { "internalType": "bytes32", "name": "guidOrZero", "type": "bytes32" },
+      { "internalType": "uint256", "name": "sharesOut", "type": "uint256" }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "sharesIn", "type": "uint256" },
+      { "internalType": "address", "name": "receiver", "type": "address" }
+    ],
+    "name": "redeemToUsdcAndTransfer",
+    "outputs": [
+      { "internalType": "uint256", "name": "assetsOut", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
 ];
