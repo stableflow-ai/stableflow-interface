@@ -360,3 +360,87 @@ export const FRAXZERO_ABI = [
     "type": "receive"
   }
 ];
+
+export const FRAXZERO_REDEEM_MINT_ABI = [
+  {
+    "inputs": [],
+    "name": "mdwrComboView",
+    "outputs": [
+      { "internalType": "uint256", "name": "maxAssetsDepositable", "type": "uint256" },
+      { "internalType": "uint256", "name": "maxSharesMintable", "type": "uint256" },
+      { "internalType": "uint256", "name": "maxAssetsWithdrawable", "type": "uint256" },
+      { "internalType": "uint256", "name": "maxSharesRedeemable", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "sharesIn", "type": "uint256" },
+      { "internalType": "address", "name": "receiver", "type": "address" },
+      { "internalType": "address", "name": "owner", "type": "address" }
+    ],
+    "name": "redeem",
+    "outputs": [
+      { "internalType": "uint256", "name": "assetsOut", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "assetsIn", "type": "uint256" },
+      { "internalType": "address", "name": "receiver", "type": "address" }
+    ],
+    "name": "deposit",
+    "outputs": [
+      { "internalType": "uint256", "name": "sharesOut", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_assetsIn", "type": "uint256" }
+    ],
+    "name": "previewDeposit",
+    "outputs": [
+      { "internalType": "uint256", "name": "_sharesOut", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_assetsOut", "type": "uint256" }
+    ],
+    "name": "previewWithdraw",
+    "outputs": [
+      { "internalType": "uint256", "name": "_sharesIn", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_sharesOut", "type": "uint256" }
+    ],
+    "name": "previewMint",
+    "outputs": [
+      { "internalType": "uint256", "name": "_assetsIn", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "_sharesIn", "type": "uint256" }
+    ],
+    "name": "previewRedeem",
+    "outputs": [
+      { "internalType": "uint256", "name": "_assetsOut", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+];

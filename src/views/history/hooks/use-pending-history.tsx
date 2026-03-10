@@ -1,7 +1,7 @@
 import { BASE_API_URL } from "@/config/api";
 import chains from "@/config/chains";
 import { stablecoinLogoMap } from "@/config/tokens";
-import { TradeProjectMap } from "@/config/trade";
+import { TradeProject, TradeProjectMap } from "@/config/trade";
 import { useHistoryStore } from "@/stores/use-history";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn, useRequest } from "ahooks";
@@ -72,8 +72,8 @@ export function usePendingHistory(history?: any) {
           item.to_tx_hash = item.to_tx_hash?.replace(/^0x/, "");
         }
 
-        if (TradeProjectMap[item.project]) {
-          const _service = TradeProjectMap[item.project].service;
+        if (TradeProjectMap[item.project as TradeProject]) {
+          const _service = TradeProjectMap[item.project as TradeProject].service;
           if (servicePendingNumber[_service]) {
             servicePendingNumber[_service] = servicePendingNumber[_service] + 1;
           } else {

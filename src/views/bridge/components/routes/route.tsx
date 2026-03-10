@@ -39,7 +39,7 @@ const QuoteRoute = (props: any) => {
           alt=""
           className={clsx(
             "object-center object-contain shrink-0",
-            [Service.OneClickUsdt0, Service.Usdt0OneClick, Service.FraxZero].includes(service) ? "w-[118px] h-[24px]" : "w-[62px] h-[16px]",
+            [Service.OneClickUsdt0, Service.Usdt0OneClick, Service.FraxZero, Service.FraxZeroOneClick, Service.OneClickFraxZero].includes(service) ? "w-[118px] h-[24px]" : "w-[62px] h-[16px]",
           )}
         />
       </div>
@@ -81,7 +81,7 @@ const QuoteRoute = (props: any) => {
         <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
         <div className="flex items-center gap-[4px]">
           <img
-            src={stablecoinLogoMap[walletStore.selectedToken]}
+            src={data?.quoteParam?.toToken?.icon}
             alt=""
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />

@@ -383,7 +383,7 @@ export default class SolanaWallet {
       let composeMsg = null;
       if (isMultiHopComposer) {
         _dstEid = multiHopComposer.eid;
-        to = new Uint8Array(Buffer.from(addressToBytes32("evm", multiHopComposer.oftMultiHopComposer)));
+        to = getBytes(addressToBytes32(toToken.chainType, multiHopComposer.oftMultiHopComposer));
 
         let multiHopExtraOptions = Options.newOptions().toHex();
         if (lzReceiveOptionValue) {
@@ -1050,7 +1050,7 @@ export default class SolanaWallet {
 
     await safeFetchToken(umi, tokenAccount[0]);
 
-    const recipientAddressBytes32 = addressToBytes32(recipient);
+    const recipientAddressBytes32 = addressToBytes32(toToken.chainType, recipient);
     const amountLd = BigInt(amountWei);
     const minAmountLd = (amountLd * 99n) / 100n;
 

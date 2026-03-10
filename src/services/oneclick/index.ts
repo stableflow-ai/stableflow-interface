@@ -81,11 +81,11 @@ export class OneClickService {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
         //   return acc.plus(Big(item.fee).div(100));
         // }, Big(0)).toFixed(2) + "%";
-        // const netFee = Big(params.amount).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
+        // const netFee = Big(params.amountWei).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
         const netFee = Big(_amountInUsd).minus(_amountOutUsd);
         const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
           return acc.plus(
-            Big(params.amount)
+            Big(params.amountWei)
               .div(10 ** params.fromToken.decimals)
               .times(Big(item.fee).div(10000))
               .times(getPrice(params.prices, params.fromToken.symbol))
@@ -102,7 +102,7 @@ export class OneClickService {
           res.data.transferSourceGasFee = await params.wallet.estimateTransferGas({
             fromToken: params.fromToken,
             depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-            amount: params.amount,
+            amount: params.amountWei,
             account: params.refundTo,
           });
           const transferSourceGasFeeUsd = Big(res.data.transferSourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
@@ -148,7 +148,7 @@ export class OneClickService {
           fromToken: params.fromToken,
           refundTo: params.refundTo,
           recipient: params.recipient,
-          amountWei: isExactOutput ? res.data?.quote?.minAmountIn : params.amount,
+          amountWei: isExactOutput ? res.data?.quote?.minAmountIn : params.amountWei,
           prices: params.prices,
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };
@@ -198,7 +198,7 @@ export class OneClickService {
     slippageTolerance: number;
     originAsset: string;
     destinationAsset: string;
-    amount: string;
+    amountWei: string;
     refundTo: string;
     refundType: "ORIGIN_CHAIN";
     recipient: string;
@@ -217,7 +217,7 @@ export class OneClickService {
       dry,
       originAsset,
       destinationAsset,
-      amount,
+      amountWei,
       refundType,
       appFees,
       swapType,
@@ -237,11 +237,11 @@ export class OneClickService {
       referral: "stableflow",
       refundTo,
       recipient,
-      slippageTolerance,
+      slippageTolerance: slippageTolerance * 100,
       dry,
       originAsset,
       destinationAsset,
-      amount,
+      amount: amountWei,
       refundType,
     };
     if (appFees) {
@@ -251,7 +251,7 @@ export class OneClickService {
       ];
     }
     if (swapType === "EXACT_OUTPUT") {
-      quoteParams.amount = Big(amount || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
+      quoteParams.amount = Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
     }
 
     const res = await this.api.post("/quote", quoteParams);

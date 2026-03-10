@@ -15,6 +15,7 @@ import { allUsdtChains } from "@/config/tokens";
 import { buildEndpointV2LzComposePayload, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 import { OFT_ABI } from "@/services/usdt0/contract";
 import { csl } from "@/utils/log";
+import { createMulticall3, type Call } from "@/utils/multicall3";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -149,9 +150,11 @@ export default class RainbowWallet {
       spender,
       address,
       amountWei,
+      provider,
     } = params;
 
-    const contract = new ethers.Contract(contractAddress, erc20Abi, this.signer);
+    const runner = provider || this.provider;
+    const contract = new ethers.Contract(contractAddress, erc20Abi, runner);
 
     // get allowance
     let allowance = "0";
@@ -277,6 +280,7 @@ export default class RainbowWallet {
           spender: originLayerzeroAddress,
           address: refundTo,
           amountWei,
+          provider,
         });
         result.needApprove = allowanceResult.needApprove;
       } catch (error) {
@@ -673,6 +677,7 @@ export default class RainbowWallet {
       address: refundTo,
       spender: proxyAddress,
       amountWei,
+      provider,
     });
     result.needApprove = allowance.needApprove;
     // get approve gas cost
@@ -716,21 +721,22 @@ export default class RainbowWallet {
 
     const result: any = { fees: {} };
 
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
     try {
       const allowance = await this.allowance({
         contractAddress: fromToken.contractAddress,
         address: refundTo,
         spender: proxyAddress,
         amountWei: amountWei,
+        provider,
       });
       result.needApprove = allowance.needApprove;
       result.approveSpender = proxyAddress;
     } catch (error) {
       csl("EVM quoteOneClickProxy", "red-500", "check allowance failed: %o", error);
     }
-
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
 
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
     const proxyParam: any = [
@@ -931,6 +937,7 @@ export default class RainbowWallet {
         spender: remoteHop,
         address: refundTo,
         amountWei,
+        provider,
       });
       result.needApprove = allowanceResult.needApprove;
     } catch (error) {
@@ -1005,6 +1012,397 @@ export default class RainbowWallet {
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
     return result;
+  }
+
+  async preivewRedeemFrxUSD(params: any) {
+    const {
+      amountWei,
+      fromToken,
+      abi,
+      usdcCustodianAddress,
+      rwaCustodianAddress,
+    } = params;
+
+    csl("EVM preivewRedeemAndMintFrxUSD", "blue-700", "params: %o", params);
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    // Get maxSharesRedeemable (index 3) from mdwrComboView for both custodians
+    const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
+    const rwaCustodian = new ethers.Contract(rwaCustodianAddress, abi, provider);
+
+    const [usdcView, rwaView] = await Promise.all([
+      usdcCustodian.mdwrComboView.staticCall(),
+      rwaCustodian.mdwrComboView.staticCall(),
+    ]);
+
+    const maxUsdc = usdcView[3]; // maxSharesRedeemable
+    const maxRwa = rwaView[3]; // maxSharesRedeemable
+
+    const amountWeiBigInt = BigInt(amountWei || 0);
+    const totalMax = maxUsdc + maxRwa;
+
+    let totalAssetsOut = 0n;
+
+    if (amountWeiBigInt <= maxUsdc) {
+      // USDC path only
+      const assetsOut = await usdcCustodian.previewRedeem.staticCall(amountWeiBigInt);
+      totalAssetsOut = assetsOut;
+    } else {
+      // USDC first (maxUsdc), then RWA for remainder
+      if (maxUsdc > 0n) {
+        const usdcAssetsOut = await usdcCustodian.previewRedeem.staticCall(maxUsdc);
+        totalAssetsOut += usdcAssetsOut;
+      }
+      const rwaAmount = amountWeiBigInt - maxUsdc;
+      if (rwaAmount > 0n) {
+        const rwaAssetsOut = await rwaCustodian.previewRedeem.staticCall(rwaAmount);
+        totalAssetsOut += rwaAssetsOut;
+      }
+    }
+
+    return {
+      maxUsdc,
+      maxRwa,
+      amountWeiBigInt,
+      totalMax,
+      totalAssetsOut,
+    };
+  }
+
+  async previewMintFrxUSD(params: any) {
+    const {
+      amountWei,
+      fromToken,
+      abi,
+      usdcCustodianAddress,
+    } = params;
+
+    csl("EVM previewMintFrxUSD", "blue-700", "params: %o", params);
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    // Get maxAssetsDepositable (index 0) from mdwrComboView for both custodians
+    const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
+
+    const usdcView = await usdcCustodian.mdwrComboView.staticCall();
+
+    const maxUsdc = usdcView[0]; // maxAssetsDepositable
+
+    const amountWeiBigInt = BigInt(amountWei || 0);
+    const totalMax = maxUsdc;
+
+    const totalAssetsOut = await usdcCustodian.previewDeposit.staticCall(amountWeiBigInt);
+
+    return {
+      maxUsdc,
+      amountWeiBigInt,
+      totalMax,
+      totalAssetsOut,
+    };
+  }
+
+  /**
+   * Redeem frxUSD to USDC via USDC and/or RWA custodian contracts.
+   * Uses mdwrComboView to get max redeemable liquidity and splits redemption across USDC/RWA paths.
+   * Uses previewRedeem to get accurate output amount (USDC).
+   */
+  async redeemFrxUSD(params: any) {
+    const {
+      recipient,
+      amountWei,
+      fromToken,
+      toToken,
+      prices,
+      refundTo,
+      abi,
+      usdcCustodianAddress,
+      rwaCustodianAddress,
+    } = params;
+
+    csl("EVM redeemFrxUSD", "blue-700", "params: %o", params);
+
+    // Ethereum average block time ~12s, random ±5 seconds
+    const ETH_AVG_BLOCK_TIME = 12;
+    const estimateTime = (ETH_AVG_BLOCK_TIME * 2) + Math.floor(Math.random() * 11) - 5;
+
+    const result: any = {
+      needApprove: [false, false], // set after allowance check below
+      approveSpender: [usdcCustodianAddress, rwaCustodianAddress],
+      sendParam: void 0,
+      quoteParam: {
+        ...params,
+      },
+      fees: {},
+      totalFeesUsd: 0,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: 0,
+      estimateTime,
+      outputAmount: "0",
+    };
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    const redeemInterface = new ethers.Interface(abi as any);
+
+    const {
+      maxUsdc,
+      maxRwa,
+      amountWeiBigInt,
+      totalMax,
+      totalAssetsOut,
+    } = await this.preivewRedeemFrxUSD(params);
+
+    // Validate liquidity: revert if amount exceeds available redeemable
+    if (amountWeiBigInt > totalMax) {
+      throw new Error("Insufficient redeemable liquidity available");
+    }
+
+    // Amount needed per spender based on redeem path
+    const usdcAmountNeeded = amountWeiBigInt <= maxUsdc ? amountWeiBigInt : maxUsdc;
+    const rwaAmountNeeded = amountWeiBigInt <= maxUsdc ? 0n : amountWeiBigInt - maxUsdc;
+
+    // Check allowance via RainbowWallet.allowance for each custodian
+    const [usdcAllowanceResult, rwaAllowanceResult] = await Promise.all([
+      usdcAmountNeeded > 0n
+        ? this.allowance({
+          contractAddress: fromToken.contractAddress,
+          spender: usdcCustodianAddress,
+          address: refundTo,
+          amountWei: usdcAmountNeeded.toString(),
+          provider,
+        })
+        : Promise.resolve({ needApprove: false }),
+      rwaAmountNeeded > 0n
+        ? this.allowance({
+          contractAddress: fromToken.contractAddress,
+          spender: rwaCustodianAddress,
+          address: refundTo,
+          amountWei: rwaAmountNeeded.toString(),
+          provider,
+        })
+        : Promise.resolve({ needApprove: false }),
+    ]);
+
+    result.needApprove = [
+      usdcAmountNeeded > 0n ? usdcAllowanceResult.needApprove : false,
+      rwaAmountNeeded > 0n ? rwaAllowanceResult.needApprove : false,
+    ];
+
+    // Build redeem calls and get output via previewRedeem for each path
+    const calls: { target: string; callData: string }[] = [];
+
+    if (amountWeiBigInt <= maxUsdc) {
+      // USDC path only
+      calls.push({
+        target: usdcCustodianAddress,
+        callData: redeemInterface.encodeFunctionData("redeem", [
+          amountWeiBigInt,
+          recipient,
+          refundTo,
+        ]),
+      });
+    } else {
+      // USDC first (maxUsdc), then RWA for remainder
+      if (maxUsdc > 0n) {
+        calls.push({
+          target: usdcCustodianAddress,
+          callData: redeemInterface.encodeFunctionData("redeem", [
+            maxUsdc,
+            recipient,
+            refundTo,
+          ]),
+        });
+      }
+      const rwaAmount = amountWeiBigInt - maxUsdc;
+      if (rwaAmount > 0n) {
+        calls.push({
+          target: rwaCustodianAddress,
+          callData: redeemInterface.encodeFunctionData("redeem", [
+            rwaAmount,
+            recipient,
+            refundTo,
+          ]),
+        });
+      }
+    }
+
+    // outputAmount = USDC amount (6 decimals), human-readable
+    result.outputAmount = numberRemoveEndZero(
+      Big(totalAssetsOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
+    );
+
+    result.sendParam = {
+      multicallCalls: calls,
+      chainId: fromToken.chainId,
+    };
+
+    // Estimate gas for multicall aggregate and compute fees
+    if (fromToken.nativeToken) {
+      try {
+        const multicall = createMulticall3(provider, fromToken.chainId);
+        let gasLimit = DEFAULT_GAS_LIMIT;
+        try {
+          const estimated = await multicall.estimateAggregateGas(calls);
+          gasLimit = (estimated * 120n) / 100n;
+        } catch {
+          // use default if estimation fails
+        }
+        const { usd, wei } = await this.getEstimateGas({
+          gasLimit,
+          price: getPrice(prices, fromToken.nativeToken.symbol),
+          nativeToken: fromToken.nativeToken,
+          provider,
+        });
+        result.fees.estimateGasUsd = usd;
+        result.estimateSourceGas = wei;
+        result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+        result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      } catch {
+        // skip gas estimation if multicall not available for chain
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Mint frxUSD by depositing USDC into the custodian contract.
+   * Calls deposit(assetsIn, receiver) on usdcCustodianAddress.
+   * assetsIn = USDC amount (6 decimals), sharesOut = frxUSD amount (18 decimals).
+   */
+  async mintFrxUSD(params: any) {
+    const {
+      recipient,
+      amountWei,
+      fromToken,
+      toToken,
+      prices,
+      refundTo,
+      abi,
+      usdcCustodianAddress,
+    } = params;
+
+    csl("EVM mintFrxUSD", "blue-700", "params: %o", params);
+
+    // Ethereum average block time ~12s, estimateTime = 12*2 + random(-5, 5) seconds
+    const ETH_AVG_BLOCK_TIME = 12;
+    const estimateTime = (ETH_AVG_BLOCK_TIME * 2) + Math.floor(Math.random() * 11) - 5;
+
+    const result: any = {
+      needApprove: false,
+      approveSpender: usdcCustodianAddress,
+      sendParam: void 0,
+      quoteParam: {
+        ...params,
+      },
+      fees: {},
+      totalFeesUsd: 0,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: 0,
+      estimateTime,
+      outputAmount: "0",
+    };
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    const amountWeiBigInt = BigInt(amountWei || 0);
+
+    // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
+    try {
+      const allowanceResult = await this.allowance({
+        contractAddress: fromToken.contractAddress,
+        spender: usdcCustodianAddress,
+        address: refundTo,
+        amountWei,
+        provider,
+      });
+      result.needApprove = allowanceResult.needApprove;
+    } catch (error) {
+      csl("EVM mintFrxUSD", "red-500", "Error checking allowance: %o", error);
+    }
+
+    // Get sharesOut via previewDeposit (frxUSD amount in 18 decimals)
+    const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
+    const usdcCustodianWithSigner = new ethers.Contract(usdcCustodianAddress, abi, this.signer);
+
+    let sharesOut = 0n;
+    try {
+      sharesOut = await usdcCustodian.previewDeposit.staticCall(amountWeiBigInt);
+    } catch (error) {
+      csl("EVM mintFrxUSD", "red-500", "Error calling previewDeposit: %o", error);
+      return result;
+    }
+
+    result.outputAmount = numberRemoveEndZero(
+      Big(sharesOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
+    );
+
+    // Build sendParam for deposit(assetsIn, receiver)
+    let depositGasLimit = DEFAULT_GAS_LIMIT;
+    try {
+      const gasLimit = await usdcCustodianWithSigner.deposit.estimateGas(amountWeiBigInt, recipient);
+      depositGasLimit = (gasLimit * 120n) / 100n;
+    } catch {
+      // use default if estimation fails
+    }
+
+    result.sendParam = {
+      contract: usdcCustodianWithSigner,
+      method: "deposit",
+      param: [
+        amountWeiBigInt,
+        recipient,
+        { gasLimit: depositGasLimit },
+      ],
+    };
+
+    // Estimate gas fees
+    if (fromToken.nativeToken) {
+      try {
+        const { usd, wei } = await this.getEstimateGas({
+          gasLimit: depositGasLimit,
+          price: getPrice(prices, fromToken.nativeToken.symbol),
+          nativeToken: fromToken.nativeToken,
+          provider,
+        });
+        result.fees.estimateGasUsd = usd;
+        result.estimateSourceGas = wei;
+        result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+        result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
+      } catch {
+        // skip gas estimation on error
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Execute multicall batch transaction (e.g. redeem frxUSD via multiple custodian contracts).
+   * Uses utils/multicall3 for transaction submission.
+   * @param params Must contain multicallCalls: { target, callData }[] and chainId
+   * @returns Transaction hash
+   */
+  async sendBatchCall(params: any) {
+    const { multicallCalls, chainId } = params;
+
+    if (!multicallCalls?.length || !chainId) {
+      throw new Error("sendBatchCall requires multicallCalls and chainId");
+    }
+
+    try {
+      const multicall = createMulticall3(this.provider, chainId);
+      return await multicall.sendAggregate(multicallCalls as Call[], this.signer);
+    } catch (error: any) {
+      csl("EVM sendBatchCall", "red-500", "Error executing multicall: %o", error);
+      const msg = error?.message?.includes("user rejected") ? error.message : "Transaction failed";
+      throw new Error(msg);
+    }
   }
 
   async retryLayerzeroLzComponse(params: any) {
@@ -1145,9 +1543,14 @@ export default class RainbowWallet {
     const nonce = await erc20.nonces(account);
     const name = await erc20.name();
 
+    let _version = "1";
+    if (fromToken.symbol === "USDC") {
+      _version = "2";
+    }
+
     const domain = {
       name,
-      version: "1",
+      version: _version,
       chainId: Number(chainId),
       verifyingContract: tokenAddress
     };

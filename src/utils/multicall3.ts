@@ -351,6 +351,39 @@ export class Multicall3 {
       return false;
     }
   }
+
+  /**
+   * Estimate gas for aggregate call (read-only, no signer required)
+   * @param calls Array of calls
+   * @returns Estimated gas limit
+   */
+  async estimateAggregateGas(calls: Call[]): Promise<bigint> {
+    return await this.contract.aggregate.estimateGas(calls);
+  }
+
+  /**
+   * Send aggregate transaction (requires signer for transaction submission)
+   * @param calls Array of calls
+   * @param signer ethers Signer instance (e.g. wallet)
+   * @param options Optional gas/fee overrides
+   * @returns Transaction hash
+   */
+  async sendAggregate(
+    calls: Call[],
+    signer: ethers.Signer,
+    options?: Multicall3Options
+  ): Promise<string> {
+    const multicallAddress = await this.contract.getAddress();
+    const contractWithSigner = new ethers.Contract(multicallAddress, MULTICALL3_ABI, signer);
+    const overrides: any = {};
+    if (options?.gasLimit) overrides.gasLimit = options.gasLimit;
+    if (options?.gasPrice) overrides.gasPrice = options.gasPrice;
+    if (options?.maxFeePerGas) overrides.maxFeePerGas = options.maxFeePerGas;
+    if (options?.maxPriorityFeePerGas) overrides.maxPriorityFeePerGas = options.maxPriorityFeePerGas;
+
+    const tx = await contractWithSigner.aggregate(calls, Object.keys(overrides).length ? overrides : undefined);
+    return tx.hash;
+  }
 }
 
 /**
