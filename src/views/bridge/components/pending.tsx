@@ -427,9 +427,9 @@ const BridgeRoute = (props: any) => {
   } = props;
 
   const txExplorerUrl = (chain: any) => {
-    if (project === TradeProject.USDT0) {
-      return "https://layerzeroscan.com/tx";
-    }
+    // if (project === TradeProject.USDT0) {
+    //   return "https://layerzeroscan.com/tx";
+    // }
     return chain?.blockExplorerUrl;
   };
 
