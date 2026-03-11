@@ -10,7 +10,7 @@ export default function TonProvider({
   children: React.ReactNode;
 }) {
   return (
-    <TonConnectUIProvider manifestUrl={`https://stableflow.jimmygu.com/tonconnect-manifest.json`}>
+    <TonConnectUIProvider manifestUrl={`https://tools.gujihong.com/stableflow-test-tonconnect-manifest.json`}>
       <WalletProvider>
         {children}
       </WalletProvider>
