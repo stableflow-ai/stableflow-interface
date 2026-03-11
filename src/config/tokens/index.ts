@@ -80,6 +80,8 @@ export const stablecoinLogoMap: Record<string, string> = {
   "USDT": "/usdt.png",
   "USDC": "/usdc.png",
   "USD₮0": "/usdt0.png",
+  "USDT0": "/usdt0.png",
+  "USD₮": "/usdt0.png",
   "frxUSD": "/frxusd.png",
 };
 
