@@ -51,7 +51,7 @@ import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 export const metadata = {
   name: "StableFlow.ai",
-  description: "Stablecoins to any chain, with one click.",
+  description: "Move stablecoins anywhere.",
   // origin must match your domain & subdomain
   url: "https://app.stableflow.ai",
   icons: ["/logo.svg"]
