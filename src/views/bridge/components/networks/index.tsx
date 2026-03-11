@@ -45,7 +45,7 @@ export default function Networks({ addressValidation }: any) {
     <div className="w-full px-[10px] md:px-0">
       <div className="w-full flex justify-between items-center">
         <div className="text-[#444C59] text-[14px] md:text-[16px] w-full block">
-          Stablecoins to any chain, with one click.
+          Move stablecoins anywhere.
         </div>
         <Setting />
       </div>
