@@ -88,6 +88,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
           fromToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
           wallet: middleChainWallet,
           amountWei: estimateEthereumFrxUSDAmountWei.toString(),
+          refundTo: middleChainRecipientAddress,
         });
       }
       csl("OneClick2FraxZeroService quote", "yellow-600", "NOT FromEthereumUSDC secondStepResult: %o", secondStepResult);
@@ -170,11 +171,6 @@ export class OneClick2FraxZeroService extends FraxZeroService {
           ...firstStepResult.sendParam,
           isFromEthereumUSDC,
           isToEthereumFrxUSD,
-          isToSolana,
-          isToFraxtal,
-          isSend,
-          middleChainWallet,
-          switchChainAsync,
         },
       };
     }
@@ -194,6 +190,11 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         ...firstStepResult,
         quoteParam: {
           ...firstStepResult.quoteParam,
+          isFromEthereumUSDC,
+          isToEthereumFrxUSD,
+        },
+        sendParam: {
+          ...firstStepResult.sendParam,
           isFromEthereumUSDC,
           isToEthereumFrxUSD,
         },
@@ -260,7 +261,28 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         isFromEthereumUSDC,
         isToEthereumFrxUSD,
       },
+      sendParam: {
+        ...firstStepResult.sendParam,
+        isFromEthereumUSDC,
+        isToEthereumFrxUSD,
+      },
     };
+  }
+
+  public override async send(params: any) {
+    const {
+      wallet,
+      sendParam,
+      ...rest
+    } = params;
+
+    // proxy transfer
+    if (sendParam) {
+      const tx = await wallet.send(SendType.SEND, sendParam);
+      return tx;
+    }
+
+    return wallet.send(SendType.SEND, rest);
   }
 }
 
