@@ -130,11 +130,13 @@ export default function useBridge(props?: any) {
         };
         if (service === Service.OneClick) {
           const _bridgeFee = BridgeFee[0];
+          const _fromTokenSymbol = _params.fromToken.symbol === "USD₮0" ? "USDT" : _params.fromToken.symbol;
+          const _toTokenSymbol = _params.toToken.symbol === "USD₮0" ? "USDT" : _params.toToken.symbol;
           if (
             // 1. bridge chains is bsc / tron
             (_bridgeFee.includeChains.includes(_params.fromToken.blockchain) || _bridgeFee.includeChains.includes(_params.toToken.blockchain))
             // 2. is swap
-            || _params.fromToken.blockchain === _params.toToken.blockchain
+            || _fromTokenSymbol !== _toTokenSymbol
           ) {
             _params.appFees = [{
               recipient: _bridgeFee.recipient,
