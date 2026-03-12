@@ -60,6 +60,7 @@ export default function Wallet() {
                 }}
                 balances={balancesStore.evmBalances}
                 // loading={loading}
+                // totalLoading={walletStore.evmBalancesLoading}
                 totalBalance={balancesStore.evmBalances[`${walletStore.selectedToken.toLowerCase()}Balance`]}
               />
               <TokenChains
