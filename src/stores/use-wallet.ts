@@ -8,6 +8,7 @@ interface WalletState {
   fromToken: any;
   toToken: any;
   isTo: boolean;
+  evmBalancesLoading: boolean;
   set: (params: any) => void;
 }
 
@@ -20,6 +21,7 @@ const useWalletStore = create<WalletState>()(
       fromToken: null,
       toToken: null,
       isTo: false,
+      evmBalancesLoading: false,
       set: (params) => set(() => ({ ...params }))
     }),
     {

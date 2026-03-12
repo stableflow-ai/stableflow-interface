@@ -10,7 +10,15 @@ const evmTokenChains = [
   usdt0Evm.chains,
   frxusdEvm.chains,
 ];
-export const evmBalancesTokens: { chain_id: number; tokens: string[]; decimals: number[]; }[] = (() => {
+
+export interface EvmBalancesToken {
+  chain_id: number;
+  tokens: string[];
+  decimals: number[];
+  symbols: string[];
+}
+
+export const evmBalancesTokens: EvmBalancesToken[] = (() => {
   const map: any = {};
   for (const chains of evmTokenChains) {
     chains.forEach((chain: any) => {
