@@ -144,7 +144,7 @@ const ResultUsdt0OneClick = (props: any) => {
                     isOneClickExchangeToken ? (
                       <ResultFeeItem
                         label="Exchange Rate"
-                        loading={bridgeStore.getQuoting(Service.OneClick)}
+                        loading={bridgeStore.getQuoting(service)}
                         isFormat={false}
                       >
                         1 {_quoteData?.quoteParam.fromToken.symbol} ~ {fees?.exchangeRate} {_quoteData?.quoteParam.toToken.symbol}
