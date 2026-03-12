@@ -1059,31 +1059,6 @@ export default class SolanaWallet {
       throw new Error("ALT not found");
     }
 
-    try {
-      await oft.quote(
-        umi.rpc,
-        {
-          payer: userPubkey,
-          tokenMint: oftMint,
-          tokenEscrow: oftEscrow,
-        },
-        {
-          payInLzToken: false,
-          to: Buffer.from(recipientAddressBytes32),
-          dstEid: dstEid,
-          amountLd,
-          minAmountLd,
-          options: Buffer.from(""),
-          composeMsg: undefined,
-        },
-        {
-          oft: oftProgramId,
-        },
-      );
-    } catch (error) {
-      csl("Solana quoteFraxZero", "red-500", "oft.quote failed: %o", error);
-    }
-
     let { nativeFee, lzTokenFee } = await oft.quote(
       umi.rpc,
       {
@@ -1093,7 +1068,7 @@ export default class SolanaWallet {
       },
       {
         payInLzToken: false,
-        to: Buffer.from(recipientAddressBytes32),
+        to: getBytes(recipientAddressBytes32),
         dstEid: dstEid,
         amountLd,
         minAmountLd,
@@ -1110,7 +1085,7 @@ export default class SolanaWallet {
 
     csl("Solana quoteFraxZero", "purple-500", "recipientAddress: %o", recipient);
     csl("Solana quoteFraxZero", "purple-500", "recipientAddressBytes32: %o", recipientAddressBytes32);
-    csl("Solana quoteFraxZero", "purple-500", "Buffer.from(recipientAddressBytes32): %o", Buffer.from(recipientAddressBytes32));
+    csl("Solana quoteFraxZero", "purple-500", "recipientAddressBytes32 buffer: %o", getBytes(recipientAddressBytes32));
 
     const ix = await oft.send(
       umi.rpc,
@@ -1124,7 +1099,7 @@ export default class SolanaWallet {
         tokenSource: tokenAccount[0],
       },
       {
-        to: Buffer.from(recipientAddressBytes32),
+        to: getBytes(recipientAddressBytes32),
         dstEid,
         amountLd,
         minAmountLd,
