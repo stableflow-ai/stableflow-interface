@@ -6,8 +6,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState, useMemo } from "react";
 import ResultFeeItem from "./fee-item";
 import { Service } from "@/services/constants";
-import { BridgeFee } from "@/services/oneclick";
 import { formatNumber } from "@/utils/format/number";
+import { BridgeFee } from "@/services/oneclick";
 
 const ResultOneClick = (props: any) => {
   const { } = props;
@@ -20,11 +20,12 @@ const ResultOneClick = (props: any) => {
 
   const { run: calculateFees } = useDebounceFn(() => {
     const slippage = Big(configStore.slippage).toFixed(2) + "%";
-    const totalBridgeFee = BridgeFee.reduce((acc, item) => {
+    const totalBridgeFee = BridgeFee.reduce?.((acc: any, item: any) => {
       return acc.plus(Big(item.fee).div(100));
-    }, Big(0));
+    }, Big(0)) ?? 0;
     const totalBridgeFeeLabel = totalBridgeFee.toFixed(2) + "%";
     const totalBridgeFeeValue = Big(bridgeStore.amount || 0).times(Big(totalBridgeFee).div(100));
+    const isDelBridgeFee = !_quoteData?.quoteParam?.appFees;
 
     if (
       !bridgeStore.amount
@@ -39,6 +40,7 @@ const ResultOneClick = (props: any) => {
         netFee: 0,
         exchangeRate: 1,
         slippage,
+        isDelBridgeFee: false,
       });
       return;
     }
@@ -50,12 +52,13 @@ const ResultOneClick = (props: any) => {
       netFee: _quoteData?.fees?.destinationGasFeeUsd,
       exchangeRate: formatNumber(_quoteData?.exchangeRate, 6, true, { round: Big.roundDown }),
       slippage,
+      isDelBridgeFee,
     });
   }, { wait: 500 });
 
   useEffect(() => {
     calculateFees();
-  }, [bridgeStore, configStore.slippage]);
+  }, [bridgeStore, configStore.slippage, _quoteData]);
 
   const isExchangeToken = useMemo(() => {
     const fromTokenSymbol = _quoteData?.quoteParam?.fromToken?.symbol === "USD₮0" ? "USDT" : _quoteData?.quoteParam?.fromToken?.symbol;
@@ -95,12 +98,12 @@ const ResultOneClick = (props: any) => {
             <ResultFeeItem
               label={(
                 <>
-                  Bridge fee({fees?.bridgeFee})
+                  Bridge fee(<span className={fees?.isDelBridgeFee ? "line-through [text-decoration-color:#F00]" : ""}>{fees?.bridgeFee}</span>)
                 </>
               )}
               precision={2}
               loading={bridgeStore.getQuoting(Service.OneClick)}
-              isDelete={false}
+              isDelete={fees?.isDelBridgeFee}
             >
               {fees?.bridgeFeeValue}
             </ResultFeeItem>

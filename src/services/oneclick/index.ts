@@ -11,6 +11,7 @@ import { csl } from "@/utils/log";
 
 export const BridgeFee = [
   {
+    includeChains: ["bsc", "tron"],
     recipient: "reffer.near",
     // No bridge fee will be charged temporarily
     fee: 1, // 100=1% 1=0.01%
@@ -35,7 +36,7 @@ class OneClickService {
 
   public async formatQuoteData(res: { data: any; params: any; }) {
     const { params } = res;
-    const { isProxy = true } = params;
+    const { isProxy = true, appFees = [] } = params;
 
     const isFromTron = params.fromToken.chainType === "tron";
     const isFromTronEnergy = isFromTron && params.acceptTronEnergy;
@@ -78,12 +79,8 @@ class OneClickService {
       }
 
       try {
-        // const bridgeFee = BridgeFee.reduce((acc, item) => {
-        //   return acc.plus(Big(item.fee).div(100));
-        // }, Big(0)).toFixed(2) + "%";
-        // const netFee = Big(params.amount).div(10 ** params.fromToken.decimals).minus(Big(res.data?.quote?.amountOut || 0).div(10 ** params.toToken.decimals));
         const netFee = Big(_amountInUsd).minus(_amountOutUsd);
-        const bridgeFeeValue = BridgeFee.reduce((acc, item) => {
+        const bridgeFeeValue = appFees.reduce((acc: any, item: any) => {
           return acc.plus(
             Big(params.amount)
               .div(10 ** params.fromToken.decimals)
@@ -223,7 +220,7 @@ class OneClickService {
       swapType,
     } = params;
 
-    const quoteParams = {
+    const quoteParams: any = {
       depositMode: "SIMPLE",
       swapType: swapType || "EXACT_INPUT",
       depositType: "ORIGIN_CHAIN",
@@ -233,7 +230,7 @@ class OneClickService {
       recipientType: "DESTINATION_CHAIN",
       deadline: new Date(Date.now() + this.offsetTime).toISOString(),
       quoteWaitingTimeMs: 3000,
-      appFees: BridgeFee,
+      appFees,
       referral: "stableflow",
       refundTo,
       recipient,
@@ -244,12 +241,6 @@ class OneClickService {
       amount,
       refundType,
     };
-    if (appFees) {
-      quoteParams.appFees = [
-        ...BridgeFee,
-        ...appFees,
-      ];
-    }
     if (swapType === "EXACT_OUTPUT") {
       quoteParams.amount = Big(amount || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
     }

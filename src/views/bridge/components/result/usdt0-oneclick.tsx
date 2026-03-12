@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import ResultFeeItem from "./fee-item";
 import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
-import { BridgeFee } from "@/services/oneclick";
 
 const ResultUsdt0OneClick = (props: any) => {
   const { service } = props;
@@ -20,9 +19,10 @@ const ResultUsdt0OneClick = (props: any) => {
 
   const { run: calculateFees } = useDebounceFn(() => {
     const slippage = Big(configStore.slippage).toFixed(2) + "%";
-    const totalBridgeFee = BridgeFee.reduce((acc, item) => {
+    const bridgeFee: any = [];
+    const totalBridgeFee = bridgeFee.reduce((acc: any, item: any) => {
       return acc.plus(Big(item.fee).div(100));
-    }, Big(0));
+    }, Big(0)) ?? 0;
     const totalBridgeFeeLabel = totalBridgeFee.toFixed(2) + "%";
     const totalBridgeFeeValue = Big(bridgeStore.amount || 0).times(Big(totalBridgeFee).div(100));
 
@@ -119,7 +119,7 @@ const ResultUsdt0OneClick = (props: any) => {
                 </ResultFeeItem>
               )
             }
-            <ResultFeeItem
+            {/* <ResultFeeItem
               label={(
                 <>
                   Bridge fee({fees?.bridgeFee})
@@ -130,7 +130,7 @@ const ResultUsdt0OneClick = (props: any) => {
               isDelete={false}
             >
               {fees?.bridgeFeeValue}
-            </ResultFeeItem>
+            </ResultFeeItem> */}
           </motion.div>
         )
       }

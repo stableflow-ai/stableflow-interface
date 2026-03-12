@@ -128,6 +128,20 @@ export default function useBridge(props?: any) {
           prices,
           slippageTolerance: configStore.slippage,
         };
+        if (service === Service.OneClick) {
+          const _bridgeFee = BridgeFee[0];
+          if (
+            // 1. bridge chains is bsc / tron
+            (_bridgeFee.includeChains.includes(_params.fromToken.blockchain) || _bridgeFee.includeChains.includes(_params.toToken.blockchain))
+            // 2. is swap
+            || _params.fromToken.blockchain === _params.toToken.blockchain
+          ) {
+            _params.appFees = [{
+              recipient: _bridgeFee.recipient,
+              fee: _bridgeFee.fee,
+            }];
+          }
+        }
         if (([Service.OneClick, Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
           _params.dry = params.dry;
           _params.slippageTolerance = configStore.slippage * 100;
@@ -153,8 +167,8 @@ export default function useBridge(props?: any) {
               const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
               _params.appFees = [
                 {
-                  recipient: BridgeFee[0].recipient,
-                  fee: BridgeFee[0].fee + fixedFeePercentage,
+                  recipient: _params.appFees[0].recipient,
+                  fee: _params.appFees[0].fee + fixedFeePercentage,
                 },
               ];
             }
