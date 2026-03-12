@@ -30,6 +30,14 @@ const ResultUsdt0OneClick = (props: any) => {
       oneclickFromToken = _quoteData?.quoteParam?.fromToken;
       oneclickToToken = _quoteData?.quoteParam?.middleToken;
     }
+    if (service === Service.FraxZeroOneClick) {
+      oneclickFromToken = _quoteData?.quoteParam?.middleToken;
+      oneclickToToken = _quoteData?.quoteParam?.toToken;
+    }
+    if (service === Service.OneClickFraxZero) {
+      oneclickFromToken = _quoteData?.quoteParam?.fromToken;
+      oneclickToToken = _quoteData?.quoteParam?.middleToken;
+    }
     const isBridgeFee = checkIsBridgeFee({
       fromToken: oneclickFromToken,
       toToken: oneclickToToken,

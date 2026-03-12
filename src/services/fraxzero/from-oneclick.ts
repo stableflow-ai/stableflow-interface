@@ -162,6 +162,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
           ...firstStepResult.quoteParam,
           toToken: params.toToken,
           middleToken: FRAXZERO_MIDDLE_TOKEN_USDC,
+          middleToken2: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
           recipient: params.recipient,
           depositAddress: firstStepResult.quote?.depositAddress,
           isFromEthereumUSDC,
@@ -190,6 +191,8 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         ...firstStepResult,
         quoteParam: {
           ...firstStepResult.quoteParam,
+          middleToken: FRAXZERO_MIDDLE_TOKEN_USDC,
+          middleToken2: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
           isFromEthereumUSDC,
           isToEthereumFrxUSD,
         },
@@ -258,6 +261,8 @@ export class OneClick2FraxZeroService extends FraxZeroService {
       outputAmount: secondStepResult.outputAmount,
       quoteParam: {
         ...firstStepResult.quoteParam,
+        middleToken: FRAXZERO_MIDDLE_TOKEN_USDC,
+        middleToken2: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
         isFromEthereumUSDC,
         isToEthereumFrxUSD,
       },
