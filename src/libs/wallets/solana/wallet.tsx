@@ -1108,6 +1108,10 @@ export default class SolanaWallet {
     nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;
     csl("Solana quoteFraxZero", "purple-500", "nativeFee after buffer: %o", nativeFee);
 
+    csl("Solana quoteFraxZero", "purple-500", "recipientAddress: %o", recipient);
+    csl("Solana quoteFraxZero", "purple-500", "recipientAddressBytes32: %o", recipientAddressBytes32);
+    csl("Solana quoteFraxZero", "purple-500", "Buffer.from(recipientAddressBytes32): %o", Buffer.from(recipientAddressBytes32));
+
     const ix = await oft.send(
       umi.rpc,
       {
@@ -1135,6 +1139,8 @@ export default class SolanaWallet {
       },
     );
 
+    csl("Solana quoteFraxZero", "purple-500", "ix: %o", ix);
+
     const web3Instruction = toWeb3JsInstruction(ix.instruction);
     const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
       units: 400000, // Increase to 400k units (default is 200k)
@@ -1146,6 +1152,8 @@ export default class SolanaWallet {
       instructions: [computeBudgetIx, web3Instruction],
     }).compileToV0Message([lookupTableAccount]);
     const transaction = new VersionedTransaction(messageV0);
+
+    csl("Solana quoteFraxZero", "purple-500", "transaction: %o", transaction);
 
     result.sendParam = {
       transaction,
