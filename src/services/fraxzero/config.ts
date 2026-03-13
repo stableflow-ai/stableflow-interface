@@ -85,11 +85,11 @@ export const FRAXZERO_REDEEM_AND_MINT_CONTRACT = "0x6f4042401823a97E3b02F1A533e6
 
 // gas amount = gas limit * gas price
 export const FRAXZERO_GAS_USED = {
-  REDEEM: 358964n,
+  REDEEM: 0n, // 358964n
   MINT: {
-    TO_SOL: 756271n,
-    TO_FRAXTAL: 660997n,
-    TO_ETHEREUM: 334550n,
-    SEND: 756271n,
+    TO_SOL: 0n, // 756271n
+    TO_FRAXTAL: 0n, // 660997n
+    TO_ETHEREUM: 0n, // 334550n
+    SEND: 0n, // 756271n
   },
 };
