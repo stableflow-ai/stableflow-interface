@@ -140,20 +140,19 @@ export default function useEvmBalances(auto = false) {
       const unsupportedChainIds = _evmBalancesTokens.map((token) => Object.keys(_data).includes(token.chain_id.toString()) ? null : token.chain_id).filter(Boolean);
       const unsupportedBalances: any = {};
       csl("useEvmBalances", "pink-700", "unsupportedChainIds: %o", unsupportedChainIds);
-      // get unsupported tokens balances from provider
+      // get unsupported tokens balances from provider (fully concurrent)
+      const allBalancePromises: Array<{ chainId: number; promise: Promise<{ address: string; decimals: number; balance: string; format: string }> }> = [];
       for (const token of _evmBalancesTokens) {
-        if (isRequestStale()) break;
         const _token: any = token;
-        if (unsupportedChainIds.includes(_token.chain_id)) {
-          const currentChain: any = Object.values(chains).find((chain: any) => chain.chainId === _token.chain_id);
-          if (!currentChain) {
-            return;
-          }
+        if (!unsupportedChainIds.includes(_token.chain_id)) continue;
+        const currentChain: any = Object.values(chains).find((chain: any) => chain.chainId === _token.chain_id);
+        if (!currentChain) continue;
 
-          const providers = currentChain.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, currentChain.chainId));
-          const provider = new ethers.FallbackProvider(providers);
+        const providers = currentChain.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, currentChain.chainId));
+        const provider = new ethers.FallbackProvider(providers);
 
-          const balancePromises = _token.tokens.map(async (address: string) => {
+        for (const address of _token.tokens) {
+          const promise = (async () => {
             const _result = {
               address,
               decimals: 6,
@@ -171,11 +170,19 @@ export default function useEvmBalances(auto = false) {
             } catch (error) { }
 
             return _result;
-          });
+          })();
+          allBalancePromises.push({ chainId: _token.chain_id, promise });
+        }
+      }
 
-          const balances = await Promise.allSettled(balancePromises);
-          const validBalances = balances.filter((balance) => balance.status === "fulfilled").map((balance) => balance.value);
-          unsupportedBalances[_token.chain_id] = validBalances;
+      const allResults = await Promise.allSettled(allBalancePromises.map(({ promise }) => promise));
+      for (let i = 0; i < allBalancePromises.length; i++) {
+        if (isRequestStale()) break;
+        const { chainId } = allBalancePromises[i];
+        const result = allResults[i];
+        if (result.status === "fulfilled") {
+          if (!unsupportedBalances[chainId]) unsupportedBalances[chainId] = [];
+          unsupportedBalances[chainId].push(result.value);
         }
       }
       csl("useEvmBalances", "pink-700", "unsupportedBalances: %o", unsupportedBalances);
