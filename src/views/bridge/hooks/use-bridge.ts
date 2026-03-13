@@ -622,6 +622,13 @@ export default function useBridge(props?: any) {
         _amount = _quote.data.quote.minAmountIn;
       }
 
+      // check latest balance
+      const { wei: latestBalanceWei } = await getBalance();
+      csl("transfer", "teal-400", "latest balance: %s", latestBalanceWei.toString());
+      if (Big(latestBalanceWei.toString()).lt(_amount)) {
+        throw new Error("Insufficient balance");
+      }
+
       // approve
       const needApprove = Array.isArray(_quote?.data?.needApprove)
         ? _quote.data.needApprove.some(Boolean)
