@@ -47,10 +47,14 @@ export default function Result() {
     return list;
   }, [bridgeStore.quoteDataMap]);
 
-  const isOneClickService = useMemo(() => {
-    return ([Service.OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService);
+  const { isOneClickService } = useMemo(() => {
+    return getQuoteModes({
+      quoteData,
+      bridgeStore,
+    });
   }, [
-    bridgeStore.quoteDataService
+    bridgeStore.quoteDataService,
+    quoteData
   ]);
 
   const isFromTron = useMemo(() => {

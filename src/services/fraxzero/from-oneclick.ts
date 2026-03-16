@@ -170,6 +170,11 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         },
         sendParam: {
           ...firstStepResult.sendParam,
+          isOneClickTransfer: !firstStepResult.sendParam ? {
+            originAsset: fromToken.contractAddress,
+            depositAddress: firstStepResult.quote?.depositAddress,
+            amount: firstStepResult.quote?.minAmountIn,
+          } : false,
           isFromEthereumUSDC,
           isToEthereumFrxUSD,
         },
@@ -283,6 +288,9 @@ export class OneClick2FraxZeroService extends FraxZeroService {
 
     // proxy transfer
     if (sendParam) {
+      if (sendParam.isOneClickTransfer) {
+        return wallet.send(SendType.TRANSFER, sendParam.isOneClickTransfer);
+      }
       const tx = await wallet.send(SendType.SEND, sendParam);
       return tx;
     }
