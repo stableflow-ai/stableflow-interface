@@ -1293,7 +1293,7 @@ export default class RainbowWallet {
     csl("EVM mintAndSendFrxUSD", "gray-600", "previewMintFrxUSD totalAssetsOut: %o", totalAssetsOut);
 
     result.outputAmount = numberRemoveEndZero(
-      Big(totalAssetsOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
+      Big(totalAssetsOut.toString()).div(10 ** 18).toFixed(18, 0)
     );
 
     // Build sendParam for deposit(assetsIn, receiver)
