@@ -49,6 +49,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       firstStepResult = await super.quote({
         ...params,
         toToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
+        recipient: middleChainRecipientAddress,
       });
     }
     csl("FraxZero2OneClickService quote", "yellow-600", "firstStepResult: %o", firstStepResult);
@@ -193,6 +194,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
     return {
       ...firstStepResult,
       ...oneClickResult,
+      recipient,
       needPermit: true,
       permitSpender: FRAXZERO_REDEEM_AND_MINT_CONTRACT,
       permitToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
