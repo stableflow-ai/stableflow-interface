@@ -20,6 +20,9 @@ import { formatNumber } from "@/utils/format/number";
 import { formatAddress } from "@/utils/format/address";
 import Skeleton from "@/components/skeleton";
 import { csl } from "@/utils/log";
+import { TradeProject } from "@/config/trade";
+import { MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
+import { FRAXZERO_MIDDLE_TOKEN_USDC } from "@/services/fraxzero/config";
 
 const ContinueTransfer = (props: any) => {
   const { history, reload } = props;
@@ -72,30 +75,54 @@ const ContinueTransfer = (props: any) => {
         account: wallet.account || "",
       });
 
+      const isFromOneClickHybridProject = [TradeProject.OneClickUsdt0, TradeProject.OneClickFraxZero].includes(history.project);
+      const isOneClickUsdt0 = history.project === TradeProject.OneClickUsdt0;
+      const isOneClickFraxZero = history.project === TradeProject.OneClickFraxZero;
+
       const fromToken = tokens.find((token) => token.blockchain === history.from_chain && token.symbol === history.symbol);
-      const toToken = tokens.find((token) => token.blockchain === history.to_chain && token.symbol === history.to_symbol);
+      let toToken = tokens.find((token) => token.blockchain === history.to_chain && token.symbol === history.to_symbol);
+
+      if (isOneClickUsdt0) {
+        toToken = MIDDLE_TOKEN_CHAIN;
+      }
+      if (isOneClickFraxZero) {
+        toToken = FRAXZERO_MIDDLE_TOKEN_USDC;
+      }
 
       if (!quoteResponse || !fromToken || !toToken) {
         throw new Error(`Get quote data failed: no quote response or no from token or no to token`);
       }
 
-      const { quoteRequest } = quoteResponse;
+      const { quote, quoteRequest } = quoteResponse;
+
+      csl("ContinueTransfer handleContinue", "rose-400", "quoteRequest: %o", quoteRequest);
+      csl("ContinueTransfer handleContinue", "rose-400", "quote: %o", quote);
+
+      const _formatQuoteDataParams: any = {
+        amountWei: quoteRequest.amount,
+        toToken: toToken,
+        fromToken: fromToken,
+        wallet: wallet.wallet,
+        prices,
+        refundTo: wallet.account || "",
+        recipient: history.receive_address || "",
+        refundType: "ORIGIN_CHAIN",
+        originAsset: fromToken.assetId,
+        destinationAsset: toToken.assetId,
+      };
+      if (isFromOneClickHybridProject) {
+        _formatQuoteDataParams.swapType = "EXACT_OUTPUT";
+        _formatQuoteDataParams.amountWei = quote.minAmountIn;
+      }
+
+      csl("ContinueTransfer handleContinue", "rose-400", "_formatQuoteDataParams: %o", _formatQuoteDataParams);
 
       const _quoteData = await oneClickService.formatQuoteData({
         data: quoteResponse,
-        params: {
-          amount: quoteRequest.amount,
-          toToken: toToken,
-          fromToken: fromToken,
-          wallet: wallet.wallet,
-          prices,
-          refundTo: wallet.account || "",
-          recipient: history.receive_address || "",
-          refundType: "ORIGIN_CHAIN",
-          originAsset: fromToken.assetId,
-          destinationAsset: toToken.assetId,
-        },
+        params: _formatQuoteDataParams,
       });
+
+      csl("ContinueTransfer handleContinue", "rose-400", "_quoteData: %o", _quoteData);
 
       setTransactionData({
         ..._quoteData,
