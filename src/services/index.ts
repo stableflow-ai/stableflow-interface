@@ -6,6 +6,7 @@ import fraxZeroOneClickService from "./fraxzero/to-oneclick";
 import oneClickFraxZeroService from "./fraxzero/from-oneclick";
 import usdt0OneClickService from "./usdt0-oneclick";
 import oneClickUsdt0Service from "./oneclick-usdt0";
+import nativeService from "./native";
 import { Service } from "./constants";
 
 
@@ -18,6 +19,7 @@ export const ServiceMap: Record<Service, any> = {
   [Service.OneClickFraxZero]: oneClickFraxZeroService,
   [Service.Usdt0OneClick]: usdt0OneClickService,
   [Service.OneClickUsdt0]: oneClickUsdt0Service,
+  [Service.Native]: nativeService,
 };
 
 export const ServiceLogoMap: Record<Service, string> = {
@@ -29,4 +31,5 @@ export const ServiceLogoMap: Record<Service, string> = {
   [Service.OneClickFraxZero]: "/bridge/logo-near-intents-fraxzero.svg",
   [Service.Usdt0OneClick]: "/bridge/logo-usdt0-near-intents.svg",
   [Service.OneClickUsdt0]: "/bridge/logo-near-intents-usdt0.svg",
+  [Service.Native]: "/bridge/logo-native.svg",
 };

@@ -13,7 +13,7 @@ export const usdtChains: Record<string, TokenChain> = {
     assetId: "nep141:eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near",
     contractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
     ...chains.eth,
-    services: [Service.OneClick, Service.Usdt0],
+    services: [Service.OneClick, Service.Usdt0, Service.Native],
   },
   bsc: {
     ...usdt,
@@ -21,7 +21,7 @@ export const usdtChains: Record<string, TokenChain> = {
     contractAddress: "0x55d398326f99059ff775485246999027b3197955",
     ...chains.bsc,
     decimals: 18,
-    services: [Service.OneClick],
+    services: [Service.OneClick, Service.Native],
   },
   op: {
     ...usdt,

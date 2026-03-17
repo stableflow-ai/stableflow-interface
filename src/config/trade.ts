@@ -29,6 +29,7 @@ export const TradeProject = {
   OneClickFraxZero: 8,
   Usdt0OneClick: 3,
   OneClickUsdt0: 4,
+  Native: 5,
 } as const;
 
 export type TradeProject = (typeof TradeProject)[keyof typeof TradeProject];
@@ -42,4 +43,5 @@ export const TradeProjectMap: Record<TradeProject, { logo: string; name: string;
   [TradeProject.OneClickFraxZero]: { logo: "/bridge/logo-near-intents-fraxzero.svg", name: "OneClickFraxZero", service: Service.OneClickFraxZero },
   [TradeProject.Usdt0OneClick]: { logo: "/bridge/logo-usdt0-near-intents.svg", name: "USDT0OneClick", service: Service.Usdt0OneClick },
   [TradeProject.OneClickUsdt0]: { logo: "/bridge/logo-near-intents-usdt0.svg", name: "OneClickUSDT0", service: Service.OneClickUsdt0 },
+  [TradeProject.Native]: { logo: "/bridge/logo-native.svg", name: "Native", service: Service.Native },
 };
