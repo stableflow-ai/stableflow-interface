@@ -1,6 +1,7 @@
 import {
   Connection,
   PublicKey,
+  SendTransactionError,
   Transaction,
   VersionedTransaction,
   SystemProgram,
@@ -629,23 +630,52 @@ export default class SolanaWallet {
       throw new Error("Transaction is required");
     }
 
+    // Refresh blockhash right before signing/sending to avoid stale blockhash errors.
+    const latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+    if (transaction instanceof Transaction) {
+      transaction.recentBlockhash = latestBlockhash.blockhash;
+      if (!transaction.feePayer) {
+        transaction.feePayer = this.publicKey;
+      }
+    } else if (transaction instanceof VersionedTransaction) {
+      // web3.js does not expose a convenient mutator here in typings, but runtime object is mutable.
+      (transaction.message as any).recentBlockhash = latestBlockhash.blockhash;
+    }
+
     // Sign the transaction
     const signedTransaction = await this.signTransaction(transaction);
 
-    // Send the transaction
-    const signature = await this.connection.sendRawTransaction(
-      signedTransaction.serialize(),
-      {
-        skipPreflight: false,
-        maxRetries: 3
+    let signature: string;
+    try {
+      // Send the transaction
+      signature = await this.connection.sendRawTransaction(
+        signedTransaction.serialize(),
+        {
+          skipPreflight: false,
+          maxRetries: 3
+        }
+      );
+    } catch (error: any) {
+      if (error instanceof SendTransactionError) {
+        try {
+          const logs = await error.getLogs(this.connection);
+          csl("Solana sendTransaction", "red-500", "sendRawTransaction failed logs: %o", logs);
+        } catch (logsError: any) {
+          csl("Solana sendTransaction", "red-500", "failed to fetch SendTransactionError logs: %o", logsError?.message || logsError);
+        }
       }
-    );
+      throw error;
+    }
 
     csl("Solana sendTransaction", "green-400", "Transaction sent with signature: %o", signature);
 
     // Confirm the transaction
     const confirmation = await this.connection.confirmTransaction(
-      signature,
+      {
+        signature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+      },
       "confirmed"
     );
 
