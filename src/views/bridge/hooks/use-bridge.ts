@@ -168,6 +168,9 @@ export default function useBridge(props?: any) {
           _params.originChain = walletStore.fromToken.chainName;
           _params.destinationChain = walletStore.toToken.chainName;
         }
+        if (([Service.Native] as Service[]).includes(service)) {
+          _params.dry = params.dry;
+        }
 
         return _params;
       };
@@ -775,10 +778,18 @@ export default function useBridge(props?: any) {
         localHistoryData.txHash = hash;
         localHistoryData.toChainTxHash = hash;
         localHistoryData.depositAddress = _depositAddress;
-        historyStore.addHistory(localHistoryData);
-        historyStore.updateStatus(hash, "PENDING_DEPOSIT");
         reportData.deposit_address = _depositAddress;
         reportData.tx_hash = hash;
+
+        if (bridgeStore.quoteDataService === Service.Native) {
+          const quoteIds = _quote?.data?.orders?.map?.((order: any) => order.quoteId) || [];
+          localHistoryData.quoteIds = quoteIds;
+          reportData.quoteIds = quoteIds;
+        }
+
+        historyStore.addHistory(localHistoryData);
+        historyStore.updateStatus(hash, "PENDING_DEPOSIT");
+
         report(reportData);
       }
 

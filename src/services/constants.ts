@@ -4,6 +4,7 @@ export const Service = {
   CCTP: "cctp",
   Usdt0OneClick: "usdt0-oneclick",
   OneClickUsdt0: "oneclick-usdt0",
+  Native: "native",
 } as const;
 export type Service = (typeof Service)[keyof typeof Service];
 
@@ -13,4 +14,5 @@ export const ServiceBackend: Record<Service, string> = {
   [Service.CCTP]: "cctp",
   [Service.Usdt0OneClick]: "zerointent",
   [Service.OneClickUsdt0]: "intentzero",
+  [Service.Native]: "native",
 } as const;
