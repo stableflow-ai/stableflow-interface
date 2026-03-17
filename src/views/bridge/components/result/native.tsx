@@ -59,7 +59,7 @@ const ResultNative = (props: any) => {
           >
             <ResultFeeItem
               label="Widget fee"
-              loading={bridgeStore.quotingMap.get(Service.Native)}
+              loading={bridgeStore.getQuoting(Service.Native)}
               isZero={true}
             >
               {fees?.widgetFee}
@@ -67,7 +67,7 @@ const ResultNative = (props: any) => {
             <ResultFeeItem
               label="LP fee"
               precision={2}
-              loading={bridgeStore.quotingMap.get(Service.Native)}
+              loading={bridgeStore.getQuoting(Service.Native)}
               isZero={true}
               isDelete={false}
             >
