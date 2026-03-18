@@ -666,6 +666,8 @@ export default class TronWallet {
       throw new Error("Invalid transaction");
     }
 
+    csl("Tron sendTransaction", "red-400", "transaction: %o", transaction);
+
     const startTimestamp = Date.now();
     const expirationDuration = 5 * 60 * 1000;
     const expiration = startTimestamp + expirationDuration;
@@ -684,7 +686,11 @@ export default class TronWallet {
       console.warn("Failed to refresh transaction ID after extending expiration:", error);
     }
 
+    csl("Tron sendTransaction", "red-400", "override transaction: %o", transactionWithExpiration);
+
     const result = await this.signAndSendTransaction(transactionWithExpiration);
+
+    csl("Tron sendTransaction", "red-400", "Transaction sent with result: %o", result);
 
     if (typeof result === "object") {
       const code = result.code ? String(result.code) : "";
@@ -697,6 +703,8 @@ export default class TronWallet {
         throw new Error("Transaction has expired and was not broadcast. Please try again.");
       }
     }
+
+    csl("Tron sendTransaction", "red-400", "success: %o", result);
 
     if (typeof result === "string") {
       return result;
