@@ -1594,7 +1594,8 @@ export default class RainbowWallet {
     const value = amountWei;
     const tokenAddress = fromToken.contractAddress;
     const chainId = fromToken.chainId;
-    const deadline = Math.floor(Date.now() / 1000) + 86400;
+    // 3 days
+    const deadline = Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 3);
     const account = this.signer.address;
 
     const erc20 = new ethers.Contract(tokenAddress, erc20Abi, provider);
