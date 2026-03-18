@@ -630,16 +630,31 @@ export default class SolanaWallet {
       throw new Error("Transaction is required");
     }
 
-    // Refresh blockhash right before signing/sending to avoid stale blockhash errors.
-    const latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+    const hasAnySignature = (sig: Uint8Array | Buffer | null | undefined) =>
+      !!sig && sig.length > 0 && Array.from(sig).some((byte) => byte !== 0);
+    let latestBlockhash: Awaited<ReturnType<Connection["getLatestBlockhash"]>> | null = null;
+    let didRefreshBlockhash = false;
+
+    // Only refresh blockhash for unsigned transactions.
+    // For pre-signed CCTP txs, mutating recentBlockhash invalidates existing signatures.
     if (transaction instanceof Transaction) {
-      transaction.recentBlockhash = latestBlockhash.blockhash;
-      if (!transaction.feePayer) {
-        transaction.feePayer = this.publicKey;
+      const isUnsigned = transaction.signatures.every(({ signature }) => !hasAnySignature(signature as any));
+      if (isUnsigned) {
+        latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+        transaction.recentBlockhash = latestBlockhash.blockhash;
+        if (!transaction.feePayer) {
+          transaction.feePayer = this.publicKey;
+        }
+        didRefreshBlockhash = true;
       }
     } else if (transaction instanceof VersionedTransaction) {
-      // web3.js does not expose a convenient mutator here in typings, but runtime object is mutable.
-      (transaction.message as any).recentBlockhash = latestBlockhash.blockhash;
+      const isUnsigned = transaction.signatures.every((signature) => !hasAnySignature(signature));
+      if (isUnsigned) {
+        latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+        // web3.js does not expose a convenient mutator here in typings, but runtime object is mutable.
+        (transaction.message as any).recentBlockhash = latestBlockhash.blockhash;
+        didRefreshBlockhash = true;
+      }
     }
 
     // Sign the transaction
@@ -670,14 +685,16 @@ export default class SolanaWallet {
     csl("Solana sendTransaction", "green-400", "Transaction sent with signature: %o", signature);
 
     // Confirm the transaction
-    const confirmation = await this.connection.confirmTransaction(
-      {
-        signature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-      },
-      "confirmed"
-    );
+    const confirmation = didRefreshBlockhash && latestBlockhash
+      ? await this.connection.confirmTransaction(
+        {
+          signature,
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        },
+        "confirmed"
+      )
+      : await this.connection.confirmTransaction(signature, "confirmed");
 
     if (confirmation.value.err) {
       throw new Error(
