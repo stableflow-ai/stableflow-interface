@@ -700,7 +700,7 @@ export default class TronWallet {
         || combined.includes("TRANSACTION_EXPIRED")
         || combined.includes("EXPIRED")
       ) {
-        throw new Error("Transaction has expired and was not broadcast. Please try again.");
+        throw new Error("Transaction expired. Continue in History.");
       }
     }
 
