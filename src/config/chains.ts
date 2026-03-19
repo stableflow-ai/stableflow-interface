@@ -45,7 +45,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Berachain": ["https://rpc.berachain.com", "https://berachain-rpc.publicnode.com"],
   "Tron": ["https://tron-rpc.publicnode.com"],
   "Aptos": ["https://api.mainnet.aptoslabs.com/v1"],
-  "Solana": ["https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170", "https://solana-rpc.publicnode.com"],
+  "Solana": ["https://solana-rpc.publicnode.com", "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170"],
   "Near": ["https://nearinner.deltarpc.com"],
   "X Layer": ["https://rpc.xlayer.tech", "https://xlayer.drpc.org"],
   "Plasma": ["https://rpc.plasma.to", "https://plasma.drpc.org"],
