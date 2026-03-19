@@ -32,6 +32,7 @@ import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/us
 import { ethers } from "ethers";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { csl } from "@/utils/log";
+import { createSolanaFallbackConnection } from "../utils/solana";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -40,13 +41,8 @@ export default class SolanaWallet {
   private signer: any;
 
   constructor(options: { publicKey: PublicKey | null; signer: any }) {
-    // https://api.mainnet-beta.solana.com
-    // https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170
-    // this.connection = new Connection(
-    //   "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
-    //   "confirmed"
-    // );
-    this.connection = new Connection(getChainRpcUrl("Solana").rpcUrl, "confirmed");
+    const solanaRpcUrls: string[] = getChainRpcUrl("Solana").rpcUrls;
+    this.connection = createSolanaFallbackConnection(solanaRpcUrls);
     this.publicKey = options.publicKey;
     this.signTransaction = options.signer.signTransaction;
     this.signer = options.signer;

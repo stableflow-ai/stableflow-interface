@@ -123,8 +123,7 @@ const Content = () => {
           return "";
         }
         const signedTx = await adapter.signTransaction(transaction);
-        const result = await _tronWeb.trx.sendRawTransaction(signedTx);
-        return result.txid;
+        return _tronWeb.trx.sendRawTransaction(signedTx);
       },
       address: _address,
     });
