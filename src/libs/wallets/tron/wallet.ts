@@ -710,7 +710,7 @@ export default class TronWallet {
       return result;
     }
 
-    return result.txid;
+    return result?.txid || result?.txID || transactionWithExpiration.txID;
   }
 
   /**
