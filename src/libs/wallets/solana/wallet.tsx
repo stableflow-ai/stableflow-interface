@@ -44,6 +44,7 @@ import {
 import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
 import { fromWeb3JsPublicKey, toWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
 import { addressToBytes32 } from "@/utils/address-validation";
+import { createSolanaFallbackConnection } from "../utils/solana";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -52,13 +53,8 @@ export default class SolanaWallet {
   private signer: any;
 
   constructor(options: { publicKey: PublicKey | null; signer: any }) {
-    // https://api.mainnet-beta.solana.com
-    // https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170
-    // this.connection = new Connection(
-    //   "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
-    //   "confirmed"
-    // );
-    this.connection = new Connection(getChainRpcUrl("Solana").rpcUrl, "confirmed");
+    const solanaRpcUrls: string[] = getChainRpcUrl("Solana").rpcUrls;
+    this.connection = createSolanaFallbackConnection(solanaRpcUrls);
     this.publicKey = options.publicKey;
     this.signTransaction = options.signer.signTransaction;
     this.signer = options.signer;

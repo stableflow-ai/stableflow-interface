@@ -20,6 +20,7 @@ import { PublicKey, Transaction } from "@solana/web3.js";
 import { useWatchOKXConnect } from "../okxconnect";
 import SolanaWalletSelectorProvider, { useSolanaWalletModal } from "./wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
+import { getAvailableSolanaRpcUrl } from "../utils/solana";
 
 export const adapters = [
   new SolflareWalletAdapter(),
@@ -46,7 +47,26 @@ export default function SolanaProvider({
 }) {
   // Wallet order configuration: Solflare first, Phantom second
   const walletOrder = ["Solflare", "Phantom"];
-  const endpoint = getChainRpcUrl("Solana").rpcUrl;
+  const [endpoint, setEndpoint] = useState(getChainRpcUrl("Solana").rpcUrls[0]);
+
+  useEffect(() => {
+    let mounted = true;
+    const resolveEndpoint = async () => {
+      try {
+        const availableRpcUrl = await getAvailableSolanaRpcUrl();
+        if (mounted) {
+          setEndpoint(availableRpcUrl);
+        }
+      } catch (_error) {
+        // keep default primary rpc url
+      }
+    };
+
+    resolveEndpoint();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
