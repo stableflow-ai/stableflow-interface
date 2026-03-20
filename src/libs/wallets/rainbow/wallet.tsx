@@ -1048,24 +1048,38 @@ export default class RainbowWallet {
     const amountWeiBigInt = BigInt(amountWei || 0);
     const totalMax = maxUsdc + maxRwa;
 
+    csl("EVM preivewRedeemFrxUSD", "blue-700", "maxSharesRedeemable: %o", maxUsdc);
+    csl("EVM preivewRedeemFrxUSD", "blue-700", "maxSharesRedeemable: %o", maxRwa);
+    csl("EVM preivewRedeemFrxUSD", "blue-700", "totalMax: %o", totalMax);
+    csl("EVM preivewRedeemFrxUSD", "blue-700", "amountWei: %o", amountWeiBigInt);
+
     let totalAssetsOut = 0n;
 
     if (amountWeiBigInt <= maxUsdc) {
       // USDC path only
       const assetsOut = await usdcCustodian.previewRedeem.staticCall(amountWeiBigInt);
+      csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC path only, usdcCustodian previewRedeem input: %o, value: %o", amountWeiBigInt, assetsOut);
       totalAssetsOut = assetsOut;
+      csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC path only, totalAssetsOut: %o", totalAssetsOut);
     } else {
       // USDC first (maxUsdc), then RWA for remainder
       if (maxUsdc > 0n) {
         const usdcAssetsOut = await usdcCustodian.previewRedeem.staticCall(maxUsdc);
+        csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC first (maxUsdc), usdcCustodian previewRedeem input: %o, value: %o", maxUsdc, usdcAssetsOut);
         totalAssetsOut += usdcAssetsOut;
+        csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC first (maxUsdc), totalAssetsOut: %o", totalAssetsOut);
       }
       const rwaAmount = amountWeiBigInt - maxUsdc;
+      csl("EVM preivewRedeemFrxUSD", "blue-700", "RWA for remainder, rwaAmount: %o", rwaAmount);
       if (rwaAmount > 0n) {
         const rwaAssetsOut = await rwaCustodian.previewRedeem.staticCall(rwaAmount);
+        csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC first (maxUsdc), rwaCustodian previewRedeem input: %o, value: %o", rwaAmount, rwaAssetsOut);
         totalAssetsOut += rwaAssetsOut;
+        csl("EVM preivewRedeemFrxUSD", "blue-700", "RWA for remainder, totalAssetsOut: %o", totalAssetsOut);
       }
     }
+
+    csl("EVM preivewRedeemFrxUSD", "blue-700", "final totalAssetsOut: %o", totalAssetsOut);
 
     return {
       maxUsdc,
