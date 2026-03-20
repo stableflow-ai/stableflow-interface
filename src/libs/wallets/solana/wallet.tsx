@@ -44,7 +44,7 @@ import {
 import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
 import { fromWeb3JsPublicKey, toWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
 import { addressToBytes32 } from "@/utils/address-validation";
-import { createSolanaFallbackConnection } from "../utils/solana";
+import { createSolanaFallbackConnection, getAvailableSolanaRpcUrl } from "../utils/solana";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -1079,8 +1079,10 @@ export default class SolanaWallet {
       eid: dstEid,
     } = destinationLayerzero;
 
+    const availableRpcUrl = await getAvailableSolanaRpcUrl();
+
     const ALT_ADDRESS = new PublicKey("AokBxha6VMLLgf97B5VYHEtqztamWmYERBmmFvjuTzJB");
-    const umi = createUmi(getChainRpcUrl("Solana").rpcUrl).use(mplToolbox());
+    const umi = createUmi(availableRpcUrl).use(mplToolbox());
     const oftProgramId = publicKey(originLayerzero.programId);
     const oftMint = publicKey(fromToken.contractAddress);
     const oftEscrow = publicKey(originLayerzero.escrow);
