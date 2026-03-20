@@ -13,6 +13,7 @@ import { DATA_HEX_PROTOBUF_EXTRA, LZ_RECEIVE_VALUE, SIGNATURE_SIZE, USDT0_LEGACY
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 import { csl } from "@/utils/log";
+import { NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -92,13 +93,7 @@ export default class TronWallet {
       this.tronWeb.toSun(amount)
     );
 
-    const result = await this.signAndSendTransaction(transaction);
-
-    if (typeof result === "string") {
-      return result;
-    }
-
-    return result.txid;
+    return this.sendTransaction({ tx: { transaction } });
   }
 
   async transferToken(contractAddress: string, to: string, amount: string) {
@@ -108,13 +103,7 @@ export default class TronWallet {
     const parameter = [{ type: 'address', value: to }, { type: 'uint256', value: amount }];
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(contractAddress, functionSelector, {}, parameter);
 
-    const result = await this.signAndSendTransaction(tx.transaction);
-
-    if (typeof result === "string") {
-      return result;
-    }
-
-    return result.txid;
+    return this.sendTransaction({ tx });
 
     // // Get contract instance
     // const contract = await this.tronWeb.contract().at(contractAddress);
@@ -393,13 +382,7 @@ export default class TronWallet {
       );
 
       // Sign and send transaction
-      const result = await this.signAndSendTransaction(tx.transaction);
-
-      if (typeof result === "string") {
-        return result;
-      }
-
-      return result.txid;
+      return this.sendTransaction({ tx });
     } catch (error) {
       csl("TronWallet approve", "red-500", "Error approve: %o", error);
       return false;
@@ -569,9 +552,11 @@ export default class TronWallet {
 
     const msgFee = await oftContract.quoteSend(sendParam, payInLzToken).call();
     let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
+    csl("Tron quoteOFT", "red-600", "nativeFee: %o", nativeMsgFee);
     if (nativeMsgFee) {
-      nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(1.2).toFixed(0));
+      nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(Number(NATIVE_MSG_FEE_BUFFER)/100).toFixed(0));
     }
+    csl("Tron quoteOFT", "red-600", "nativeFee after buffer: %o", nativeMsgFee);
     result.estimateSourceGas = nativeMsgFee;
 
     csl("TronWallet quoteOFT", "teal-400", "MsgFee: %o", msgFee);
@@ -676,20 +661,56 @@ export default class TronWallet {
       tx,
     } = params;
 
-    const result = await this.signAndSendTransaction(tx.transaction);
+    const transaction = tx?.transaction;
+    if (!transaction?.raw_data) {
+      throw new Error("Invalid transaction");
+    }
 
-    if (typeof result === "object" && result.message) {
-      csl("TronWallet sendTransaction", "red-500", "Tron send transaction message: %o", result.message);
-      if (/user rejected the transaction/i.test(result.message)) {
-        throw new Error("User rejected the transaction");
+    csl("Tron sendTransaction", "red-400", "transaction: %o", transaction);
+
+    const startTimestamp = Date.now();
+    const expirationDuration = 5 * 60 * 1000;
+    const expiration = startTimestamp + expirationDuration;
+    let transactionWithExpiration = {
+      ...transaction,
+      raw_data: {
+        ...transaction.raw_data,
+        expiration,
+      },
+    };
+
+    try {
+      await this.waitForTronWeb();
+      transactionWithExpiration = await this.tronWeb.transactionBuilder.newTxID(transactionWithExpiration, { txLocal: true });
+    } catch (error) {
+      console.warn("Failed to refresh transaction ID after extending expiration:", error);
+    }
+
+    csl("Tron sendTransaction", "red-400", "override transaction: %o", transactionWithExpiration);
+
+    const result = await this.signAndSendTransaction(transactionWithExpiration);
+
+    csl("Tron sendTransaction", "red-400", "Transaction sent with result: %o", result);
+
+    if (typeof result === "object") {
+      const code = result.code ? String(result.code) : "";
+      const message = result.message ? String(result.message) : "";
+      const combined = `${code} ${message}`.toUpperCase();
+      if (combined.includes("TRANSACTION_EXPIRATION_ERROR")
+        || combined.includes("TRANSACTION_EXPIRED")
+        || combined.includes("EXPIRED")
+      ) {
+        throw new Error("Transaction expired. Try again.");
       }
     }
+
+    csl("Tron sendTransaction", "red-400", "success: %o", result);
 
     if (typeof result === "string") {
       return result;
     }
 
-    return result.txid;
+    return result?.txid || result?.txID || transactionWithExpiration.txID;
   }
 
   /**

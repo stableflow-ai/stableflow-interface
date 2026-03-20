@@ -13,8 +13,8 @@ export const menuItems = [
     isExternal: false
   },
   {
-    label: "Learn",
-    path: "/learn-more",
+    label: "About",
+    path: "/about",
     isExternal: false
   }
 ];

@@ -56,6 +56,20 @@ export default function TronProvider({
     return installedWallets?.length <= 0 && isMobile;
   }, [isMobile, installedWallets]);
 
+  const detectTokenPocket = () => {
+    // Only detect TokenPocket in-app browser (UA contains 'tokenpocket'), do not detect desktop TokenPocket extension
+    const ua = window?.navigator?.userAgent?.toLowerCase?.();
+    const isTokenPocketApp = ua?.indexOf?.("tokenpocket") > -1;
+
+    if (window && isTokenPocketApp) {
+      window.location.replace("https://tron.stableflow.ai");
+    }
+  };
+
+  useEffect(() => {
+    detectTokenPocket();
+  }, []);
+
   return (
     <>
       {children}
@@ -109,8 +123,7 @@ const Content = () => {
           return "";
         }
         const signedTx = await adapter.signTransaction(transaction);
-        const result = await _tronWeb.trx.sendRawTransaction(signedTx);
-        return result.txid;
+        return _tronWeb.trx.sendRawTransaction(signedTx);
       },
       address: _address,
     });
@@ -256,19 +269,6 @@ const MobileWallet = () => {
       }
     });
   });
-
-  const detectTokenPocket = () => {
-    const ua = window?.navigator?.userAgent?.toLowerCase?.();
-    const isTokenPocket = (window?.tronLink as any)?.isTokenPocket ?? ua?.indexOf?.("tokenpocket") > -1;
-
-    if (window && isTokenPocket) {
-      window.location.replace("https://tron.stableflow.ai");
-    }
-  };
-
-  useEffect(() => {
-    detectTokenPocket();
-  }, []);
 
   return null;
 };

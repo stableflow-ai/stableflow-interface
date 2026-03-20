@@ -26,12 +26,13 @@ import stableflowProxyIdl from "@/services/oneclick/stableflow-proxy.json";
 import { quoteSignature } from "../utils/cctp";
 import { SendType } from "../types";
 import { Service } from "@/services/constants";
-import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress } from "../utils/layerzero";
+import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
 import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { ethers, getBytes } from "ethers";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { csl } from "@/utils/log";
+import { createSolanaFallbackConnection } from "../utils/solana";
 import { addressToBytes32 } from "@/utils/address-validation";
 
 export default class SolanaWallet {
@@ -41,13 +42,8 @@ export default class SolanaWallet {
   private signer: any;
 
   constructor(options: { publicKey: PublicKey | null; signer: any }) {
-    // https://api.mainnet-beta.solana.com
-    // https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170
-    // this.connection = new Connection(
-    //   "https://mainnet.helius-rpc.com/?api-key=28fc7f18-acf0-48a1-9e06-bd1b6cba1170",
-    //   "confirmed"
-    // );
-    this.connection = new Connection(getChainRpcUrl("Solana").rpcUrl, "confirmed");
+    const solanaRpcUrls: string[] = getChainRpcUrl("Solana").rpcUrls;
+    this.connection = createSolanaFallbackConnection(solanaRpcUrls);
     this.publicKey = options.publicKey;
     this.signTransaction = options.signer.signTransaction;
     this.signer = options.signer;
@@ -469,7 +465,10 @@ export default class SolanaWallet {
 
       const data = Buffer.from(log.slice(prefix.length), 'base64');
 
-      const nativeFee = data.readBigUInt64LE(0);
+      let nativeFee = data.readBigUInt64LE(0);
+      csl("Solana quoteOFT", "purple-500", "nativeFee: %o", nativeFee);
+      nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;
+      csl("Solana quoteOFT", "purple-500", "nativeFee after buffer: %o", nativeFee);
       const lzTokenFee = data.readBigUInt64LE(8);
 
       // Convert nativeFee to USD if prices are available

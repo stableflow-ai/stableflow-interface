@@ -12,7 +12,7 @@ import { Service } from "@/services/constants";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 import { allUsdtChains } from "@/config/tokens";
-import { buildEndpointV2LzComposePayload } from "../utils/layerzero";
+import { buildEndpointV2LzComposePayload, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 import { OFT_ABI } from "@/services/usdt0/contract";
 import { csl } from "@/utils/log";
 
@@ -354,16 +354,21 @@ export default class RainbowWallet {
     // csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
 
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
-    result.estimateSourceGas = msgFee[0];
-    csl("EVM quoteOFT", "blue-900", "msgFee: %o", msgFee);
+    let nativeMsgFee = msgFee[0];
+    const lzMsgFee = msgFee[1];
+    result.estimateSourceGas = nativeMsgFee;
+    csl("EVM quoteOFT", "blue-900", "msgFee: %o, nativeMsgFee: %o", msgFee, nativeMsgFee);
+    // add 5% buffer
+    nativeMsgFee = nativeMsgFee * NATIVE_MSG_FEE_BUFFER / 100n;
+    csl("EVM quoteOFT", "blue-900", "msgFee after buffer: %o", nativeMsgFee);
 
     // csl("EVM quoteOFT", "blue-900", "Params: %o", result.sendParam);
 
     // 3. estimate gas
-    const nativeFeeUsd = Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
-    result.fees.nativeFee = numberRemoveEndZero(Big(msgFee[0]?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
+    const nativeFeeUsd = Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFee = numberRemoveEndZero(Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
-    result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
+    result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(lzMsgFee?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
 
     // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
     if (isOriginLegacy || isDestinationLegacy) {
@@ -402,11 +407,11 @@ export default class RainbowWallet {
       param: [
         sendParam,
         {
-          nativeFee: msgFee[0],
-          lzTokenFee: msgFee[1],
+          nativeFee: nativeMsgFee,
+          lzTokenFee: lzMsgFee,
         },
         refundTo,
-        { value: msgFee[0], gasLimit: sendWithFeeGasLimit }
+        { value: nativeMsgFee, gasLimit: sendWithFeeGasLimit }
       ],
     };
 
@@ -499,6 +504,8 @@ export default class RainbowWallet {
         return await this.quoteOFT(params);
       case Service.OneClick:
         return await this.quoteOneClickProxy(params);
+      case Service.Native:
+        return await this.quoteNative(params);
       default:
         throw new Error(`Unsupported quote type: ${type}`);
     }
@@ -770,6 +777,103 @@ export default class RainbowWallet {
     return result;
   }
 
+  async quoteNative(params: any) {
+    const {
+      quoteResponse,
+      bridgeRouterAddress,
+      ...restParams
+    } = params;
+    const {
+      dry,
+      amountWei,
+      refundTo,
+      fromToken,
+      toToken,
+      prices,
+    } = restParams;
+
+    const result: any = {
+      ...quoteResponse,
+      fees: {},
+      needApprove: false,
+      approveSpender: bridgeRouterAddress,
+      quoteParam: {
+        ...restParams,
+      },
+      sendParam: {
+        txRequest: quoteResponse.txRequest,
+      },
+      totalFeesUsd: void 0,
+      estimateSourceGas: void 0,
+      estimateSourceGasUsd: void 0,
+      estimateTime: quoteResponse.priority === "fast" ? Math.floor(Math.random() * 10) + 50 : Math.floor(Math.random() * 60) + 300,
+      outputAmount: 0,
+    };
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+
+    const allowanceResult = await this.allowance({
+      contractAddress: fromToken.contractAddress,
+      spender: bridgeRouterAddress,
+      address: refundTo,
+      amountWei,
+    });
+    result.needApprove = allowanceResult.needApprove;
+
+    if (dry) {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: DEFAULT_GAS_LIMIT,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+
+      result.outputAmount = quoteResponse.buyerTokenAmount + "";
+      result.fees = {
+        sourceGasFeeUsd: usd,
+        widgetFeeUsd: quoteResponse.widgetFeeUsd,
+        liquidityProviderFeeUsd: quoteResponse.liquidityProviderFeeUsd,
+      };
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+      result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.totalFeeUsd).toFixed(20));
+    }
+    else {
+      let gasEstimate = DEFAULT_GAS_LIMIT;
+      try {
+        gasEstimate = await provider.estimateGas({
+          to: quoteResponse.txRequest.target,
+          data: quoteResponse.txRequest.calldata,
+          from: refundTo,
+        });
+        result.txRequest.gasLimit = gasEstimate;
+      } catch (error) {
+        result.txRequest.gasLimit = 4000000n;
+      }
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: gasEstimate,
+        price: getPrice(prices, fromToken.nativeToken.symbol),
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+
+      result.outputAmount = Big(quoteResponse.amountOut || 0).div(10 ** (toToken.decimals || 6)).toFixed(toToken.decimals || 6, 0);
+      result.fees = {
+        sourceGasFeeUsd: usd,
+        // maybe 100 = 1%
+        widgetFeeUsd: numberRemoveEndZero(Big(amountWei || 0).div(10 ** (fromToken.decimals || 6)).times(quoteResponse.widgetFee.feeRate || 0).toFixed(20, 0)),
+        // not return by api
+        liquidityProviderFeeUsd: "0",
+      };
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+      result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.amountOutBeforeFee || 0).minus(quoteResponse.amountOut).div(10 ** (fromToken.decimals || 6)).toFixed(20, 0));
+    }
+
+    return result;
+  }
+
   async retryLayerzeroLzComponse(params: any) {
     const {
       layerzeroData,
@@ -870,7 +974,8 @@ export default class RainbowWallet {
 
     const dstOFTContract = new ethers.Contract(dstOFT, OFT_ABI, this.provider);
     const msgFee = await dstOFTContract.quoteSend.staticCall(sendParam, false);
-    const nativeFee = msgFee[0];
+    let nativeFee = msgFee[0];
+    nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;
 
     const tx = await LayerZeroEndpointV2Contract.lzCompose(
       ...contractParams,
