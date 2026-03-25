@@ -20,6 +20,12 @@ import { formatNumber } from "@/utils/format/number";
 import { formatAddress } from "@/utils/format/address";
 import Skeleton from "@/components/skeleton";
 import { csl } from "@/utils/log";
+import { TradeProject } from "@/config/trade";
+import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
+import { FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_REDEEM_AND_MINT_CONTRACT } from "@/services/fraxzero/config";
+import { useSwitchChain } from "wagmi";
+import usdt0Service from "@/services/usdt0";
+import { useConfigStore } from "@/stores/use-config";
 
 const ContinueTransfer = (props: any) => {
   const { history, reload } = props;
@@ -30,6 +36,8 @@ const ContinueTransfer = (props: any) => {
   const wallets = useWalletsStore();
   const prices = usePricesStore((state) => state.prices);
   const historyStore = useHistoryStore();
+  const { switchChainAsync } = useSwitchChain();
+  const configStore = useConfigStore();
 
   const [continueVisible, setContinueVisible] = useState(false);
   const [transactionData, setTransactionData] = useState<any>();
@@ -39,10 +47,42 @@ const ContinueTransfer = (props: any) => {
     try {
       // @ts-ignore
       const wallet = wallets["tron"];
+      // @ts-ignore
+      const evmWallet = wallets["evm"];
+
+      const isFromOneClickHybridProject = [TradeProject.OneClickUsdt0, TradeProject.OneClickFraxZero].includes(history.project);
+      // Need to sign permit for USDT(MIDDLE_TOKEN_CHAIN) on the Arbitrum chain
+      const isOneClickUsdt0 = history.project === TradeProject.OneClickUsdt0;
+      // Need to sign permit for USDC(FRAXZERO_MIDDLE_TOKEN_USDC) on the Ethereum chain
+      const isOneClickFraxZero = history.project === TradeProject.OneClickFraxZero;
+
+      const fromToken = tokens.find((token) => token.blockchain === history.from_chain && token.symbol === history.symbol);
+      const sourceToToken = tokens.find((token) => token.blockchain === history.to_chain && token.symbol === history.to_symbol);
+      let toToken = sourceToToken;
+      let permitSpender;
+      if (isOneClickUsdt0) {
+        toToken = MIDDLE_TOKEN_CHAIN;
+        permitSpender = MIDDLE_CHAIN_LAYERZERO_EXECUTOR;
+      }
+      if (isOneClickFraxZero) {
+        toToken = FRAXZERO_MIDDLE_TOKEN_USDC;
+        permitSpender = FRAXZERO_REDEEM_AND_MINT_CONTRACT;
+      }
+
+      if (!fromToken || !toToken) {
+        throw new Error(`Get quote data failed: no quote response or no from token or no to token`);
+      }
 
       if (!wallet.account) {
         wallet.connect();
         return;
+      }
+
+      if (isFromOneClickHybridProject) {
+        if (!evmWallet.account) {
+          evmWallet.connect();
+          return;
+        }
       }
 
       setContinueVisible(true);
@@ -72,30 +112,60 @@ const ContinueTransfer = (props: any) => {
         account: wallet.account || "",
       });
 
-      const fromToken = tokens.find((token) => token.blockchain === history.from_chain && token.symbol === history.symbol);
-      const toToken = tokens.find((token) => token.blockchain === history.to_chain && token.symbol === history.to_symbol);
-
-      if (!quoteResponse || !fromToken || !toToken) {
+      if (!quoteResponse) {
         throw new Error(`Get quote data failed: no quote response or no from token or no to token`);
       }
 
-      const { quoteRequest } = quoteResponse;
+      const { quote, quoteRequest } = quoteResponse;
+
+      csl("ContinueTransfer handleContinue", "rose-400", "quoteRequest: %o", quoteRequest);
+      csl("ContinueTransfer handleContinue", "rose-400", "quote: %o", quote);
+
+      const _formatQuoteDataParams: any = {
+        amountWei: quoteRequest.amount,
+        toToken: toToken,
+        fromToken: fromToken,
+        wallet: wallet.wallet,
+        prices,
+        refundTo: wallet.account || "",
+        recipient: history.receive_address || "",
+        refundType: "ORIGIN_CHAIN",
+        originAsset: fromToken.assetId,
+        destinationAsset: toToken.assetId,
+      };
+      let permitResult;
+      if (isFromOneClickHybridProject) {
+        _formatQuoteDataParams.swapType = "EXACT_OUTPUT";
+        _formatQuoteDataParams.amountWei = quote.minAmountIn;
+        _formatQuoteDataParams.recipient = evmWallet.account;
+
+        // User needs to sign permit on EVM chain
+        // Now switch to the corresponding EVM chain
+        await switchChainAsync({ chainId: toToken.chainId! });
+        const signature = await evmWallet.wallet.signTypedData({
+          fromToken: toToken,
+          amountWei: quote.amountOut,
+          spender: permitSpender,
+        });
+        permitResult = {
+          amount: signature.value,
+          deadline: signature.deadline,
+          nonce: signature.nonce,
+          owner: signature.owner,
+          r: signature.r,
+          s: signature.s,
+          v: signature.v,
+        };
+      }
+
+      csl("ContinueTransfer handleContinue", "rose-400", "_formatQuoteDataParams: %o", _formatQuoteDataParams);
 
       const _quoteData = await oneClickService.formatQuoteData({
         data: quoteResponse,
-        params: {
-          amount: quoteRequest.amount,
-          toToken: toToken,
-          fromToken: fromToken,
-          wallet: wallet.wallet,
-          prices,
-          refundTo: wallet.account || "",
-          recipient: history.receive_address || "",
-          refundType: "ORIGIN_CHAIN",
-          originAsset: fromToken.assetId,
-          destinationAsset: toToken.assetId,
-        },
+        params: _formatQuoteDataParams,
       });
+
+      csl("ContinueTransfer handleContinue", "rose-400", "_quoteData: %o", _quoteData);
 
       setTransactionData({
         ..._quoteData,
@@ -109,6 +179,8 @@ const ContinueTransfer = (props: any) => {
         type: Service.OneClick,
         data: _quoteData,
       };
+
+      csl("ContinueTransfer handleContinue", "rose-400", "final quoteData: %o", quoteData);
 
       // get TRX balance
       try {
@@ -127,29 +199,73 @@ const ContinueTransfer = (props: any) => {
 
       const localHistoryData = {
         type: Service.OneClick,
-        depositAddress: quoteData.data.quote.depositAddress,
-        amount: bridgeStore.amount,
+        depositAddress: quote.depositAddress,
+        amount: quote.amountInFormatted,
         fromToken: fromToken,
-        toToken: toToken,
+        toToken: sourceToToken,
         fromAddress: wallet.account,
-        toAddress: quoteData.data.quoteRequest.recipient,
+        toAddress: quoteRequest.recipient,
         time: Date.now(),
         txHash: "",
-        timeEstimate: quoteData.data.quote.timeEstimate,
+        timeEstimate: quote.timeEstimate,
       };
-      const reportData = {
+      const reportData: any = {
         project: "nearintents",
         address: wallet.account,
-        amount: bridgeStore.amount,
+        amount: quote.amountInFormatted,
         out_amount: quoteData.data.outputAmount,
-        deposit_address: quoteData.data.quote.depositAddress,
-        receive_address: quoteData.data.quoteRequest.recipient,
-        from_chain: fromToken.blockchain,
-        symbol: fromToken.symbol,
-        to_chain: toToken.blockchain,
-        to_symbol: toToken.symbol,
+        deposit_address: quote.depositAddress,
+        receive_address: quoteRequest.recipient,
+        from_chain: history.from_chain,
+        symbol: history.symbol,
+        to_chain: history.to_chain,
+        to_symbol: history.to_symbol,
         tx_hash: "",
       };
+
+      if (isOneClickUsdt0) {
+        // second step quote
+        // is from USDT(MIDDLE_TOKEN_CHAIN) on the Arbitrum chain to sourceToToken
+        const usdt0Result = await usdt0Service.quote({
+          wallet: evmWallet.wallet,
+          fromToken: MIDDLE_TOKEN_CHAIN,
+          toToken: sourceToToken,
+          originChain: MIDDLE_TOKEN_CHAIN.chainName,
+          destinationChain: sourceToToken?.chainName,
+          amountWei: quote.amountOut,
+          refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
+          recipient: history.receive_address,
+          slippageTolerance: configStore.slippage,
+          prices,
+        });
+
+        if (usdt0Result.errMsg) {
+          throw new Error(usdt0Result.errMsg);
+        }
+
+        const usdt0SendParam = usdt0Result.sendParam?.param?.[0];
+        const usdt0MessageFee = usdt0Result.sendParam?.param?.[1];
+
+        reportData.layer_zero_permit = {
+          ...permitResult,
+          amount_ld: usdt0SendParam?.amountLD,
+          compose_msg: usdt0SendParam?.composeMsg,
+          dst_eid: usdt0SendParam?.dstEid,
+          extra_options: usdt0SendParam?.extraOptions,
+          min_amount_ld: usdt0SendParam?.minAmountLD?.toString(),
+          oft_cmd: usdt0SendParam?.oftCmd,
+          to: usdt0SendParam?.to,
+          native_fee: usdt0MessageFee?.nativeFee?.toString(),
+        };
+      }
+
+      if (isOneClickFraxZero) {
+        reportData.frax_zero_permit = {
+          ...permitResult,
+        };
+      }
+
+      csl("ContinueTransfer handleContinue", "rose-400", "reportData: %o", reportData);
 
       bridgeStore.setTronTransferVisible(true, { quoteData });
 
@@ -200,9 +316,13 @@ const ContinueTransfer = (props: any) => {
       await reload?.();
     } catch (error: any) {
       console.error("continue transfer failed: %o", error);
+      let errorMsg = error.meesage || error?.toString?.() || "";
+      if (errorMsg.includes("user rejected action") || errorMsg.includes("Confirmation declined by user")) {
+        errorMsg = "User rejected transaction";
+      }
       toast.fail({
         title: "Continue transfer failed",
-        text: error.message || error + "",
+        text: errorMsg,
       });
     }
 

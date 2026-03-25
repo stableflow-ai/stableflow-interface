@@ -18,6 +18,7 @@ import {
   celo,
   sei,
   flare,
+  fraxtal,
 } from "viem/chains";
 import {
   WagmiProvider,
@@ -75,6 +76,7 @@ const RpcUrls: any = {
   [celo.id]: fallback(getChainRpcUrl("Celo").rpcUrls.map((rpc) => http(rpc))),
   [sei.id]: fallback(getChainRpcUrl("Sei").rpcUrls.map((rpc) => http(rpc))),
   [flare.id]: fallback(getChainRpcUrl("Flare").rpcUrls.map((rpc) => http(rpc))),
+  [fraxtal.id]: fallback(getChainRpcUrl("Fraxtal").rpcUrls.map((rpc) => http(rpc))),
 };
 
 const config = getDefaultConfig({
@@ -102,6 +104,7 @@ const config = getDefaultConfig({
     celo,
     sei,
     flare,
+    fraxtal,
   ],
   transports: {
     [mainnet.id]: RpcUrls[mainnet.id] || http(),
@@ -122,6 +125,7 @@ const config = getDefaultConfig({
     [celo.id]: RpcUrls[celo.id] || http(),
     [sei.id]: RpcUrls[sei.id] || http(),
     [flare.id]: RpcUrls[flare.id] || http(),
+    [fraxtal.id]: RpcUrls[fraxtal.id] || http(),
   },
 });
 const connectors: any = connectorsForWallets(

@@ -1,11 +1,13 @@
 import { usdt0 } from "@/config/tokens/usdt0";
 import { usdt } from "@/config/tokens/usdt";
 import { usdc } from "@/config/tokens/usdc";
+import { frxusd } from "@/config/tokens/frxusd";
 // import { usd1 } from "@/config/tokens/usd1";
 import clsx from "clsx";
 import useWalletStore from "@/stores/use-wallet";
 import { useRef } from "react";
 import { motion } from "framer-motion";
+import { useDebounceFn } from "ahooks";
 
 export default function Assets() {
   const walletStore = useWalletStore();
@@ -23,11 +25,13 @@ export default function Assets() {
     }
   };
 
+  const { run: scrollToDebounced } = useDebounceFn(scrollTo, { wait: 150 });
+
   return (
     <div className="w-full px-[10px] mt-[8px]">
       <div
         ref={wrapperRef}
-        className="flex items-center gap-3 overflow-x-auto pb-2"
+        className="flex items-center gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
         <AssetItem
           asset={usdt}
@@ -77,6 +81,9 @@ export default function Assets() {
 
             scrollTo("left");
           }}
+          onMouseEnter={() => {
+            scrollToDebounced("left");
+          }}
         />
         <AssetItem
           asset={usdt0}
@@ -86,6 +93,9 @@ export default function Assets() {
               selectedToken: "USD₮0"
             };
             walletStore.set(updateParams);
+          }}
+          onMouseEnter={() => {
+            scrollTo("left");
           }}
         />
         <AssetItem
@@ -134,8 +144,24 @@ export default function Assets() {
             //   }
             // }
             walletStore.set(updateParams);
+          }}
+          onMouseEnter={() => {
+            scrollTo("right");
+          }}
+        />
+         <AssetItem
+          asset={frxusd}
+          active={currentToken === "frxUSD"}
+          onClick={() => {
+            const updateParams: any = {
+              selectedToken: "frxUSD"
+            };
+            walletStore.set(updateParams);
 
             scrollTo("right");
+          }}
+          onMouseEnter={() => {
+            scrollToDebounced("right");
           }}
         />
         {/* <AssetItem
@@ -159,12 +185,14 @@ const AssetItem = ({
   asset,
   active,
   disabled = false,
-  onClick
+  onClick,
+  onMouseEnter,
 }: {
   asset: any;
   active: boolean;
   disabled?: boolean;
   onClick: () => void;
+  onMouseEnter?: () => void;
 }) => {
   return (
     <div
@@ -181,6 +209,7 @@ const AssetItem = ({
         }
         onClick?.();
       }}
+      onMouseEnter={onMouseEnter}
     >
       <img
         src={asset.icon}

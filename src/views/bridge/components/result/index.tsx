@@ -8,10 +8,13 @@ import { formatNumber } from "@/utils/format/number";
 import Big from "big.js";
 import Checkbox from "@/components/checkbox";
 import clsx from "clsx";
+import { FRAXZERO_MIDDLE_TOKEN_USDC } from "@/services/fraxzero/config";
+import { getQuoteModes } from "@/services/utils";
 
 const ResultOneClick = lazy(() => import("./oneclick"));
 const ResultUsdt0 = lazy(() => import("./usdt0"));
 const ResultCCTP = lazy(() => import("./cctp"));
+const ResultFraxZero = lazy(() => import("./fraxzero"));
 const ResultUsdt0OneClick = lazy(() => import("./usdt0-oneclick"));
 const ResultNative = lazy(() => import("./native"));
 
@@ -24,13 +27,18 @@ export default function Result() {
     return bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
   }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
 
-  const [_duration, priceImpact, isLargePriceImpact] = useMemo(() => {
+  const [_duration, priceImpact, isLargePriceImpact, isExactOutput] = useMemo(() => {
+    const { isExactOutput: _isOutputMode } = getQuoteModes({
+      quoteData,
+      bridgeStore,
+    });
     return [
       formatDuration(quoteData?.estimateTime),
       formatNumber(Big(quoteData?.priceImpact || 0).times(100), 2, true, { prefix: "-" }),
-      Big(quoteData?.priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD) && bridgeStore.quoteDataService !== Service.OneClickUsdt0
+      Big(quoteData?.priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD) && !_isOutputMode,
+      _isOutputMode
     ];
-  }, [quoteData]);
+  }, [quoteData, bridgeStore.quoteDataService]);
 
   const quoteDataList = useMemo(() => {
     bridgeStore.quoteDataMap.forEach((data, service) => {
@@ -40,10 +48,14 @@ export default function Result() {
     return list;
   }, [bridgeStore.quoteDataMap]);
 
-  const isOneClickService = useMemo(() => {
-    return ([Service.OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService);
+  const { isOneClickService } = useMemo(() => {
+    return getQuoteModes({
+      quoteData,
+      bridgeStore,
+    });
   }, [
-    bridgeStore.quoteDataService
+    bridgeStore.quoteDataService,
+    quoteData
   ]);
 
   const isFromTron = useMemo(() => {
@@ -141,7 +153,12 @@ export default function Result() {
           )
         }
         {
-          ([Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService) && (
+          bridgeStore.quoteDataService === Service.FraxZero && (
+            <ResultFraxZero />
+          )
+        }
+        {
+          ([Service.Usdt0OneClick, Service.OneClickUsdt0, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService) && (
             <ResultUsdt0OneClick service={bridgeStore.quoteDataService} />
           )
         }
@@ -227,7 +244,7 @@ export default function Result() {
           )
         }
         {
-          bridgeStore.quoteDataService === Service.OneClickUsdt0 && quoteData && (
+          isExactOutput && quoteData && (
             <div className="w-full px-[10px] text-[12px] text-[#70788A]">
               <img
                 src="/icon-info.svg"

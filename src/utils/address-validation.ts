@@ -326,4 +326,5 @@ export function addressToBytes32(chainType: string, address: string) {
   if (chainType === "tron") {
     return tronAddressToBytes32(address);
   }
+  return address;
 }

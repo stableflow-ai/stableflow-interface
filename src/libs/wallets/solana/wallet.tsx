@@ -1,12 +1,14 @@
 import {
   Connection,
   PublicKey,
+  SendTransactionError,
   Transaction,
   VersionedTransaction,
   SystemProgram,
   LAMPORTS_PER_SOL,
   TransactionInstruction,
   ComputeBudgetProgram,
+  TransactionMessage,
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
@@ -17,7 +19,7 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import { getChainRpcUrl } from "@/config/chains";
-import { addressToBytes32, Options } from "@layerzerolabs/lz-v2-utilities";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
@@ -29,10 +31,20 @@ import { Service } from "@/services/constants";
 import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
 import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
-import { ethers } from "ethers";
+import { ethers, getBytes } from "ethers";
 import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { csl } from "@/utils/log";
-import { createSolanaFallbackConnection } from "../utils/solana";
+import { publicKey } from "@metaplex-foundation/umi";
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import {
+  safeFetchToken,
+  findAssociatedTokenPda,
+  mplToolbox,
+} from "@metaplex-foundation/mpl-toolbox";
+import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
+import { fromWeb3JsPublicKey, toWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
+import { addressToBytes32 } from "@/utils/address-validation";
+import { createSolanaFallbackConnection, getAvailableSolanaRpcUrl } from "../utils/solana";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -362,22 +374,13 @@ export default class SolanaWallet {
       }
 
       let _dstEid: any = dstEid;
-      let to = new Uint8Array(Buffer.from(addressToBytes32(recipient)));
-
-      if (toToken.chainType === "tron" && !isMultiHopComposer) {
-        const decodedRecipient = addressToBytes32(recipient);
-        const recipientBytes = decodedRecipient.slice(1, 21);
-        to = Buffer.concat([
-          Buffer.alloc(12, 0), // 12 zero bytes
-          recipientBytes         // 20-byte address
-        ]);
-      }
+      let to = getBytes(addressToBytes32(toToken.chainType, recipient));
 
       let extraOptions = unMultiHopExtraOptions;
       let composeMsg = null;
       if (isMultiHopComposer) {
         _dstEid = multiHopComposer.eid;
-        to = new Uint8Array(Buffer.from(addressToBytes32(multiHopComposer.oftMultiHopComposer)));
+        to = getBytes(addressToBytes32("evm", multiHopComposer.oftMultiHopComposer));
 
         let multiHopExtraOptions = Options.newOptions().toHex();
         if (lzReceiveOptionValue) {
@@ -386,7 +389,7 @@ export default class SolanaWallet {
 
         const composeMsgSendParam = {
           dstEid,
-          to: addressToBytes32(recipient),
+          to: addressToBytes32(toToken.chainType, recipient),
           amountLD: amountLd,
           minAmountLD: minAmountLd,
           extraOptions: multiHopExtraOptions,
@@ -623,25 +626,71 @@ export default class SolanaWallet {
       throw new Error("Transaction is required");
     }
 
+    const hasAnySignature = (sig: Uint8Array | Buffer | null | undefined) =>
+      !!sig && sig.length > 0 && Array.from(sig).some((byte) => byte !== 0);
+    let latestBlockhash: Awaited<ReturnType<Connection["getLatestBlockhash"]>> | null = null;
+    let didRefreshBlockhash = false;
+
+    // Only refresh blockhash for unsigned transactions.
+    // For pre-signed CCTP txs, mutating recentBlockhash invalidates existing signatures.
+    if (transaction instanceof Transaction) {
+      const isUnsigned = transaction.signatures.every(({ signature }) => !hasAnySignature(signature as any));
+      if (isUnsigned) {
+        latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+        transaction.recentBlockhash = latestBlockhash.blockhash;
+        if (!transaction.feePayer) {
+          transaction.feePayer = this.publicKey;
+        }
+        didRefreshBlockhash = true;
+      }
+    } else if (transaction instanceof VersionedTransaction) {
+      const isUnsigned = transaction.signatures.every((signature) => !hasAnySignature(signature));
+      if (isUnsigned) {
+        latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+        // web3.js does not expose a convenient mutator here in typings, but runtime object is mutable.
+        (transaction.message as any).recentBlockhash = latestBlockhash.blockhash;
+        didRefreshBlockhash = true;
+      }
+    }
+
     // Sign the transaction
     const signedTransaction = await this.signTransaction(transaction);
 
-    // Send the transaction
-    const signature = await this.connection.sendRawTransaction(
-      signedTransaction.serialize(),
-      {
-        skipPreflight: false,
-        maxRetries: 3
+    let signature: string;
+    try {
+      // Send the transaction
+      signature = await this.connection.sendRawTransaction(
+        signedTransaction.serialize(),
+        {
+          skipPreflight: false,
+          maxRetries: 3
+        }
+      );
+    } catch (error: any) {
+      if (error instanceof SendTransactionError) {
+        try {
+          const logs = await error.getLogs(this.connection);
+          csl("Solana sendTransaction", "red-500", "sendRawTransaction failed logs: %o", logs);
+        } catch (logsError: any) {
+          csl("Solana sendTransaction", "red-500", "failed to fetch SendTransactionError logs: %o", logsError?.message || logsError);
+        }
       }
-    );
+      throw error;
+    }
 
     csl("Solana sendTransaction", "green-400", "Transaction sent with signature: %o", signature);
 
     // Confirm the transaction
-    const confirmation = await this.connection.confirmTransaction(
-      signature,
-      "confirmed"
-    );
+    const confirmation = didRefreshBlockhash && latestBlockhash
+      ? await this.connection.confirmTransaction(
+        {
+          signature,
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+        },
+        "confirmed"
+      )
+      : await this.connection.confirmTransaction(signature, "confirmed");
 
     if (confirmation.value.err) {
       throw new Error(
@@ -660,11 +709,13 @@ export default class SolanaWallet {
   async quote(type: Service, params: any) {
     switch (type) {
       case Service.CCTP:
-        return await this.quoteCCTP(params);
+        return this.quoteCCTP(params);
       case Service.Usdt0:
-        return await this.quoteOFT(params);
+        return this.quoteOFT(params);
       case Service.OneClick:
-        return await this.quoteOneClickProxy(params);
+        return this.quoteOneClickProxy(params);
+      case Service.FraxZero:
+        return this.quoteFraxZero(params);
       default:
         throw new Error(`Unsupported quote type: ${type}`);
     }
@@ -985,5 +1036,230 @@ export default class SolanaWallet {
     }
 
     return createTokenAccount();
+  }
+
+  async quoteFraxZero(params: any) {
+    const {
+      recipient,
+      amountWei,
+      slippageTolerance,
+      fromToken,
+      toToken,
+      prices,
+      excludeFees,
+      refundTo,
+      originLayerzero,
+      destinationLayerzero,
+    } = params;
+
+    csl("Solana quoteFraxZero", "purple-500", "params: %o", params);
+    const result: any = {
+      needApprove: false,
+      approveSpender: void 0,
+      sendParam: void 0,
+      quoteParam: {
+        ...params,
+      },
+      fees: {},
+      totalFeesUsd: 0,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: 0,
+      estimateTime: 0,
+      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
+    };
+
+    const sender = this.publicKey!;
+    const userPubkey = fromWeb3JsPublicKey(new PublicKey(refundTo || sender.toString()));
+    const {
+      eid: srcEid,
+      remoteHop,
+      lockbox,
+    } = originLayerzero;
+    const {
+      eid: dstEid,
+    } = destinationLayerzero;
+
+    const availableRpcUrl = await getAvailableSolanaRpcUrl();
+
+    const ALT_ADDRESS = new PublicKey("AokBxha6VMLLgf97B5VYHEtqztamWmYERBmmFvjuTzJB");
+    const umi = createUmi(availableRpcUrl).use(mplToolbox());
+    const oftProgramId = publicKey(originLayerzero.programId);
+    const oftMint = publicKey(fromToken.contractAddress);
+    const oftEscrow = publicKey(originLayerzero.escrow);
+    const tokenProgramId = publicKey(TOKEN_PROGRAM_ID);
+    const tokenAccount = findAssociatedTokenPda(umi, {
+      mint: oftMint,
+      owner: userPubkey,
+      tokenProgramId,
+    });
+
+    await safeFetchToken(umi, tokenAccount[0]);
+
+    const recipientAddressBytes32 = addressToBytes32(toToken.chainType, recipient);
+    const amountLd = BigInt(amountWei);
+    const minAmountLd = (amountLd * 99n) / 100n;
+
+    const { value: lookupTableAccount } = await this.connection.getAddressLookupTable(ALT_ADDRESS);
+    if (!lookupTableAccount) {
+      throw new Error("ALT not found");
+    }
+
+    let { nativeFee, lzTokenFee } = await oft.quote(
+      umi.rpc,
+      {
+        payer: userPubkey,
+        tokenMint: oftMint,
+        tokenEscrow: oftEscrow,
+      },
+      {
+        payInLzToken: false,
+        to: getBytes(recipientAddressBytes32),
+        dstEid: dstEid,
+        amountLd,
+        minAmountLd,
+        options: Buffer.from(""),
+        composeMsg: undefined,
+      },
+      {
+        oft: oftProgramId,
+      },
+    );
+    csl("Solana quoteFraxZero", "purple-500", "nativeFee: %o", nativeFee);
+    nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;
+    csl("Solana quoteFraxZero", "purple-500", "nativeFee after buffer: %o", nativeFee);
+
+    csl("Solana quoteFraxZero", "purple-500", "recipientAddress: %o", recipient);
+    csl("Solana quoteFraxZero", "purple-500", "recipientAddressBytes32: %o", recipientAddressBytes32);
+    csl("Solana quoteFraxZero", "purple-500", "recipientAddressBytes32 buffer: %o", getBytes(recipientAddressBytes32));
+
+    // oft.send() internally simulates the tx via umi.rpc without replaceRecentBlockhash,
+    // so it can transiently fail with BlockhashNotFound when RPC nodes are out of sync.
+    let ix: Awaited<ReturnType<typeof oft.send>>;
+    let oftSendRetries = 0;
+    const OFT_SEND_MAX_RETRIES = 3;
+    while (true) {
+      try {
+        ix = await oft.send(
+          umi.rpc,
+          {
+            payer: {
+              ...this.signer,
+              publicKey: userPubkey,
+            },
+            tokenMint: oftMint,
+            tokenEscrow: oftEscrow,
+            tokenSource: tokenAccount[0],
+          },
+          {
+            to: getBytes(recipientAddressBytes32),
+            dstEid,
+            amountLd,
+            minAmountLd,
+            options: Buffer.from(''),
+            composeMsg: undefined,
+            nativeFee,
+            lzTokenFee: 0n,
+          },
+          {
+            oft: oftProgramId,
+            token: tokenProgramId,
+          },
+        );
+        break;
+      } catch (err: any) {
+        const isBlockhashNotFound =
+          err?.message?.includes('BlockhashNotFound') ||
+          JSON.stringify(err)?.includes('BlockhashNotFound');
+        if (isBlockhashNotFound && oftSendRetries < OFT_SEND_MAX_RETRIES) {
+          oftSendRetries++;
+          csl("Solana quoteFraxZero", "yellow-500", "oft.send BlockhashNotFound, retrying (%o/%o)...", oftSendRetries, OFT_SEND_MAX_RETRIES);
+          await new Promise((r) => setTimeout(r, 500 * oftSendRetries));
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    csl("Solana quoteFraxZero", "purple-500", "ix: %o", ix);
+
+    const web3Instruction = toWeb3JsInstruction(ix.instruction);
+    const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 400000, // Increase to 400k units (default is 200k)
+    });
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    const messageV0 = new TransactionMessage({
+      payerKey: new PublicKey(userPubkey),
+      recentBlockhash: blockhash,
+      instructions: [computeBudgetIx, web3Instruction],
+    }).compileToV0Message([lookupTableAccount]);
+    const transaction = new VersionedTransaction(messageV0);
+
+    csl("Solana quoteFraxZero", "purple-500", "transaction: %o", transaction);
+
+    result.sendParam = {
+      transaction,
+    };
+
+    // Simulate send transaction to estimate gas fees
+    // Note: Simulation may fail due to insufficient funds, which is normal in quote phase
+    let estimatedFee = 5000n; // Default base fee per signature
+    try {
+      const sendSim = await this.connection.simulateTransaction(transaction, {
+        sigVerify: false,
+        replaceRecentBlockhash: true,
+      });
+
+      // csl("Solana quoteOFT", "purple-400", "sendSim: %o", JSON.stringify(sendSim));
+
+      // Even if simulation fails (e.g., insufficient funds), we can still get the fee estimate
+      if (!sendSim.value.err) {
+        // @ts-ignore Solana base fee is 5000 lamports per signature
+        estimatedFee = (sendSim.value as any).fee || 5000n;
+      } else {
+        // If simulation fails, log it but continue with default fee
+        console.warn('Send simulation failed (this is normal in quote phase):', sendSim.value.err);
+        // @ts-ignore Try to get fee even if simulation failed
+        const fee = (sendSim.value as any).fee;
+        if (fee) {
+          estimatedFee = fee;
+        }
+      }
+    } catch (simError: any) {
+      // If simulation throws an error, use default fee and continue
+      csl("Solana quoteFraxZero", "yellow-500", "Send simulation error (this is normal in quote phase): %o", simError.message);
+    }
+
+    if (fromToken.nativeToken) {
+      const nativeFeeUsd = Big(nativeFee.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+      result.fees.nativeFeeUsd = numberRemoveEndZero(nativeFeeUsd.toFixed(20));
+
+      const lzTokenFeeUsd = Big(lzTokenFee ? lzTokenFee.toString() : 0)
+        .div(10 ** fromToken.decimals)
+        .times(getPrice(prices, fromToken.symbol));
+      result.fees.lzTokenFeeUsd = numberRemoveEndZero(lzTokenFeeUsd.toFixed(20));
+
+      const estimateGasUsd = Big(estimatedFee.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .times(getPrice(prices, fromToken.nativeToken.symbol));
+      result.fees.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+      result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+    }
+    result.fees.nativeFee = Big(nativeFee.toString())
+      .div(10 ** fromToken.nativeToken.decimals)
+      .toFixed(fromToken.nativeToken.decimals, 0);
+    result.fees.lzTokenFee = lzTokenFee.toString();
+    result.estimateSourceGas = estimatedFee;
+
+    for (const feeKey in result.fees) {
+      if (excludeFees && excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
+
+    return result;
   }
 }
