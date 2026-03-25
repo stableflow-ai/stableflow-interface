@@ -3,7 +3,7 @@ import fraxZeroService, { FraxZeroService, excludeFees as fraxZeroExcludeFees } 
 import { csl } from "@/utils/log";
 import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
-import { FRAXZERO_CONFIG, FRAXZERO_GAS_USED, FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_PERMIT_TO_FRXUSD_SPENDER, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_REDEEM_USDC_CONTRACT } from "./config";
+import { FRAXZERO_CONFIG, FRAXZERO_GAS_USED, FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_REDEEM_USDC_CONTRACT } from "./config";
 import { getPrice } from "@/utils/format/price";
 import { FRAXZERO_REDEEM_MINT_ABI } from "./contract";
 import Big from "big.js";

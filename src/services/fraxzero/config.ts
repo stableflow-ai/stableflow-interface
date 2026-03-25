@@ -1,6 +1,7 @@
 import { usdcChains } from "@/config/tokens/usdc";
 import { frxusdChains } from "@/config/tokens/frxusd";
 import { LAYERZZERO_CHAINS, type LayerZeroChainConfig } from "../utils";
+import { IS_PRODUCTION } from "@/config/api";
 
 export interface FraxZeroConfig extends LayerZeroChainConfig {
   remoteHop?: string;
@@ -75,13 +76,11 @@ export const FRAXZERO_CONFIG: Record<string, FraxZeroConfig> = {
 export const FRAXZERO_MIDDLE_TOKEN_USDC = usdcChains["eth"];
 export const FRAXZERO_MIDDLE_TOKEN_FRXUSD = frxusdChains["eth"];
 export const FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS = "0x654E7B96E1DE0b54E53D9ae8082fC2219E66dAC3";
-export const FRAXZERO_PERMIT_TO_USDC_SPENDER = "0x62f1A62C7Ac3429c375B58E4cA466D81Af0f6EaA";
-export const FRAXZERO_PERMIT_TO_FRXUSD_SPENDER = "0x53812Feae0fd2C43f8E6D8847A7f5d035F1d1f8f";
 
 export const FRAXZERO_REDEEM_USDC_CONTRACT = "0x4F95C5bA0C7c69FB2f9340E190cCeE890B3bd87c";
 export const FRAXZERO_REDEEM_RWA_CONTRACT = "0x5fbAa3A3B489199338fbD85F7E3D444dc0504F33";
 
-export const FRAXZERO_REDEEM_AND_MINT_CONTRACT = "0x6f4042401823a97E3b02F1A533e62C40409a75fa";
+export const FRAXZERO_REDEEM_AND_MINT_CONTRACT = IS_PRODUCTION ? "0x810e389A8EC266D31159c5f9F7F092e4F92BD269" : "0x6f4042401823a97E3b02F1A533e62C40409a75fa";
 
 // gas amount = gas limit * gas price
 export const FRAXZERO_GAS_USED = {

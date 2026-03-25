@@ -1,6 +1,6 @@
 import { csl } from "@/utils/log";
 import { FraxZeroService, excludeFees as fraxExcludeFees } from ".";
-import { FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_PERMIT_TO_USDC_SPENDER, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED } from "./config";
+import { FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED } from "./config";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { ethers } from "ethers";
 import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick";
