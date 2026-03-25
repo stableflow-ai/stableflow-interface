@@ -35,7 +35,7 @@ const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
 
 export default function useBridge(props?: any) {
-  const { liquidityError } = props ?? {};
+  const { } = props ?? {};
 
   const {
     getEstimateNeedsEnergy,
@@ -55,7 +55,6 @@ export default function useBridge(props?: any) {
   const { switchChainAsync } = useSwitchChain();
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
-  const [liquidityErrorMssage, setLiquidityErrorMessage] = useState<boolean>();
   const prevToTokenRef = useRef<any>(null);
 
   const [fromWalletAddress, toWalletAddress] = useMemo(() => {
@@ -112,10 +111,6 @@ export default function useBridge(props?: any) {
       }
       bridgeStore.setQuoting(service, requestId, true);
       const isFromTron = walletStore.fromToken.chainType === "tron";
-
-      if (service === Service.OneClick) {
-        setLiquidityErrorMessage(liquidityError);
-      }
 
       const formatQuoteParams = async () => {
         const _params: any = {
@@ -193,10 +188,6 @@ export default function useBridge(props?: any) {
 
       bridgeStore.setQuoteData(service, quoteRes);
 
-      if (service === Service.OneClick) {
-        setLiquidityErrorMessage(false);
-      }
-
       return {
         type: service,
         data: quoteRes,
@@ -257,8 +248,6 @@ export default function useBridge(props?: any) {
           to_chain: walletStore.toToken.chainName,
           to_symbol: walletStore.toToken.symbol,
         });
-
-        setLiquidityErrorMessage(false);
       }
 
       const _quoteData = {
@@ -1050,9 +1039,6 @@ export default function useBridge(props?: any) {
       if (bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg) {
         return bridgeStore.quoteDataMap?.get(bridgeStore.quoteDataService)?.errMsg;
       }
-      if (liquidityErrorMssage && bridgeStore.quoteDataService === Service.OneClick) {
-        return "Amount exceeds max";
-      }
       if (
         walletStore.fromToken.chainType === "evm" &&
         walletStore.fromToken.chainId !== walletStore.fromToken.chainId
@@ -1132,7 +1118,6 @@ export default function useBridge(props?: any) {
     fromWalletAddress,
     toWalletAddress,
     wallets.evm?.chainId,
-    liquidityErrorMssage,
     evmAccount?.chainId,
     balancesStore,
     historyStore.servicePendingNumberWithPermit
