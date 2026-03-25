@@ -22,6 +22,8 @@ const isRpcUnavailableError = (error: unknown) => {
     message.includes("failed to fetch") ||
     message.includes("503") ||
     message.includes("429") ||
+    message.includes("403") ||
+    message.includes("401") ||
     message.includes("network")
   );
 };

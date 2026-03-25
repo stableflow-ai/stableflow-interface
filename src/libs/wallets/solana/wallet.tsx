@@ -1132,32 +1132,53 @@ export default class SolanaWallet {
     csl("Solana quoteFraxZero", "purple-500", "recipientAddressBytes32: %o", recipientAddressBytes32);
     csl("Solana quoteFraxZero", "purple-500", "recipientAddressBytes32 buffer: %o", getBytes(recipientAddressBytes32));
 
-    const ix = await oft.send(
-      umi.rpc,
-      {
-        payer: {
-          ...this.signer,
-          publicKey: userPubkey,
-        },
-        tokenMint: oftMint,
-        tokenEscrow: oftEscrow,
-        tokenSource: tokenAccount[0],
-      },
-      {
-        to: getBytes(recipientAddressBytes32),
-        dstEid,
-        amountLd,
-        minAmountLd,
-        options: Buffer.from(''),
-        composeMsg: undefined,
-        nativeFee,
-        lzTokenFee: 0n,
-      },
-      {
-        oft: oftProgramId,
-        token: tokenProgramId,
-      },
-    );
+    // oft.send() internally simulates the tx via umi.rpc without replaceRecentBlockhash,
+    // so it can transiently fail with BlockhashNotFound when RPC nodes are out of sync.
+    let ix: Awaited<ReturnType<typeof oft.send>>;
+    let oftSendRetries = 0;
+    const OFT_SEND_MAX_RETRIES = 3;
+    while (true) {
+      try {
+        ix = await oft.send(
+          umi.rpc,
+          {
+            payer: {
+              ...this.signer,
+              publicKey: userPubkey,
+            },
+            tokenMint: oftMint,
+            tokenEscrow: oftEscrow,
+            tokenSource: tokenAccount[0],
+          },
+          {
+            to: getBytes(recipientAddressBytes32),
+            dstEid,
+            amountLd,
+            minAmountLd,
+            options: Buffer.from(''),
+            composeMsg: undefined,
+            nativeFee,
+            lzTokenFee: 0n,
+          },
+          {
+            oft: oftProgramId,
+            token: tokenProgramId,
+          },
+        );
+        break;
+      } catch (err: any) {
+        const isBlockhashNotFound =
+          err?.message?.includes('BlockhashNotFound') ||
+          JSON.stringify(err)?.includes('BlockhashNotFound');
+        if (isBlockhashNotFound && oftSendRetries < OFT_SEND_MAX_RETRIES) {
+          oftSendRetries++;
+          csl("Solana quoteFraxZero", "yellow-500", "oft.send BlockhashNotFound, retrying (%o/%o)...", oftSendRetries, OFT_SEND_MAX_RETRIES);
+          await new Promise((r) => setTimeout(r, 500 * oftSendRetries));
+          continue;
+        }
+        throw err;
+      }
+    }
 
     csl("Solana quoteFraxZero", "purple-500", "ix: %o", ix);
 
