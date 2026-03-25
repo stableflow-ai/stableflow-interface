@@ -176,7 +176,7 @@ const PendingItem = ({ className, data, layerzeroData, wallets, toast, evmAccoun
       <div className="rounded-[12px] bg-white border border-[#EDF0F7] p-[12px] pt-[6px]">
         <div className="mb-2 flex justify-between items-center">
           <img
-            src={TradeProjectMap[data.project]?.logo}
+            src={TradeProjectMap[data.project as TradeProject]?.logo}
             alt=""
             className="w-[62px] h-[16px] object-center object-contain shrink-0"
           />
