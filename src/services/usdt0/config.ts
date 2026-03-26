@@ -93,6 +93,17 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
   },
+  "Ton": {
+    contractAddress: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
+    oftLegacy: "EQAd31gAUhdO0d0NZsNb_cGl_Maa9PSuNhVLE9z8bBSjX6Gq",
+    eid: 30343,
+    chainKey: "ton",
+    blockTime: 3,
+    confirmations: 2,
+    lzReceiveOptionGas: 80000,
+    lzReceiveOptionGasLegacy: 200000,
+    composeOptionGas: 600000,
+  },
   "Plasma": {
     contractAddress: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
     oft: "0x02ca37966753bDdDf11216B73B16C1dE756A7CF9",

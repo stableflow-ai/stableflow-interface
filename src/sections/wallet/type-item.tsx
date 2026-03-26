@@ -10,6 +10,7 @@ const LABEL = {
   near: "Near",
   tron: "Tron",
   aptos: "Aptos",
+  ton: "Ton",
 };
 
 export default function TypeItem({ type = "evm", token }: { type: WalletType; token: any; }) {

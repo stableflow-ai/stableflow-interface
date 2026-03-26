@@ -1,3 +1,4 @@
+import { Address } from "@ton/ton";
 import bs58 from "bs58";
 import { zeroPadValue } from "ethers";
 
@@ -38,6 +39,8 @@ export function validateAddress(
       return validateAptosAddress(trimmedAddress);
     case "tron":
       return validateTronAddress(trimmedAddress);
+    case "ton":
+      return validateTonAddress(trimmedAddress);
     default:
       return {
         isValid: false,
@@ -158,6 +161,22 @@ function validateAptosAddress(address: string): AddressValidationResult {
   }
 
   return { isValid: true };
+}
+
+/**
+ * Validates a TON address
+ * TON addresses can be in user-friendly format (EQ...) or raw format (workchain:hash)
+ */
+function validateTonAddress(address: string): AddressValidationResult {
+  try {
+    Address.parse(address);
+    return { isValid: true };
+  } catch {
+    return {
+      isValid: false,
+      error: "Invalid TON address"
+    };
+  }
 }
 
 /**
@@ -316,6 +335,24 @@ export function bytes32ToSolanaAddress(bytes32Address: string) {
   return bs58.encode(buffer);
 }
 
+/**
+ * Converts TON address to bytes32 format (for LayerZero OFT)
+ * @param {string} tonAddress - TON address in user-friendly (EQ...) or raw (0:hash) format
+ * @returns {string} Address in bytes32 format (0x + 32-byte hash as hex)
+ */
+export function tonAddressToBytes32(tonAddress: string) {
+  try {
+    const address = Address.parse(tonAddress);
+    if (address.hash.length !== 32) {
+      throw new Error("Invalid TON address hash length");
+    }
+    return "0x" + address.hash.toString("hex");
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to convert TON address: ${message}`);
+  }
+}
+
 export function addressToBytes32(chainType: string, address: string) {
   if (chainType === "evm") {
     return zeroPadValue(address, 32);
@@ -325,6 +362,9 @@ export function addressToBytes32(chainType: string, address: string) {
   }
   if (chainType === "tron") {
     return tronAddressToBytes32(address);
+  }
+  if (chainType === "ton") {
+    return tonAddressToBytes32(address);
   }
   return address;
 }

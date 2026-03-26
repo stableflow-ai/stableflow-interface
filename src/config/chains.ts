@@ -31,6 +31,12 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
     color: "#000000",
     bg: "linear-gradient(90deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.00) 50%)",
   },
+  ton: {
+    value: "ton",
+    name: "Ton",
+    color: "#0098EA",
+    bg: "linear-gradient(90deg, rgba(0, 152, 234, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
+  },
 };
 
 const HeliusRpcApiKey = import.meta.env.VITE_HELIUS_RPC_API_KEY;
@@ -60,6 +66,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Sei": ["https://sei-evm-rpc.publicnode.com"],
   "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
   "Fraxtal": ["https://rpc.frax.com"],
+  "Ton": ["https://toncenter.com/api/v2/jsonRPC"],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
@@ -290,6 +297,20 @@ const chains = {
       decimals: 18,
     },
     ...getChainRpcUrl("Plasma"),
+  },
+  ton: {
+    chainName: "Ton",
+    blockchain: "ton",
+    chainIcon: "/chains/ton.png",
+    chainIconGray: "/chains/ton-gray.png",
+    chainType: chainTypes.ton.value,
+    blockExplorerUrl: "https://tonviewer.com/transaction/",
+    primaryColor: "#0098EA",
+    nativeToken: {
+      symbol: "TON",
+      decimals: 9,
+    },
+    ...getChainRpcUrl("Ton"),
   },
   mantle: {
     chainName: "Mantle",

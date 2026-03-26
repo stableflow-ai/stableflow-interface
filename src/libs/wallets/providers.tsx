@@ -2,29 +2,34 @@ import React, { Suspense, lazy } from "react";
 import OKXConnectProvider from "./okxconnect";
 
 // Dynamic import wallet providers with error handling
-const RainbowProvider = lazy(() => 
-  import("./rainbow/provider").catch(() => ({ 
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</> 
+const RainbowProvider = lazy(() =>
+  import("./rainbow/provider").catch(() => ({
+    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
   }))
 );
-const SolanaProvider = lazy(() => 
-  import("./solana/provider").catch(() => ({ 
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</> 
+const SolanaProvider = lazy(() =>
+  import("./solana/provider").catch(() => ({
+    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
   }))
 );
-const NEARProvider = lazy(() => 
-  import("./near/provider").catch(() => ({ 
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</> 
+const NEARProvider = lazy(() =>
+  import("./near/provider").catch(() => ({
+    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
   }))
 );
-const TronProvider = lazy(() => 
-  import("./tron/provider").catch(() => ({ 
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</> 
+const TronProvider = lazy(() =>
+  import("./tron/provider").catch(() => ({
+    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
   }))
 );
-const AptosProvider = lazy(() => 
-  import("./aptos/provider").catch(() => ({ 
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</> 
+const AptosProvider = lazy(() =>
+  import("./aptos/provider").catch(() => ({
+    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
+  }))
+);
+const TonProvider = lazy(() =>
+  import("./ton/provider").catch(() => ({
+    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
   }))
 );
 
@@ -40,7 +45,11 @@ const WalletProviderLoader = ({ children }: { children: React.ReactNode }) => (
                 <TronProvider>
                   <Suspense fallback={null}>
                     <AptosProvider>
-                      {children}
+                      <Suspense fallback={null}>
+                        <TonProvider>
+                          {children}
+                        </TonProvider>
+                      </Suspense>
                     </AptosProvider>
                   </Suspense>
                 </TronProvider>

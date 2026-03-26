@@ -2,7 +2,6 @@ import { Suspense, lazy } from "react";
 import useBridge from "./hooks/use-bridge";
 import MainTitle from "@/components/main-title";
 import PendingTransfer from "./components/pending";
-import { useLiquidityQuote } from "@/stores/use-liquidity-quote";
 
 // Dynamic import components
 const Networks = lazy(() => import("./components/networks"));
@@ -17,8 +16,7 @@ const QuoteRoutes = lazy(() => import("./components/routes"));
 const LoadingSpinner = () => null;
 
 export default function Bridge() {
-  const liquidity = useLiquidityQuote();
-  const { quote, transfer, addressValidation, errorChain } = useBridge(liquidity);
+  const { quote, transfer, addressValidation, errorChain } = useBridge();
 
   return (
     <div className="relative w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
