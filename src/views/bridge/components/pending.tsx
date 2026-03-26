@@ -75,7 +75,7 @@ const PendingTransfer = (props: any) => {
 
       // USDT0 status
       try {
-        if (result.project === TradeProject.USDT0) {
+        if (result.project === TradeProject.Usdt0) {
           const layerzeroData = await usdt0Service.getLayerzeroData({
             tx_hash: result.tx_hash,
             from_chain: result.from_chain,

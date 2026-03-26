@@ -22,7 +22,7 @@ export const getHopMsgFee = async (params: any) => {
 
   const providers = getChainRpcUrl("Arbitrum").rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, 42161));
   const provider = new ethers.FallbackProvider(providers);
-  const oftContractRead = new ethers.Contract(arbitrumOft, OFT_ABI, provider);
+  const oftContractRead = new ethers.Contract(arbitrumOft!, OFT_ABI, provider);
 
   try {
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, false);

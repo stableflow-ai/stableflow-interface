@@ -7,10 +7,9 @@ import { numberRemoveEndZero } from "@/utils/format/number";
 import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "./config";
 import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
-import { BridgeDefaultWallets } from "@/config";
 import { csl } from "@/utils/log";
 
-class Usdt0OneClickService {
+export class Usdt0OneClickService {
   public async quote(params: any) {
     const {
       dry,
@@ -48,7 +47,7 @@ class Usdt0OneClickService {
     if (!dry) {
       usdt0Params.recipient = oneClickResult.quote.depositAddress;
     } else {
-      usdt0Params.recipient = BridgeDefaultWallets["evm"];
+      usdt0Params.recipient = MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
     const usdt0Result = await usdt0Service.quote(usdt0Params);

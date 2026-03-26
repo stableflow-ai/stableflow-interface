@@ -12,6 +12,7 @@ export default function Token({
   onExpand,
   balances,
   loading,
+  totalLoading,
   totalBalance
 }: any) {
   const walletStore = useWalletStore();
@@ -24,7 +25,11 @@ export default function Token({
           <span className="text-[14px] font-[500]">{token.symbol}</span>
         </div>
         <div className="flex items-center gap-[4px]">
-          <Amount amount={totalBalance} />
+          {totalLoading ? (
+            <Loading size={14} />
+          ) : (
+            <Amount amount={totalBalance} />
+          )}
         </div>
       </div>
       <AnimatePresence>

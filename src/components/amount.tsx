@@ -18,6 +18,7 @@ export default function Amount({
     const _amount = formatNumber(amount, 2, false, {
       isZeroPrecision: true,
       round: Big.roundDown,
+      isLessPrecision: false,
     });
     return [_amount.integer, _amount.decimal];
   }, [amount]);

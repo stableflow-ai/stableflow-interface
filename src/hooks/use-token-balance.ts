@@ -10,10 +10,15 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
   const balancesStore = useBalancesStore();
   const wallet = wallets[token?.chainType as WalletType];
 
-  const getBalance = async () => {
-    if (!token?.chainType) return;
+  const getBalance = async (): Promise<{ amount: string; wei: bigint; }> => {
+    const balanceResult = {
+      amount: "0",
+      wei: 0n,
+    };
 
-    if (!wallet?.wallet || !wallet.account) return;
+    if (!token?.chainType) return balanceResult;
+
+    if (!wallet?.wallet || !wallet.account) return balanceResult;
 
     try {
       setLoading(true);
@@ -26,9 +31,12 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
       const _balance = balance
         ? Big(balance)
           .div(10 ** token.decimals)
-          .toString()
+          .toFixed(token.decimals, Big.roundDown)
         : "0";
       setBalance(_balance);
+
+      balanceResult.wei = balance;
+      balanceResult.amount = _balance;
 
       const key = `${token.chainType}Balances`;
       let nextBalances = balancesStore[key as keyof BalancesState];
@@ -54,6 +62,8 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
     } finally {
       setLoading(false);
     }
+
+    return balanceResult;
   };
 
   useEffect(() => {

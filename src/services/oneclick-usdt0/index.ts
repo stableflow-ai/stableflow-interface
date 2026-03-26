@@ -3,14 +3,13 @@ import usdt0Service, { excludeFees as usdt0ExcludeFees } from "../usdt0";
 import cctpService from "../cctp";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
-import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "../usdt0-oneclick/config";
+import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "../usdt0-oneclick/config";
 import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
-import { BridgeDefaultWallets } from "@/config";
 import { getPrice } from "@/utils/format/price";
 import { csl } from "@/utils/log";
 
-class OneClickUsdt0Service {
+export class OneClickUsdt0Service {
   public async quote(params: any) {
     const {
       wallets,
@@ -26,7 +25,7 @@ class OneClickUsdt0Service {
       middleChainWallet = new RainbowWallet(provider, {});
     }
     if (!destinationRecipientAddress) {
-      destinationRecipientAddress = BridgeDefaultWallets.evm;
+      destinationRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
     // First, call the usdt0 quote method
@@ -116,8 +115,25 @@ class OneClickUsdt0Service {
       totalFeesUsd = Big(totalFeesUsd || 0).plus(fees[feeKey] || 0);
     }
 
+    const usdt0SendParam = usdt0Result.sendParam?.param?.[0];
+    const usdt0MessageFee = usdt0Result.sendParam?.param?.[1];
+
     return {
       ...oneClickResult,
+      needPermit: true,
+      permitSpender: MIDDLE_CHAIN_LAYERZERO_EXECUTOR,
+      permitToken: MIDDLE_TOKEN_CHAIN,
+      permitAmountWei: oneClickResult?.quote?.amountOut,
+      permitAdditionalData: {
+        amount_ld: usdt0SendParam?.amountLD,
+        compose_msg: usdt0SendParam?.composeMsg,
+        dst_eid: usdt0SendParam?.dstEid,
+        extra_options: usdt0SendParam?.extraOptions,
+        min_amount_ld: usdt0SendParam?.minAmountLD?.toString(),
+        oft_cmd: usdt0SendParam?.oftCmd,
+        to: usdt0SendParam?.to,
+        native_fee: usdt0MessageFee?.nativeFee?.toString(),
+      },
       fees,
       totalFeesUsd: numberRemoveEndZero(Big(totalFeesUsd).toFixed(20)),
       estimateTime: usdt0Result.estimateTime + oneClickResult.estimateTime,
@@ -130,8 +146,8 @@ class OneClickUsdt0Service {
         isOriginLegacy: usdt0Result.quoteParam?.isOriginLegacy,
         isDestinationLegacy: usdt0Result.quoteParam?.isDestinationLegacy,
       },
-      usdt0SendParam: usdt0Result.sendParam?.param?.[0],
-      usdt0MessageFee: usdt0Result.sendParam?.param?.[1],
+      usdt0SendParam,
+      usdt0MessageFee,
     };
   }
 
