@@ -342,6 +342,10 @@ export default class AptosWallet {
       prices,
     } = params;
 
+    const _quoteType = `OneClick Aptos proxy`;
+    const _t0 = performance.now();
+    let _t = _t0;
+
     const result: any = { fees: {} };
 
     if (!this.account) {
@@ -374,6 +378,7 @@ export default class AptosWallet {
       const functionId = `${proxyAddress}::stableflow_proxy::proxy_transfer_fa` as `${string}::${string}::${string}`;
       const functionArguments = [fromToken.contractAddress, depositAddress, amountWei];
 
+      _t = performance.now();
       const rawTxn = await this.aptos.transaction.build.simple({
         sender,
         data: {
@@ -382,10 +387,12 @@ export default class AptosWallet {
           functionArguments: functionArguments,
         },
       });
+      csl(_quoteType, "gray-900", "transaction.build.simple: %sms", (performance.now() - _t).toFixed(0));
 
       // Simulate transaction to estimate gas
       let simulation: any;
       try {
+        _t = performance.now();
         const simulationResult = await this.aptos.transaction.simulate.simple({
           signerPublicKey,
           transaction: rawTxn,
@@ -395,6 +402,7 @@ export default class AptosWallet {
             estimatePrioritizedGasUnitPrice: true,
           },
         });
+        csl(_quoteType, "gray-900", "transaction.simulate.simple: %sms", (performance.now() - _t).toFixed(0));
         simulation = simulationResult[0];
       } catch (error: any) {
         csl("Aptos quoteOneClickProxy", "red-500", "oneclick proxy simulation failed: %o", error);
@@ -418,6 +426,7 @@ export default class AptosWallet {
           functionArguments: functionArguments,
         };
 
+        csl(_quoteType, "gray-900", "total: %sms (simulation error fallback)", (performance.now() - _t0).toFixed(0));
         return result;
       }
 
@@ -441,6 +450,7 @@ export default class AptosWallet {
           functionArguments: functionArguments,
         };
 
+        csl(_quoteType, "gray-900", "total: %sms (simulation !success fallback)", (performance.now() - _t0).toFixed(0));
         return result;
       }
 
@@ -482,6 +492,7 @@ export default class AptosWallet {
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
     }
 
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return result;
   }
 

@@ -4,6 +4,7 @@ import axios from "axios";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
 import { calculateEstimateTime } from "../utils";
+import { csl } from "@/utils/log";
 
 export const PayInLzToken = false;
 
@@ -23,6 +24,9 @@ export class Usdt0Service {
       slippageTolerance,
       prices,
     } = params;
+
+    const _quoteType = `Usdt0Service ${fromToken?.chainName}->${toToken?.chainName}`;
+    const _t0 = performance.now();
 
     const originLayerzero = USDT0_CONFIG[originChain];
     const destinationLayerzero = USDT0_CONFIG[destinationChain];
@@ -82,6 +86,7 @@ export class Usdt0Service {
 
       result.estimateTime = estimateTime;
 
+      csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
       return result;
     }
 
@@ -137,6 +142,7 @@ export class Usdt0Service {
 
     result.estimateTime = estimateTime;
 
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return result;
   }
 

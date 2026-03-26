@@ -258,6 +258,10 @@ export default class TonWallet {
       destinationLayerzero,
     } = params;
 
+    const _quoteType = `Usdt0 TON ${fromToken.chainName}->${toToken.chainName}`;
+    const _t0 = performance.now();
+    let _t = _t0;
+
     const result: any = {
       needApprove: false,
       sendParam: void 0,
@@ -297,10 +301,12 @@ export default class TonWallet {
 
     const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
     let lzReceiveOptionValue = 0;
+    _t = performance.now();
     const destATA = await getDestinationAssociatedTokenAddress({
       recipient,
       toToken,
     });
+    csl(_quoteType, "gray-900", "getDestinationAssociatedTokenAddress: %sms", (performance.now() - _t).toFixed(0));
     if (destATA.needCreateTokenAccount) {
       lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
     }
@@ -321,7 +327,9 @@ export default class TonWallet {
     }
 
     const dstProxyAddressBigInt = BigInt(dstProxyAddress);
+    _t = performance.now();
     const jettonWalletAddress = await this.getSenderJettonWallet(fromToken.contractAddress, refundTo);
+    csl(_quoteType, "gray-900", "getSenderJettonWallet: %sms", (performance.now() - _t).toFixed(0));
     csl("TON quoteOFT", "blue-300", "jettonWalletAddress: %o", jettonWalletAddress.toString());
     csl("TON quoteOFT", "blue-300", "refundTo: %o", refundTo);
     csl("TON quoteOFT", "blue-300", "Address.parse(refundTo): %o", Address.parse(refundTo));
@@ -379,6 +387,7 @@ export default class TonWallet {
           nativeDropAmount: 0n,
         });
         try {
+          const _tCompose = performance.now();
           const response = await this.tonClient
             .provider(proxyAddress)
             .get("_encodeOftSendAsComposeMessage", [
@@ -388,6 +397,7 @@ export default class TonWallet {
               { type: "cell", cell: extraOptions },
             ]);
           _composeMessage = response.stack.readCell();
+          csl(_quoteType, "gray-900", "_encodeOftSendAsComposeMessage: %sms", (performance.now() - _tCompose).toFixed(0));
         } catch (err) {
           csl("TON quoteOFT", "red-500", "createComposePayload failed: %o", err);
           throw "get compose message failed";
@@ -408,11 +418,14 @@ export default class TonWallet {
     };
 
     // Build a preliminary forward payload with 0 fee (fee is determined by the quote)
+    _t = performance.now();
     const forwardPayload = await buildForwardPayload(to, 0n, minAmountLd);
+    csl(_quoteType, "gray-900", "buildForwardPayload: %sms", (performance.now() - _t).toFixed(0));
     const { composeMessage } = oftDecode.OFTSend(forwardPayload);
     csl("TON quoteOFT", "blue-300", "composeMessage: %o", composeMessage);
 
     // Get the LzSend metadata from the OFT contract
+    _t = performance.now();
     const lzSendResult = await this.tonClient
       .provider(proxyAddress)
       .get("getLzSendMd", [
@@ -421,6 +434,7 @@ export default class TonWallet {
         { type: "cell", cell: composeMessage },
       ]);
     const lzSend = decodeClass("md::LzSend", lzSendResult.stack.readCell());
+    csl(_quoteType, "gray-900", "getLzSendMd: %sms", (performance.now() - _t).toFixed(0));
     csl("TON quoteOFT", "blue-300", "lzSend: %o", lzSend);
 
     // Compute derived contract addresses for the ULN quote
@@ -473,6 +487,7 @@ export default class TonWallet {
 
     let customUlnSendConfig;
     try {
+      _t = performance.now();
       const ulnConnectionResult = await this.tonClient
         .provider(ulnConnectionAddress)
         .get("getContractStorage", []);
@@ -481,6 +496,7 @@ export default class TonWallet {
         ulnConnectionResult.stack.readCell()
       );
       customUlnSendConfig = ulnConnectionStorage.UlnSendConfigOApp;
+      csl(_quoteType, "gray-900", "getContractStorage(ulnConnection): %sms", (performance.now() - _t).toFixed(0));
     } catch (error) {
       // ULN connection not yet deployed — fetch default send config from ULN itself
       // const ulnStorageResult = await this.tonClient
@@ -503,6 +519,7 @@ export default class TonWallet {
     csl("TON quoteOFT", "blue-300", "mdUlnSend: %o", mdUlnSend);
 
     // Query the ULN for the actual fee quote
+    _t = performance.now();
     const quoteStack = (
       await this.tonClient.provider(ulnAddress).get("ulnQuote", [
         {
@@ -511,6 +528,7 @@ export default class TonWallet {
         },
       ])
     ).stack;
+    csl(_quoteType, "gray-900", "ulnQuote: %sms", (performance.now() - _t).toFixed(0));
     csl("TON quoteOFT", "blue-300", "quoteStack: %o", quoteStack);
 
     const parsedArray = quoteStack.readTuple().skip(1).pop() as unknown as Cell[];
@@ -529,16 +547,20 @@ export default class TonWallet {
     csl("TON quoteOFT", "blue-600", "Fee: %o TON (includes 30% buffer)", Number(nativeFee) / 1e9);
     csl("TON quoteOFT", "blue-600", "Amount received: %o USDT (min)", Number(minAmountLd) / 1e6);
 
+    _t = performance.now();
     const sendForwardPayload = await buildForwardPayload(
       to,
       nativeFee,
       minAmountLd
     );
+    csl(_quoteType, "gray-900", "buildForwardPayload(send): %sms", (performance.now() - _t).toFixed(0));
     csl("TON quoteOFT", "blue-300", "sendForwardPayload: %o", sendForwardPayload);
 
+    _t = performance.now();
     const storage = await this.tonClient
       .provider(proxyAddress)
       .get("getContractStorage", []);
+    csl(_quoteType, "gray-900", "getContractStorage(proxyAddress): %sms", (performance.now() - _t).toFixed(0));
     const cell = storage.stack.readCell();
     const oftCell = oftDecode.UsdtOFT(cell);
     const gasAsserts = oftDecode.GasAsserts(oftCell.gasAsserts);
@@ -604,6 +626,8 @@ export default class TonWallet {
       result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
     }
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
+
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
 
     return result;
 
@@ -699,20 +723,28 @@ export default class TonWallet {
       prices,
     } = params;
 
+    const _quoteType = `OneClick TON proxy`;
+    const _t0 = performance.now();
+    let _t = _t0;
+
     const result: any = { fees: {} };
 
     const forwardTonAmount = toNano("0.085");
     const buffer = toNano("0.01");
+    _t = performance.now();
     const estimatedGas = await this.estimateTransferGas({
       fromToken,
       amount: amountWei,
       depositAddress: proxyAddress,
       account: refundTo,
     });
+    csl(_quoteType, "gray-900", "estimateTransferGas: %sms", (performance.now() - _t).toFixed(0));
     const totalValue = forwardTonAmount + buffer + estimatedGas.estimateGas;
     csl("TON quoteOneClickProxy", "blue-300", "totalValue: %o", totalValue);
 
+    _t = performance.now();
     const userJettonWallet = await this.getSenderJettonWallet(fromToken.contractAddress, refundTo);
+    csl(_quoteType, "gray-900", "getSenderJettonWallet: %sms", (performance.now() - _t).toFixed(0));
     csl("TON quoteOneClickProxy", "blue-300", "userJettonWallet: %o", userJettonWallet);
 
     const forwardPayload = beginCell().storeAddress(Address.parse(depositAddress)).endCell();
@@ -742,11 +774,13 @@ export default class TonWallet {
     };
 
     try {
+      _t = performance.now();
       const { usd, wei } = await this.getEstimateGas({
         estimateGas: estimatedGas.estimateGas,
         prices,
         fromToken,
       });
+      csl(_quoteType, "gray-900", "getEstimateGas: %sms", (performance.now() - _t).toFixed(0));
       result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
       result.estimateSourceGas = wei;
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
@@ -754,6 +788,7 @@ export default class TonWallet {
       csl("TON quoteOneClickProxy", "red-500", "getEstimateGas failed: %o", error);
     }
 
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return result;
   }
 }

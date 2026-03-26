@@ -60,11 +60,14 @@ export class CCTPService {
       prices,
     } = params;
 
+    const _quoteType = `CCTPService ${fromToken?.chainName}->${toToken?.chainName}`;
+    const _t0 = performance.now();
+
     const sourceDomain = CCTP_DOMAINS[fromToken.chainName];
     const destinationDomain = CCTP_DOMAINS[toToken.chainName];
     const proxyAddress = CCTP_TOKEN_PROXY[fromToken.chainName];
 
-    return wallet.quote(Service.CCTP, {
+    const result = await wallet.quote(Service.CCTP, {
       proxyAddress,
       abi: CCTP_TOKEN_PROXY_ABI,
       amountWei,
@@ -78,6 +81,9 @@ export class CCTPService {
       destinationDomain,
       sourceDomain,
     });
+
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    return result;
   }
 
   public async send(params: any) {

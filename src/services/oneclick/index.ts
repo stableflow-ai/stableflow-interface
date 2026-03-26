@@ -181,7 +181,9 @@ export class OneClickService {
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };
         try {
+          const _proxyT = performance.now();
           const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
+          csl(`OneClickService ${params.fromToken?.chainName}`, "gray-900", "wallet.quote proxy: %sms", (performance.now() - _proxyT).toFixed(0));
 
           if (!isFromTronEnergy) {
             for (const proxyKey in proxyResult) {
@@ -251,6 +253,10 @@ export class OneClickService {
       swapType,
     } = params;
 
+    const _quoteType = `OneClickService ${fromToken?.chainName}->${toToken?.chainName}`;
+    const _t0 = performance.now();
+    let _t = _t0;
+
     const quoteParams: any = {
       depositMode: "SIMPLE",
       swapType: swapType || "EXACT_INPUT",
@@ -285,9 +291,16 @@ export class OneClickService {
       quoteParams.amount = Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
     }
 
+    _t = performance.now();
     const res = await this.api.post("/quote", quoteParams);
+    csl(_quoteType, "gray-900", "1click API /quote: %sms", (performance.now() - _t).toFixed(0));
 
-    return this.formatQuoteData({ data: res.data, params });
+    _t = performance.now();
+    const result = await this.formatQuoteData({ data: res.data, params });
+    csl(_quoteType, "gray-900", "formatQuoteData: %sms", (performance.now() - _t).toFixed(0));
+
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    return result;
   }
 
   public async send(params: any) {

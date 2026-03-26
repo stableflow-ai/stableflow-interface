@@ -17,6 +17,10 @@ export class OneClickUsdt0Service {
       prices,
     } = params;
 
+    const _quoteType = `OneClickUsdt0`;
+    const _t0 = performance.now();
+    let _t = _t0;
+
     let middleChainWallet = wallets?.evm?.wallet;
     let destinationRecipientAddress = wallets?.evm?.account;
     if (!middleChainWallet) {
@@ -43,7 +47,9 @@ export class OneClickUsdt0Service {
       wallet: middleChainWallet,
     };
 
+    _t = performance.now();
     const usdt0Result = await usdt0Service.quote(usdt0Params);
+    csl(_quoteType, "gray-900", "usdt0Service.quote: %sms", (performance.now() - _t).toFixed(0));
 
     const usdt0MessageFeeBuffer = 0.2;
     usdt0Result.fees.nativeFeeUsd = numberRemoveEndZero(Big(usdt0Result.fees?.nativeFeeUsd || 0).times(1 + usdt0MessageFeeBuffer).toFixed(20));
@@ -77,6 +83,7 @@ export class OneClickUsdt0Service {
     // The destination chain is arb
     // Since the exact amount transferred by oneclick needs to be signed, EXACT_OUTPUT mode must be used
     // In EXACT_OUTPUT mode, the output amount equals the expected value
+    _t = performance.now();
     const oneClickResult = await oneClickService.quote({
       ...params,
       toToken: MIDDLE_TOKEN_CHAIN,
@@ -92,6 +99,7 @@ export class OneClickUsdt0Service {
         },
       ],
     });
+    csl(_quoteType, "gray-900", "oneClickService.quote: %sms", (performance.now() - _t).toFixed(0));
 
     let totalFeesUsd = Big(0);
     let _destinationGasFeeUsd = Big(oneClickResult.fees?.destinationGasFeeUsd || 0).minus(usdt0MessageFeeUsd);
@@ -118,6 +126,7 @@ export class OneClickUsdt0Service {
     const usdt0SendParam = usdt0Result.sendParam?.param?.[0];
     const usdt0MessageFee = usdt0Result.sendParam?.param?.[1];
 
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return {
       ...oneClickResult,
       needPermit: true,

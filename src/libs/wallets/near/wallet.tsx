@@ -244,6 +244,10 @@ export default class NearWallet {
       prices,
     } = params;
 
+    const _quoteType = `OneClick NEAR proxy`;
+    const _t0 = performance.now();
+    let _t = _t0;
+
     const result: any = { fees: {} };
 
     try {
@@ -267,6 +271,7 @@ export default class NearWallet {
       const transactions: any[] = [];
 
       // Check if depositAddress (intents address) is registered
+      _t = performance.now();
       const checkStorageDepositAddress = await this.query(
         tokenContract,
         "storage_balance_of",
@@ -274,6 +279,7 @@ export default class NearWallet {
           account_id: depositAddress
         }
       );
+      csl(_quoteType, "gray-900", "query storage_balance_of (depositAddress): %sms", (performance.now() - _t).toFixed(0));
 
       if (!checkStorageDepositAddress?.available) {
         transactions.push({
@@ -296,6 +302,7 @@ export default class NearWallet {
       }
 
       // Check if stableflowstg.near is registered
+      _t = performance.now();
       const checkStorageStableflow = await this.query(
         tokenContract,
         "storage_balance_of",
@@ -303,6 +310,7 @@ export default class NearWallet {
           account_id: STABLEFLOW_CONTRACT
         }
       );
+      csl(_quoteType, "gray-900", "query storage_balance_of (STABLEFLOW_CONTRACT): %sms", (performance.now() - _t).toFixed(0));
 
       if (!checkStorageStableflow?.available) {
         transactions.push({
@@ -390,6 +398,7 @@ export default class NearWallet {
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
     }
 
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return result;
   }
 

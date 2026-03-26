@@ -4,6 +4,7 @@ import axios from "axios";
 import Big from "big.js";
 import { NativeChains, NativeV4Routes } from "./contract";
 import { Service } from "../constants";
+import { csl } from "@/utils/log";
 
 class NativeService {
   private api: AxiosInstance;
@@ -33,6 +34,10 @@ class NativeService {
       slippageTolerance,
     } = params;
 
+    const _quoteType = `NativeService ${fromToken?.chainName}->${toToken?.chainName}`;
+    const _t0 = performance.now();
+    let _t = _t0;
+
     const isSwap = fromToken.chainName === toToken.chainName;
 
     let quoteUri = "/firm-quote";
@@ -61,9 +66,11 @@ class NativeService {
       quoteUri = `/bridge${quoteUri}`;
     }
 
+    _t = performance.now();
     const res = await this.api.get(quoteUri, {
       params: quoteParams,
     });
+    csl(_quoteType, "gray-900", "Native API %s: %sms", quoteUri, (performance.now() - _t).toFixed(0));
 
     if (res.status !== 200 || !res.data?.success) {
       let errorMessage = res.data?.message || "Native quote failed";
@@ -87,12 +94,17 @@ class NativeService {
       throw new Error(errorMessage);
     }
 
-    return wallet.quote(Service.Native, {
+    _t = performance.now();
+    const result = await wallet.quote(Service.Native, {
       ...params,
       ...quoteParams,
       quoteResponse: res.data,
       bridgeRouterAddress: isSwap ? NativeV4Routes[fromToken.chainName].swap : NativeV4Routes[fromToken.chainName].bridge,
     });
+    csl(_quoteType, "gray-900", "wallet.quote: %sms", (performance.now() - _t).toFixed(0));
+
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    return result;
   }
 
   public async send(params: any) {

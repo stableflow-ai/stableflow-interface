@@ -17,6 +17,10 @@ export class Usdt0OneClickService {
       fromToken,
     } = params;
 
+    const _quoteType = `Usdt0OneClick`;
+    const _t0 = performance.now();
+    let _t = _t0;
+
     let middleChainWallet = wallets?.evm?.wallet;
     if (!middleChainWallet) {
       const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
@@ -30,6 +34,7 @@ export class Usdt0OneClickService {
       destinationChain: MIDDLE_TOKEN_CHAIN.chainName,
     };
 
+    _t = performance.now();
     const oneClickResult = await oneClickService.quote({
       ...params,
       fromToken: MIDDLE_TOKEN_CHAIN,
@@ -39,6 +44,7 @@ export class Usdt0OneClickService {
       refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
       wallet: middleChainWallet,
     });
+    csl(_quoteType, "gray-900", "oneClickService.quote: %sms", (performance.now() - _t).toFixed(0));
 
     if (oneClickResult.errMsg) {
       return oneClickResult;
@@ -50,7 +56,9 @@ export class Usdt0OneClickService {
       usdt0Params.recipient = MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
+    _t = performance.now();
     const usdt0Result = await usdt0Service.quote(usdt0Params);
+    csl(_quoteType, "gray-900", "usdt0Service.quote: %sms", (performance.now() - _t).toFixed(0));
 
     csl("Usdt0OneClickService quote", "rose-600", "oneClickResult: %o", oneClickResult);
     csl("Usdt0OneClickService quote", "rose-600", "usdt0Result: %o", usdt0Result);
@@ -72,6 +80,7 @@ export class Usdt0OneClickService {
       totalFeesUsd = Big(totalFeesUsd || 0).plus(fees[feeKey] || 0);
     }
 
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return {
       ...usdt0Result,
       fees,

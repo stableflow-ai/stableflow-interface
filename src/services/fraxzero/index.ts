@@ -4,6 +4,7 @@ import { FRAXZERO_ABI } from "./contract";
 import { calculateEstimateTime } from "../utils";
 import { Usdt0Service } from "../usdt0";
 import { OFT_ABI } from "../usdt0/contract";
+import { csl } from "@/utils/log";
 
 export const PayInLzToken = false;
 
@@ -21,6 +22,9 @@ export class FraxZeroService extends Usdt0Service {
       slippageTolerance,
       prices,
     } = params;
+
+    const _quoteType = `FraxZeroService ${fromToken?.chainName}->${toToken?.chainName}`;
+    const _t0 = performance.now();
 
     const originLayerzero = FRAXZERO_CONFIG[fromToken.chainName];
     const destinationLayerzero = FRAXZERO_CONFIG[toToken.chainName];
@@ -58,6 +62,7 @@ export class FraxZeroService extends Usdt0Service {
 
       result.estimateTime = estimateTime;
 
+      csl(_quoteType, "gray-900", "total (Fraxtal path): %sms", (performance.now() - _t0).toFixed(0));
       return result;
     }
 
@@ -71,6 +76,7 @@ export class FraxZeroService extends Usdt0Service {
 
     result.estimateTime = estimateTime;
 
+    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return result;
   }
 }

@@ -104,6 +104,7 @@ export default function useBridge(props?: any) {
   };
 
   const quoteRoutes = async (service: Service, params: any, requestId: number): Promise<QuoteData> => {
+    const _routeStart = performance.now();
     try {
       // Check request ID, skip setting loading state if not the latest request
       if (requestId !== undefined && requestId !== requestIdRef.current) {
@@ -179,6 +180,8 @@ export default function useBridge(props?: any) {
       const quoteParams = await formatQuoteParams();
       const quoteRes = await ServiceMap[service].quote(quoteParams);
 
+      csl(`quoteRoutes [${service}]`, "gray-900", "total: %sms", (performance.now() - _routeStart).toFixed(0));
+
       bridgeStore.setQuoting(service, requestId, false);
 
       // Check request ID again before setting result to ensure it's still the latest request
@@ -193,6 +196,8 @@ export default function useBridge(props?: any) {
         data: quoteRes,
       };
     } catch (error: any) {
+      csl(`quoteRoutes [${service}]`, "gray-900", "total (error): %sms", (performance.now() - _routeStart).toFixed(0));
+
       bridgeStore.setQuoting(service, requestId, false);
 
       // If it's a cancelled request error, return directly without setting error state
@@ -269,6 +274,8 @@ export default function useBridge(props?: any) {
   const prevQuotingRef = useRef<boolean>(false);
 
   const quote = async (params: { dry: boolean; }, isSync?: boolean, requestId?: number) => {
+    const _quoteStart = performance.now();
+
     if (!isSync) {
       bridgeStore.clearQuoteData();
     }
@@ -400,24 +407,29 @@ export default function useBridge(props?: any) {
       const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
       // Sync calls don't need request ID check
       const _quoteRes = await currentQuoteService.quote(currentRequestId);
+      csl("quote", "gray-900", "[%s] sync total: %sms", bridgeStore.quoteDataService, (performance.now() - _quoteStart).toFixed(0));
       csl("quote", "green-400", "[%s]Sync Quote Result: %o", bridgeStore.quoteDataService, _quoteRes);
       return _quoteRes;
     }
 
     csl("quote", "pink-950", "quoteServices: %o", quoteServices);
 
+    const quotePromises: Promise<any>[] = [];
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
+      const _serviceStart = performance.now();
       // Pass request ID to service function
-      quoteService.quote(currentRequestId).then((_quoteRes: any) => {
+      const p = quoteService.quote(currentRequestId).then((_quoteRes: any) => {
         // Check if it's the latest request, ignore result if not
         if (currentRequestId !== requestIdRef.current) {
           csl("quote", "gray-500", "[%s] Ignored outdated quote result, current requestId: %s, result requestId: %s", quoteService.service, requestIdRef.current, currentRequestId);
           return;
         }
 
+        csl("quote", "gray-900", "[%s] service total: %sms", quoteService.service, (performance.now() - _serviceStart).toFixed(0));
         csl("quote", "green-400", "[%s]Quote Result: %o", quoteService.service, _quoteRes);
       }).catch((error: any) => {
+        csl("quote", "gray-900", "[%s] service total (error): %sms", quoteService.service, (performance.now() - _serviceStart).toFixed(0));
         // Silently ignore if it's a cancelled request error
         if (error?.message === "Request cancelled: outdated request") {
           csl("quote", "gray-500", "[%s] Request cancelled: outdated request", quoteService.service);
@@ -435,6 +447,7 @@ export default function useBridge(props?: any) {
           setAutoSelect(true);
         }
       });
+      quotePromises.push(p);
 
       // Change to sequential requests to avoid exceeding RPC request rate limits
       // try {
@@ -463,6 +476,10 @@ export default function useBridge(props?: any) {
 
       // setAutoSelect(true);
     }
+
+    Promise.allSettled(quotePromises).then(() => {
+      csl("quote", "gray-900", "all services total: %sms (services: %s)", (performance.now() - _quoteStart).toFixed(0), quoteServices.map((s: any) => s.service).join(", "));
+    });
   };
 
   const report = async (params: any) => {

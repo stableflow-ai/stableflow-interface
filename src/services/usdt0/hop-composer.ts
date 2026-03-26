@@ -10,6 +10,9 @@ export const getHopMsgFee = async (params: any) => {
     toToken,
   } = params;
 
+  const _t0 = performance.now();
+  let _t = _t0;
+
   const originLayerzero = USDT0_CONFIG["Arbitrum"];
   const destinationLayerzero = USDT0_CONFIG[toToken.chainName];
 
@@ -20,15 +23,20 @@ export const getHopMsgFee = async (params: any) => {
     arbitrumOft = originLayerzero.oftLegacy || originLayerzero.oft;
   }
 
+  _t = performance.now();
   const providers = getChainRpcUrl("Arbitrum").rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, 42161));
   const provider = new ethers.FallbackProvider(providers);
   const oftContractRead = new ethers.Contract(arbitrumOft!, OFT_ABI, provider);
+  csl(`getHopMsgFee ->${toToken?.chainName}`, "gray-900", "provider init: %sms", (performance.now() - _t).toFixed(0));
 
   try {
+    _t = performance.now();
     const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, false);
+    csl(`getHopMsgFee ->${toToken?.chainName}`, "gray-900", "quoteSend.staticCall: %sms", (performance.now() - _t).toFixed(0));
 
     const [nativeFee] = msgFee;
 
+    csl(`getHopMsgFee ->${toToken?.chainName}`, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return nativeFee * 100n / 100n;
   } catch (error) {
     csl("getHopMsgFee", "red-500", "getHopMsgFee failed: %o", error);

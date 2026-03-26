@@ -350,6 +350,9 @@ export default class SolanaWallet {
         estimateTime: 0,
       };
 
+      const _t0 = performance.now();
+      let _t = performance.now();
+
       const programId = new PublicKey(originLayerzeroAddress);
       const tokenMint = new PublicKey(fromToken.contractAddress);
       const quotePayer = new PublicKey("4NkxtcfRTCxJ1N2j6xENcDLPbiJ3541T6r5BqhTzMD9J");
@@ -358,7 +361,9 @@ export default class SolanaWallet {
       const sender = this.publicKey!;
       const userPubkey = new PublicKey(refundTo || sender.toString());
 
+      _t = performance.now();
       const mintInfo = await this.connection.getParsedAccountInfo(tokenMint);
+      csl("Usdt0 Solana", "gray-900", "getParsedAccountInfo: %dms", Math.round(performance.now() - _t));
       const decimals = (mintInfo.value?.data as { parsed: { info: { decimals: number } } }).parsed.info
         .decimals;
       const amountLd = BigInt(amountWei);
@@ -396,10 +401,12 @@ export default class SolanaWallet {
           composeMsg: "0x",
           oftCmd: "0x",
         };
+        _t = performance.now();
         const hopMsgFee = await getHopMsgFee({
           sendParam: composeMsgSendParam,
           toToken,
         });
+        csl("Usdt0 Solana", "gray-900", "getHopMsgFee: %dms", Math.round(performance.now() - _t));
 
         extraOptions = Options.newOptions()
           .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 500000, hopMsgFee)
@@ -413,16 +420,22 @@ export default class SolanaWallet {
         composeMsg = ethers.getBytes(composeEncoder);
       }
 
+      _t = performance.now();
       const pdas = deriveOftPdas(programId, _dstEid);
       const peerAddress = await getPeerAddress(this.connection, programId, _dstEid);
+      csl("Usdt0 Solana", "gray-900", "deriveOftPdas+getPeerAddress: %dms", Math.round(performance.now() - _t));
+
+      _t = performance.now();
       const tokenSource = await getAssociatedTokenAddress(
         tokenMint,
         userPubkey,
         false,
         TOKEN_PROGRAM_ID,
       );
+      csl("Usdt0 Solana", "gray-900", "getAssociatedTokenAddress: %dms", Math.round(performance.now() - _t));
 
       const sendHelper = new SendHelper();
+      _t = performance.now();
       const remainingAccounts = await sendHelper.getQuoteAccounts(
         this.connection as any,
         quotePayer,
@@ -430,6 +443,7 @@ export default class SolanaWallet {
         _dstEid,
         peerAddress,
       );
+      csl("Usdt0 Solana", "gray-900", "getQuoteAccounts: %dms", Math.round(performance.now() - _t));
 
       const ix = new TransactionInstruction({
         programId,
@@ -452,6 +466,7 @@ export default class SolanaWallet {
         ),
       });
 
+      _t = performance.now();
       const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 });
       const tx: any = await buildVersionedTransaction(
         this.connection as any,
@@ -465,6 +480,7 @@ export default class SolanaWallet {
         sigVerify: false,
         replaceRecentBlockhash: true,
       });
+      csl("Usdt0 Solana", "gray-900", "buildTx+simulateTransaction(quote): %dms", Math.round(performance.now() - _t));
       if (sim.value.err) {
         console.error('Simulation logs:', sim.value.logs);
         throw new Error(`Quote failed: ${JSON.stringify(sim.value.err)}`);
@@ -503,6 +519,7 @@ export default class SolanaWallet {
 
       // send
       const sendSendHelper = new SendHelper();
+      _t = performance.now();
       const sendRemainingAccounts = await sendSendHelper.getSendAccounts(
         this.connection as any,
         userPubkey,
@@ -510,6 +527,7 @@ export default class SolanaWallet {
         _dstEid,
         peerAddress,
       );
+      csl("Usdt0 Solana", "gray-900", "getSendAccounts: %dms", Math.round(performance.now() - _t));
 
       const sendIx = new TransactionInstruction({
         programId,
@@ -540,6 +558,7 @@ export default class SolanaWallet {
         ),
       });
 
+      _t = performance.now();
       const computeSendIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
       const sendTx: any = await buildVersionedTransaction(
         this.connection as any,
@@ -549,11 +568,8 @@ export default class SolanaWallet {
         undefined,
         lookupTable,
       );
-      // tx.sign([this.signer]);
 
-      // Simulate send transaction to estimate gas fees
-      // Note: Simulation may fail due to insufficient funds, which is normal in quote phase
-      let estimatedFee = 5000n; // Default base fee per signature
+      let estimatedFee = 5000n;
       try {
         const sendSim = await this.connection.simulateTransaction(sendTx, {
           sigVerify: false,
@@ -576,9 +592,9 @@ export default class SolanaWallet {
           }
         }
       } catch (simError: any) {
-        // If simulation throws an error, use default fee and continue
         console.warn('Send simulation error (this is normal in quote phase):', simError.message);
       }
+      csl("Usdt0 Solana", "gray-900", "buildTx+simulateTransaction(send): %dms", Math.round(performance.now() - _t));
 
       if (prices && fromToken.nativeToken) {
         const estimateGasUsd = Big(estimatedFee.toString())
@@ -607,6 +623,8 @@ export default class SolanaWallet {
         }
         result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
       }
+
+      csl("Usdt0 Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
 
       return result;
     } catch (error: any) {
@@ -749,6 +767,8 @@ export default class SolanaWallet {
 
     const result: any = { fees: {} };
     try {
+      const _t0 = performance.now();
+      let _t = performance.now();
       const PROGRAM_ID = new PublicKey(proxyAddress);
       const STATE_PDA = new PublicKey("9E8az3Y9sdXvM2f3CCH6c9N3iFyNfDryQCZhqDxRYGUw");
       const MINT = new PublicKey(fromToken.contractAddress);
@@ -771,23 +791,23 @@ export default class SolanaWallet {
       // Get recipient's token account (ATA)
       const toTokenAccount = getAssociatedTokenAddressSync(MINT, RECIPIENT);
 
-      // Check if recipient's token account exists, create if not
       const transaction = new Transaction();
+      _t = performance.now();
       try {
         await getAccount(this.connection, toTokenAccount);
       } catch (error) {
-        // If token account doesn't exist, create it
         transaction.add(
           createAssociatedTokenAccountInstruction(
-            userPubkey, // payer
-            toTokenAccount, // ata
-            RECIPIENT, // owner
-            MINT // mint
+            userPubkey,
+            toTokenAccount,
+            RECIPIENT,
+            MINT
           )
         );
       }
+      csl("OneClick Solana", "gray-900", "getAccount(toTokenAccount): %dms", Math.round(performance.now() - _t));
 
-      // Build transfer instruction
+      _t = performance.now();
       const transferInstruction = await program.methods
         .transfer(AMOUNT)
         .accounts({
@@ -801,21 +821,23 @@ export default class SolanaWallet {
           systemProgram: SystemProgram.programId,
         })
         .instruction();
+      csl("OneClick Solana", "gray-900", "program.methods.transfer.instruction: %dms", Math.round(performance.now() - _t));
 
-      // Add transfer instruction to transaction
       transaction.add(transferInstruction);
 
-      // Set transaction blockhash and feePayer before simulation
+      _t = performance.now();
       const { blockhash } = await this.connection.getLatestBlockhash();
+      csl("OneClick Solana", "gray-900", "getLatestBlockhash: %dms", Math.round(performance.now() - _t));
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = userPubkey;
 
-      // Simulate entire transaction (including account creation if needed) to estimate fees
+      _t = performance.now();
       const message = transaction.compileMessage();
       const versionedTx = new VersionedTransaction(message);
       const simulation = await this.connection.simulateTransaction(versionedTx, {
         sigVerify: false
       });
+      csl("OneClick Solana", "gray-900", "simulateTransaction: %dms", Math.round(performance.now() - _t));
 
       result.sendParam = {
         transaction,
@@ -832,10 +854,11 @@ export default class SolanaWallet {
       const usd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
       const wei = estimatedFee;
 
-      // Assign fee values to result
       result.fees.sourceGasFeeUsd = usd;
       result.estimateSourceGas = wei;
       result.estimateSourceGasUsd = usd;
+
+      csl("OneClick Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
 
       return result;
     } catch (error: any) {
@@ -876,20 +899,22 @@ export default class SolanaWallet {
         outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
       };
 
+      const _t0 = performance.now();
+      let _t = performance.now();
+
       const PROGRAM_ID = new PublicKey(proxyAddress);
       const MINT = new PublicKey(fromToken.contractAddress);
       const sender = this.publicKey!;
       const userPubkey = new PublicKey(refundTo || sender.toString());
 
-      // Derive UserState PDA
       const [userStatePda] = PublicKey.findProgramAddressSync(
         [Buffer.from("user"), userPubkey.toBuffer()],
         PROGRAM_ID
       );
 
-      // Get user nonce from UserState account, useless
       let userNonce = 0;
       try {
+        _t = performance.now();
         const accountInfo = await this.connection.getAccountInfo(userStatePda);
         if (accountInfo && accountInfo.data) {
           // UserState structure: user (32 bytes) + nonce (8 bytes) + bump (1 byte)
@@ -898,23 +923,22 @@ export default class SolanaWallet {
           userNonce = Number(new BN(nonceBuffer, "le").toString());
         }
       } catch (error) {
-        // If UserState doesn't exist, nonce is 0
         csl("Solana quoteCCTP", "red-500", "UserState not found, using nonce 0");
       }
+      csl("CCTP Solana", "gray-900", "getAccountInfo(userStatePda): %dms", Math.round(performance.now() - _t));
 
-      // Get user's token account (ATA)
       const userTokenAccount = getAssociatedTokenAddressSync(MINT, userPubkey);
 
-      // Quote signature
+      _t = performance.now();
       const signatureRes = await quoteSignature({
         address: userPubkey.toString(),
         amount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
         destination_domain_id: destinationDomain,
         receipt_address: recipient,
         source_domain_id: sourceDomain,
-        // user_nonce: userNonce,
         ata_address: userTokenAccount,
       });
+      csl("CCTP Solana", "gray-900", "quoteSignature: %dms", Math.round(performance.now() - _t));
 
       const {
         bridge_fee,
@@ -947,12 +971,13 @@ export default class SolanaWallet {
         csl("Solana quoteCCTP", "purple-400", "Signature verification success");
       }
 
-      // Simulate entire transaction (including account creation if needed) to estimate fees
+      _t = performance.now();
       const message = operatorTx.compileMessage();
       const versionedTx = new VersionedTransaction(message);
       const simulation = await this.connection.simulateTransaction(versionedTx, {
         sigVerify: false
       });
+      csl("CCTP Solana", "gray-900", "simulateTransaction: %dms", Math.round(performance.now() - _t));
       csl("Solana quoteCCTP", "purple-400", "depositWithFee simulation: %o", JSON.stringify(simulation.value));
 
       // Estimate gas cost (Solana fees are typically fixed, but we can use simulation)
@@ -977,6 +1002,8 @@ export default class SolanaWallet {
         result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
       }
       result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
+
+      csl("CCTP Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
 
       return result;
     } catch (error: any) {
@@ -1052,6 +1079,8 @@ export default class SolanaWallet {
       destinationLayerzero,
     } = params;
 
+    const _t0 = performance.now();
+    let _t = performance.now();
     csl("Solana quoteFraxZero", "purple-500", "params: %o", params);
     const result: any = {
       needApprove: false,
@@ -1093,17 +1122,22 @@ export default class SolanaWallet {
       tokenProgramId,
     });
 
+    _t = performance.now();
     await safeFetchToken(umi, tokenAccount[0]);
+    csl("FraxZero Solana", "gray-900", "safeFetchToken: %dms", Math.round(performance.now() - _t));
 
     const recipientAddressBytes32 = addressToBytes32(toToken.chainType, recipient);
     const amountLd = BigInt(amountWei);
     const minAmountLd = (amountLd * 99n) / 100n;
 
+    _t = performance.now();
     const { value: lookupTableAccount } = await this.connection.getAddressLookupTable(ALT_ADDRESS);
+    csl("FraxZero Solana", "gray-900", "getAddressLookupTable: %dms", Math.round(performance.now() - _t));
     if (!lookupTableAccount) {
       throw new Error("ALT not found");
     }
 
+    _t = performance.now();
     let { nativeFee, lzTokenFee } = await oft.quote(
       umi.rpc,
       {
@@ -1124,6 +1158,7 @@ export default class SolanaWallet {
         oft: oftProgramId,
       },
     );
+    csl("FraxZero Solana", "gray-900", "oft.quote: %dms", Math.round(performance.now() - _t));
     csl("Solana quoteFraxZero", "purple-500", "nativeFee: %o", nativeFee);
     nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;
     csl("Solana quoteFraxZero", "purple-500", "nativeFee after buffer: %o", nativeFee);
@@ -1134,6 +1169,7 @@ export default class SolanaWallet {
 
     // oft.send() internally simulates the tx via umi.rpc without replaceRecentBlockhash,
     // so it can transiently fail with BlockhashNotFound when RPC nodes are out of sync.
+    _t = performance.now();
     let ix: Awaited<ReturnType<typeof oft.send>>;
     let oftSendRetries = 0;
     const OFT_SEND_MAX_RETRIES = 3;
@@ -1180,13 +1216,16 @@ export default class SolanaWallet {
       }
     }
 
+    csl("FraxZero Solana", "gray-900", "oft.send: %dms", Math.round(performance.now() - _t));
     csl("Solana quoteFraxZero", "purple-500", "ix: %o", ix);
 
     const web3Instruction = toWeb3JsInstruction(ix.instruction);
     const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
       units: 400000, // Increase to 400k units (default is 200k)
     });
+    _t = performance.now();
     const { blockhash } = await this.connection.getLatestBlockhash();
+    csl("FraxZero Solana", "gray-900", "getLatestBlockhash: %dms", Math.round(performance.now() - _t));
     const messageV0 = new TransactionMessage({
       payerKey: new PublicKey(userPubkey),
       recentBlockhash: blockhash,
@@ -1200,9 +1239,8 @@ export default class SolanaWallet {
       transaction,
     };
 
-    // Simulate send transaction to estimate gas fees
-    // Note: Simulation may fail due to insufficient funds, which is normal in quote phase
-    let estimatedFee = 5000n; // Default base fee per signature
+    _t = performance.now();
+    let estimatedFee = 5000n;
     try {
       const sendSim = await this.connection.simulateTransaction(transaction, {
         sigVerify: false,
@@ -1225,9 +1263,9 @@ export default class SolanaWallet {
         }
       }
     } catch (simError: any) {
-      // If simulation throws an error, use default fee and continue
       csl("Solana quoteFraxZero", "yellow-500", "Send simulation error (this is normal in quote phase): %o", simError.message);
     }
+    csl("FraxZero Solana", "gray-900", "simulateTransaction: %dms", Math.round(performance.now() - _t));
 
     if (fromToken.nativeToken) {
       const nativeFeeUsd = Big(nativeFee.toString())
@@ -1259,6 +1297,8 @@ export default class SolanaWallet {
       result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
     }
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
+
+    csl("FraxZero Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
 
     return result;
   }

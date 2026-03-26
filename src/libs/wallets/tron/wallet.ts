@@ -447,28 +447,32 @@ export default class TronWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
 
+    const _t0 = performance.now();
+    let _t = performance.now();
     await this.waitForTronWeb();
+    csl("Usdt0 Tron", "gray-900", "waitForTronWeb: %dms", Math.round(performance.now() - _t));
 
+    _t = performance.now();
     const oftContract = await this.tronWeb.contract(abi, originLayerzeroAddress);
+    csl("Usdt0 Tron", "gray-900", "tronWeb.contract: %dms", Math.round(performance.now() - _t));
 
-    // 1. check if need approve
+    _t = performance.now();
     const approvalRequired = await oftContract.approvalRequired().call();
-    // check approve status
-    // csl("TronWallet quoteOFT", "teal-400", "ApprovalRequired: %o", result.needApprove);
+    csl("Usdt0 Tron", "gray-900", "approvalRequired: %dms", Math.round(performance.now() - _t));
 
     // If approval is required, check actual allowance
     if (approvalRequired) {
       try {
-        // Get user address (use refundTo if provided, otherwise use default address)
         const userAddress = refundTo || this.tronWeb.defaultAddress.base58;
 
-        // Check allowance
+        _t = performance.now();
         const allowanceResult = await this.allowance({
           contractAddress: fromToken.contractAddress,
           spender: originLayerzeroAddress,
           address: userAddress,
           amountWei,
         });
+        csl("Usdt0 Tron", "gray-900", "allowance: %dms", Math.round(performance.now() - _t));
         result.needApprove = allowanceResult.needApprove;
       } catch (error) {
         csl("TronWallet quoteOFT", "red-500", "Error checking allowance: %o", error);
@@ -478,10 +482,12 @@ export default class TronWallet {
     const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
     let lzReceiveOptionValue = 0;
 
+    _t = performance.now();
     const destATA = await getDestinationAssociatedTokenAddress({
       recipient,
       toToken,
     });
+    csl("Usdt0 Tron", "gray-900", "getDestinationAssociatedTokenAddress: %dms", Math.round(performance.now() - _t));
     if (destATA.needCreateTokenAccount) {
       lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
     }
@@ -516,7 +522,9 @@ export default class TronWallet {
       sendParam[1] = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer); // to
     }
 
+    _t = performance.now();
     const oftData = await oftContract.quoteOFT(sendParam).call();
+    csl("Usdt0 Tron", "gray-900", "quoteOFT.call: %dms", Math.round(performance.now() - _t));
     const [, , oftReceipt] = oftData;
     sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
 
@@ -535,10 +543,12 @@ export default class TronWallet {
         composeMsg: "0x",
         oftCmd: "0x",
       };
+      _t = performance.now();
       const hopMsgFee = await getHopMsgFee({
         sendParam: composeMsgSendParam,
         toToken,
       });
+      csl("Usdt0 Tron", "gray-900", "getHopMsgFee: %dms", Math.round(performance.now() - _t));
 
       sendParam[4] = Options.newOptions()
         .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
@@ -550,7 +560,9 @@ export default class TronWallet {
       );
     }
 
+    _t = performance.now();
     const msgFee = await oftContract.quoteSend(sendParam, payInLzToken).call();
+    csl("Usdt0 Tron", "gray-900", "quoteSend.call: %dms", Math.round(performance.now() - _t));
     let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
     csl("Tron quoteOFT", "red-600", "nativeFee: %o", nativeMsgFee);
     if (nativeMsgFee) {
@@ -612,13 +624,19 @@ export default class TronWallet {
       ],
       this.tronWeb.defaultAddress.base58 || refundTo
     ];
+    _t = performance.now();
     const energyPrice = await this.getEnergyPrice();
+    csl("Usdt0 Tron", "gray-900", "getEnergyPrice: %dms", Math.round(performance.now() - _t));
 
+    _t = performance.now();
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
+    csl("Usdt0 Tron", "gray-900", "triggerSmartContract: %dms", Math.round(performance.now() - _t));
     result.sendParam.tx = tx;
 
     try {
+      _t = performance.now();
       const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
+      csl("Usdt0 Tron", "gray-900", "triggerConstantContract: %dms", Math.round(performance.now() - _t));
       const energyUsed = transaction.energy_used || 200000;
       const rawDataHexLength = transaction.transaction.raw_data_hex.length || 1000;
       const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
@@ -652,6 +670,8 @@ export default class TronWallet {
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
     result.sendParam.transactionParams = transactionParams;
+
+    csl("Usdt0 Tron", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
 
     return result;
   }
@@ -758,16 +778,21 @@ export default class TronWallet {
 
     const result: any = { fees: {} };
 
+    const _t0 = performance.now();
+    let _t = performance.now();
     await this.waitForTronWeb();
+    csl("OneClick Tron", "gray-900", "waitForTronWeb: %dms", Math.round(performance.now() - _t));
     const userAddress = refundTo || this.tronWeb.defaultAddress.base58;
 
     try {
+      _t = performance.now();
       const allowance = await this.allowance({
         contractAddress: fromToken.contractAddress,
         address: userAddress,
         spender: proxyAddress,
         amountWei: amountWei,
       });
+      csl("OneClick Tron", "gray-900", "allowance: %dms", Math.round(performance.now() - _t));
       result.needApprove = allowance.needApprove;
       result.approveSpender = proxyAddress;
     } catch (error) {
@@ -806,14 +831,19 @@ export default class TronWallet {
       ],
       this.tronWeb.defaultAddress.base58 || refundTo
     ];
-    // Get current energy price from Tron
+    _t = performance.now();
     const energyPrice = await this.getEnergyPrice();
+    csl("OneClick Tron", "gray-900", "getEnergyPrice: %dms", Math.round(performance.now() - _t));
 
+    _t = performance.now();
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
+    csl("OneClick Tron", "gray-900", "triggerSmartContract: %dms", Math.round(performance.now() - _t));
     result.sendParam.tx = tx;
 
     try {
+      _t = performance.now();
       const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
+      csl("OneClick Tron", "gray-900", "triggerConstantContract: %dms", Math.round(performance.now() - _t));
       const energyUsed = transaction.energy_used || 30000;
       const rawDataHexLength = transaction.transaction.raw_data_hex.length || 500;
       const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
@@ -838,6 +868,8 @@ export default class TronWallet {
     }
 
     result.sendParam.transactionParams = transactionParams;
+
+    csl("OneClick Tron", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
 
     return result;
   }
