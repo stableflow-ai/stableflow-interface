@@ -4,11 +4,11 @@ import Big from "big.js";
 import clsx from "clsx";
 
 const ResultFeeItem = (props: any) => {
-  const { label, children, precision = 2, loading, isFormat = true, isDelete, isZero = false } = props;
+  const { label, className, labelClassName, children, precision = 2, loading, isFormat = true, isDelete, isZero = false } = props;
 
   return (
-    <div className="w-full flex items-center justify-between gap-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]">
-      <div className="">{label}</div>
+    <div className={clsx("w-full flex items-center justify-between gap-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", className)}>
+      <div className={labelClassName}>{label}</div>
       <div className={clsx("text-black", isDelete && "line-through [text-decoration-color:#F00]")}>
         {
           loading ? (
