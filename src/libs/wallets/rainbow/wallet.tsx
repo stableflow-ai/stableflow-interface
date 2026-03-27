@@ -1026,6 +1026,7 @@ export default class RainbowWallet {
       abi,
       usdcCustodianAddress,
       rwaCustodianAddress,
+      redemptionAddress,
     } = params;
 
     csl("EVM preivewRedeemFrxUSD", "blue-700", "params: %o", params);
@@ -1036,24 +1037,28 @@ export default class RainbowWallet {
     // Get maxSharesRedeemable (index 3) from mdwrComboView for both custodians
     const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
     const rwaCustodian = new ethers.Contract(rwaCustodianAddress, abi, provider);
+    const redemption = new ethers.Contract(redemptionAddress, abi, provider);
 
-    const [usdcView, rwaView] = await Promise.all([
+    const [usdcView, redemptionView] = await Promise.all([
       usdcCustodian.mdwrComboView.staticCall(),
-      rwaCustodian.mdwrComboView.staticCall(),
+      redemption.maxUstbRedemptionAmount.staticCall(),
     ]);
 
+    // This value is the frxUSD wei amount
     const maxUsdc = usdcView[3]; // maxSharesRedeemable
-    const maxRwa = rwaView[3]; // maxSharesRedeemable
+    const superstateTokenAmount = redemptionView[0]; // superstateTokenAmount
+
+    // This value represents the wei amount of USDC
+    const [maxRwa] = await redemption.calculateUsdcOut.staticCall(superstateTokenAmount);
 
     const amountWeiBigInt = BigInt(amountWei || 0);
-    const totalMax = maxUsdc + maxRwa;
 
-    csl("EVM preivewRedeemFrxUSD", "blue-700", "maxSharesRedeemable: %o", maxUsdc);
-    csl("EVM preivewRedeemFrxUSD", "blue-700", "maxSharesRedeemable: %o", maxRwa);
-    csl("EVM preivewRedeemFrxUSD", "blue-700", "totalMax: %o", totalMax);
+    csl("EVM preivewRedeemFrxUSD", "blue-700", "usdcCustodian maxSharesRedeemable(frxUSD wei amount): %o", maxUsdc);
+    csl("EVM preivewRedeemFrxUSD", "blue-700", "rwaCustodian maxSharesRedeemable(USDC wei amount): %o", maxRwa);
     csl("EVM preivewRedeemFrxUSD", "blue-700", "amountWei: %o", amountWeiBigInt);
 
     let totalAssetsOut = 0n;
+    let isInsufficientLiquidity = false;
 
     if (amountWeiBigInt <= maxUsdc) {
       // USDC path only
@@ -1072,21 +1077,28 @@ export default class RainbowWallet {
       const rwaAmount = amountWeiBigInt - maxUsdc;
       csl("EVM preivewRedeemFrxUSD", "blue-700", "RWA for remainder, rwaAmount: %o", rwaAmount);
       if (rwaAmount > 0n) {
-        const rwaAssetsOut = await rwaCustodian.previewRedeem.staticCall(rwaAmount);
+        const superstateTokenInAmount = await rwaCustodian.previewRedeem.staticCall(rwaAmount);
+        csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC first (maxUsdc), rwaCustodian previewRedeem input: %o, superstateTokenInAmount: %o", rwaAmount, superstateTokenInAmount);
+        const [rwaAssetsOut] = await redemption.calculateUsdcOut.staticCall(superstateTokenInAmount);
         csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC first (maxUsdc), rwaCustodian previewRedeem input: %o, value: %o", rwaAmount, rwaAssetsOut);
         totalAssetsOut += rwaAssetsOut;
         csl("EVM preivewRedeemFrxUSD", "blue-700", "RWA for remainder, totalAssetsOut: %o", totalAssetsOut);
+
+        if (rwaAssetsOut > maxRwa) {
+          isInsufficientLiquidity = true;
+        }
       }
     }
 
     csl("EVM preivewRedeemFrxUSD", "blue-700", "final totalAssetsOut: %o", totalAssetsOut);
+    csl("EVM preivewRedeemFrxUSD", "blue-700", "final insufficient liquidity: %o", isInsufficientLiquidity);
 
     return {
       maxUsdc,
       maxRwa,
       amountWeiBigInt,
-      totalMax,
       totalAssetsOut,
+      isInsufficientLiquidity,
     };
   }
 
@@ -1173,9 +1185,13 @@ export default class RainbowWallet {
       maxUsdc,
       maxRwa,
       amountWeiBigInt,
-      totalMax,
+      isInsufficientLiquidity,
       totalAssetsOut,
     } = await this.preivewRedeemFrxUSD(params);
+
+    if (isInsufficientLiquidity) {
+      throw new Error("Insufficient liquidity");
+    }
 
     // outputAmount = USDC amount (6 decimals), human-readable
     result.outputAmount = numberRemoveEndZero(
