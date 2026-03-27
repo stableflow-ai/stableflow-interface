@@ -1,19 +1,23 @@
 export function getPrice(prices: Record<string, string>, symbol: string) {
   let price = "1";
-  if (prices?.[symbol]) {
-    price = prices[symbol];
+  let _symbol = symbol;
+  if (symbol === "USDT0" || symbol === "USD₮0" || symbol === "USD₮") {
+    _symbol = "USDT";
+  }
+  if (prices?.[_symbol]) {
+    price = prices[_symbol];
     if (price !== "0") {
       return price;
     }
   }
-  if (prices?.[symbol.toLowerCase()]) {
-    price = prices[symbol.toLowerCase()];
+  if (prices?.[_symbol.toLowerCase()]) {
+    price = prices[_symbol.toLowerCase()];
     if (price !== "0") {
       return price;
     }
   }
-  if (prices?.[symbol.toUpperCase()]) {
-    price = prices[symbol.toUpperCase()];
+  if (prices?.[_symbol.toUpperCase()]) {
+    price = prices[_symbol.toUpperCase()];
     if (price !== "0") {
       return price;
     }
