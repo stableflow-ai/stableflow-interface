@@ -190,7 +190,10 @@ export class FraxZero2OneClickService extends FraxZeroService {
     }
 
     // Redeem is done by the backend, and the frontend calls FraxZero to bridge to Ethereum frxUSD
-    const oneClickResult = withOneClick(firstStepResult);
+    const oneClickResult = withOneClick({
+      ...firstStepResult,
+      outputAmount: secondStepResult.outputAmount,
+    });
     return {
       ...firstStepResult,
       ...oneClickResult,
