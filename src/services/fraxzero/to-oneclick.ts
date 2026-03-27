@@ -1,6 +1,6 @@
 import { csl } from "@/utils/log";
 import { FraxZeroService, excludeFees as fraxExcludeFees } from ".";
-import { FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED } from "./config";
+import { FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED, FRAXZERO_REDEMPTION_CONTRACT } from "./config";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { ethers } from "ethers";
 import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick";
@@ -82,6 +82,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
           abi: FRAXZERO_REDEEM_MINT_ABI,
           usdcCustodianAddress: FRAXZERO_REDEEM_USDC_CONTRACT,
           rwaCustodianAddress: FRAXZERO_REDEEM_RWA_CONTRACT,
+          redemptionAddress: FRAXZERO_REDEMPTION_CONTRACT,
         });
         ethereumUSDCAmountWei = totalAssetsOut.toString();
       } catch (error) {
@@ -120,6 +121,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       abi: FRAXZERO_REDEEM_MINT_ABI,
       usdcCustodianAddress: FRAXZERO_REDEEM_USDC_CONTRACT,
       rwaCustodianAddress: FRAXZERO_REDEEM_RWA_CONTRACT,
+      redemptionAddress: FRAXZERO_REDEMPTION_CONTRACT,
       redeemAndMintContractAddress: FRAXZERO_REDEEM_AND_MINT_CONTRACT,
     });
     csl("FraxZero2OneClickService quote", "yellow-600", "secondStepResult: %o", secondStepResult);
