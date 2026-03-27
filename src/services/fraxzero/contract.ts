@@ -469,4 +469,26 @@ export const FRAXZERO_REDEEM_MINT_ABI = [
     "stateMutability": "nonpayable",
     "type": "function"
   },
+  {
+    "inputs": [],
+    "name": "maxUstbRedemptionAmount",
+    "outputs": [
+      { "internalType": "uint256", "name": "superstateTokenAmount", "type": "uint256" },
+      { "internalType": "uint256", "name": "usdPerUstbChainlinkRaw", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "superstateTokenInAmount", "type": "uint256" }
+    ],
+    "name": "calculateUsdcOut",
+    "outputs": [
+      { "internalType": "uint256", "name": "usdcOutAmountAfterFee", "type": "uint256" },
+      { "internalType": "uint256", "name": "usdPerUstbChainlinkRaw", "type": "uint256" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
 ];
