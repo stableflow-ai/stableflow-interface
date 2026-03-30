@@ -457,7 +457,7 @@ export default class TronWallet {
     csl("Usdt0 Tron", "gray-900", "tronWeb.contract: %dms", Math.round(performance.now() - _t));
 
     _t = performance.now();
-    const approvalRequired = await oftContract.approvalRequired().call();
+    const approvalRequired = isOriginLegacy ? originLayerzero.oftLegacyApprovalRequired : originLayerzero.oftApprovalRequired;
     csl("Usdt0 Tron", "gray-900", "approvalRequired: %dms", Math.round(performance.now() - _t));
 
     // If approval is required, check actual allowance

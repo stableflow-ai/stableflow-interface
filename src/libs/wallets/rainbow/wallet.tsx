@@ -273,7 +273,7 @@ export default class RainbowWallet {
     _t = performance.now();
 
     // 1. check if need approve
-    const approvalRequired = await oftContractRead.approvalRequired();
+    const approvalRequired = isOriginLegacy ? originLayerzero.oftLegacyApprovalRequired : originLayerzero.oftApprovalRequired;
     csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
     csl(_quoteType, "gray-900", "approvalRequired: %sms", (performance.now() - _t).toFixed(0));
 
