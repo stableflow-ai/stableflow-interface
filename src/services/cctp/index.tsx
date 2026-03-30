@@ -5,6 +5,8 @@ import { BASE_API_URL } from "@/config/api";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
 import { csl } from "@/utils/log";
+import Big from "big.js";
+import { numberRemoveEndZero } from "@/utils/format/number";
 
 export const PayInLzToken = false;
 
@@ -48,6 +50,7 @@ export class CCTPService {
 
   public async quote(params: any) {
     const {
+      dry,
       wallet,
       // originChain,
       // destinationChain,
@@ -58,6 +61,7 @@ export class CCTPService {
       toToken,
       slippageTolerance,
       prices,
+      evmGasFees,
     } = params;
 
     const _quoteType = `CCTPService ${fromToken?.chainName}->${toToken?.chainName}`;
@@ -68,6 +72,7 @@ export class CCTPService {
     const proxyAddress = CCTP_TOKEN_PROXY[fromToken.chainName];
 
     const result = await wallet.quote(Service.CCTP, {
+      dry,
       proxyAddress,
       abi: CCTP_TOKEN_PROXY_ABI,
       amountWei,
@@ -77,12 +82,45 @@ export class CCTPService {
       toToken,
       slippageTolerance,
       prices,
+      evmGasFees,
       excludeFees,
       destinationDomain,
       sourceDomain,
     });
 
     csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    return result;
+  }
+
+  public async estimateTransaction(params: any, quoteData: any) {
+    const {
+      fromToken,
+      wallet,
+      prices,
+      evmGasFees,
+    } = params;
+
+    const result: any = { fees: {}, ...quoteData };
+
+    const ett = await wallet.estimateTransaction({
+      dry: false,
+      ...quoteData.sendParam,
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+
+    for (const feeKey in result.fees) {
+      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
     return result;
   }
 

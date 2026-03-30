@@ -21,6 +21,7 @@ import { ethers } from 'ethers';
 import { csl } from '@/utils/log';
 import { getPrice } from '@/utils/format/price';
 import { getDestinationAssociatedTokenAddress } from '../utils/solana';
+import { BridgeDefaultWallets } from '@/config';
 
 export default class TonWallet {
   private tonConnectUI: TonConnectUI;
@@ -189,19 +190,63 @@ export default class TonWallet {
   }
 
   async getEstimateGas(params: any) {
-    const { estimateGas, prices, fromToken } = params;
+    const { gasLimit, price, nativeToken } = params;
 
-    const price = getPrice(prices, fromToken.nativeToken.symbol);
-
-    const estimateGasAmount = Big(estimateGas.toString()).div(10 ** fromToken.nativeToken.decimals);
+    const estimateGasAmount = Big(gasLimit.toString()).div(10 ** nativeToken.decimals);
     const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
 
     return {
       gasPrice: 1n,
       usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
-      wei: estimateGas,
-      amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(fromToken.nativeToken.decimals)),
+      wei: gasLimit,
+      amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
     };
+  }
+
+  async estimateTransaction(params: any) {
+    const {
+      dry,
+      body,
+      estimateGas,
+      fromToken,
+      prices,
+    } = params;
+
+    const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
+
+    let finalEstimateGas = estimateGas || toNano("0.12");
+    if (body) {
+      try {
+        const account = this.account || BridgeDefaultWallets["ton"];
+        const senderJettonWallet = await this.getSenderJettonWallet(fromToken.contractAddress, account);
+        const estimation = await this.tonClient.estimateExternalMessageFee(senderJettonWallet, {
+          body,
+          initCode: null,
+          initData: null,
+          ignoreSignature: true,
+        });
+        csl("TON estimateTransaction", "blue-300", "estimation: %o", estimation);
+        const { in_fwd_fee, storage_fee, gas_fee, fwd_fee } = estimation.source_fees;
+        finalEstimateGas = BigInt(in_fwd_fee) + BigInt(storage_fee) + BigInt(gas_fee) + BigInt(fwd_fee);
+        finalEstimateGas = finalEstimateGas + toNano("0.1");
+      } catch (error) {
+        csl("TON estimateTransaction", "red-500", "estimateExternalMessageFee failed: %o", error);
+      }
+    }
+
+    const { usd, wei } = await this.getEstimateGas({
+      gasLimit: finalEstimateGas,
+      price: nativeTokenPrice,
+      nativeToken: fromToken.nativeToken,
+    });
+
+    const result = {
+      estimateSourceGasLimit: finalEstimateGas,
+      estimateSourceGas: wei,
+      estimateSourceGasUsd: usd,
+    };
+
+    return result;
   }
 
   async quote(type: Service, params: any) {
@@ -238,6 +283,7 @@ export default class TonWallet {
 
   async quoteOFT(params: any) {
     const {
+      dry,
       originLayerzeroAddress,
       destinationLayerzeroAddress,
       fromToken,
@@ -267,6 +313,7 @@ export default class TonWallet {
       sendParam: void 0,
       fees: {},
       estimateSourceGas: void 0,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: void 0,
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
       quoteParam: {
@@ -595,25 +642,38 @@ export default class TonWallet {
 
     result.sendParam = {
       transaction,
+      estimateGas: estimatedGas,
     };
 
-    if (prices && fromToken.nativeToken) {
-      const nativeFeeUsd = Big(nativeFee.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
-      result.fees.nativeFeeUsd = numberRemoveEndZero(nativeFeeUsd.toFixed(20));
+    const nativeFeeUsd = Big(nativeFee.toString())
+      .div(10 ** fromToken.nativeToken.decimals)
+      .times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFeeUsd = numberRemoveEndZero(nativeFeeUsd.toFixed(20));
 
-      const estimateGasUsd = Big(estimatedGas.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
-      result.fees.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
-      result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
-    }
+    const estimateGasUsd = Big(estimatedGas.toString())
+      .div(10 ** fromToken.nativeToken.decimals)
+      .times(getPrice(prices, fromToken.nativeToken.symbol));
     result.fees.nativeFee = Big(nativeFee.toString())
       .div(10 ** fromToken.nativeToken.decimals)
       .toFixed(fromToken.nativeToken.decimals, 0);
     result.fees.lzTokenFee = zroFee.toString();
+
+    const ett = await this.estimateTransaction({
+      dry,
+      estimateGas: estimatedGas,
+      fromToken,
+      prices,
+    });
+
+    result.fees.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = nativeFee + ett.estimateSourceGas;
+
+    result.fees.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+    result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
     result.estimateSourceGas = estimatedGas;
+    result.totalEstimateSourceGas = nativeFee + estimatedGas;
 
     // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
     result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
@@ -715,6 +775,7 @@ export default class TonWallet {
 
   async quoteOneClickProxy(params: any) {
     const {
+      dry,
       proxyAddress,
       fromToken,
       refundTo,
@@ -731,16 +792,6 @@ export default class TonWallet {
 
     const forwardTonAmount = toNano("0.085");
     const buffer = toNano("0.01");
-    _t = performance.now();
-    const estimatedGas = await this.estimateTransferGas({
-      fromToken,
-      amount: amountWei,
-      depositAddress: proxyAddress,
-      account: refundTo,
-    });
-    csl(_quoteType, "gray-900", "estimateTransferGas: %sms", (performance.now() - _t).toFixed(0));
-    const totalValue = forwardTonAmount + buffer + estimatedGas.estimateGas;
-    csl("TON quoteOneClickProxy", "blue-300", "totalValue: %o", totalValue);
 
     _t = performance.now();
     const userJettonWallet = await this.getSenderJettonWallet(fromToken.contractAddress, refundTo);
@@ -757,6 +808,17 @@ export default class TonWallet {
     });
     csl("TON quoteOneClickProxy", "blue-300", "body: %o", body);
 
+    _t = performance.now();
+    const ett = await this.estimateTransaction({
+      dry,
+      body,
+      fromToken,
+      prices,
+    });
+    csl(_quoteType, "gray-900", "estimateTransaction: %sms", (performance.now() - _t).toFixed(0));
+    const totalValue = forwardTonAmount + buffer + ett.estimateSourceGas;
+    csl("TON quoteOneClickProxy", "blue-300", "totalValue: %o", totalValue);
+
     const transaction = {
       validUntil: Math.floor(Date.now() / 1000) + 360,
       messages: [
@@ -771,22 +833,13 @@ export default class TonWallet {
 
     result.sendParam = {
       transaction,
+      body: body,
     };
 
-    try {
-      _t = performance.now();
-      const { usd, wei } = await this.getEstimateGas({
-        estimateGas: estimatedGas.estimateGas,
-        prices,
-        fromToken,
-      });
-      csl(_quoteType, "gray-900", "getEstimateGas: %sms", (performance.now() - _t).toFixed(0));
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    } catch (error) {
-      csl("TON quoteOneClickProxy", "red-500", "getEstimateGas failed: %o", error);
-    }
+    result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
     csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return result;

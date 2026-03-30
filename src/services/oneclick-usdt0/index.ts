@@ -160,6 +160,12 @@ export class OneClickUsdt0Service {
     };
   }
 
+  public async estimateTransaction(params: any, quoteData: any) {
+    const { } = params;
+
+    return oneClickService.estimateTransaction(params, quoteData);
+  }
+
   public async send(params: any) {
     return oneClickService.send(params);
   }

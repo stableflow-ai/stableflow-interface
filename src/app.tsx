@@ -8,6 +8,7 @@ import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy, Suspense } from "react";
+import { useEvmGasFees } from "./hooks/use-evm-gas-fees";
 import { usePrices } from "./hooks/use-prices";
 import Terms from "./components/terms";
 
@@ -73,6 +74,7 @@ const router = createBrowserRouter([
 
 function App() {
   usePrices();
+  useEvmGasFees();
   return (
     <WalletsProvider>
       <RouterProvider router={router} />

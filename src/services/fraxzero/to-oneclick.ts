@@ -13,6 +13,7 @@ import { getPrice } from "@/utils/format/price";
 export class FraxZero2OneClickService extends FraxZeroService {
   public override async quote(params: any) {
     const {
+      dry,
       wallet,
       amountWei,
       refundTo,
@@ -21,6 +22,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       toToken,
       slippageTolerance,
       prices,
+      evmGasFees,
       wallets,
       switchChainAsync,
     } = params;
@@ -63,6 +65,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
 
     // oneclick quote result
     let thirdStepResult: any;
+    let preivewRedeemResult: any;
     if (!isToEthereumUSDC) {
       let oneClickFeeRatio = "0";
       if (!isFromEthereumFrxUSD) {
@@ -72,6 +75,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
           price: getPrice(prices, FRAXZERO_MIDDLE_TOKEN_FRXUSD.nativeToken.symbol),
           nativeToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD.nativeToken,
           provider,
+          gasPrice: dry ? evmGasFees[FRAXZERO_MIDDLE_TOKEN_FRXUSD.chainId as number].gasPrice : void 0,
         });
         csl(_quoteType, "gray-900", "middleChainWallet.getEstimateGas (redeem): %sms", (performance.now() - _t).toFixed(0));
         const secondStepGasToAmount = Big(usd).div(getPrice(prices, FRAXZERO_MIDDLE_TOKEN_USDC.symbol) || 1).toFixed(FRAXZERO_MIDDLE_TOKEN_USDC.decimals);
@@ -85,7 +89,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       let ethereumUSDCAmountWei = ethereumFrxUSDAmountWei;
       try {
         _t = performance.now();
-        const { totalAssetsOut } = await middleChainWallet.preivewRedeemFrxUSD({
+        preivewRedeemResult= await middleChainWallet.preivewRedeemFrxUSD({
           amountWei: ethereumFrxUSDAmountWei,
           fromToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
           abi: FRAXZERO_REDEEM_MINT_ABI,
@@ -94,7 +98,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
           redemptionAddress: FRAXZERO_REDEMPTION_CONTRACT,
         });
         csl(_quoteType, "gray-900", "previewRedeemFrxUSD: %sms", (performance.now() - _t).toFixed(0));
-        ethereumUSDCAmountWei = totalAssetsOut.toString();
+        ethereumUSDCAmountWei = preivewRedeemResult.totalAssetsOut.toString();
       } catch (error) {
         csl("FraxZero2OneClickService quote", "red-500", "estimate redeem amount failed: %o", error);
       }
@@ -126,6 +130,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
     _t = performance.now();
     const secondStepResult = await middleChainWallet.redeemFrxUSD({
       ...params,
+      preivewRedeemResult,
       fromToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
       amountWei: ethereumFrxUSDAmountWei,
       toToken: FRAXZERO_MIDDLE_TOKEN_USDC,

@@ -107,6 +107,12 @@ class NativeService {
     return result;
   }
 
+  public async estimateTransaction(params: any, quoteData: any) {
+    const { } = params;
+
+    return quoteData;
+  }
+
   public async send(params: any) {
     const {
       wallet,

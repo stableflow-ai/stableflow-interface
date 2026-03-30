@@ -253,6 +253,77 @@ export default class SolanaWallet {
     };
   }
 
+  async getEstimateGas(params: any) {
+    const { gasLimit = "5000", price, nativeToken } = params;
+
+    const estimateGas = BigInt(gasLimit);
+    const estimateGasAmount = Big(estimateGas.toString()).div(10 ** nativeToken.decimals);
+    const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
+
+    return {
+      gasPrice: 1n,
+      usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
+      wei: estimateGas,
+      amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
+    };
+  }
+
+  async estimateTransaction(params: any) {
+    const {
+      dry,
+      versionedTx,
+      fromToken,
+      prices,
+    } = params;
+
+    const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
+
+    let estimatedFee = 5000n;
+    if (!dry) {
+      try {
+        const sendSim = await this.connection.simulateTransaction(versionedTx, {
+          sigVerify: false,
+          replaceRecentBlockhash: true,
+        });
+        csl("Solana estimateTransaction", "purple-400", "sendSim: %o", sendSim);
+        // Even if simulation fails (e.g., insufficient funds), we can still get the fee estimate
+        if (!sendSim.value.err) {
+          // @ts-ignore Solana base fee is 5000 lamports per signature
+          estimatedFee = (sendSim.value as any).fee || 5000n;
+        } else {
+          // If simulation fails, log it but continue with default fee
+          console.warn('Send simulation failed (this is normal in quote phase):', sendSim.value.err);
+          // @ts-ignore Try to get fee even if simulation failed
+          const fee = (sendSim.value as any).fee;
+          if (fee) {
+            estimatedFee = fee;
+          }
+        }
+      } catch (error) {
+        csl("Solana estimateTransaction", "red-500", "estimateTransaction failed: %o", error);
+      }
+    }
+
+    const result = {
+      estimateSourceGasLimit: BigInt(estimatedFee),
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: "0",
+    };
+
+    const setDefaultGasLimit = async () => {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: estimatedFee,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+      });
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    };
+
+    await setDefaultGasLimit();
+    return result;
+  }
+
   async checkTransactionStatus(signature: string) {
     const maxAttempts = 30;
     const interval = 4000;
@@ -315,6 +386,7 @@ export default class SolanaWallet {
 
   async quoteOFT(params: any) {
     const {
+      dry,
       originLayerzeroAddress,
       destinationLayerzeroAddress,
       fromToken,
@@ -340,13 +412,14 @@ export default class SolanaWallet {
         needApprove: false,
         sendParam: void 0,
         fees: {},
-        estimateSourceGas: void 0,
-        estimateSourceGasUsd: void 0,
+        estimateSourceGas: 0n,
+        totalEstimateSourceGas: 0n,
+        estimateSourceGasUsd: "0",
         outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
         quoteParam: {
           ...params,
         },
-        totalFeesUsd: void 0,
+        totalFeesUsd: "0",
         estimateTime: 0,
       };
 
@@ -508,6 +581,7 @@ export default class SolanaWallet {
       result.fees.nativeFee = Big(nativeFee.toString())
         .div(10 ** fromToken.nativeToken.decimals)
         .toFixed(fromToken.nativeToken.decimals, 0);
+      result.totalEstimateSourceGas = nativeFee;
 
       if (lzTokenFee > 0n && prices && fromToken) {
         const lzTokenFeeUsd = Big(lzTokenFee.toString())
@@ -569,41 +643,18 @@ export default class SolanaWallet {
         lookupTable,
       );
 
-      let estimatedFee = 5000n;
-      try {
-        const sendSim = await this.connection.simulateTransaction(sendTx, {
-          sigVerify: false,
-          replaceRecentBlockhash: true,
-        });
-
-        // csl("Solana quoteOFT", "purple-400", "sendSim: %o", JSON.stringify(sendSim));
-
-        // Even if simulation fails (e.g., insufficient funds), we can still get the fee estimate
-        if (!sendSim.value.err) {
-          // @ts-ignore Solana base fee is 5000 lamports per signature
-          estimatedFee = (sendSim.value as any).fee || 5000n;
-        } else {
-          // If simulation fails, log it but continue with default fee
-          console.warn('Send simulation failed (this is normal in quote phase):', sendSim.value.err);
-          // @ts-ignore Try to get fee even if simulation failed
-          const fee = (sendSim.value as any).fee;
-          if (fee) {
-            estimatedFee = fee;
-          }
-        }
-      } catch (simError: any) {
-        console.warn('Send simulation error (this is normal in quote phase):', simError.message);
-      }
+      const ett = await this.estimateTransaction({
+        dry,
+        versionedTx: sendTx,
+        fromToken,
+        prices,
+      });
       csl("Usdt0 Solana", "gray-900", "buildTx+simulateTransaction(send): %dms", Math.round(performance.now() - _t));
 
-      if (prices && fromToken.nativeToken) {
-        const estimateGasUsd = Big(estimatedFee.toString())
-          .div(10 ** fromToken.nativeToken.decimals)
-          .times(getPrice(prices, fromToken.nativeToken.symbol));
-        result.fees.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
-        result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
-      }
-      result.estimateSourceGas = estimatedFee;
+      result.fees.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas += ett.estimateSourceGas;
 
       // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
       result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
@@ -611,18 +662,17 @@ export default class SolanaWallet {
 
       result.sendParam = {
         transaction: sendTx,
+        versionedTx: sendTx,
       };
 
       // Calculate total fees
-      if (prices) {
-        for (const feeKey in result.fees) {
-          if (excludeFees && excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
-            continue;
-          }
-          result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+      for (const feeKey in result.fees) {
+        if (excludeFees && excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+          continue;
         }
-        result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
+        result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
       }
+      result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
 
       csl("Usdt0 Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
 
@@ -757,6 +807,7 @@ export default class SolanaWallet {
 
   async quoteOneClickProxy(params: any) {
     const {
+      dry,
       refundTo,
       proxyAddress,
       fromToken,
@@ -834,29 +885,23 @@ export default class SolanaWallet {
       _t = performance.now();
       const message = transaction.compileMessage();
       const versionedTx = new VersionedTransaction(message);
-      const simulation = await this.connection.simulateTransaction(versionedTx, {
-        sigVerify: false
+      const ett = await this.estimateTransaction({
+        dry,
+        versionedTx,
+        fromToken,
+        prices,
       });
       csl("OneClick Solana", "gray-900", "simulateTransaction: %dms", Math.round(performance.now() - _t));
 
       result.sendParam = {
         transaction,
+        versionedTx,
       };
 
-      // @ts-ignore Calculate estimated fee
-      const estimatedFee = simulation.value.fee || 5000n; // Base fee per signature
-
-      // Convert fee to USD
-      const estimateGasUsd = Big(estimatedFee.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
-
-      const usd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
-      const wei = estimatedFee;
-
-      result.fees.sourceGasFeeUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
+      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas;
+      result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
       csl("OneClick Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
 
@@ -869,6 +914,7 @@ export default class SolanaWallet {
 
   async quoteCCTP(params: any) {
     const {
+      dry,
       proxyAddress,
       refundTo,
       recipient,
@@ -894,8 +940,9 @@ export default class SolanaWallet {
         fees: {},
         totalFeesUsd: void 0,
         estimateSourceGas: void 0,
+        totalEstimateSourceGas: 0n,
         estimateSourceGasUsd: void 0,
-        estimateTime: 0,
+        estimateTime: Math.floor(Math.random() * 8) + 3,
         outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
       };
 
@@ -974,24 +1021,22 @@ export default class SolanaWallet {
       _t = performance.now();
       const message = operatorTx.compileMessage();
       const versionedTx = new VersionedTransaction(message);
-      const simulation = await this.connection.simulateTransaction(versionedTx, {
-        sigVerify: false
+      const ett = await this.estimateTransaction({
+        dry,
+        versionedTx,
+        fromToken,
+        prices,
       });
       csl("CCTP Solana", "gray-900", "simulateTransaction: %dms", Math.round(performance.now() - _t));
-      csl("Solana quoteCCTP", "purple-400", "depositWithFee simulation: %o", JSON.stringify(simulation.value));
 
-      // Estimate gas cost (Solana fees are typically fixed, but we can use simulation)
-      // @ts-ignore Solana base fee is 5000 lamports per signature
-      const estimatedFee = simulation.value.fee || 5000n; // Base fee per signature
-      const estimateGasUsd = Big(estimatedFee.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
-      result.fees.estimateDepositGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
-      result.estimateSourceGas = estimatedFee;
-      result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+      result.fees.estimateDepositGasUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas;
+      result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
       result.sendParam = {
         transaction: operatorTx,
+        versionedTx,
       };
 
       // Calculate total fees
@@ -1067,6 +1112,7 @@ export default class SolanaWallet {
 
   async quoteFraxZero(params: any) {
     const {
+      dry,
       recipient,
       amountWei,
       slippageTolerance,
@@ -1092,6 +1138,7 @@ export default class SolanaWallet {
       fees: {},
       totalFeesUsd: 0,
       estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime: 0,
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
@@ -1237,58 +1284,38 @@ export default class SolanaWallet {
 
     result.sendParam = {
       transaction,
+      versionedTx: transaction,
     };
 
     _t = performance.now();
-    let estimatedFee = 5000n;
-    try {
-      const sendSim = await this.connection.simulateTransaction(transaction, {
-        sigVerify: false,
-        replaceRecentBlockhash: true,
-      });
+    const ett = await this.estimateTransaction({
+      dry,
+      versionedTx: transaction,
+      fromToken,
+      prices,
+    });
 
-      // csl("Solana quoteOFT", "purple-400", "sendSim: %o", JSON.stringify(sendSim));
-
-      // Even if simulation fails (e.g., insufficient funds), we can still get the fee estimate
-      if (!sendSim.value.err) {
-        // @ts-ignore Solana base fee is 5000 lamports per signature
-        estimatedFee = (sendSim.value as any).fee || 5000n;
-      } else {
-        // If simulation fails, log it but continue with default fee
-        console.warn('Send simulation failed (this is normal in quote phase):', sendSim.value.err);
-        // @ts-ignore Try to get fee even if simulation failed
-        const fee = (sendSim.value as any).fee;
-        if (fee) {
-          estimatedFee = fee;
-        }
-      }
-    } catch (simError: any) {
-      csl("Solana quoteFraxZero", "yellow-500", "Send simulation error (this is normal in quote phase): %o", simError.message);
-    }
     csl("FraxZero Solana", "gray-900", "simulateTransaction: %dms", Math.round(performance.now() - _t));
 
-    if (fromToken.nativeToken) {
-      const nativeFeeUsd = Big(nativeFee.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
-      result.fees.nativeFeeUsd = numberRemoveEndZero(nativeFeeUsd.toFixed(20));
+    const nativeFeeUsd = Big(nativeFee.toString())
+      .div(10 ** fromToken.nativeToken.decimals)
+      .times(getPrice(prices, fromToken.nativeToken.symbol));
+    result.fees.nativeFeeUsd = numberRemoveEndZero(nativeFeeUsd.toFixed(20));
 
-      const lzTokenFeeUsd = Big(lzTokenFee ? lzTokenFee.toString() : 0)
-        .div(10 ** fromToken.decimals)
-        .times(getPrice(prices, fromToken.symbol));
-      result.fees.lzTokenFeeUsd = numberRemoveEndZero(lzTokenFeeUsd.toFixed(20));
+    const lzTokenFeeUsd = Big(lzTokenFee ? lzTokenFee.toString() : 0)
+      .div(10 ** fromToken.decimals)
+      .times(getPrice(prices, fromToken.symbol));
+    result.fees.lzTokenFeeUsd = numberRemoveEndZero(lzTokenFeeUsd.toFixed(20));
 
-      const estimateGasUsd = Big(estimatedFee.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
-      result.fees.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
-      result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
-    }
+    result.fees.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas + nativeFee;
+
     result.fees.nativeFee = Big(nativeFee.toString())
       .div(10 ** fromToken.nativeToken.decimals)
       .toFixed(fromToken.nativeToken.decimals, 0);
     result.fees.lzTokenFee = lzTokenFee.toString();
-    result.estimateSourceGas = estimatedFee;
 
     for (const feeKey in result.fees) {
       if (excludeFees && excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {

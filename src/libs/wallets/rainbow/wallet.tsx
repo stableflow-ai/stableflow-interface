@@ -202,25 +202,93 @@ export default class RainbowWallet {
   }
 
   async getEstimateGas(params: any) {
-    const { gasLimit, price, nativeToken, provider } = params;
+    const _quoteType = `EVM getFeeData`;
+    const _t0 = performance.now();
 
-    const feeData = await provider.getFeeData();
-    const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
+    const { gasLimit, price, nativeToken, provider, gasPrice } = params;
 
-    const estimateGas = BigInt(gasLimit) * BigInt(gasPrice);
+    let finalGasPrice = gasPrice;
+    if (!finalGasPrice) {
+      const feeData = await provider.getFeeData();
+      finalGasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
+    }
+    csl(_quoteType, "gray-900", "getFeeData: %sms", (performance.now() - _t0).toFixed(0));
+
+    const estimateGas = BigInt(gasLimit) * BigInt(finalGasPrice);
     const estimateGasAmount = Big(estimateGas.toString()).div(10 ** nativeToken.decimals);
     const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
 
     return {
-      gasPrice,
+      gasPrice: finalGasPrice,
       usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
       wei: estimateGas,
       amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
     };
   }
 
+  async estimateTransaction(params: any) {
+    const {
+      dry,
+      contract,
+      method,
+      param,
+      fromToken,
+      prices,
+      evmGasFees,
+      defaultGasLimit = DEFAULT_GAS_LIMIT,
+    } = params;
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+    const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
+
+    const result = {
+      estimateSourceGasLimit: dry ? 4000000n : DEFAULT_GAS_LIMIT,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: "0",
+    };
+
+    const setDefaultGasLimit = async () => {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: DEFAULT_GAS_LIMIT,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+        provider,
+        gasPrice: dry ? evmGasFees[fromToken.chainId].gasPrice : void 0,
+      });
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    };
+
+    let finalGasLimit = defaultGasLimit;
+
+    if (dry) {
+      await setDefaultGasLimit();
+      return result;
+    }
+
+    try {
+      const gasLimit = await contract[method].estimateGas(...param);
+      finalGasLimit = gasLimit * 120n / 100n;
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: finalGasLimit,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+      result.estimateSourceGasLimit = finalGasLimit;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    } catch (error) {
+      csl("EVM estimateTransaction", "red-500", "%s estimateGas failed: %o", method, error);
+      await setDefaultGasLimit();
+    }
+    return result;
+  }
+
   async quoteOFT(params: any) {
     const {
+      dry,
       abi,
       dstEid,
       recipient,
@@ -230,6 +298,7 @@ export default class RainbowWallet {
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       originLayerzeroAddress,
       destinationLayerzeroAddress,
       excludeFees,
@@ -252,9 +321,10 @@ export default class RainbowWallet {
         destinationLayerzeroAddress: destinationLayerzeroAddress,
       },
       fees: {},
-      totalFeesUsd: void 0,
-      estimateSourceGas: void 0,
-      estimateSourceGasUsd: void 0,
+      totalFeesUsd: "0",
+      estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
+      estimateSourceGasUsd: "0",
       estimateTime: 0, // seconds - dynamically calculated using LayerZero formula
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
@@ -275,26 +345,6 @@ export default class RainbowWallet {
     // 1. check if need approve
     const approvalRequired = isOriginLegacy ? originLayerzero.oftLegacyApprovalRequired : originLayerzero.oftApprovalRequired;
     csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
-    csl(_quoteType, "gray-900", "approvalRequired: %sms", (performance.now() - _t).toFixed(0));
-
-    // If approval is required, check actual allowance
-    if (approvalRequired) {
-      try {
-        _t = performance.now();
-        // Check allowance
-        const allowanceResult = await this.allowance({
-          contractAddress: fromToken.contractAddress,
-          spender: originLayerzeroAddress,
-          address: refundTo,
-          amountWei,
-          provider,
-        });
-        result.needApprove = allowanceResult.needApprove;
-        csl(_quoteType, "gray-900", "allowance: %sms", (performance.now() - _t).toFixed(0));
-      } catch (error) {
-        csl("EVM checking allowance", "red-500", "Error checking allowance: %o", error);
-      }
-    }
 
     const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : (destinationLayerzero.lzReceiveOptionGas || 200000);
     let lzReceiveOptionValue = 0;
@@ -372,12 +422,34 @@ export default class RainbowWallet {
     csl(_quoteType, "gray-900", "quoteOFT.staticCall: %sms", (performance.now() - _t).toFixed(0));
 
     _t = performance.now();
-    const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
+
+    const mergedCall = [
+      oftContractRead.quoteSend.staticCall(sendParam, payInLzToken),
+    ];
+    if (approvalRequired) {
+      mergedCall.push(
+        this.allowance({
+          contractAddress: fromToken.contractAddress,
+          spender: originLayerzeroAddress,
+          address: refundTo,
+          amountWei,
+          provider,
+        })
+      );
+    }
+    const [msgFee, allowanceResult] = await Promise.all(mergedCall);
+    csl("EVM quoteOFT", "blue-900", "quoteSend: %o", msgFee);
+    csl("EVM quoteOFT", "blue-900", "allowanceResult: %o", allowanceResult);
+    if (approvalRequired) {
+      result.needApprove = allowanceResult?.needApprove;
+    }
+    csl(_quoteType, "gray-900", "quoteSend.staticCall and allowance: %sms", (performance.now() - _t).toFixed(0));
+
+    // const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     let nativeMsgFee = msgFee[0];
     const lzMsgFee = msgFee[1];
-    result.estimateSourceGas = nativeMsgFee;
+    result.totalEstimateSourceGas = nativeMsgFee;
     csl("EVM quoteOFT", "blue-900", "msgFee: %o, nativeMsgFee: %o", msgFee, nativeMsgFee);
-    csl(_quoteType, "gray-900", "quoteSend.staticCall: %sms", (performance.now() - _t).toFixed(0));
     // add 5% buffer
     nativeMsgFee = nativeMsgFee * NATIVE_MSG_FEE_BUFFER / 100n;
     csl("EVM quoteOFT", "blue-900", "msgFee after buffer: %o", nativeMsgFee);
@@ -396,50 +468,42 @@ export default class RainbowWallet {
       result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
     }
 
-    let sendWithFeeGasLimit = 4000000n;
+    const finalSendParam = [
+      sendParam,
+      {
+        nativeFee: nativeMsgFee,
+        lzTokenFee: lzMsgFee,
+      },
+      refundTo,
+      { value: nativeMsgFee }
+    ];
+
     _t = performance.now();
-    try {
-      const gasLimit = await oftContract.send.estimateGas(...result.sendParam.param);
-      sendWithFeeGasLimit = gasLimit * 120n / 100n;
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas += wei;
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas += wei;
-      result.estimateSourceGasUsd = usd;
-    }
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: oftContract,
+      method: "send",
+      param: finalSendParam,
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas += ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    finalSendParam[3].gasLimit = ett.estimateSourceGasLimit;
     csl(_quoteType, "gray-900", "send.estimateGas: %sms", (performance.now() - _t).toFixed(0));
 
     result.sendParam = {
       contract: oftContract,
       method: "send",
-      param: [
-        sendParam,
-        {
-          nativeFee: nativeMsgFee,
-          lzTokenFee: lzMsgFee,
-        },
-        refundTo,
-        { value: nativeMsgFee, gasLimit: sendWithFeeGasLimit }
-      ],
+      param: finalSendParam,
     };
 
     // calculate total fees
     for (const feeKey in result.fees) {
-      if (excludeFees.includes(feeKey)) {
+      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
         continue;
       }
       result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
@@ -555,6 +619,7 @@ export default class RainbowWallet {
 
   async quoteCCTP(params: any) {
     const {
+      dry,
       proxyAddress,
       abi,
       refundTo,
@@ -564,6 +629,7 @@ export default class RainbowWallet {
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       excludeFees,
       destinationDomain,
       sourceDomain,
@@ -582,6 +648,7 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: void 0,
       estimateTime: Math.floor(Math.random() * 8) + 3,
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
@@ -599,25 +666,37 @@ export default class RainbowWallet {
 
     let realRecipient = recipient;
     _t = performance.now();
-    // get ATA address
-    const destATA = await getDestinationAssociatedTokenAddress({
-      recipient,
-      toToken,
-    });
-    csl(_quoteType, "gray-900", "getDestinationAssociatedTokenAddress: %sms", (performance.now() - _t).toFixed(0));
+    // 1. get user nonce
+    const getUsrNonce = async () => {
+      let userNonce = 0n;
+      try {
+        userNonce = await proxyContract.userNonces(refundTo);
+      } catch (error) {
+      }
+      return userNonce;
+    };
+    const mergedCalls = [
+      getDestinationAssociatedTokenAddress({
+        recipient,
+        toToken,
+      }),
+      getUsrNonce(),
+      this.allowance({
+        contractAddress: fromToken.contractAddress,
+        address: refundTo,
+        spender: proxyAddress,
+        amountWei,
+        provider,
+      })
+    ];
+    const [destATA, userNonce, allowance]: any = await Promise.all(mergedCalls);
+    csl(_quoteType, "blue-300", "destATA: %o, userNonce: %o", destATA, userNonce);
+    csl(_quoteType, "gray-900", "getDestinationATA & getUsrNonce & get allowance: %sms", (performance.now() - _t).toFixed(0));
     result.needCreateTokenAccount = destATA.needCreateTokenAccount;
     if (destATA.associatedTokenAddress) {
       realRecipient = destATA.associatedTokenAddress;
     }
-
-    _t = performance.now();
-    // 1. get user nonce
-    let userNonce = 0n;
-    try {
-      userNonce = await proxyContract.userNonces(refundTo);
-    } catch (error) {
-    }
-    csl(_quoteType, "gray-900", "userNonces: %sms", (performance.now() - _t).toFixed(0));
+    result.needApprove = allowance.needApprove;
 
     _t = performance.now();
     // 2. quote signature
@@ -668,68 +747,42 @@ export default class RainbowWallet {
 
     _t = performance.now();
     // 3. estimate deposit gas
-    let depositWithFeeGasLimit = 4000000n;
-    try {
-      const gasLimit = await proxyContract.depositWithFee.estimateGas(...depositParam);
-      depositWithFeeGasLimit = gasLimit * 120n / 100n;
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateDepositGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateDepositGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-    }
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: proxyContract,
+      method: "depositWithFee",
+      param: depositParam,
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateDepositGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    depositParam.push({ gasLimit: ett.estimateSourceGasLimit });
     csl(_quoteType, "gray-900", "depositWithFee.estimateGas: %sms", (performance.now() - _t).toFixed(0));
 
     result.sendParam = {
       method: "depositWithFee",
       contract: proxyContract,
-      param: [
-        ...depositParam,
-        { gasLimit: depositWithFeeGasLimit }
-      ],
+      param: depositParam,
     };
 
-    _t = performance.now();
-    // 4. check approve
-    const allowance = await this.allowance({
-      contractAddress: fromToken.contractAddress,
-      address: refundTo,
-      spender: proxyAddress,
-      amountWei,
-      provider,
-    });
-    result.needApprove = allowance.needApprove;
-    csl(_quoteType, "gray-900", "allowance: %sms", (performance.now() - _t).toFixed(0));
     // get approve gas cost
     if (result.needApprove) {
-      try {
-        _t = performance.now();
-        const gasLimit = await allowance.contract.approve.estimateGas(proxyAddress, amountWei);
-        const { usd } = await this.getEstimateGas({
-          gasLimit,
-          price: getPrice(prices, fromToken.nativeToken.symbol),
-          nativeToken: fromToken.nativeToken,
-          provider,
-        });
-        result.fees.estimateApproveGasUsd = usd;
-        csl(_quoteType, "gray-900", "approve.estimateGas: %sms", (performance.now() - _t).toFixed(0));
-      } catch (error) {
-        csl("EVM quoteCCTP", "red-500", "estimate approve gas failed: %o", error);
-      }
+      _t = performance.now();
+      const etapprove = await this.estimateTransaction({
+        dry,
+        contract: allowance.contract,
+        method: "approve",
+        param: [proxyAddress, amountWei],
+        fromToken,
+        prices,
+        evmGasFees,
+      });
+      result.fees.estimateApproveGasUsd = etapprove.estimateSourceGasUsd;
+      csl(_quoteType, "gray-900", "approve.estimateGas: %sms", (performance.now() - _t).toFixed(0));
     }
 
     // 5. calculate total fees
@@ -748,6 +801,7 @@ export default class RainbowWallet {
 
   async quoteOneClickProxy(params: any) {
     const {
+      dry,
       proxyAddress,
       abi,
       fromToken,
@@ -755,6 +809,7 @@ export default class RainbowWallet {
       depositAddress,
       amountWei,
       prices,
+      evmGasFees,
     } = params;
 
     const _quoteType = `OneClick EVM ${fromToken.chainName}`;
@@ -767,20 +822,6 @@ export default class RainbowWallet {
     const provider = new ethers.FallbackProvider(providers);
 
     _t = performance.now();
-    try {
-      const allowance = await this.allowance({
-        contractAddress: fromToken.contractAddress,
-        address: refundTo,
-        spender: proxyAddress,
-        amountWei: amountWei,
-        provider,
-      });
-      result.needApprove = allowance.needApprove;
-      result.approveSpender = proxyAddress;
-      csl(_quoteType, "gray-900", "allowance: %sms", (performance.now() - _t).toFixed(0));
-    } catch (error) {
-      csl("EVM quoteOneClickProxy", "red-500", "check allowance failed: %o", error);
-    }
 
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
     const proxyParam: any = [
@@ -792,40 +833,38 @@ export default class RainbowWallet {
       amountWei,
     ];
 
-    _t = performance.now();
-    let proxyTransferGasLimit = 4000000n;
-    try {
-      const gasLimit = await proxyContract.proxyTransfer.estimateGas(...proxyParam);
-      proxyTransferGasLimit = gasLimit * 120n / 100n;
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
+    const mergedCalls = [
+      this.allowance({
+        contractAddress: fromToken.contractAddress,
+        address: refundTo,
+        spender: proxyAddress,
+        amountWei: amountWei,
         provider,
-      });
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    } catch (error) {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    }
-    csl(_quoteType, "gray-900", "proxyTransfer.estimateGas: %sms", (performance.now() - _t).toFixed(0));
+      }),
+      this.estimateTransaction({
+        dry,
+        contract: proxyContract,
+        method: "proxyTransfer",
+        param: proxyParam,
+        fromToken,
+        prices,
+        evmGasFees,
+      })
+    ];
+    const [allowance, ett]: any = await Promise.all(mergedCalls);
+    result.needApprove = allowance.needApprove;
+    result.approveSpender = proxyAddress;
+    result.fees.estimateDepositGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    proxyParam.push({ gasLimit: ett.estimateSourceGasLimit });
+    csl(_quoteType, "gray-900", "allowance & estimateTransaction: %sms", (performance.now() - _t).toFixed(0));
 
     result.sendParam = {
       method: "proxyTransfer",
       contract: proxyContract,
-      param: [
-        ...proxyParam,
-        { gasLimit: proxyTransferGasLimit }
-      ],
+      param: proxyParam,
     };
 
     csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
@@ -846,6 +885,7 @@ export default class RainbowWallet {
       fromToken,
       toToken,
       prices,
+      evmGasFees,
     } = restParams;
 
     const result: any = {
@@ -861,6 +901,7 @@ export default class RainbowWallet {
       },
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: void 0,
       estimateTime: quoteResponse.priority === "fast" ? Math.floor(Math.random() * 10) + 50 : Math.floor(Math.random() * 60) + 300,
       outputAmount: 0,
@@ -874,69 +915,76 @@ export default class RainbowWallet {
     const provider = new ethers.FallbackProvider(providers);
 
     _t = performance.now();
-    const allowanceResult = await this.allowance({
-      contractAddress: fromToken.contractAddress,
-      spender: bridgeRouterAddress,
-      address: refundTo,
-      amountWei,
-    });
-    result.needApprove = allowanceResult.needApprove;
-    csl(_quoteType, "gray-900", "allowance: %sms", (performance.now() - _t).toFixed(0));
-
-    if (dry) {
-      _t = performance.now();
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      csl(_quoteType, "gray-900", "getEstimateGas(dry): %sms", (performance.now() - _t).toFixed(0));
-
-      result.outputAmount = quoteResponse.buyerTokenAmount + "";
-      result.fees = {
-        sourceGasFeeUsd: usd,
-        widgetFeeUsd: quoteResponse.widgetFeeUsd,
-        liquidityProviderFeeUsd: quoteResponse.liquidityProviderFeeUsd,
-      };
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-      result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.totalFeeUsd).toFixed(20));
-    }
-    else {
-      _t = performance.now();
-      let gasEstimate = DEFAULT_GAS_LIMIT;
-      try {
-        gasEstimate = await provider.estimateGas({
-          to: quoteResponse.txRequest.target,
-          data: quoteResponse.txRequest.calldata,
-          from: refundTo,
+    const estimateNativeGas = async () => {
+      if (dry) {
+        _t = performance.now();
+        const ett = await this.estimateTransaction({
+          dry,
+          fromToken,
+          prices,
+          evmGasFees,
         });
-        result.txRequest.gasLimit = gasEstimate;
-      } catch (error) {
-        result.txRequest.gasLimit = 4000000n;
+        csl(_quoteType, "gray-900", "getEstimateGas(dry): %sms", (performance.now() - _t).toFixed(0));
+
+        result.outputAmount = quoteResponse.buyerTokenAmount + "";
+        result.fees = {
+          sourceGasFeeUsd: ett.estimateSourceGasUsd,
+          widgetFeeUsd: quoteResponse.widgetFeeUsd,
+          liquidityProviderFeeUsd: quoteResponse.liquidityProviderFeeUsd,
+        };
+        result.estimateSourceGas = ett.estimateSourceGas;
+        result.totalEstimateSourceGas = ett.estimateSourceGas;
+        result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+        result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.totalFeeUsd).toFixed(20));
       }
-      csl(_quoteType, "gray-900", "provider.estimateGas: %sms", (performance.now() - _t).toFixed(0));
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: gasEstimate,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
+      else {
+        _t = performance.now();
+        let gasEstimate = DEFAULT_GAS_LIMIT;
+        try {
+          gasEstimate = await provider.estimateGas({
+            to: quoteResponse.txRequest.target,
+            data: quoteResponse.txRequest.calldata,
+            from: refundTo,
+          });
+          result.txRequest.gasLimit = gasEstimate;
+        } catch (error) {
+          result.txRequest.gasLimit = 4000000n;
+        }
+        csl(_quoteType, "gray-900", "provider.estimateGas: %sms", (performance.now() - _t).toFixed(0));
+        const { usd, wei } = await this.getEstimateGas({
+          gasLimit: gasEstimate,
+          price: getPrice(prices, fromToken.nativeToken.symbol),
+          nativeToken: fromToken.nativeToken,
+          provider,
+        });
 
-      result.outputAmount = Big(quoteResponse.amountOut || 0).div(10 ** (toToken.decimals || 6)).toFixed(toToken.decimals || 6, 0);
-      result.fees = {
-        sourceGasFeeUsd: usd,
-        // maybe 100 = 1%
-        widgetFeeUsd: numberRemoveEndZero(Big(amountWei || 0).div(10 ** (fromToken.decimals || 6)).times(quoteResponse.widgetFee.feeRate || 0).toFixed(20, 0)),
-        // not return by api
-        liquidityProviderFeeUsd: "0",
-      };
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-      result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.amountOutBeforeFee || 0).minus(quoteResponse.amountOut).div(10 ** (fromToken.decimals || 6)).toFixed(20, 0));
-    }
+        result.outputAmount = Big(quoteResponse.amountOut || 0).div(10 ** (toToken.decimals || 6)).toFixed(toToken.decimals || 6, 0);
+        result.fees = {
+          sourceGasFeeUsd: usd,
+          // maybe 100 = 1%
+          widgetFeeUsd: numberRemoveEndZero(Big(amountWei || 0).div(10 ** (fromToken.decimals || 6)).times(quoteResponse.widgetFee.feeRate || 0).toFixed(20, 0)),
+          // not return by api
+          liquidityProviderFeeUsd: "0",
+        };
+        result.estimateSourceGas = wei;
+        result.totalEstimateSourceGas = wei;
+        result.estimateSourceGasUsd = usd;
+        result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.amountOutBeforeFee || 0).minus(quoteResponse.amountOut).div(10 ** (fromToken.decimals || 6)).toFixed(20, 0));
+      }
+    };
 
+    const mergedCalls = [
+      this.allowance({
+        contractAddress: fromToken.contractAddress,
+        spender: bridgeRouterAddress,
+        address: refundTo,
+        amountWei,
+      }),
+      estimateNativeGas()
+    ];
+    const [allowanceResult]: any = await Promise.all(mergedCalls);
+    result.needApprove = allowanceResult.needApprove;
+    csl(_quoteType, "gray-900", "allowance & estimateNativeGas: %sms", (performance.now() - _t).toFixed(0));
     csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
 
     return result;
@@ -944,6 +992,7 @@ export default class RainbowWallet {
 
   async quoteFraxZero(params: any) {
     const {
+      dry,
       abi,
       recipient,
       amountWei,
@@ -951,6 +1000,7 @@ export default class RainbowWallet {
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       excludeFees,
       refundTo,
       originLayerzero,
@@ -978,6 +1028,7 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: 0,
       estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime: 0,
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
@@ -995,21 +1046,6 @@ export default class RainbowWallet {
 
     _t = performance.now();
     // 1. check if need approve
-    try {
-      // Check allowance
-      const allowanceResult = await this.allowance({
-        contractAddress: fromToken.contractAddress,
-        spender: remoteHop,
-        address: refundTo,
-        amountWei,
-        provider,
-      });
-      result.needApprove = allowanceResult.needApprove;
-      csl(_quoteType, "gray-900", "allowance: %sms", (performance.now() - _t).toFixed(0));
-    } catch (error) {
-      csl("EVM quoteFraxZero", "red-500", "Error checking allowance: %o", error);
-    }
-
     // 2. get message fee
     const sendParams = [
       // _oft
@@ -1022,14 +1058,28 @@ export default class RainbowWallet {
       amountWei
     ];
     _t = performance.now();
-    const msgFee = await remoteHopContractRead.quote.staticCall(...sendParams);
+    const mergedCalls = [
+      this.allowance({
+        contractAddress: fromToken.contractAddress,
+        spender: remoteHop,
+        address: refundTo,
+        amountWei,
+        provider,
+      }),
+      remoteHopContractRead.quote.staticCall(...sendParams)
+    ];
+    const [allowanceResult, msgFee]: any = await Promise.all(mergedCalls);
+    csl(_quoteType, "gray-900", "allowance & quote.staticCall: %sms", (performance.now() - _t).toFixed(0));
+
+    result.needApprove = allowanceResult.needApprove;
+
     let nativeMsgFee = msgFee[0];
     csl("EVM quoteFraxZero", "blue-700", "nativeMsgFee: %o", nativeMsgFee);
-    csl(_quoteType, "gray-900", "quote.staticCall: %sms", (performance.now() - _t).toFixed(0));
+
     // add 5% buffer
     nativeMsgFee = nativeMsgFee * NATIVE_MSG_FEE_BUFFER / 100n;
     csl("EVM quoteFraxZero", "blue-700", "nativeMsgFee after buffer: %o", nativeMsgFee);
-    result.estimateSourceGas = nativeMsgFee;
+    result.totalEstimateSourceGas = nativeMsgFee;
 
     const nativeFeeUsd = Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
     result.fees.nativeFee = numberRemoveEndZero(Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
@@ -1040,46 +1090,33 @@ export default class RainbowWallet {
 
     _t = performance.now();
     // 3. estimate send gas
-    let sendWithFeeGasLimit = 4000000n;
-    try {
-      const gasLimit = await remoteHopContract.sendOFT.estimateGas(...sendParams, { value: nativeMsgFee });
-      sendWithFeeGasLimit = gasLimit * 120n / 100n;
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas += wei;
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      csl("EVM quoteFraxZero", "red-500", "estimate send gas failed: %o", error);
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas += wei;
-      result.estimateSourceGasUsd = usd;
-    }
+    const finalSendParam = [...sendParams, { value: nativeMsgFee }];
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: remoteHopContract,
+      method: "sendOFT",
+      param: finalSendParam,
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas += ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    finalSendParam[finalSendParam.length - 1].gasLimit = ett.estimateSourceGasLimit;
     csl(_quoteType, "gray-900", "sendOFT.estimateGas: %sms", (performance.now() - _t).toFixed(0));
 
     // 4. generate transaction
     result.sendParam = {
       contract: remoteHopContract,
       method: "sendOFT",
-      param: [
-        ...sendParams,
-        { value: nativeMsgFee, gasLimit: sendWithFeeGasLimit }
-      ],
+      param: finalSendParam,
     };
 
     // 5. calculate total fees
     for (const feeKey in result.fees) {
-      if (excludeFees.includes(feeKey)) {
+      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
         continue;
       }
       result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
@@ -1237,16 +1274,19 @@ export default class RainbowWallet {
    */
   async redeemFrxUSD(params: any) {
     const {
+      dry,
       recipient,
       amountWei,
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       refundTo,
       abi,
       usdcCustodianAddress,
       rwaCustodianAddress,
       redeemAndMintContractAddress,
+      preivewRedeemResult,
     } = params;
 
     csl("EVM redeemFrxUSD", "blue-700", "params: %o", params);
@@ -1265,6 +1305,7 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: 0,
       estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime,
       outputAmount: "0",
@@ -1281,13 +1322,17 @@ export default class RainbowWallet {
     const redeemContract = new ethers.Contract(redeemAndMintContractAddress, abi, this.signer);
 
     _t = performance.now();
+    let finalPreivewRedeemResult = preivewRedeemResult;
+    if (!finalPreivewRedeemResult) {
+      finalPreivewRedeemResult = await this.preivewRedeemFrxUSD(params);
+    }
     const {
       maxUsdc,
       maxRwa,
       amountWeiBigInt,
       isInsufficientLiquidity,
       totalAssetsOut,
-    } = await this.preivewRedeemFrxUSD(params);
+    } = finalPreivewRedeemResult;
     csl(_quoteType, "gray-900", "preivewRedeemFrxUSD: %sms", (performance.now() - _t).toFixed(0));
 
     if (isInsufficientLiquidity) {
@@ -1324,35 +1369,23 @@ export default class RainbowWallet {
     };
 
     _t = performance.now();
-    let redeemGasLimit = DEFAULT_GAS_LIMIT;
-    try {
-      const gasLimit = await redeemContract[result.sendParam.method].estimateGas(...result.sendParam.param);
-      redeemGasLimit = (gasLimit * 120n) / 100n;
-    } catch (error) {
-      csl("EVM redeemFrxUSD", "red-500", "estimate redeem gas failed: %o", error);
-    }
-    csl(_quoteType, "gray-900", "redeemToUsdcAndTransfer.estimateGas: %sms", (performance.now() - _t).toFixed(0));
-
-    result.sendParam.param[2] = { gasLimit: redeemGasLimit };
-
-    _t = performance.now();
     // Estimate gas for multicall aggregate and compute fees
-    try {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: redeemGasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    } catch (error) {
-      // skip gas estimation on error
-      // csl("EVM redeemFrxUSD", "red-500", "estimate redeem gas failed: %o", error);
-    }
-    csl(_quoteType, "gray-900", "getEstimateGas: %sms", (performance.now() - _t).toFixed(0));
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: redeemContract,
+      method: result.sendParam.method,
+      param: [...result.sendParam.param, { gasLimit: 4000000n }],
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.totalFeesUsd = ett.estimateSourceGasUsd;
+    result.sendParam.param[2] = { gasLimit: ett.estimateSourceGasLimit };
+    csl(_quoteType, "gray-900", "estimateTransaction: %sms", (performance.now() - _t).toFixed(0));
 
     csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
 
@@ -1366,14 +1399,17 @@ export default class RainbowWallet {
    */
   async mintFrxUSD(params: any) {
     const {
+      dry,
       recipient,
       amountWei,
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       refundTo,
       abi,
       usdcCustodianAddress,
+      previewMintResult,
     } = params;
 
     csl("EVM mintFrxUSD", "blue-700", "params: %o", params);
@@ -1392,6 +1428,7 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: 0,
       estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime,
       outputAmount: "0",
@@ -1424,28 +1461,21 @@ export default class RainbowWallet {
     const usdcCustodianWithSigner = new ethers.Contract(usdcCustodianAddress, abi, this.signer);
 
     _t = performance.now();
+    let finalPreviewMintResult = previewMintResult;
+    if (!finalPreviewMintResult) {
+      finalPreviewMintResult = await this.previewMintFrxUSD(params);
+    }
     const {
       maxUsdc,
       amountWeiBigInt,
       totalMax,
       totalAssetsOut,
-    } = await this.previewMintFrxUSD(params);
+    } = finalPreviewMintResult;
     csl(_quoteType, "gray-900", "previewMintFrxUSD: %sms", (performance.now() - _t).toFixed(0));
 
     result.outputAmount = numberRemoveEndZero(
       Big(totalAssetsOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
     );
-
-    _t = performance.now();
-    // Build sendParam for deposit(assetsIn, receiver)
-    let depositGasLimit = DEFAULT_GAS_LIMIT;
-    try {
-      const gasLimit = await usdcCustodianWithSigner.deposit.estimateGas(amountWeiBigInt, recipient);
-      depositGasLimit = (gasLimit * 120n) / 100n;
-    } catch {
-      // use default if estimation fails
-    }
-    csl(_quoteType, "gray-900", "deposit.estimateGas: %sms", (performance.now() - _t).toFixed(0));
 
     result.sendParam = {
       contract: usdcCustodianWithSigner,
@@ -1453,27 +1483,27 @@ export default class RainbowWallet {
       param: [
         amountWeiBigInt,
         recipient,
-        { gasLimit: depositGasLimit },
       ],
     };
 
     _t = performance.now();
     // Estimate gas fees
-    try {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: depositGasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    } catch {
-      // skip gas estimation on error
-    }
-    csl(_quoteType, "gray-900", "getEstimateGas: %sms", (performance.now() - _t).toFixed(0));
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: usdcCustodianWithSigner,
+      method: "deposit",
+      param: [...result.sendParam.param, { gasLimit: 4000000n }],
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.totalFeesUsd = ett.estimateSourceGasUsd;
+    result.sendParam.param[2] = { gasLimit: ett.estimateSourceGasLimit };
+    csl(_quoteType, "gray-900", "estimateTransaction: %sms", (performance.now() - _t).toFixed(0));
 
     csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
 
@@ -1482,17 +1512,20 @@ export default class RainbowWallet {
 
   async mintAndSendFrxUSD(params: any) {
     const {
+      dry,
       recipient,
       amountWei,
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       refundTo,
       abi,
       usdcCustodianAddress,
       redeemAndMintContractAddress,
       originLayerzero,
       destinationLayerzero,
+      previewMintResult,
     } = params;
 
     csl("EVM mintAndSendFrxUSD", "blue-700", "params: %o", params);
@@ -1515,6 +1548,7 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: 0,
       estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime,
       outputAmount: "0",
@@ -1546,9 +1580,16 @@ export default class RainbowWallet {
     const redeemAndMintContractWithSigner = new ethers.Contract(redeemAndMintContractAddress, abi, this.signer);
 
     _t = performance.now();
+    let finalPreviewMintResult = previewMintResult;
+    if (!finalPreviewMintResult) {
+      finalPreviewMintResult = await this.previewMintFrxUSD(params);
+    }
     const {
+      maxUsdc,
+      amountWeiBigInt,
+      totalMax,
       totalAssetsOut,
-    } = await this.previewMintFrxUSD(params);
+    } = finalPreviewMintResult;
     csl("EVM mintAndSendFrxUSD", "gray-600", "previewMintFrxUSD totalAssetsOut: %o", totalAssetsOut);
     csl(_quoteType, "gray-900", "previewMintFrxUSD: %sms", (performance.now() - _t).toFixed(0));
 
@@ -1565,42 +1606,31 @@ export default class RainbowWallet {
       // receiver
       addressToBytes32(toToken.chainType, recipient)
     ];
-    _t = performance.now();
-    let depositGasLimit = DEFAULT_GAS_LIMIT;
-    try {
-      const gasLimit = await redeemAndMintContractWithSigner.mintAndSend.estimateGas(...mintAndSendParam);
-      depositGasLimit = (gasLimit * 120n) / 100n;
-    } catch {
-      // use default if estimation fails
-    }
-    csl(_quoteType, "gray-900", "mintAndSend.estimateGas: %sms", (performance.now() - _t).toFixed(0));
 
     result.sendParam = {
       contract: redeemAndMintContractWithSigner,
       method: "mintAndSend",
-      param: [
-        ...mintAndSendParam,
-        { gasLimit: depositGasLimit },
-      ],
+      param: mintAndSendParam,
     };
 
     _t = performance.now();
     // Estimate gas fees
-    try {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: depositGasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    } catch {
-      // skip gas estimation on error
-    }
-    csl(_quoteType, "gray-900", "getEstimateGas: %sms", (performance.now() - _t).toFixed(0));
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: redeemAndMintContractWithSigner,
+      method: "mintAndSend",
+      param: [...mintAndSendParam, { gasLimit: 4000000n }],
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.totalFeesUsd = ett.estimateSourceGasUsd;
+    result.sendParam.param.push({ gasLimit: ett.estimateSourceGasLimit });
+    csl(_quoteType, "gray-900", "estimateTransaction: %sms", (performance.now() - _t).toFixed(0));
 
     csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
 

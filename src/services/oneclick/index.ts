@@ -126,37 +126,37 @@ export class OneClickService {
           destinationGasFeeUsd: numberRemoveEndZero(Big(destinationGasFee).toFixed(20)),
         };
 
-        try {
-          res.data.transferSourceGasFee = await params.wallet.estimateTransferGas({
-            fromToken: params.fromToken,
-            depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-            amount: params.amountWei,
-            account: params.refundTo,
-          });
-          const transferSourceGasFeeUsd = Big(res.data.transferSourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-          res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
-          const energySourceGasFee = {
-            estimateGas: Big(Big(params.needsBandwidthTRX || 0).plus(params.needsEnergyAmount || 0)).times(10 ** params.fromToken.nativeToken.decimals).toFixed(params.fromToken.nativeToken.decimals)
-          };
-          res.data.energySourceGasFee = energySourceGasFee.estimateGas;
-          const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-          res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
-          let sourceGasFee = res.data.transferSourceGasFee;
-          if (isFromTronEnergy) {
-            sourceGasFee = energySourceGasFee;
-          }
+        // try {
+        //   res.data.transferSourceGasFee = await params.wallet.estimateTransferGas({
+        //     fromToken: params.fromToken,
+        //     depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
+        //     amount: params.amountWei,
+        //     account: params.refundTo,
+        //   });
+        //   const transferSourceGasFeeUsd = Big(res.data.transferSourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
+        //   res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
+        //   const energySourceGasFee = {
+        //     estimateGas: Big(Big(params.needsBandwidthTRX || 0).plus(params.needsEnergyAmount || 0)).times(10 ** params.fromToken.nativeToken.decimals).toFixed(params.fromToken.nativeToken.decimals)
+        //   };
+        //   res.data.energySourceGasFee = energySourceGasFee.estimateGas;
+        //   const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
+        //   res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
+        //   let sourceGasFee = res.data.transferSourceGasFee;
+        //   if (isFromTronEnergy) {
+        //     sourceGasFee = energySourceGasFee;
+        //   }
 
-          const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-          res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
-          res.data.estimateSourceGas = sourceGasFee.estimateGas;
-          res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
-        } catch (err) {
-          // csl("OneClickService formatQuoteData", "red-500", "oneclick estimate gas failed: %o", err);
-        }
+        //   const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
+        //   res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+        //   res.data.estimateSourceGas = sourceGasFee.estimateGas;
+        //   res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+        // } catch (err) {
+        //   // csl("OneClickService formatQuoteData", "red-500", "oneclick estimate gas failed: %o", err);
+        // }
 
         // calculate total fees
         for (const feeKey in res.data.fees) {
-          if (excludeFees.includes(feeKey)) {
+          if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
             continue;
           }
           res.data.totalFeesUsd = Big(res.data.totalFeesUsd || 0).plus(res.data.fees[feeKey] || 0);
@@ -171,6 +171,7 @@ export class OneClickService {
       let proxyParams: any = {};
       if (proxyAddress && isProxy) {
         proxyParams = {
+          dry: params.dry,
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
           fromToken: params.fromToken,
@@ -178,6 +179,7 @@ export class OneClickService {
           recipient: params.recipient,
           amountWei: isExactOutput ? res.data?.quote?.minAmountIn : params.amountWei,
           prices: params.prices,
+          evmGasFees: params.evmGasFees,
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };
         try {
@@ -189,7 +191,7 @@ export class OneClickService {
             for (const proxyKey in proxyResult) {
               if (proxyKey === "fees") {
                 for (const feeKey in proxyResult.fees) {
-                  if (excludeFees.includes(feeKey)) {
+                  if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
                     continue;
                   }
                   res.data.fees[feeKey] = proxyResult.fees[feeKey];
@@ -300,6 +302,89 @@ export class OneClickService {
     csl(_quoteType, "gray-900", "formatQuoteData: %sms", (performance.now() - _t).toFixed(0));
 
     csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    return result;
+  }
+
+  public async estimateTransaction(params: any, quoteData: any) {
+    const {
+      fromToken,
+      isProxy = true,
+      wallet,
+      amountWei,
+      refundTo,
+      prices,
+      needsBandwidthTRX,
+      needsEnergyAmount,
+      acceptTronEnergy,
+      evmGasFees,
+    } = params;
+
+    const result: any = { fees: {}, ...quoteData };
+
+    const proxyAddress = ONECLICK_PROXY[fromToken.chainName];
+    const isFromTron = fromToken.chainType === "tron";
+    const isFromTronEnergy = isFromTron && acceptTronEnergy;
+    const isFinalProxy = proxyAddress && isProxy;
+    const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
+    const nativeTokenDecimals = fromToken.nativeToken.decimals;
+
+    const energySourceGasFee = {
+      estimateGas: Big(Big(needsBandwidthTRX || 0).plus(needsEnergyAmount || 0)).times(10 ** nativeTokenDecimals).toFixed(nativeTokenDecimals)
+    };
+    result.energySourceGasFee = energySourceGasFee.estimateGas;
+    const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
+    result.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
+
+    if (isFromTron) {
+      try {
+        result.transferSourceGasFee = await wallet.estimateTransferGas({
+          fromToken: fromToken,
+          depositAddress: BridgeDefaultWallets[fromToken.chainType as WalletType],
+          amount: amountWei,
+          account: refundTo,
+        });
+        const transferSourceGasFeeUsd = Big(result.transferSourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
+        result.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
+      } catch (error) {
+        csl("OneClickService estimateTransaction", "red-500", "oneclick estimate transaction without proxy failed: %o", error);
+      }
+    }
+
+    if (isFinalProxy) {
+      const ett = await wallet.estimateTransaction({
+        dry: false,
+        ...quoteData.sendParam,
+        fromToken,
+        prices,
+        evmGasFees,
+      });
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas;
+      result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+
+      result.transferSourceGasFee = { estimateGas: ett.estimateSourceGas };
+      result.transferSourceGasFeeUsd = ett.estimateSourceGasUsd;
+    } else {
+      let sourceGasFee = result.transferSourceGasFee || {};
+      if (isFromTronEnergy) {
+        sourceGasFee = energySourceGasFee;
+      }
+      const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
+      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+      result.estimateSourceGas = sourceGasFee.estimateGas;
+      result.totalEstimateSourceGas = sourceGasFee.estimateGas;
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+    }
+
+    for (const feeKey in result.fees) {
+      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
     return result;
   }
 
