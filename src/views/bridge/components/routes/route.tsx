@@ -9,6 +9,7 @@ import { formatDuration } from "@/utils/format/time";
 import Big from "big.js";
 import clsx from "clsx";
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 
 const QuoteRoute = (props: any) => {
   const { service, data, selected, onSelect } = props;
@@ -17,6 +18,24 @@ const QuoteRoute = (props: any) => {
   const bridgeStore = useBridgeStore();
 
   const isFromTron = data?.quoteParam?.fromToken?.chainType === "tron";
+
+  const [displayServiceLogo, displayService] = useMemo(() => {
+    let _service = service as Service;
+    let _serviceLogo = ServiceLogoMap[service as Service];
+    if (service === Service.FraxZeroOneClick) {
+      if (data?.quoteParam?.isToEthereumUSDC) {
+        _service = Service.FraxZero;
+        _serviceLogo = ServiceLogoMap[Service.FraxZero];
+      }
+    }
+    if (service === Service.OneClickFraxZero) {
+      if (data?.quoteParam?.isFromEthereumUSDC) {
+        _service = Service.FraxZero;
+        _serviceLogo = ServiceLogoMap[Service.FraxZero];
+      }
+    }
+    return [_serviceLogo, _service];
+  }, [data, service]);
 
   return (
     <motion.div
@@ -35,11 +54,11 @@ const QuoteRoute = (props: any) => {
           onChange={onSelect}
         />
         <img
-          src={ServiceLogoMap[service as Service]}
+          src={displayServiceLogo}
           alt=""
           className={clsx(
             "object-center object-contain shrink-0",
-            [Service.OneClickUsdt0, Service.Usdt0OneClick, Service.FraxZero, Service.FraxZeroOneClick, Service.OneClickFraxZero].includes(service) ? "w-[118px] h-[24px]" : "w-[62px] h-[16px]",
+            ([Service.OneClickUsdt0, Service.Usdt0OneClick, Service.FraxZero, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(displayService) ? "w-[118px] h-[24px]" : "w-[62px] h-[16px]",
           )}
         />
       </div>

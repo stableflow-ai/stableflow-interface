@@ -8,6 +8,7 @@ import ResultFeeItem from "./fee-item";
 import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
 import { BridgeFee, checkIsBridgeFee } from "@/services/oneclick";
+import { ServiceLogoMap } from "@/services";
 
 const ResultUsdt0OneClick = (props: any) => {
   const { service } = props;
@@ -127,6 +128,46 @@ const ResultUsdt0OneClick = (props: any) => {
     ];
   }, [_quoteData]);
 
+  const routePathMap = useMemo(() => {
+    if (!_quoteData) return [];
+
+    const p = _quoteData.quoteParam;
+
+    const buildPath = (
+      steps: Array<{ from: any; to: any; svc: Service; skip?: boolean }>
+    ) =>
+      steps
+        .filter((s) => !s.skip)
+        .map(({ from, to, svc }) => ({ fromToken: from, toToken: to, service: svc }));
+
+    switch (service) {
+      case Service.OneClickUsdt0:
+        return buildPath([
+          { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick },
+          { from: p?.middleToken, to: p?.toToken, svc: Service.Usdt0 },
+        ]);
+      case Service.Usdt0OneClick:
+        return buildPath([
+          { from: p?.fromToken, to: p?.middleToken, svc: Service.Usdt0 },
+          { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick },
+        ]);
+      case Service.OneClickFraxZero:
+        return buildPath([
+          { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick, skip: p?.isFromEthereumUSDC },
+          { from: p?.middleToken, to: p?.middleToken2, svc: Service.FraxZero },
+          { from: p?.middleToken2, to: p?.toToken, svc: Service.FraxZero, skip: p?.isToEthereumFrxUSD },
+        ]);
+      case Service.FraxZeroOneClick:
+        return buildPath([
+          { from: p?.fromToken, to: p?.middleToken2, svc: Service.FraxZero, skip: p?.isFromEthereumFrxUSD },
+          { from: p?.middleToken2, to: p?.middleToken, svc: Service.FraxZero },
+          { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick, skip: p?.isToEthereumUSDC },
+        ]);
+      default:
+        return [];
+    }
+  }, [_quoteData, service]);
+
   return (
     <AnimatePresence>
       {
@@ -197,6 +238,31 @@ const ResultUsdt0OneClick = (props: any) => {
                 </>
               )
             }
+            {
+              routePathMap && routePathMap.length > 1 && (
+                <ResultFeeItem
+                  label="Routes"
+                  className="items-start"
+                  labelClassName="pt-0"
+                  loading={false}
+                  isDelete={false}
+                  isFormat={false}
+                >
+                  <div className="space-y-2">
+                    {
+                      routePathMap.map((item: any, index: number) => (
+                        <RoutePath
+                          key={index}
+                          fromToken={item.fromToken}
+                          toToken={item.toToken}
+                          service={item.service}
+                        />
+                      ))
+                    }
+                  </div>
+                </ResultFeeItem>
+              )
+            }
           </motion.div>
         )
       }
@@ -205,3 +271,37 @@ const ResultUsdt0OneClick = (props: any) => {
 };
 
 export default ResultUsdt0OneClick;
+
+const RoutePath = (props: any) => {
+  const { fromToken, toToken, service } = props;
+
+  return (
+    <div className="flex items-center gap-1 min-w-[280px]">
+      <div className="shrink-0 flex items-center gap-1">
+        <div className="">{fromToken?.chainName}</div>
+        <img
+          src={fromToken?.icon}
+          alt=""
+          className="shrink-0 w-4 h-4 object-center object-contain rounded-full"
+        />
+      </div>
+      <div className="relative flex items-center flex-1 w-0 gap-1">
+        <div className="flex-1 border-t border-dashed border-[#D6D6D6]"></div>
+        <img
+          src={ServiceLogoMap[service as Service]}
+          alt=""
+          className="shrink-0 w-14 h-4 object-center object-contain"
+        />
+        <div className="flex-1 border-t border-dashed border-[#D6D6D6]"></div>
+      </div>
+      <div className="shrink-0 flex items-center gap-1">
+        <div className="">{toToken?.chainName}</div>
+        <img
+          src={toToken?.icon}
+          alt=""
+          className="shrink-0 w-4 h-4 object-center object-contain rounded-full"
+        />
+      </div>
+    </div>
+  );
+};

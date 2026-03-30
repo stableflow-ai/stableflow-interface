@@ -1,6 +1,6 @@
 import { csl } from "@/utils/log";
 import { FraxZeroService, excludeFees as fraxExcludeFees } from ".";
-import { FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED } from "./config";
+import { FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED, FRAXZERO_REDEMPTION_CONTRACT } from "./config";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { ethers } from "ethers";
 import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick";
@@ -91,6 +91,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
           abi: FRAXZERO_REDEEM_MINT_ABI,
           usdcCustodianAddress: FRAXZERO_REDEEM_USDC_CONTRACT,
           rwaCustodianAddress: FRAXZERO_REDEEM_RWA_CONTRACT,
+          redemptionAddress: FRAXZERO_REDEMPTION_CONTRACT,
         });
         csl(_quoteType, "gray-900", "previewRedeemFrxUSD: %sms", (performance.now() - _t).toFixed(0));
         ethereumUSDCAmountWei = totalAssetsOut.toString();
@@ -133,6 +134,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       abi: FRAXZERO_REDEEM_MINT_ABI,
       usdcCustodianAddress: FRAXZERO_REDEEM_USDC_CONTRACT,
       rwaCustodianAddress: FRAXZERO_REDEEM_RWA_CONTRACT,
+      redemptionAddress: FRAXZERO_REDEMPTION_CONTRACT,
       redeemAndMintContractAddress: FRAXZERO_REDEEM_AND_MINT_CONTRACT,
     });
     csl(_quoteType, "gray-900", "middleChainWallet.redeemFrxUSD: %sms", (performance.now() - _t).toFixed(0));
@@ -205,7 +207,10 @@ export class FraxZero2OneClickService extends FraxZeroService {
     }
 
     // Redeem is done by the backend, and the frontend calls FraxZero to bridge to Ethereum frxUSD
-    const oneClickResult = withOneClick(firstStepResult);
+    const oneClickResult = withOneClick({
+      ...firstStepResult,
+      outputAmount: secondStepResult.outputAmount,
+    });
     csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
     return {
       ...firstStepResult,
