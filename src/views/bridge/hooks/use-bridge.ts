@@ -30,6 +30,8 @@ import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/
 import { csl } from "@/utils/log";
 import { sortQuoteData } from "../utils";
 import { getQuoteModes } from "@/services/utils";
+import useEvmGasFeesStore from "@/stores/use-evm-gas-fees";
+import { ExecTime } from "@/utils/exec-time";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 0.01;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -56,6 +58,7 @@ export default function useBridge(props?: any) {
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
   const prevToTokenRef = useRef<any>(null);
+  const { byChainId: evmGasFees } = useEvmGasFeesStore();
 
   const [fromWalletAddress, toWalletAddress] = useMemo(() => {
     const _fromChainType: WalletType = walletStore.fromToken?.chainType;
@@ -104,9 +107,10 @@ export default function useBridge(props?: any) {
   };
 
   const quoteRoutes = async (service: Service, params: any, requestId: number): Promise<QuoteData> => {
+    const execTime = new ExecTime({ type: "useBridge.quoteRoutes", logStyle: "sky-300" });
     try {
       // Check request ID, skip setting loading state if not the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
+      if (requestId !== requestIdRef.current) {
         throw new Error("Request cancelled: outdated request");
       }
       bridgeStore.setQuoting(service, requestId, true);
@@ -124,6 +128,7 @@ export default function useBridge(props?: any) {
           fromToken: walletStore.fromToken,
           toToken: walletStore.toToken,
           prices,
+          evmGasFees,
           slippageTolerance: configStore.slippage,
         };
         if (([
@@ -138,7 +143,7 @@ export default function useBridge(props?: any) {
           _params.refundType = "ORIGIN_CHAIN";
           _params.acceptTronEnergy = bridgeStore.acceptTronEnergy;
 
-          if (isFromTron && bridgeStore.acceptTronEnergy) {
+          if (isFromTron) {
             const { needsEnergy, needsBandwidth, needsBandwidthTRX, needsEnergyTRX } = await getEstimateNeedsEnergy({
               wallet: params.wallet,
               account: fromWalletAddress || "",
@@ -150,14 +155,16 @@ export default function useBridge(props?: any) {
             if (needsEnergy) {
               _params.needsEnergyAmount = needsEnergyTRX;
             } else {
-              const fixedFee = BridgeFees.Normal;
-              const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
-              _params.appFees = [
-                {
-                  recipient: BridgeFee[0].recipient,
-                  fee: BridgeFee[0].fee + fixedFeePercentage,
-                },
-              ];
+              if (bridgeStore.acceptTronEnergy) {
+                const fixedFee = BridgeFees.Normal;
+                const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
+                _params.appFees = [
+                  {
+                    recipient: BridgeFee[0].recipient,
+                    fee: BridgeFee[0].fee + fixedFeePercentage,
+                  },
+                ];
+              }
             }
           }
 
@@ -178,11 +185,28 @@ export default function useBridge(props?: any) {
 
       const quoteParams = await formatQuoteParams();
       const quoteRes = await ServiceMap[service].quote(quoteParams);
+      quoteRes.quoteId = requestId;
+
+      if (params.dry) {
+        ServiceMap[service].estimateTransaction(quoteParams, quoteRes)
+          .then((estimateRes: any) => {
+            csl("quoteRoutes", "green-500", "%s estimateTransaction res: %o", service, estimateRes);
+            if (estimateRes.quoteId !== requestIdRef.current) {
+              return;
+            }
+            bridgeStore.setQuoteData(service, estimateRes);
+          })
+          .catch((estimateErr: any) => {
+            // csl("quoteRoutes", "red-500", "%s estimateTransaction failed: %o", service, estimateErr);
+          });
+      }
+
+      execTime.logTotal("useBridge.quoteRoutes");
 
       bridgeStore.setQuoting(service, requestId, false);
 
       // Check request ID again before setting result to ensure it's still the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
+      if (requestId !== requestIdRef.current) {
         throw new Error("Request cancelled: outdated request");
       }
 
@@ -201,7 +225,7 @@ export default function useBridge(props?: any) {
       }
 
       // Check request ID, ignore error if not the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
+      if (requestId !== requestIdRef.current) {
         throw new Error("Request cancelled: outdated request");
       }
 
@@ -252,6 +276,7 @@ export default function useBridge(props?: any) {
 
       const _quoteData = {
         type: service,
+        quoteId: requestId,
         errMsg: _finalErrorMessage,
       };
       bridgeStore.setQuoteData(service, _quoteData);
@@ -269,6 +294,8 @@ export default function useBridge(props?: any) {
   const prevQuotingRef = useRef<boolean>(false);
 
   const quote = async (params: { dry: boolean; }, isSync?: boolean, requestId?: number) => {
+    const execTime = new ExecTime({ type: "useBridge.quote", logStyle: "sky-400" });
+
     if (!isSync) {
       bridgeStore.clearQuoteData();
     }
@@ -400,24 +427,29 @@ export default function useBridge(props?: any) {
       const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
       // Sync calls don't need request ID check
       const _quoteRes = await currentQuoteService.quote(currentRequestId);
+      execTime.logTotal("useBridge.quote sync");
       csl("quote", "green-400", "[%s]Sync Quote Result: %o", bridgeStore.quoteDataService, _quoteRes);
       return _quoteRes;
     }
 
     csl("quote", "pink-950", "quoteServices: %o", quoteServices);
 
+    const quotePromises: Promise<any>[] = [];
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
+      const execTime = new ExecTime({ type: "useBridge: quote a Service", logStyle: "sky-500" });
       // Pass request ID to service function
-      quoteService.quote(currentRequestId).then((_quoteRes: any) => {
+      const p = quoteService.quote(currentRequestId).then((_quoteRes: any) => {
         // Check if it's the latest request, ignore result if not
         if (currentRequestId !== requestIdRef.current) {
           csl("quote", "gray-500", "[%s] Ignored outdated quote result, current requestId: %s, result requestId: %s", quoteService.service, requestIdRef.current, currentRequestId);
           return;
         }
 
+        execTime.logTotal("service success", "(%s)", quoteService.service);
         csl("quote", "green-400", "[%s]Quote Result: %o", quoteService.service, _quoteRes);
       }).catch((error: any) => {
+        execTime.logTotal("service failed", "(%s)", quoteService.service);
         // Silently ignore if it's a cancelled request error
         if (error?.message === "Request cancelled: outdated request") {
           csl("quote", "gray-500", "[%s] Request cancelled: outdated request", quoteService.service);
@@ -435,6 +467,7 @@ export default function useBridge(props?: any) {
           setAutoSelect(true);
         }
       });
+      quotePromises.push(p);
 
       // Change to sequential requests to avoid exceeding RPC request rate limits
       // try {
@@ -463,6 +496,10 @@ export default function useBridge(props?: any) {
 
       // setAutoSelect(true);
     }
+
+    Promise.allSettled(quotePromises).then(() => {
+      execTime.logTotal("useBridge.quote all services", "(services: %s)", quoteServices.map((s: any) => s.service).join(", "));
+    });
   };
 
   const report = async (params: any) => {
@@ -488,7 +525,7 @@ export default function useBridge(props?: any) {
     }
 
     const _quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
-    let _estimateSourceGas = _quoteData?.estimateSourceGas || 0n;
+    let _estimateSourceGas = _quoteData?.totalEstimateSourceGas || 0n;
 
     // stale chain
     // The native token of the stable chain is USDT0, so the transfer amount also needs to be included in the estimateGas.

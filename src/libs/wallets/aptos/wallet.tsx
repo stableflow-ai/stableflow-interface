@@ -1,10 +1,13 @@
-import { Aptos, AptosConfig, Network, parseTypeTag, TypeTagAddress, TypeTagU64, type EntryFunctionABI } from "@aptos-labs/ts-sdk";
+import { Aptos, AptosConfig, AuthenticationKey, Ed25519PublicKey, Network, parseTypeTag, TypeTagAddress, TypeTagU64, type EntryFunctionABI } from "@aptos-labs/ts-sdk";
 import Big from "big.js";
 import { getPrice } from "@/utils/format/price";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "../types";
 import { Service } from "@/services/constants";
 import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
+
+const DEFAULT_GAS_LIMIT = 5000n;
 
 export default class AptosWallet {
   connection: any;
@@ -313,6 +316,121 @@ export default class AptosWallet {
     };
   }
 
+  async getEstimateGas(params: any) {
+    const { gasLimit, price, nativeToken, gasPrice } = params;
+
+    let finalGasPrice = gasPrice;
+    if (!finalGasPrice) {
+      const feeData = await this.aptos.getGasPriceEstimation();
+      finalGasPrice = feeData.gas_estimate || feeData.prioritized_gas_estimate || BigInt("100");
+    }
+
+    const estimateGas = BigInt(gasLimit) * BigInt(finalGasPrice);
+    const estimateGasAmount = Big(estimateGas.toString()).div(10 ** nativeToken.decimals);
+    const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
+
+    return {
+      gasPrice: finalGasPrice,
+      usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
+      wei: estimateGas,
+      amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
+    };
+  }
+
+  async estimateTransaction(params: any) {
+    const {
+      dry,
+      function: functionId,
+      typeArguments,
+      functionArguments,
+      fromToken,
+      prices,
+      defaultGasLimit = DEFAULT_GAS_LIMIT,
+    } = params;
+
+    const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
+
+    const result = {
+      estimateSourceGasLimit: dry ? 4000000n : DEFAULT_GAS_LIMIT,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: "0",
+    };
+
+    const setDefaultGasLimit = async () => {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: DEFAULT_GAS_LIMIT,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+        gasPrice: dry ? "100" : void 0,
+      });
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    };
+
+    let finalGasLimit = defaultGasLimit;
+
+    if (dry) {
+      await setDefaultGasLimit();
+      return result;
+    }
+
+    const zeroPublicKey = new Ed25519PublicKey(new Uint8Array(32));
+    let signerPublicKey: any;
+    if (this.account.publicKey) {
+      signerPublicKey = this.account.publicKey;
+    } else if (this.account.address) {
+      signerPublicKey = this.account.address;
+    } else {
+      signerPublicKey = zeroPublicKey;
+    }
+    let sender = this.account?.address?.toString();
+    if (!sender) {
+      const authKey = AuthenticationKey.fromPublicKey({ publicKey: zeroPublicKey });
+      sender = authKey.derivedAddress();
+    }
+    let simulation: any;
+    try {
+      const rawTxn = await this.aptos.transaction.build.simple({
+        sender,
+        data: {
+          function: functionId,
+          typeArguments,
+          functionArguments,
+        },
+      });
+      const simulationResult = await this.aptos.transaction.simulate.simple({
+        signerPublicKey,
+        transaction: rawTxn,
+        options: {
+          estimateGasUnitPrice: true,
+          estimateMaxGasAmount: true,
+          estimatePrioritizedGasUnitPrice: true,
+        },
+      });
+      simulation = simulationResult[0];
+      if (!simulation.success) {
+        throw new Error(`Simulation failed: ${simulation}`);
+      }
+      const gasUsed = BigInt(simulation.gas_used || 0);
+      finalGasLimit = (gasUsed * 150n) / 100n; // Add 50% buffer
+      result.estimateSourceGasLimit = finalGasLimit;
+      const gasPrice = BigInt(simulation.gas_unit_price || 100);
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: finalGasLimit,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+        gasPrice: gasPrice,
+      });
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    } catch (error) {
+      csl("Aptos estimateTransaction", "red-500", "simulation failed: %o", error);
+      await setDefaultGasLimit();
+    }
+
+    return result;
+  }
+
   async checkTransactionStatus(signature: string) {
     try {
       // Get transaction by hash
@@ -335,12 +453,15 @@ export default class AptosWallet {
 
   async quoteOneClickProxy(params: any) {
     const {
+      dry,
       proxyAddress,
       fromToken,
       depositAddress,
       amountWei,
       prices,
     } = params;
+
+    const execTime = new ExecTime({ type: "OneClick Aptos", logStyle: "sky-200" });
 
     const result: any = { fees: {} };
 
@@ -374,90 +495,21 @@ export default class AptosWallet {
       const functionId = `${proxyAddress}::stableflow_proxy::proxy_transfer_fa` as `${string}::${string}::${string}`;
       const functionArguments = [fromToken.contractAddress, depositAddress, amountWei];
 
-      const rawTxn = await this.aptos.transaction.build.simple({
-        sender,
-        data: {
-          function: functionId,
-          typeArguments: [typeArgument],
-          functionArguments: functionArguments,
-        },
+      execTime.breakpoint();
+      const ett = await this.estimateTransaction({
+        dry,
+        function: functionId,
+        typeArguments: [typeArgument],
+        functionArguments: functionArguments,
+        fromToken,
+        prices,
       });
+      execTime.log("estimateTransaction");
 
-      // Simulate transaction to estimate gas
-      let simulation: any;
-      try {
-        const simulationResult = await this.aptos.transaction.simulate.simple({
-          signerPublicKey,
-          transaction: rawTxn,
-          options: {
-            estimateGasUnitPrice: true,
-            estimateMaxGasAmount: true,
-            estimatePrioritizedGasUnitPrice: true,
-          },
-        });
-        simulation = simulationResult[0];
-      } catch (error: any) {
-        csl("Aptos quoteOneClickProxy", "red-500", "oneclick proxy simulation failed: %o", error);
-        // Use default gas estimation if simulation fails
-        const defaultGasLimit = 5000n;
-        const defaultGasPrice = 100n;
-        const defaultEstimateGas = defaultGasLimit * defaultGasPrice;
-
-        const estimateGasUsd = Big(defaultEstimateGas.toString())
-          .div(10 ** fromToken.nativeToken.decimals)
-          .times(getPrice(prices, fromToken.nativeToken.symbol));
-
-        result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-        result.estimateSourceGas = defaultEstimateGas.toString();
-        result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-
-        // Set sendParam for transaction
-        result.sendParam = {
-          function: functionId,
-          typeArguments: [typeArgument],
-          functionArguments: functionArguments,
-        };
-
-        return result;
-      }
-
-      if (!simulation.success) {
-        console.warn(`Simulation failed: ${simulation.vm_status}, using default gas estimates`);
-        const defaultGasLimit = 5000n;
-        const defaultGasPrice = 100n;
-        const defaultEstimateGas = defaultGasLimit * defaultGasPrice;
-
-        const estimateGasUsd = Big(defaultEstimateGas.toString())
-          .div(10 ** fromToken.nativeToken.decimals)
-          .times(getPrice(prices, fromToken.nativeToken.symbol));
-
-        result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-        result.estimateSourceGas = defaultEstimateGas.toString();
-        result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-
-        result.sendParam = {
-          function: functionId,
-          typeArguments: [typeArgument],
-          functionArguments: functionArguments,
-        };
-
-        return result;
-      }
-
-      // Calculate gas fees from simulation
-      const gasUsed = BigInt(simulation.gas_used || 0);
-      const gasLimit = (gasUsed * 150n) / 100n; // Add 50% buffer
-      const gasPrice = BigInt(simulation.gas_unit_price || 100);
-      const estimateGas = gasLimit * gasPrice;
-
-      // Convert to USD
-      const estimateGasUsd = Big(estimateGas.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
-
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-      result.estimateSourceGas = estimateGas.toString();
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGas = ett.estimateSourceGas.toString();
+      result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
+      result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
       // Set sendParam for transaction
       result.sendParam = {
@@ -479,9 +531,11 @@ export default class AptosWallet {
 
       result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
       result.estimateSourceGas = defaultEstimateGas.toString();
+      result.totalEstimateSourceGas = defaultEstimateGas.toString();
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
     }
 
+    execTime.logTotal("quoteOneClickProxy");
     return result;
   }
 

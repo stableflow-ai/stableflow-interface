@@ -8,6 +8,7 @@ import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy, useEffect, Suspense } from "react";
+import { useEvmGasFees } from "./hooks/use-evm-gas-fees";
 import ErrorPage from "./views/error";
 import { usePrices } from "./hooks/use-prices";
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -76,6 +77,7 @@ const router = createBrowserRouter([
 
 function App() {
   usePrices();
+  useEvmGasFees();
   useEffect(() => {
     sdk.actions.ready();
   }, []);

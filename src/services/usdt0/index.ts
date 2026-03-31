@@ -4,6 +4,10 @@ import axios from "axios";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
 import { calculateEstimateTime } from "../utils";
+import { csl } from "@/utils/log";
+import Big from "big.js";
+import { numberRemoveEndZero } from "@/utils/format/number";
+import { ExecTime } from "@/utils/exec-time";
 
 export const PayInLzToken = false;
 
@@ -12,6 +16,7 @@ export const excludeFees: string[] = ["estimateGasUsd"];
 export class Usdt0Service {
   public async quote(params: any) {
     const {
+      dry,
       wallet,
       originChain,
       destinationChain,
@@ -22,7 +27,11 @@ export class Usdt0Service {
       toToken,
       slippageTolerance,
       prices,
+      evmGasFees,
     } = params;
+
+    const _quoteType = `Usdt0Service ${fromToken?.chainName}->${toToken?.chainName}`;
+    const execTime = new ExecTime({ type: _quoteType, logStyle: "lime-600" });
 
     const originLayerzero = USDT0_CONFIG[originChain];
     const destinationLayerzero = USDT0_CONFIG[destinationChain];
@@ -59,6 +68,7 @@ export class Usdt0Service {
       const isMultiHopComposer = !isBothLegacy && !isBothOUpgradeable;
 
       const result = await wallet.quote(Service.Usdt0, {
+        dry,
         abi: OFT_ABI,
         dstEid,
         refundTo,
@@ -69,6 +79,7 @@ export class Usdt0Service {
         fromToken,
         toToken,
         prices,
+        evmGasFees,
         originLayerzeroAddress,
         destinationLayerzeroAddress,
         excludeFees,
@@ -82,6 +93,7 @@ export class Usdt0Service {
 
       result.estimateTime = estimateTime;
 
+      execTime.logTotal("Usdt0Service.quote");
       return result;
     }
 
@@ -102,6 +114,7 @@ export class Usdt0Service {
     }
 
     const oftParams: any = {
+      dry,
       dstEid: destinationLayerzero.eid,
       refundTo,
       recipient,
@@ -136,6 +149,40 @@ export class Usdt0Service {
     });
 
     result.estimateTime = estimateTime;
+
+    execTime.logTotal("Usdt0Service.quote");
+
+    return result;
+  }
+
+  public async estimateTransaction(params: any, quoteData: any) {
+    const {
+      fromToken,
+      wallet,
+      prices,
+      evmGasFees,
+    } = params;
+
+    const result: any = { fees: {}, ...quoteData };
+
+    const ett = await wallet.estimateTransaction({
+      dry: false,
+      ...quoteData.sendParam,
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+
+    for (const feeKey in result.fees) {
+      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
     return result;
   }

@@ -4,6 +4,8 @@ import { FRAXZERO_ABI } from "./contract";
 import { calculateEstimateTime } from "../utils";
 import { Usdt0Service } from "../usdt0";
 import { OFT_ABI } from "../usdt0/contract";
+import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
 
 export const PayInLzToken = false;
 
@@ -21,6 +23,9 @@ export class FraxZeroService extends Usdt0Service {
       slippageTolerance,
       prices,
     } = params;
+
+    const _quoteType = `FraxZeroService ${fromToken?.chainName}->${toToken?.chainName}`;
+    const execTime = new ExecTime({ type: _quoteType, logStyle: "fuchsia-600" });
 
     const originLayerzero = FRAXZERO_CONFIG[fromToken.chainName];
     const destinationLayerzero = FRAXZERO_CONFIG[toToken.chainName];
@@ -58,6 +63,8 @@ export class FraxZeroService extends Usdt0Service {
 
       result.estimateTime = estimateTime;
 
+      execTime.logTotal("FraxZeroService.quote isFraxtal");
+
       return result;
     }
 
@@ -70,6 +77,8 @@ export class FraxZeroService extends Usdt0Service {
     });
 
     result.estimateTime = estimateTime;
+
+    execTime.logTotal("FraxZeroService.quote");
 
     return result;
   }
