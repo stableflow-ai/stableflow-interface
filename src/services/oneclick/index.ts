@@ -8,6 +8,7 @@ import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
 import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
 
 export const BridgeFee = [
   {
@@ -64,6 +65,8 @@ export class OneClickService {
     const isFromTron = params.fromToken.chainType === "tron";
     const isFromTronEnergy = isFromTron && params.acceptTronEnergy;
     const isExactOutput = params.swapType === "EXACT_OUTPUT";
+
+    const execTime = new ExecTime({ type: "OneClickService formatQuoteData", logStyle: "lime-300" });
 
     if (res.data) {
       // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
@@ -183,9 +186,9 @@ export class OneClickService {
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };
         try {
-          const _proxyT = performance.now();
+          execTime.breakpoint();
           const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
-          csl(`OneClickService ${params.fromToken?.chainName}`, "gray-900", "wallet.quote proxy: %sms", (performance.now() - _proxyT).toFixed(0));
+          execTime.log("wallet.quoteOneClickProxy");
 
           if (!isFromTronEnergy) {
             for (const proxyKey in proxyResult) {
@@ -218,6 +221,8 @@ export class OneClickService {
         ...proxyParams,
       };
     }
+
+    execTime.logTotal("OneClickService.formatQuoteData");
 
     return res.data || {};
   }
@@ -256,8 +261,7 @@ export class OneClickService {
     } = params;
 
     const _quoteType = `OneClickService ${fromToken?.chainName}->${toToken?.chainName}`;
-    const _t0 = performance.now();
-    let _t = _t0;
+    const execTime = new ExecTime({ type: _quoteType, logStyle: "lime-400" });
 
     const quoteParams: any = {
       depositMode: "SIMPLE",
@@ -293,15 +297,16 @@ export class OneClickService {
       quoteParams.amount = Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
     }
 
-    _t = performance.now();
+    execTime.breakpoint();
     const res = await this.api.post("/quote", quoteParams);
-    csl(_quoteType, "gray-900", "1click API /quote: %sms", (performance.now() - _t).toFixed(0));
+    execTime.log("1click API /quote");
 
-    _t = performance.now();
+    execTime.breakpoint();
     const result = await this.formatQuoteData({ data: res.data, params });
-    csl(_quoteType, "gray-900", "formatQuoteData: %sms", (performance.now() - _t).toFixed(0));
+    execTime.log("formatQuoteData");
 
-    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    execTime.logTotal("OneClickService.quote");
+
     return result;
   }
 

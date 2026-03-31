@@ -5,6 +5,7 @@ import Big from "big.js";
 import { NativeChains, NativeV4Routes } from "./contract";
 import { Service } from "../constants";
 import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
 
 class NativeService {
   private api: AxiosInstance;
@@ -35,8 +36,7 @@ class NativeService {
     } = params;
 
     const _quoteType = `NativeService ${fromToken?.chainName}->${toToken?.chainName}`;
-    const _t0 = performance.now();
-    let _t = _t0;
+    const execTime = new ExecTime({ type: _quoteType, logStyle: "indigo-600" });
 
     const isSwap = fromToken.chainName === toToken.chainName;
 
@@ -66,11 +66,11 @@ class NativeService {
       quoteUri = `/bridge${quoteUri}`;
     }
 
-    _t = performance.now();
+    execTime.breakpoint();
     const res = await this.api.get(quoteUri, {
       params: quoteParams,
     });
-    csl(_quoteType, "gray-900", "Native API %s: %sms", quoteUri, (performance.now() - _t).toFixed(0));
+    execTime.log("Native API");
 
     if (res.status !== 200 || !res.data?.success) {
       let errorMessage = res.data?.message || "Native quote failed";
@@ -94,16 +94,17 @@ class NativeService {
       throw new Error(errorMessage);
     }
 
-    _t = performance.now();
+    execTime.breakpoint();
     const result = await wallet.quote(Service.Native, {
       ...params,
       ...quoteParams,
       quoteResponse: res.data,
       bridgeRouterAddress: isSwap ? NativeV4Routes[fromToken.chainName].swap : NativeV4Routes[fromToken.chainName].bridge,
     });
-    csl(_quoteType, "gray-900", "wallet.quote: %sms", (performance.now() - _t).toFixed(0));
+    execTime.log("wallet.quoteNative");
 
-    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    execTime.logTotal("NativeService.quote");
+
     return result;
   }
 

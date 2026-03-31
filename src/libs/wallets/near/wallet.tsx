@@ -5,6 +5,7 @@ import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "../types";
 import { Service } from "@/services/constants";
 import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
 
 export default class NearWallet {
   private selector: any;
@@ -205,9 +206,6 @@ export default class NearWallet {
   }
 
   async getEstimateGas(params: any) {
-    const _quoteType = `Near getGasPriceEstimation`;
-    const _t0 = performance.now();
-
     const { gasLimit, price, nativeToken, gasPrice } = params;
 
     let finalGasPrice = gasPrice;
@@ -231,7 +229,6 @@ export default class NearWallet {
         finalGasPrice = BigInt("100000000");
       }
     }
-    csl(_quoteType, "gray-900", "getFeeData: %sms", (performance.now() - _t0).toFixed(0));
 
     const estimateGas = BigInt(gasLimit) * BigInt(finalGasPrice);
     const estimateGasAmount = Big(estimateGas.toString()).div(10 ** nativeToken.decimals);
@@ -280,6 +277,7 @@ export default class NearWallet {
     };
 
     await setDefaultGasLimit();
+
     return result;
   }
 
@@ -324,9 +322,7 @@ export default class NearWallet {
       prices,
     } = params;
 
-    const _quoteType = `OneClick NEAR proxy`;
-    const _t0 = performance.now();
-    let _t = _t0;
+    const execTime = new ExecTime({ type: "OneClick NEAR", logStyle: "lime-200" });
 
     const result: any = { fees: {} };
 
@@ -352,7 +348,7 @@ export default class NearWallet {
 
       // Check if depositAddress (intents address) is registered
       // Check if stableflowstg.near is registered
-      _t = performance.now();
+      execTime.breakpoint();
       const mergedCalls = [
         this.query(
           tokenContract,
@@ -370,7 +366,7 @@ export default class NearWallet {
         )
       ];
       const [checkStorageDepositAddress, checkStorageStableflow] = await Promise.all(mergedCalls);
-      csl(_quoteType, "gray-900", "query storage_balance_of (depositAddress and STABLEFLOW_CONTRACT): %sms", (performance.now() - _t).toFixed(0));
+      execTime.log("query storage_balance_of (depositAddress and STABLEFLOW_CONTRACT)");
 
       if (!checkStorageDepositAddress?.available) {
         transactions.push({
@@ -432,12 +428,14 @@ export default class NearWallet {
         ]
       });
 
+      execTime.breakpoint();
       const ett = await this.estimateTransaction({
         dry,
         transactions,
         fromToken,
         prices,
       });
+      execTime.log("estimateTransaction");
 
       result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas.toString();
@@ -466,7 +464,7 @@ export default class NearWallet {
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
     }
 
-    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    execTime.logTotal("quoteOneClickProxy");
     return result;
   }
 

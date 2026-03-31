@@ -7,6 +7,7 @@ import { Service } from "@/services/constants";
 import { csl } from "@/utils/log";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
+import { ExecTime } from "@/utils/exec-time";
 
 export const PayInLzToken = false;
 
@@ -65,7 +66,7 @@ export class CCTPService {
     } = params;
 
     const _quoteType = `CCTPService ${fromToken?.chainName}->${toToken?.chainName}`;
-    const _t0 = performance.now();
+    const execTime = new ExecTime({ type: _quoteType, logStyle: "indigo-500" });
 
     const sourceDomain = CCTP_DOMAINS[fromToken.chainName];
     const destinationDomain = CCTP_DOMAINS[toToken.chainName];
@@ -88,7 +89,7 @@ export class CCTPService {
       sourceDomain,
     });
 
-    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    execTime.logTotal("CCTPService.quote");
     return result;
   }
 

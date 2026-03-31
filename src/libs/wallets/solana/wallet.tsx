@@ -45,6 +45,7 @@ import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
 import { fromWeb3JsPublicKey, toWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
 import { addressToBytes32 } from "@/utils/address-validation";
 import { createSolanaFallbackConnection, getAvailableSolanaRpcUrl } from "../utils/solana";
+import { ExecTime } from "@/utils/exec-time";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -300,7 +301,7 @@ export default class SolanaWallet {
           }
         }
       } catch (error) {
-        csl("Solana estimateTransaction", "red-500", "estimateTransaction failed: %o", error);
+        // csl("Solana estimateTransaction", "red-500", "estimateTransaction failed: %o", error);
       }
     }
 
@@ -423,8 +424,7 @@ export default class SolanaWallet {
         estimateTime: 0,
       };
 
-      const _t0 = performance.now();
-      let _t = performance.now();
+      const execTime = new ExecTime({ type: "USDT0 Solana", logStyle: "fuchsia-100" });
 
       const programId = new PublicKey(originLayerzeroAddress);
       const tokenMint = new PublicKey(fromToken.contractAddress);
@@ -434,9 +434,9 @@ export default class SolanaWallet {
       const sender = this.publicKey!;
       const userPubkey = new PublicKey(refundTo || sender.toString());
 
-      _t = performance.now();
+      execTime.breakpoint();
       const mintInfo = await this.connection.getParsedAccountInfo(tokenMint);
-      csl("Usdt0 Solana", "gray-900", "getParsedAccountInfo: %dms", Math.round(performance.now() - _t));
+      execTime.log("getParsedAccountInfo");
       const decimals = (mintInfo.value?.data as { parsed: { info: { decimals: number } } }).parsed.info
         .decimals;
       const amountLd = BigInt(amountWei);
@@ -474,12 +474,12 @@ export default class SolanaWallet {
           composeMsg: "0x",
           oftCmd: "0x",
         };
-        _t = performance.now();
+        execTime.breakpoint();
         const hopMsgFee = await getHopMsgFee({
           sendParam: composeMsgSendParam,
           toToken,
         });
-        csl("Usdt0 Solana", "gray-900", "getHopMsgFee: %dms", Math.round(performance.now() - _t));
+        execTime.log("getHopMsgFee");
 
         extraOptions = Options.newOptions()
           .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 500000, hopMsgFee)
@@ -493,22 +493,22 @@ export default class SolanaWallet {
         composeMsg = ethers.getBytes(composeEncoder);
       }
 
-      _t = performance.now();
+      execTime.breakpoint();
       const pdas = deriveOftPdas(programId, _dstEid);
       const peerAddress = await getPeerAddress(this.connection, programId, _dstEid);
-      csl("Usdt0 Solana", "gray-900", "deriveOftPdas+getPeerAddress: %dms", Math.round(performance.now() - _t));
+      execTime.log("deriveOftPdas+getPeerAddress");
 
-      _t = performance.now();
+      execTime.breakpoint();
       const tokenSource = await getAssociatedTokenAddress(
         tokenMint,
         userPubkey,
         false,
         TOKEN_PROGRAM_ID,
       );
-      csl("Usdt0 Solana", "gray-900", "getAssociatedTokenAddress: %dms", Math.round(performance.now() - _t));
+      execTime.log("getAssociatedTokenAddress");
 
       const sendHelper = new SendHelper();
-      _t = performance.now();
+      execTime.breakpoint();
       const remainingAccounts = await sendHelper.getQuoteAccounts(
         this.connection as any,
         quotePayer,
@@ -516,7 +516,7 @@ export default class SolanaWallet {
         _dstEid,
         peerAddress,
       );
-      csl("Usdt0 Solana", "gray-900", "getQuoteAccounts: %dms", Math.round(performance.now() - _t));
+      execTime.log("sendHelper.getQuoteAccounts");
 
       const ix = new TransactionInstruction({
         programId,
@@ -539,7 +539,7 @@ export default class SolanaWallet {
         ),
       });
 
-      _t = performance.now();
+      execTime.breakpoint();
       const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 });
       const tx: any = await buildVersionedTransaction(
         this.connection as any,
@@ -553,7 +553,7 @@ export default class SolanaWallet {
         sigVerify: false,
         replaceRecentBlockhash: true,
       });
-      csl("Usdt0 Solana", "gray-900", "buildTx+simulateTransaction(quote): %dms", Math.round(performance.now() - _t));
+      execTime.log("buildTx+simulateTransaction(quote)");
       if (sim.value.err) {
         console.error('Simulation logs:', sim.value.logs);
         throw new Error(`Quote failed: ${JSON.stringify(sim.value.err)}`);
@@ -593,7 +593,7 @@ export default class SolanaWallet {
 
       // send
       const sendSendHelper = new SendHelper();
-      _t = performance.now();
+      execTime.breakpoint();
       const sendRemainingAccounts = await sendSendHelper.getSendAccounts(
         this.connection as any,
         userPubkey,
@@ -601,7 +601,7 @@ export default class SolanaWallet {
         _dstEid,
         peerAddress,
       );
-      csl("Usdt0 Solana", "gray-900", "getSendAccounts: %dms", Math.round(performance.now() - _t));
+      execTime.log("getSendAccounts");
 
       const sendIx = new TransactionInstruction({
         programId,
@@ -632,7 +632,7 @@ export default class SolanaWallet {
         ),
       });
 
-      _t = performance.now();
+      execTime.breakpoint();
       const computeSendIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
       const sendTx: any = await buildVersionedTransaction(
         this.connection as any,
@@ -649,7 +649,7 @@ export default class SolanaWallet {
         fromToken,
         prices,
       });
-      csl("Usdt0 Solana", "gray-900", "buildTx+simulateTransaction(send): %dms", Math.round(performance.now() - _t));
+      execTime.log("buildTx+simulateTransaction(send)");
 
       result.fees.estimateSourceGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
@@ -674,7 +674,7 @@ export default class SolanaWallet {
       }
       result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
 
-      csl("Usdt0 Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
+      execTime.logTotal("quoteOFT");
 
       return result;
     } catch (error: any) {
@@ -818,8 +818,8 @@ export default class SolanaWallet {
 
     const result: any = { fees: {} };
     try {
-      const _t0 = performance.now();
-      let _t = performance.now();
+      const execTime = new ExecTime({ type: "Oneclick Solana", logStyle: "fuchsia-200" });
+
       const PROGRAM_ID = new PublicKey(proxyAddress);
       const STATE_PDA = new PublicKey("9E8az3Y9sdXvM2f3CCH6c9N3iFyNfDryQCZhqDxRYGUw");
       const MINT = new PublicKey(fromToken.contractAddress);
@@ -837,13 +837,18 @@ export default class SolanaWallet {
       const program = new Program<any>(stableflowProxyIdl, PROGRAM_ID, provider);
 
       // Get user's token account (ATA)
+      execTime.breakpoint();
       const userTokenAccount = getAssociatedTokenAddressSync(MINT, userPubkey);
+      execTime.log("Get user's token account (ATA)");
 
       // Get recipient's token account (ATA)
+      execTime.breakpoint();
       const toTokenAccount = getAssociatedTokenAddressSync(MINT, RECIPIENT);
+      execTime.log("Get recipient's token account (ATA)");
 
       const transaction = new Transaction();
-      _t = performance.now();
+
+      execTime.breakpoint();
       try {
         await getAccount(this.connection, toTokenAccount);
       } catch (error) {
@@ -856,9 +861,9 @@ export default class SolanaWallet {
           )
         );
       }
-      csl("OneClick Solana", "gray-900", "getAccount(toTokenAccount): %dms", Math.round(performance.now() - _t));
+      execTime.log("getAccount(toTokenAccount)");
 
-      _t = performance.now();
+      execTime.breakpoint();
       const transferInstruction = await program.methods
         .transfer(AMOUNT)
         .accounts({
@@ -872,17 +877,17 @@ export default class SolanaWallet {
           systemProgram: SystemProgram.programId,
         })
         .instruction();
-      csl("OneClick Solana", "gray-900", "program.methods.transfer.instruction: %dms", Math.round(performance.now() - _t));
+      execTime.log("program.methods.transfer.instruction");
 
       transaction.add(transferInstruction);
 
-      _t = performance.now();
+      execTime.breakpoint();
       const { blockhash } = await this.connection.getLatestBlockhash();
-      csl("OneClick Solana", "gray-900", "getLatestBlockhash: %dms", Math.round(performance.now() - _t));
+      execTime.log("getLatestBlockhash");
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = userPubkey;
 
-      _t = performance.now();
+      execTime.breakpoint();
       const message = transaction.compileMessage();
       const versionedTx = new VersionedTransaction(message);
       const ett = await this.estimateTransaction({
@@ -891,7 +896,7 @@ export default class SolanaWallet {
         fromToken,
         prices,
       });
-      csl("OneClick Solana", "gray-900", "simulateTransaction: %dms", Math.round(performance.now() - _t));
+      execTime.log("estimateTransaction");
 
       result.sendParam = {
         transaction,
@@ -903,7 +908,7 @@ export default class SolanaWallet {
       result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
-      csl("OneClick Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
+      execTime.logTotal("quoteOneClickPorxy");
 
       return result;
     } catch (error: any) {
@@ -946,8 +951,7 @@ export default class SolanaWallet {
         outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
       };
 
-      const _t0 = performance.now();
-      let _t = performance.now();
+      const execTime = new ExecTime({ type: "CCTP Solana", logStyle: "fuchsia-300" });
 
       const PROGRAM_ID = new PublicKey(proxyAddress);
       const MINT = new PublicKey(fromToken.contractAddress);
@@ -960,8 +964,8 @@ export default class SolanaWallet {
       );
 
       let userNonce = 0;
+      execTime.breakpoint();
       try {
-        _t = performance.now();
         const accountInfo = await this.connection.getAccountInfo(userStatePda);
         if (accountInfo && accountInfo.data) {
           // UserState structure: user (32 bytes) + nonce (8 bytes) + bump (1 byte)
@@ -972,11 +976,11 @@ export default class SolanaWallet {
       } catch (error) {
         csl("Solana quoteCCTP", "red-500", "UserState not found, using nonce 0");
       }
-      csl("CCTP Solana", "gray-900", "getAccountInfo(userStatePda): %dms", Math.round(performance.now() - _t));
+      execTime.log("getAccountInfo(userStatePda)");
 
       const userTokenAccount = getAssociatedTokenAddressSync(MINT, userPubkey);
 
-      _t = performance.now();
+      execTime.breakpoint();
       const signatureRes = await quoteSignature({
         address: userPubkey.toString(),
         amount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
@@ -985,7 +989,7 @@ export default class SolanaWallet {
         source_domain_id: sourceDomain,
         ata_address: userTokenAccount,
       });
-      csl("CCTP Solana", "gray-900", "quoteSignature: %dms", Math.round(performance.now() - _t));
+      execTime.log("quoteSignature from our api");
 
       const {
         bridge_fee,
@@ -1018,7 +1022,7 @@ export default class SolanaWallet {
         csl("Solana quoteCCTP", "purple-400", "Signature verification success");
       }
 
-      _t = performance.now();
+      execTime.breakpoint();
       const message = operatorTx.compileMessage();
       const versionedTx = new VersionedTransaction(message);
       const ett = await this.estimateTransaction({
@@ -1027,7 +1031,7 @@ export default class SolanaWallet {
         fromToken,
         prices,
       });
-      csl("CCTP Solana", "gray-900", "simulateTransaction: %dms", Math.round(performance.now() - _t));
+      execTime.log("estimateTransaction");
 
       result.fees.estimateDepositGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
@@ -1048,7 +1052,7 @@ export default class SolanaWallet {
       }
       result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
 
-      csl("CCTP Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
+      execTime.logTotal("quoteCCTP");
 
       return result;
     } catch (error: any) {
@@ -1125,8 +1129,8 @@ export default class SolanaWallet {
       destinationLayerzero,
     } = params;
 
-    const _t0 = performance.now();
-    let _t = performance.now();
+    const execTime = new ExecTime({ type: "FraxZero Solana", logStyle: "fuchsia-400" });
+
     csl("Solana quoteFraxZero", "purple-500", "params: %o", params);
     const result: any = {
       needApprove: false,
@@ -1169,22 +1173,22 @@ export default class SolanaWallet {
       tokenProgramId,
     });
 
-    _t = performance.now();
+    execTime.breakpoint();
     await safeFetchToken(umi, tokenAccount[0]);
-    csl("FraxZero Solana", "gray-900", "safeFetchToken: %dms", Math.round(performance.now() - _t));
+    execTime.log("safeFetchToken");
 
     const recipientAddressBytes32 = addressToBytes32(toToken.chainType, recipient);
     const amountLd = BigInt(amountWei);
     const minAmountLd = (amountLd * 99n) / 100n;
 
-    _t = performance.now();
+    execTime.breakpoint();
     const { value: lookupTableAccount } = await this.connection.getAddressLookupTable(ALT_ADDRESS);
-    csl("FraxZero Solana", "gray-900", "getAddressLookupTable: %dms", Math.round(performance.now() - _t));
+    execTime.log("getAddressLookupTable", "ALT_ADDRESS: %o, lookupTableAccount: %o", ALT_ADDRESS, lookupTableAccount);
     if (!lookupTableAccount) {
       throw new Error("ALT not found");
     }
 
-    _t = performance.now();
+    execTime.breakpoint();
     let { nativeFee, lzTokenFee } = await oft.quote(
       umi.rpc,
       {
@@ -1205,18 +1209,13 @@ export default class SolanaWallet {
         oft: oftProgramId,
       },
     );
-    csl("FraxZero Solana", "gray-900", "oft.quote: %dms", Math.round(performance.now() - _t));
-    csl("Solana quoteFraxZero", "purple-500", "nativeFee: %o", nativeFee);
+    execTime.log("oft.quote", "nativeFee: %s, lzTokenFee: %s", nativeFee, lzTokenFee);
     nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;
     csl("Solana quoteFraxZero", "purple-500", "nativeFee after buffer: %o", nativeFee);
 
-    csl("Solana quoteFraxZero", "purple-500", "recipientAddress: %o", recipient);
-    csl("Solana quoteFraxZero", "purple-500", "recipientAddressBytes32: %o", recipientAddressBytes32);
-    csl("Solana quoteFraxZero", "purple-500", "recipientAddressBytes32 buffer: %o", getBytes(recipientAddressBytes32));
-
     // oft.send() internally simulates the tx via umi.rpc without replaceRecentBlockhash,
     // so it can transiently fail with BlockhashNotFound when RPC nodes are out of sync.
-    _t = performance.now();
+    execTime.breakpoint();
     let ix: Awaited<ReturnType<typeof oft.send>>;
     let oftSendRetries = 0;
     const OFT_SEND_MAX_RETRIES = 3;
@@ -1263,16 +1262,16 @@ export default class SolanaWallet {
       }
     }
 
-    csl("FraxZero Solana", "gray-900", "oft.send: %dms", Math.round(performance.now() - _t));
+    execTime.log("oft.senbd", "oft send retry times: %s", oftSendRetries);
     csl("Solana quoteFraxZero", "purple-500", "ix: %o", ix);
 
     const web3Instruction = toWeb3JsInstruction(ix.instruction);
     const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
       units: 400000, // Increase to 400k units (default is 200k)
     });
-    _t = performance.now();
+    execTime.breakpoint();
     const { blockhash } = await this.connection.getLatestBlockhash();
-    csl("FraxZero Solana", "gray-900", "getLatestBlockhash: %dms", Math.round(performance.now() - _t));
+    execTime.log("getLatestBlockhash");
     const messageV0 = new TransactionMessage({
       payerKey: new PublicKey(userPubkey),
       recentBlockhash: blockhash,
@@ -1287,15 +1286,14 @@ export default class SolanaWallet {
       versionedTx: transaction,
     };
 
-    _t = performance.now();
+    execTime.breakpoint();
     const ett = await this.estimateTransaction({
       dry,
       versionedTx: transaction,
       fromToken,
       prices,
     });
-
-    csl("FraxZero Solana", "gray-900", "simulateTransaction: %dms", Math.round(performance.now() - _t));
+    execTime.log("estimateTransaction");
 
     const nativeFeeUsd = Big(nativeFee.toString())
       .div(10 ** fromToken.nativeToken.decimals)
@@ -1325,7 +1323,7 @@ export default class SolanaWallet {
     }
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
 
-    csl("FraxZero Solana", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
+    execTime.logTotal("quoteFraxZero");
 
     return result;
   }

@@ -5,6 +5,7 @@ import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "../types";
 import { Service } from "@/services/constants";
 import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
 
 const DEFAULT_GAS_LIMIT = 5000n;
 
@@ -316,9 +317,6 @@ export default class AptosWallet {
   }
 
   async getEstimateGas(params: any) {
-    const _quoteType = `APtos getGasPriceEstimation`;
-    const _t0 = performance.now();
-
     const { gasLimit, price, nativeToken, gasPrice } = params;
 
     let finalGasPrice = gasPrice;
@@ -326,7 +324,6 @@ export default class AptosWallet {
       const feeData = await this.aptos.getGasPriceEstimation();
       finalGasPrice = feeData.gas_estimate || feeData.prioritized_gas_estimate || BigInt("100");
     }
-    csl(_quoteType, "gray-900", "getFeeData: %sms", (performance.now() - _t0).toFixed(0));
 
     const estimateGas = BigInt(gasLimit) * BigInt(finalGasPrice);
     const estimateGasAmount = Big(estimateGas.toString()).div(10 ** nativeToken.decimals);
@@ -464,8 +461,7 @@ export default class AptosWallet {
       prices,
     } = params;
 
-    const _quoteType = `OneClick Aptos proxy`;
-    const _t0 = performance.now();
+    const execTime = new ExecTime({ type: "OneClick Aptos", logStyle: "sky-200" });
 
     const result: any = { fees: {} };
 
@@ -499,6 +495,7 @@ export default class AptosWallet {
       const functionId = `${proxyAddress}::stableflow_proxy::proxy_transfer_fa` as `${string}::${string}::${string}`;
       const functionArguments = [fromToken.contractAddress, depositAddress, amountWei];
 
+      execTime.breakpoint();
       const ett = await this.estimateTransaction({
         dry,
         function: functionId,
@@ -507,6 +504,7 @@ export default class AptosWallet {
         fromToken,
         prices,
       });
+      execTime.log("estimateTransaction");
 
       result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas.toString();
@@ -537,7 +535,7 @@ export default class AptosWallet {
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
     }
 
-    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    execTime.logTotal("quoteOneClickProxy");
     return result;
   }
 

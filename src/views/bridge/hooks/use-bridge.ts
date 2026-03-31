@@ -31,6 +31,7 @@ import { csl } from "@/utils/log";
 import { sortQuoteData } from "../utils";
 import { getQuoteModes } from "@/services/utils";
 import useEvmGasFeesStore from "@/stores/use-evm-gas-fees";
+import { ExecTime } from "@/utils/exec-time";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -106,7 +107,7 @@ export default function useBridge(props?: any) {
   };
 
   const quoteRoutes = async (service: Service, params: any, requestId: number): Promise<QuoteData> => {
-    const _routeStart = performance.now();
+    const execTime = new ExecTime({ type: "useBridge.quoteRoutes", logStyle: "sky-300" });
     try {
       // Check request ID, skip setting loading state if not the latest request
       if (requestId !== requestIdRef.current) {
@@ -196,11 +197,11 @@ export default function useBridge(props?: any) {
             bridgeStore.setQuoteData(service, estimateRes);
           })
           .catch((estimateErr: any) => {
-            csl("quoteRoutes", "red-500", "%s estimateTransaction failed: %o", service, estimateErr);
+            // csl("quoteRoutes", "red-500", "%s estimateTransaction failed: %o", service, estimateErr);
           });
       }
 
-      csl(`quoteRoutes [${service}]`, "gray-900", "total: %sms", (performance.now() - _routeStart).toFixed(0));
+      execTime.logTotal("useBridge.quoteRoutes");
 
       bridgeStore.setQuoting(service, requestId, false);
 
@@ -216,8 +217,6 @@ export default function useBridge(props?: any) {
         data: quoteRes,
       };
     } catch (error: any) {
-      csl(`quoteRoutes [${service}]`, "gray-900", "total (error): %sms", (performance.now() - _routeStart).toFixed(0));
-
       bridgeStore.setQuoting(service, requestId, false);
 
       // If it's a cancelled request error, return directly without setting error state
@@ -295,7 +294,7 @@ export default function useBridge(props?: any) {
   const prevQuotingRef = useRef<boolean>(false);
 
   const quote = async (params: { dry: boolean; }, isSync?: boolean, requestId?: number) => {
-    const _quoteStart = performance.now();
+    const execTime = new ExecTime({ type: "useBridge.quote", logStyle: "sky-400" });
 
     if (!isSync) {
       bridgeStore.clearQuoteData();
@@ -428,7 +427,7 @@ export default function useBridge(props?: any) {
       const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
       // Sync calls don't need request ID check
       const _quoteRes = await currentQuoteService.quote(currentRequestId);
-      csl("quote", "gray-900", "[%s] sync total: %sms", bridgeStore.quoteDataService, (performance.now() - _quoteStart).toFixed(0));
+      execTime.logTotal("useBridge.quote sync");
       csl("quote", "green-400", "[%s]Sync Quote Result: %o", bridgeStore.quoteDataService, _quoteRes);
       return _quoteRes;
     }
@@ -438,7 +437,7 @@ export default function useBridge(props?: any) {
     const quotePromises: Promise<any>[] = [];
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
-      const _serviceStart = performance.now();
+      const execTime = new ExecTime({ type: "useBridge: quote a Service", logStyle: "sky-500" });
       // Pass request ID to service function
       const p = quoteService.quote(currentRequestId).then((_quoteRes: any) => {
         // Check if it's the latest request, ignore result if not
@@ -447,10 +446,10 @@ export default function useBridge(props?: any) {
           return;
         }
 
-        csl("quote", "gray-900", "[%s] service total: %sms", quoteService.service, (performance.now() - _serviceStart).toFixed(0));
+        execTime.logTotal("service success", "(%s)", quoteService.service);
         csl("quote", "green-400", "[%s]Quote Result: %o", quoteService.service, _quoteRes);
       }).catch((error: any) => {
-        csl("quote", "gray-900", "[%s] service total (error): %sms", quoteService.service, (performance.now() - _serviceStart).toFixed(0));
+        execTime.logTotal("service failed", "(%s)", quoteService.service);
         // Silently ignore if it's a cancelled request error
         if (error?.message === "Request cancelled: outdated request") {
           csl("quote", "gray-500", "[%s] Request cancelled: outdated request", quoteService.service);
@@ -499,7 +498,7 @@ export default function useBridge(props?: any) {
     }
 
     Promise.allSettled(quotePromises).then(() => {
-      csl("quote", "gray-900", "all services total: %sms (services: %s)", (performance.now() - _quoteStart).toFixed(0), quoteServices.map((s: any) => s.service).join(", "));
+      execTime.logTotal("useBridge.quote all services", "(services: %s)", quoteServices.map((s: any) => s.service).join(", "));
     });
   };
 

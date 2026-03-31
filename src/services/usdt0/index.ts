@@ -7,6 +7,7 @@ import { calculateEstimateTime } from "../utils";
 import { csl } from "@/utils/log";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
+import { ExecTime } from "@/utils/exec-time";
 
 export const PayInLzToken = false;
 
@@ -30,7 +31,7 @@ export class Usdt0Service {
     } = params;
 
     const _quoteType = `Usdt0Service ${fromToken?.chainName}->${toToken?.chainName}`;
-    const _t0 = performance.now();
+    const execTime = new ExecTime({ type: _quoteType, logStyle: "lime-600" });
 
     const originLayerzero = USDT0_CONFIG[originChain];
     const destinationLayerzero = USDT0_CONFIG[destinationChain];
@@ -92,7 +93,7 @@ export class Usdt0Service {
 
       result.estimateTime = estimateTime;
 
-      csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+      execTime.logTotal("Usdt0Service.quote");
       return result;
     }
 
@@ -149,7 +150,8 @@ export class Usdt0Service {
 
     result.estimateTime = estimateTime;
 
-    csl(_quoteType, "gray-900", "total: %sms", (performance.now() - _t0).toFixed(0));
+    execTime.logTotal("Usdt0Service.quote");
+
     return result;
   }
 

@@ -14,6 +14,7 @@ import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 import { csl } from "@/utils/log";
 import { NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
+import { ExecTime } from "@/utils/exec-time";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -236,7 +237,6 @@ export default class TronWallet {
 
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
 
-    const _t0 = performance.now();
     let energyUsed = defaultEnergyUsed || 200000;
     let rawDataHexLength = defaultRawDataHexLength || 1000;
     try {
@@ -249,7 +249,6 @@ export default class TronWallet {
     const bandwidthAmount = Big(Big(rawDataHexLength).div(2).plus(DATA_HEX_PROTOBUF_EXTRA).plus(SIGNATURE_SIZE)).times(1e-3);
     const bandwidthUsed = Big(bandwidthAmount).div(1e2).times(10 ** fromToken.nativeToken.decimals);
     const totalUsed = Big(energyUsed).plus(bandwidthUsed).toFixed(0);
-    csl("Usdt0 Tron", "gray-900", "estimateTransaction triggerConstantContract: %dms", Math.round(performance.now() - _t0));
 
     const { usd, wei } = await this.getEstimateGas({
       gasLimit: totalUsed,
@@ -494,29 +493,28 @@ export default class TronWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
 
-    const _t0 = performance.now();
-    let _t = performance.now();
+    const execTime = new ExecTime({ type: "USDT0 Tron", logStyle: "indigo-300" });
     await this.waitForTronWeb();
-    csl("Usdt0 Tron", "gray-900", "waitForTronWeb: %dms", Math.round(performance.now() - _t));
+    execTime.log("waitForTronWeb");
 
-    _t = performance.now();
+    execTime.breakpoint();
     const oftContract = await this.tronWeb.contract(abi, originLayerzeroAddress);
-    csl("Usdt0 Tron", "gray-900", "tronWeb.contract: %dms", Math.round(performance.now() - _t));
+    execTime.log("tronWeb.contract originLayerzeroAddress");
 
-    _t = performance.now();
+    execTime.breakpoint();
     const userAddress = refundTo || this.tronWeb.defaultAddress.base58;
     const approvalRequired = isOriginLegacy ? originLayerzero.oftLegacyApprovalRequired : originLayerzero.oftApprovalRequired;
-    csl("Usdt0 Tron", "gray-900", "approvalRequired: %dms", Math.round(performance.now() - _t));
+    execTime.log("approvalRequired");
 
     const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
     let lzReceiveOptionValue = 0;
 
-    _t = performance.now();
+    execTime.breakpoint();
     const destATA = await getDestinationAssociatedTokenAddress({
       recipient,
       toToken,
     });
-    csl("Usdt0 Tron", "gray-900", "getDestinationAssociatedTokenAddress: %dms", Math.round(performance.now() - _t));
+    execTime.log("getDestinationAssociatedTokenAddress");
     if (destATA.needCreateTokenAccount) {
       lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
     }
@@ -551,9 +549,9 @@ export default class TronWallet {
       sendParam[1] = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer); // to
     }
 
-    _t = performance.now();
+    execTime.breakpoint();
     const oftData = await oftContract.quoteOFT(sendParam).call();
-    csl("Usdt0 Tron", "gray-900", "quoteOFT.call: %dms", Math.round(performance.now() - _t));
+    execTime.log("quoteOFT");
     const [, , oftReceipt] = oftData;
     sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
 
@@ -572,12 +570,12 @@ export default class TronWallet {
         composeMsg: "0x",
         oftCmd: "0x",
       };
-      _t = performance.now();
+      execTime.breakpoint();
       const hopMsgFee = await getHopMsgFee({
         sendParam: composeMsgSendParam,
         toToken,
       });
-      csl("Usdt0 Tron", "gray-900", "getHopMsgFee: %dms", Math.round(performance.now() - _t));
+      execTime.log("getHopMsgFee");
 
       sendParam[4] = Options.newOptions()
         .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
@@ -589,7 +587,7 @@ export default class TronWallet {
       );
     }
 
-    _t = performance.now();
+    execTime.breakpoint();
     const mergedCalls = [
       oftContract.quoteSend(sendParam, payInLzToken).call(),
     ];
@@ -607,8 +605,8 @@ export default class TronWallet {
     if (approvalRequired) {
       result.needApprove = allowanceResult.needApprove;
     }
+    execTime.log("quoteSend & allowance");
 
-    csl("Usdt0 Tron", "gray-900", "quoteSend.call & allowance: %dms", Math.round(performance.now() - _t));
     let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
     csl("Tron quoteOFT", "red-600", "nativeFee: %o", nativeMsgFee);
     if (nativeMsgFee) {
@@ -671,11 +669,12 @@ export default class TronWallet {
       this.tronWeb.defaultAddress.base58 || refundTo
     ];
 
-    _t = performance.now();
+    execTime.breakpoint();
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
-    csl("Usdt0 Tron", "gray-900", "triggerSmartContract: %dms", Math.round(performance.now() - _t));
+    execTime.log("transactionBuilder.triggerSmartContract");
     result.sendParam.tx = tx;
 
+    execTime.breakpoint();
     const ett = await this.estimateTransaction({
       dry,
       transactionParams,
@@ -684,6 +683,7 @@ export default class TronWallet {
       defaultEnergyUsed: 200000,
       defaultRawDataHexLength: 1000,
     });
+    execTime.log("estimateTransaction");
     result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas.toString();
     result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
@@ -700,7 +700,7 @@ export default class TronWallet {
 
     result.sendParam.transactionParams = transactionParams;
 
-    csl("Usdt0 Tron", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
+    execTime.log("quoteOFT");
 
     return result;
   }
@@ -808,26 +808,25 @@ export default class TronWallet {
 
     const result: any = { fees: {} };
 
-    const _t0 = performance.now();
-    let _t = performance.now();
+    const execTime = new ExecTime({ type: "Oneclick Tron", logStyle: "indigo-400" });
     await this.waitForTronWeb();
-    csl("OneClick Tron", "gray-900", "waitForTronWeb: %dms", Math.round(performance.now() - _t));
+    execTime.log("waitForTronWeb");
     const userAddress = refundTo || this.tronWeb.defaultAddress.base58;
 
+    execTime.breakpoint();
     try {
-      _t = performance.now();
       const allowance = await this.allowance({
         contractAddress: fromToken.contractAddress,
         address: userAddress,
         spender: proxyAddress,
         amountWei: amountWei,
       });
-      csl("OneClick Tron", "gray-900", "allowance: %dms", Math.round(performance.now() - _t));
       result.needApprove = allowance.needApprove;
       result.approveSpender = proxyAddress;
     } catch (error) {
       csl("TronWallet quoteOneClickProxy", "red-500", "oneclick check allowance failed: %o", error);
     }
+    execTime.log("allowance");
 
     const proxyParam: any = [
       // tokenAddress
@@ -862,11 +861,12 @@ export default class TronWallet {
       this.tronWeb.defaultAddress.base58 || refundTo
     ];
 
-    _t = performance.now();
+    execTime.breakpoint();
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
-    csl("OneClick Tron", "gray-900", "triggerSmartContract: %dms", Math.round(performance.now() - _t));
+    execTime.log("transactionBuilder.triggerSmartContract");
     result.sendParam.tx = tx;
 
+    execTime.breakpoint();
     const ett = await this.estimateTransaction({
       dry,
       transactionParams,
@@ -875,6 +875,7 @@ export default class TronWallet {
       defaultEnergyUsed: 169000,
       defaultRawDataHexLength: 500,
     });
+    execTime.log("estimateTransaction");
     result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas.toString();
     result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
@@ -882,7 +883,7 @@ export default class TronWallet {
 
     result.sendParam.transactionParams = transactionParams;
 
-    csl("OneClick Tron", "gray-900", "total: %dms", Math.round(performance.now() - _t0));
+    execTime.logTotal("quoteOneClickPorxy");
 
     return result;
   }
