@@ -47,18 +47,29 @@ const CardList = [
     ),
     link: "https://x.com/plasma/status/2016228518972244197?s=46",
   },
+  {
+    img: "/bridge/trusted/avatar-stable.jpg",
+    name: "Stable",
+    description: (
+      <div className="line-clamp-4">
+        Stablecoin payments, without the usual friction.
+        We are excited to partner with <span className="text-[#6284F5] cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); window.open("https://x.com/0xStableFlow", "_blank"); }}>@0xStableFlow</span> to bring faster, simpler, dollar-based payments onchain.
+      </div>
+    ),
+    link: "https://x.com/stable/status/2038980573235151054?s=46",
+  },
 ];
 
+const itemWidth = 350;
+const itemGap = 25;
+// Calculate total width of all cards
+const totalCardWidth = CardList.length * (itemWidth + itemGap); // 350px card + 25px gap = 375px
+
 const Trusted = () => {
-  const carouselTransform = useMotionValue("translate3d(0, 0, 0)");
+  const carouselTransform = useMotionValue(`translate3d(${-totalCardWidth / 2}, 0, 0)`);
   const [carouselRef, animateCarousel] = useAnimate();
   const carouselAnimation = useRef<any>(null);
   const [shouldAnimate, setShouldAnimate] = useState(false);
-
-  const itemWidth = 350;
-  const itemGap = 25;
-  // Calculate total width of all cards
-  const totalCardWidth = CardList.length * (itemWidth + itemGap); // 350px card + 25px gap = 375px
 
   useEffect(() => {
     const checkScreenWidth = () => {
@@ -81,13 +92,13 @@ const Trusted = () => {
     }
     carouselAnimation.current = animateCarousel(
       carouselRef.current,
-      { transform: [`translate3d(0, 0, 0)`, `translate3d(${-totalCardWidth}px, 0, 0)`] },
+      { transform: [`translate3d(${-totalCardWidth / 2}, 0, 0)`, `translate3d(${-totalCardWidth - totalCardWidth / 2}px, 0, 0)`] },
       { duration: 15, repeat: Infinity, ease: "linear" }
     );
   }, [shouldAnimate]);
 
   // Use duplicated cards only when animation is needed
-  const cardsToRender = shouldAnimate ? [...CardList, ...CardList] : CardList;
+  const cardsToRender = shouldAnimate ? [...CardList, ...CardList, ...CardList] : CardList;
 
   return (
     <div className="w-full md:max-w-[1440px] mx-auto mt-[50px]">
