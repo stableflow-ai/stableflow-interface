@@ -94,10 +94,14 @@ export class OneClick2FraxZeroService extends FraxZeroService {
       csl("OneClick2FraxZeroService quote", "yellow-600", "NOT FromEthereumUSDC secondStepResult: %o", secondStepResult);
 
       let secondStepLzMsgFeeUsd = secondStepResult?.fees?.nativeFeeUsd || "0";
-      // add 5% buffer
+      let secondStepLzMsgFee = secondStepResult?.fees?.nativeFee || "0";
+      // add 120% buffer
+      const usdt0MessageFeeBuffer = 1.2;
       // super.quote has already added a buffer, but here we add a bit more to further reduce the chance of failure
-      secondStepLzMsgFeeUsd = Big(secondStepLzMsgFeeUsd || 0).times(1.05);
+      secondStepLzMsgFeeUsd = Big(secondStepLzMsgFeeUsd || 0).times(1 + usdt0MessageFeeBuffer);
+      secondStepLzMsgFee = Big(secondStepLzMsgFee || 0).times(1 + usdt0MessageFeeBuffer);
       csl("OneClick2FraxZeroService quote", "yellow-600", "NOT FromEthereumUSDC secondStepLzMsgFeeUsd: %o", secondStepLzMsgFeeUsd.toString());
+      csl("OneClick2FraxZeroService quote", "yellow-600", "NOT FromEthereumUSDC secondStepLzMsgFee: %o", secondStepLzMsgFee.toString());
       const secondStepLzMsgFeeAmount = Big(secondStepLzMsgFeeUsd).div(getPrice(prices, fromToken.symbol) || 1).toFixed(fromToken.decimals);
 
       const totalAppFeesAmount = Big(secondStepGasToAmount).plus(secondStepLzMsgFeeAmount);
@@ -107,6 +111,10 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         .times(10000)
         .toFixed(0, Big.roundUp);
       csl("OneClick2FraxZeroService quote", "yellow-600", "NOT FromEthereumUSDC oneClickFeeRatio: %o", oneClickFeeRatio.toString());
+      if (secondStepResult) {
+        secondStepResult.fees.nativeFee = secondStepLzMsgFee.toString();
+        secondStepResult.fees.nativeFeeUsd = secondStepLzMsgFeeUsd.toString();
+      }
 
       const firstStepResult = await oneClickService.quote({
         ...params,
