@@ -84,7 +84,7 @@ export class OneClickService {
         res.data.quote.amountInFormatted = numberRemoveEndZero(Big(res.data?.quote?.minAmountIn || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, Big.roundUp));
         // Since 1click does not return minAmountInUsd, we calculate it using our own price
         _amountInUsd = Big(res.data.quote.amountInFormatted).times(getPrice(params.prices, params.fromToken.symbol));
-        _amountOutUsd = Big(res.data?.quote?.amountOutFormatted || 0).times(getPrice(params.prices, params.toToken.symbol));
+        _amountOutUsd = Big(res.data?.quote?.amountOutFormatted || 0).times(getPrice(params.prices, params.fromToken.symbol));
       }
       try {
         priceImpact = Big(Big(_amountInUsd).minus(_amountOutUsd)).div(_amountInUsd || 1);
