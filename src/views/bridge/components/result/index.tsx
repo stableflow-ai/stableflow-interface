@@ -251,7 +251,7 @@ export default function Result() {
                 alt=""
                 className="w-[14px] h-[14px] object-center object-contain shirnk-0 -translate-y-[1px] mr-0.5 inline-block"
               />
-              This route requires a payment of <strong>{formatNumber(quoteData?.quote?.amountInFormatted, 6, true)} {quoteData?.quoteParam?.fromToken?.symbol}</strong>, of which <strong>{formatNumber(quoteData?.quote?.amountOutFormatted, 6, true)} {quoteData?.quoteParam?.fromToken?.symbol}</strong> is the amount you will receive.
+              This route requires a payment of <strong>{formatNumber(quoteData?.quote?.amountInFormatted, 6, true)} {quoteData?.quoteParam?.fromToken?.symbol}</strong>, of which <strong>{formatNumber(quoteData?.quote?.amountOutFormatted, 6, true)} {quoteData?.quoteParam?.toToken?.symbol}</strong> is the amount you will receive.
             </div>
           )
         }
