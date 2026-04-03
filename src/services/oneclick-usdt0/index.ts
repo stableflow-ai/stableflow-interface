@@ -45,7 +45,7 @@ export class OneClickUsdt0Service {
 
     const usdt0Result = await usdt0Service.quote(usdt0Params);
 
-    const usdt0MessageFeeBuffer = 0.2;
+    const usdt0MessageFeeBuffer = 1.2;
     usdt0Result.fees.nativeFeeUsd = numberRemoveEndZero(Big(usdt0Result.fees?.nativeFeeUsd || 0).times(1 + usdt0MessageFeeBuffer).toFixed(20));
     usdt0Result.fees.nativeFee = numberRemoveEndZero(Big(usdt0Result.fees?.nativeFee || 0).times(1 + usdt0MessageFeeBuffer).toFixed(fromToken.nativeToken.decimals));
     // LZ message fee to USD
