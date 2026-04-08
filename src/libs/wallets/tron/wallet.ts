@@ -265,6 +265,34 @@ export default class TronWallet {
     return result;
   }
 
+  async estimateApprove(params: any) {
+    const {
+      dry,
+      spender,
+      amountWei,
+      fromToken,
+      prices,
+    } = params;
+
+    const approveParams = [
+      spender,
+      "approve(address,uint256)",
+      {},
+      [
+        { type: "address", value: spender },
+        { type: "uint256", value: amountWei }
+      ]
+    ];
+    return this.estimateTransaction({
+      dry,
+      transactionParams: approveParams,
+      fromToken,
+      prices,
+      defaultEnergyUsed: 100000,
+      defaultRawDataHexLength: 100,
+    });
+  }
+
   async pollingTransactionStatus(txHash: string, options?: {
     maxPolls?: number;
     pollInterval?: number;
@@ -680,7 +708,7 @@ export default class TronWallet {
       transactionParams,
       fromToken,
       prices,
-      defaultEnergyUsed: 200000,
+      defaultEnergyUsed: 300000,
       defaultRawDataHexLength: 1000,
     });
     execTime.log("estimateTransaction");
@@ -688,6 +716,18 @@ export default class TronWallet {
     result.estimateSourceGas = ett.estimateSourceGas.toString();
     result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+
+    if (result.needApprove) {
+      const estApproveGas = await this.estimateApprove({
+        dry,
+        amountWei,
+        spender: result.approveSpender,
+        fromToken,
+        prices,
+      });
+      // result.totalEstimateSourceGas += estApproveGas.estimateSourceGas;
+      result.estimateSourceGas += estApproveGas.estimateSourceGas;
+    }
 
     // calculate total fees
     for (const feeKey in result.fees) {
@@ -880,6 +920,17 @@ export default class TronWallet {
     result.estimateSourceGas = ett.estimateSourceGas.toString();
     result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+
+    if (result.needApprove) {
+      const estApproveGas = await this.estimateApprove({
+        dry,
+        amountWei,
+        spender: result.approveSpender,
+        fromToken,
+        prices,
+      });
+      result.estimateSourceGas += estApproveGas.estimateSourceGas;
+    }
 
     result.sendParam.transactionParams = transactionParams;
 
