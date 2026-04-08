@@ -11,6 +11,7 @@ const LABEL = {
   tron: "Tron",
   aptos: "Aptos",
   ton: "Ton",
+  sui: "Sui",
 };
 
 export default function TypeItem({ type = "evm", token }: { type: WalletType; token: any; }) {

@@ -1,4 +1,4 @@
-import { usdcEvm, usdcNear, usdcSol, usdcChains, usdcAptos } from "@/config/tokens/usdc";
+import { usdcEvm, usdcNear, usdcSol, usdcChains, usdcAptos, usdcSui } from "@/config/tokens/usdc";
 import { usdtAptos, usdtEvm, usdtNear, usdtSol, usdtTron, usdtChains, usdtTon } from "@/config/tokens/usdt";
 import { usdt0Chains, usdt0Evm } from "./usdt0";
 import { frxusdChains, frxusdEvm, frxusdSol } from "./frxusd";
@@ -82,6 +82,9 @@ export const stablecoinWithChains: any = {
   ton: {
     "USDT": usdtTon,
   },
+  sui: {
+    "USDC": usdcSui,
+  }
 };
 
 export const stablecoinLogoMap: Record<string, string> = {

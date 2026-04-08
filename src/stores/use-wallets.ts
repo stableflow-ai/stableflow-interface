@@ -46,6 +46,13 @@ interface WalletsState {
     disconnect: () => void;
     walletIcon: string | null;
   };
+  sui: {
+    account: string | null;
+    wallet: any;
+    connect: () => void;
+    disconnect: () => void;
+    walletIcon: string | null;
+  };
   set: (params: any) => void;
 }
 
@@ -90,8 +97,16 @@ const useWalletsStore = create<WalletsState>((set) => ({
     account: null,
     wallet: null,
     chainId: null,
-    connect: () => {},
-    disconnect: () => {},
+    connect: () => { },
+    disconnect: () => { },
+    walletIcon: null
+  },
+  sui: {
+    account: null,
+    wallet: null,
+    chainId: null,
+    connect: () => { },
+    disconnect: () => { },
     walletIcon: null
   },
   set: (params) => set(() => ({ ...params }))

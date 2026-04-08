@@ -37,6 +37,12 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
     color: "#0098EA",
     bg: "linear-gradient(90deg, rgba(0, 152, 234, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
   },
+  sui: {
+    value: "sui",
+    name: "Sui",
+    color: "#298DFF",
+    bg: "linear-gradient(90deg, rgba(41, 141, 255, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
+  },
 };
 
 const HeliusRpcApiKey = import.meta.env.VITE_HELIUS_RPC_API_KEY;
@@ -67,6 +73,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
   "Fraxtal": ["https://rpc.frax.com"],
   "Ton": ["https://toncenter.com/api/v2/jsonRPC"],
+  "Sui": ["https://fullnode.mainnet.sui.io:443"],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
@@ -431,6 +438,20 @@ const chains = {
       decimals: 18,
     },
     ...getChainRpcUrl("Fraxtal"),
+  },
+  sui: {
+    chainName: "Sui",
+    blockchain: "sui",
+    chainIcon: "/chains/sui.png",
+    chainIconGray: "/chains/sui-gray.png",
+    chainType: chainTypes.sui.value,
+    blockExplorerUrl: "https://suiscan.xyz/mainnet/tx/",
+    primaryColor: "#298DFF",
+    nativeToken: {
+      symbol: "SUI",
+      decimals: 9,
+    },
+    ...getChainRpcUrl("Sui"),
   },
 };
 

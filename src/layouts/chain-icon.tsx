@@ -5,6 +5,7 @@ import nearSmallIcon from "@/assets/near-small.png";
 import tronSmallIcon from "@/assets/tron-small.png";
 import aptosSmallIcon from "@/assets/aptos-small.png";
 import tonSmallIcon from "@/assets/ton-small.png";
+import suiSmallIcon from "@/assets/sui-small.png";
 
 const CHAINS = {
   evm: {
@@ -30,6 +31,10 @@ const CHAINS = {
   ton: {
     color: "#0098EA",
     icon: <img src={tonSmallIcon} alt="ton" className="w-[16px] h-[16px] object-center object-contain" />
+  },
+  sui: {
+    color: "#298DFF",
+    icon: <img src={suiSmallIcon} alt="ton" className="w-[16px] h-[16px] object-center object-contain" />
   }
 };
 

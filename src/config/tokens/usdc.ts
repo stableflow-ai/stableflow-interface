@@ -96,6 +96,13 @@ export const usdcChains: Record<string, TokenChain> = {
     ...chains.aptos,
     services: [Service.OneClick],
   },
+  sui: {
+    ...usdc,
+    assetId: "nep141:sui-c1b81ecaf27933252d31a963bc5e9458f13c18ce.omft.near",
+    contractAddress: "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC",
+    ...chains.sui,
+    services: [Service.OneClick],
+  },
 };
 
 export const usdcSol = {
@@ -119,4 +126,10 @@ export const usdcAptos = {
 export const usdcEvm = {
   ...usdc,
   chains: Object.values(usdcChains).filter((chain) => chain.chainType === "evm")
+};
+
+export const usdcSui = {
+  ...usdc,
+  ...usdcChains.sui,
+  chains: [usdcChains.sui],
 };
