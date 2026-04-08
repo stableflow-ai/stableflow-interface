@@ -507,8 +507,8 @@ export default class AptosWallet {
       execTime.log("estimateTransaction");
 
       result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
-      result.estimateSourceGas = ett.estimateSourceGas.toString();
-      result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
       // Set sendParam for transaction
@@ -530,8 +530,8 @@ export default class AptosWallet {
         .times(getPrice(prices, fromToken.nativeToken.symbol));
 
       result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-      result.estimateSourceGas = defaultEstimateGas.toString();
-      result.totalEstimateSourceGas = defaultEstimateGas.toString();
+      result.estimateSourceGas = defaultEstimateGas;
+      result.totalEstimateSourceGas = defaultEstimateGas;
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
     }
 

@@ -60,11 +60,13 @@ export class OneClickService {
 
   public async formatQuoteData(res: { data: any; params: any; }) {
     const { params } = res;
-    const { isProxy = true } = params;
+    const { isProxy = true, needsBandwidthTRX, needsEnergyAmount, prices } = params;
 
     const isFromTron = params.fromToken.chainType === "tron";
     const isFromTronEnergy = isFromTron && params.acceptTronEnergy;
     const isExactOutput = params.swapType === "EXACT_OUTPUT";
+    const nativeTokenPrice = getPrice(prices, params.fromToken.nativeToken.symbol);
+    const nativeTokenDecimals = params.fromToken.nativeToken.decimals;
 
     const execTime = new ExecTime({ type: "OneClickService formatQuoteData", logStyle: "lime-300" });
 
@@ -104,6 +106,15 @@ export class OneClickService {
         res.data.exchangeRate = numberRemoveEndZero(Big(res.data.quote?.amountOutFormatted || 0).div(res.data.quote?.amountInFormatted || 1).toFixed(params.toToken.decimals, 0));
       }
 
+      if (isFromTron) {
+        const energySourceGasFee = {
+          estimateGas: Big(Big(needsBandwidthTRX || 0).plus(needsEnergyAmount || 0)).times(10 ** nativeTokenDecimals).toFixed(nativeTokenDecimals)
+        };
+        res.data.energySourceGasFee = energySourceGasFee.estimateGas;
+        const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
+        res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
+      }
+
       try {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
         //   return acc.plus(Big(item.fee).div(100));
@@ -128,34 +139,6 @@ export class OneClickService {
           bridgeFeeUsd: numberRemoveEndZero(Big(bridgeFeeValue).toFixed(20)),
           destinationGasFeeUsd: numberRemoveEndZero(Big(destinationGasFee).toFixed(20)),
         };
-
-        // try {
-        //   res.data.transferSourceGasFee = await params.wallet.estimateTransferGas({
-        //     fromToken: params.fromToken,
-        //     depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-        //     amount: params.amountWei,
-        //     account: params.refundTo,
-        //   });
-        //   const transferSourceGasFeeUsd = Big(res.data.transferSourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-        //   res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
-        //   const energySourceGasFee = {
-        //     estimateGas: Big(Big(params.needsBandwidthTRX || 0).plus(params.needsEnergyAmount || 0)).times(10 ** params.fromToken.nativeToken.decimals).toFixed(params.fromToken.nativeToken.decimals)
-        //   };
-        //   res.data.energySourceGasFee = energySourceGasFee.estimateGas;
-        //   const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-        //   res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
-        //   let sourceGasFee = res.data.transferSourceGasFee;
-        //   if (isFromTronEnergy) {
-        //     sourceGasFee = energySourceGasFee;
-        //   }
-
-        //   const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-        //   res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
-        //   res.data.estimateSourceGas = sourceGasFee.estimateGas;
-        //   res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
-        // } catch (err) {
-        //   // csl("OneClickService formatQuoteData", "red-500", "oneclick estimate gas failed: %o", err);
-        // }
 
         // calculate total fees
         for (const feeKey in res.data.fees) {
@@ -190,23 +173,18 @@ export class OneClickService {
           const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
           execTime.log("wallet.quoteOneClickProxy");
 
-          if (!isFromTronEnergy) {
-            for (const proxyKey in proxyResult) {
-              if (proxyKey === "fees") {
-                for (const feeKey in proxyResult.fees) {
-                  if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
-                    continue;
-                  }
-                  res.data.fees[feeKey] = proxyResult.fees[feeKey];
+          for (const proxyKey in proxyResult) {
+            if (proxyKey === "fees") {
+              for (const feeKey in proxyResult.fees) {
+                if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+                  continue;
                 }
-                continue;
+                res.data.fees[feeKey] = proxyResult.fees[feeKey];
               }
-              res.data[proxyKey] = proxyResult[proxyKey];
+              continue;
             }
+            res.data[proxyKey] = proxyResult[proxyKey];
           }
-
-          res.data.needApprove = proxyResult.needApprove;
-          res.data.approveSpender = proxyResult.approveSpender;
 
           res.data.transferSourceGasFee = proxyResult.estimateSourceGas;
           const transferSourceGasFeeUsd = Big(proxyResult.estimateSourceGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
@@ -318,8 +296,6 @@ export class OneClickService {
       amountWei,
       refundTo,
       prices,
-      needsBandwidthTRX,
-      needsEnergyAmount,
       acceptTronEnergy,
       evmGasFees,
     } = params;
@@ -333,22 +309,16 @@ export class OneClickService {
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
     const nativeTokenDecimals = fromToken.nativeToken.decimals;
 
-    const energySourceGasFee = {
-      estimateGas: Big(Big(needsBandwidthTRX || 0).plus(needsEnergyAmount || 0)).times(10 ** nativeTokenDecimals).toFixed(nativeTokenDecimals)
-    };
-    result.energySourceGasFee = energySourceGasFee.estimateGas;
-    const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
-    result.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
-
     if (isFromTron) {
       try {
-        result.transferSourceGasFee = await wallet.estimateTransferGas({
+        const _estGas = await wallet.estimateTransferGas({
           fromToken: fromToken,
           depositAddress: BridgeDefaultWallets[fromToken.chainType as WalletType],
           amount: amountWei,
           account: refundTo,
         });
-        const transferSourceGasFeeUsd = Big(result.transferSourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
+        result.transferSourceGasFee = _estGas.estimateGas;
+        const transferSourceGasFeeUsd = Big(result.transferSourceGasFee || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
         result.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
       } catch (error) {
         csl("OneClickService estimateTransaction", "red-500", "oneclick estimate transaction without proxy failed: %o", error);
@@ -356,30 +326,46 @@ export class OneClickService {
     }
 
     if (isFinalProxy) {
-      const ett = await wallet.estimateTransaction({
+      const estimateTransactionParams = {
         dry: false,
         ...quoteData.sendParam,
         fromToken,
         prices,
         evmGasFees,
-      });
+      };
+      if (isFromTron) {
+        estimateTransactionParams.defaultEnergyUsed = 169000;
+        estimateTransactionParams.defaultRawDataHexLength = 500;
+      }
+      const ett = await wallet.estimateTransaction(estimateTransactionParams);
       result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
       result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
-      result.transferSourceGasFee = { estimateGas: ett.estimateSourceGas };
+      result.transferSourceGasFee = ett.estimateSourceGas;
       result.transferSourceGasFeeUsd = ett.estimateSourceGasUsd;
     } else {
       let sourceGasFee = result.transferSourceGasFee || {};
       if (isFromTronEnergy) {
-        sourceGasFee = energySourceGasFee;
+        sourceGasFee = result.energySourceGasFee;
       }
       const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
       result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
       result.estimateSourceGas = sourceGasFee.estimateGas;
       result.totalEstimateSourceGas = sourceGasFee.estimateGas;
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+    }
+
+    if (result.needApprove && wallet.estimateApprove) {
+      const estApptroveGas = await wallet.estimateApprove({
+        dry: false,
+        amountWei,
+        spender: result.approveSpender,
+        fromToken,
+        prices,
+      });
+      result.totalEstimateSourceGas += estApptroveGas.estimateSourceGas;
     }
 
     for (const feeKey in result.fees) {
@@ -400,20 +386,21 @@ export class OneClickService {
       depositAddress,
       amountWei,
       sendParam,
+      isFromTronEnergy,
     } = params;
 
-    // proxy transfer
-    if (sendParam) {
-      const tx = await wallet.send(SendType.SEND, sendParam);
-      return tx;
+    if (isFromTronEnergy) {
+      const hash = await wallet.send(SendType.TRANSFER, {
+        originAsset: fromToken.contractAddress,
+        depositAddress: depositAddress,
+        amount: amountWei,
+      });
+      return hash;
     }
 
-    const hash = await wallet.send(SendType.TRANSFER, {
-      originAsset: fromToken.contractAddress,
-      depositAddress: depositAddress,
-      amount: amountWei,
-    });
-    return hash;
+    // proxy transfer
+    const tx = await wallet.send(SendType.SEND, sendParam);
+    return tx;
   }
 
   public async submitHash(params: { txHash: string; depositAddress: string }) {
