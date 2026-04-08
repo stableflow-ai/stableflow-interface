@@ -599,8 +599,6 @@ export default function useBridge(props?: any) {
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
-      const isFromTron = walletStore.fromToken.chainType === "tron";
-      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
       const {
         isExactOutput,
         isOneClickService,
@@ -609,6 +607,8 @@ export default function useBridge(props?: any) {
         quoteData: _quote.data,
         bridgeStore,
       });
+      const isFromTron = walletStore.fromToken.chainType === "tron";
+      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && isOneClickService;
 
       if (isExactOutput) {
         _amount = _quote.data.quote.minAmountIn;
@@ -793,6 +793,7 @@ export default function useBridge(props?: any) {
           fromToken: walletStore.fromToken,
           depositAddress: _quote.data.quote.depositAddress,
           amountWei: _amount,
+          isFromTronEnergy,
         });
 
         localHistoryData.txHash = hash;

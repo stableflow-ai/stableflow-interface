@@ -12,6 +12,7 @@ export const excludeFees: string[] = ["estimateGasUsd"];
 export class Usdt0Service {
   public async quote(params: any) {
     const {
+      dry,
       wallet,
       originChain,
       destinationChain,
@@ -102,6 +103,7 @@ export class Usdt0Service {
     }
 
     const oftParams: any = {
+      dry,
       dstEid: destinationLayerzero.eid,
       refundTo,
       recipient,

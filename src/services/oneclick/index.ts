@@ -171,6 +171,7 @@ export class OneClickService {
       let proxyParams: any = {};
       if (proxyAddress && isProxy) {
         proxyParams = {
+          dry: params.dry,
           proxyAddress,
           abi: ONECLICK_PROXY_ABI,
           fromToken: params.fromToken,
@@ -183,23 +184,18 @@ export class OneClickService {
         try {
           const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
 
-          if (!isFromTronEnergy) {
-            for (const proxyKey in proxyResult) {
-              if (proxyKey === "fees") {
-                for (const feeKey in proxyResult.fees) {
-                  if (excludeFees.includes(feeKey)) {
-                    continue;
-                  }
-                  res.data.fees[feeKey] = proxyResult.fees[feeKey];
+          for (const proxyKey in proxyResult) {
+            if (proxyKey === "fees") {
+              for (const feeKey in proxyResult.fees) {
+                if (excludeFees.includes(feeKey)) {
+                  continue;
                 }
-                continue;
+                res.data.fees[feeKey] = proxyResult.fees[feeKey];
               }
-              res.data[proxyKey] = proxyResult[proxyKey];
+              continue;
             }
+            res.data[proxyKey] = proxyResult[proxyKey];
           }
-
-          res.data.needApprove = proxyResult.needApprove;
-          res.data.approveSpender = proxyResult.approveSpender;
 
           res.data.transferSourceGasFee = proxyResult.estimateSourceGas;
           const transferSourceGasFeeUsd = Big(proxyResult.estimateSourceGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
@@ -297,20 +293,21 @@ export class OneClickService {
       depositAddress,
       amountWei,
       sendParam,
+      isFromTronEnergy,
     } = params;
 
-    // proxy transfer
-    if (sendParam) {
-      const tx = await wallet.send(SendType.SEND, sendParam);
-      return tx;
+    if (isFromTronEnergy) {
+      const hash = await wallet.send(SendType.TRANSFER, {
+        originAsset: fromToken.contractAddress,
+        depositAddress: depositAddress,
+        amount: amountWei,
+      });
+      return hash;
     }
 
-    const hash = await wallet.send(SendType.TRANSFER, {
-      originAsset: fromToken.contractAddress,
-      depositAddress: depositAddress,
-      amount: amountWei,
-    });
-    return hash;
+    // proxy transfer
+    const tx = await wallet.send(SendType.SEND, sendParam);
+    return tx;
   }
 
   public async submitHash(params: { txHash: string; depositAddress: string }) {
