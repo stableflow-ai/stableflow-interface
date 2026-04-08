@@ -67,7 +67,6 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
   "Ton": ["https://toncenter.com/api/v2/jsonRPC"],
   "Fraxtal": ["https://rpc.frax.com"],
-  "Ton": ["https://toncenter.com/api/v2/jsonRPC"],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
