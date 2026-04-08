@@ -187,6 +187,17 @@ export default function useBridge(props?: any) {
       const quoteRes = await ServiceMap[service].quote(quoteParams);
       quoteRes.quoteId = requestId;
 
+      execTime.logTotal("useBridge.quoteRoutes");
+
+      bridgeStore.setQuoting(service, requestId, false);
+
+      // Check request ID again before setting result to ensure it's still the latest request
+      if (requestId !== requestIdRef.current) {
+        throw new Error("Request cancelled: outdated request");
+      }
+
+      bridgeStore.setQuoteData(service, quoteRes);
+
       if (params.dry) {
         ServiceMap[service].estimateTransaction(quoteParams, quoteRes)
           .then((estimateRes: any) => {
@@ -200,17 +211,6 @@ export default function useBridge(props?: any) {
             // csl("quoteRoutes", "red-500", "%s estimateTransaction failed: %o", service, estimateErr);
           });
       }
-
-      execTime.logTotal("useBridge.quoteRoutes");
-
-      bridgeStore.setQuoting(service, requestId, false);
-
-      // Check request ID again before setting result to ensure it's still the latest request
-      if (requestId !== requestIdRef.current) {
-        throw new Error("Request cancelled: outdated request");
-      }
-
-      bridgeStore.setQuoteData(service, quoteRes);
 
       return {
         type: service,
@@ -1184,6 +1184,7 @@ export default function useBridge(props?: any) {
     // This allows immediate selection when first request completes, and updates when better quotes arrive
     if (validQuoteList.length === 1) {
       bridgeStore.set({ quoteDataService: validQuoteList[0][0], showFee: true });
+      csl("QuoteRoutes", "pink-950", "Quote Sorted Result: %o", validQuoteList);
       setAutoSelect(false);
       return;
     }

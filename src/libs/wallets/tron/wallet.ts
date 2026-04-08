@@ -633,7 +633,7 @@ export default class TronWallet {
     if (approvalRequired) {
       result.needApprove = allowanceResult.needApprove;
     }
-    execTime.log("quoteSend & allowance");
+    execTime.log("quoteSend & allowance", "allowanceResult: %o", allowanceResult);
 
     let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
     csl("Tron quoteOFT", "red-600", "nativeFee: %o", nativeMsgFee);
@@ -641,7 +641,7 @@ export default class TronWallet {
       nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(Number(NATIVE_MSG_FEE_BUFFER) / 100).toFixed(0));
     }
     csl("Tron quoteOFT", "red-600", "nativeFee after buffer: %o", nativeMsgFee);
-    result.totalEstimateSourceGas = nativeMsgFee.toString();
+    result.totalEstimateSourceGas = nativeMsgFee;
 
     csl("TronWallet quoteOFT", "teal-400", "MsgFee: %o", msgFee);
 
@@ -713,11 +713,12 @@ export default class TronWallet {
     });
     execTime.log("estimateTransaction");
     result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
-    result.estimateSourceGas = ett.estimateSourceGas.toString();
-    result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas += ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
     if (result.needApprove) {
+      execTime.breakpoint();
       const estApproveGas = await this.estimateApprove({
         dry,
         amountWei,
@@ -725,8 +726,8 @@ export default class TronWallet {
         fromToken,
         prices,
       });
-      // result.totalEstimateSourceGas += estApproveGas.estimateSourceGas;
-      result.estimateSourceGas += estApproveGas.estimateSourceGas;
+      result.totalEstimateSourceGas += estApproveGas.estimateSourceGas;
+      execTime.log("estimateApprove");
     }
 
     // calculate total fees
@@ -917,11 +918,12 @@ export default class TronWallet {
     });
     execTime.log("estimateTransaction");
     result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
-    result.estimateSourceGas = ett.estimateSourceGas.toString();
-    result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
     if (result.needApprove) {
+      execTime.breakpoint();
       const estApproveGas = await this.estimateApprove({
         dry,
         amountWei,
@@ -929,7 +931,8 @@ export default class TronWallet {
         fromToken,
         prices,
       });
-      result.estimateSourceGas += estApproveGas.estimateSourceGas;
+      result.totalEstimateSourceGas += estApproveGas.estimateSourceGas;
+      execTime.log("estimateApprove");
     }
 
     result.sendParam.transactionParams = transactionParams;

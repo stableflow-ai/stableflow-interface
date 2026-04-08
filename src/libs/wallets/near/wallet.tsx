@@ -438,8 +438,8 @@ export default class NearWallet {
       execTime.log("estimateTransaction");
 
       result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
-      result.estimateSourceGas = ett.estimateSourceGas.toString();
-      result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
       // Set sendParam for subsequent transaction sending
@@ -459,8 +459,8 @@ export default class NearWallet {
       });
 
       result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
-      result.estimateSourceGas = ett.estimateSourceGas.toString();
-      result.totalEstimateSourceGas = ett.estimateSourceGas.toString();
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
     }
 

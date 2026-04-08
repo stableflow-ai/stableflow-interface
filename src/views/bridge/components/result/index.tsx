@@ -66,7 +66,7 @@ export default function Result() {
     if (!isFromTron) {
       return "0";
     }
-    const energySourceGasFee = Big(quoteData?.transferSourceGasFee?.estimateGas?.toString() || 0).div(10 ** 6);
+    const energySourceGasFee = Big(quoteData?.transferSourceGasFee?.toString() || 0).div(10 ** 6);
     return Math.max(0, Number(Big(energySourceGasFee).minus(quoteData?.quoteParam?.needsEnergyAmount || 0).toFixed(0)));
   }, [isFromTron, quoteData]);
 
