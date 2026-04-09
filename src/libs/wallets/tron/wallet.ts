@@ -245,7 +245,7 @@ export default class TronWallet {
       energyUsed = transaction.energy_used || 200000;
       rawDataHexLength = transaction.transaction.raw_data_hex.length || 1000;
     } catch (error) {
-      csl("Usdt0 Tron", "red-500", "estimateTransaction triggerConstantContract error: %o", error);
+      csl("Usdt0 Tron", "red-500", "estimateTransaction triggerConstantContract error: %o, action: %o", error, transactionParams?.[1]);
     }
     const bandwidthAmount = Big(Big(rawDataHexLength).div(2).plus(DATA_HEX_PROTOBUF_EXTRA).plus(SIGNATURE_SIZE)).times(1e-3);
     const bandwidthUsed = Big(bandwidthAmount).div(1e2).times(10 ** fromToken.nativeToken.decimals);
