@@ -334,7 +334,7 @@ export class OneClickService {
         evmGasFees,
       };
       if (isFromTron) {
-        estimateTransactionParams.defaultEnergyUsed = 169000;
+        estimateTransactionParams.defaultEnergyUsed = 200000;
         estimateTransactionParams.defaultRawDataHexLength = 500;
       }
       const ett = await wallet.estimateTransaction(estimateTransactionParams);
@@ -365,7 +365,7 @@ export class OneClickService {
         fromToken,
         prices,
       });
-      result.totalEstimateSourceGas += estApptroveGas.estimateSourceGas;
+      result.estimateApproveGas = estApptroveGas.estimateSourceGas;
     }
 
     for (const feeKey in result.fees) {
