@@ -233,6 +233,7 @@ export default class TronWallet {
       prices,
       defaultEnergyUsed,
       defaultRawDataHexLength,
+      buffer,
     } = params;
 
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
@@ -248,10 +249,14 @@ export default class TronWallet {
     }
     const bandwidthAmount = Big(Big(rawDataHexLength).div(2).plus(DATA_HEX_PROTOBUF_EXTRA).plus(SIGNATURE_SIZE)).times(1e-3);
     const bandwidthUsed = Big(bandwidthAmount).div(1e2).times(10 ** fromToken.nativeToken.decimals);
-    const totalUsed = Big(energyUsed).plus(bandwidthUsed).toFixed(0);
+    let totalUsed = Big(energyUsed).plus(bandwidthUsed);
+
+    if (buffer) {
+      totalUsed = Big(totalUsed).times(Big(1).plus(buffer));
+    }
 
     const { usd, wei } = await this.getEstimateGas({
-      gasLimit: totalUsed,
+      gasLimit: totalUsed.toFixed(0),
       price: nativeTokenPrice,
       nativeToken: fromToken.nativeToken,
     });
@@ -289,7 +294,9 @@ export default class TronWallet {
       fromToken,
       prices,
       defaultEnergyUsed: 100000,
-      defaultRawDataHexLength: 100,
+      defaultRawDataHexLength: 500,
+      // +10%
+      buffer: 0.1,
     });
   }
 
