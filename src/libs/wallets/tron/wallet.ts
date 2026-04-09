@@ -726,7 +726,7 @@ export default class TronWallet {
         fromToken,
         prices,
       });
-      result.totalEstimateSourceGas += estApproveGas.estimateSourceGas;
+      result.estimateApproveGas = estApproveGas.estimateSourceGas;
       execTime.log("estimateApprove");
     }
 
@@ -913,7 +913,7 @@ export default class TronWallet {
       transactionParams,
       fromToken,
       prices,
-      defaultEnergyUsed: 169000,
+      defaultEnergyUsed: 200000,
       defaultRawDataHexLength: 500,
     });
     execTime.log("estimateTransaction");
@@ -931,7 +931,7 @@ export default class TronWallet {
         fromToken,
         prices,
       });
-      result.totalEstimateSourceGas += estApproveGas.estimateSourceGas;
+      result.estimateApproveGas = estApproveGas.estimateSourceGas;
       execTime.log("estimateApprove");
     }
 
