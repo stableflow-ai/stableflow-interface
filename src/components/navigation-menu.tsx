@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import clsx from "clsx";
+import { useTrack } from "@/hooks/use-track";
 
 export const menuItems = [
   {
@@ -76,6 +77,8 @@ export default function NavigationMenu() {
 export const HyperliquidDeposit = (props: any) => {
   const { className } = props;
 
+  const { addExternalLinkClick } = useTrack();
+
   return (
     <a
       href="https://deposit.stableflow.ai/"
@@ -84,6 +87,7 @@ export const HyperliquidDeposit = (props: any) => {
         "flex items-center gap-1 h-9 rounded-[20px] px-2.5 text-[#444C59] hover:text-black duration-150 font-[SpaceGrotesk] text-xs font-normal leading-[100%] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] hover:shadow-[0_0_15px_0_rgba(0,0,0,0.20)] bg-[linear-gradient(90deg,_rgba(65,207,172,0.00)_0%,_rgba(65,207,172,0.50)_100%)]",
         className
       )}
+      onClick={() => addExternalLinkClick({ link: "https://deposit.stableflow.ai/" })}
     >
       <span className="">
         Cheapest way to deposit

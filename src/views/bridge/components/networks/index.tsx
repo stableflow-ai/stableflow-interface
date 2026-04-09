@@ -7,6 +7,7 @@ import { lazy, useEffect, useRef, useState } from "react";
 import Loading from "@/components/loading/icon";
 import InputNumber from "@/components/input-number";
 import useBridgeStore from "@/stores/use-bridge";
+import { useTrack } from "@/hooks/use-track";
 
 const Setting = lazy(() => import("@/sections/setting"));
 
@@ -14,6 +15,7 @@ export default function Networks({ addressValidation }: any) {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
   const { switchChain } = useSwitchChain();
+  const { addEnterAmount } = useTrack();
   const timer = useRef<any>(null);
   const [toggleLoading, setToggleLoading] = useState(false);
 
@@ -70,6 +72,7 @@ export default function Networks({ addressValidation }: any) {
               value={bridgeStore.amount}
               onNumberChange={(value) => {
                 bridgeStore.set({ amount: value });
+                addEnterAmount({ amount: value });
               }}
               decimals={walletStore.fromToken?.decimals || 6}
               placeholder="0"
