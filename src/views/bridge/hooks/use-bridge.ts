@@ -699,7 +699,10 @@ export default function useBridge(props?: any) {
           needApprove: false,
         };
         try {
-          const estimateTransactionResult = await ServiceMap[bridgeStore.quoteDataService].estimateTransaction(_quote.data.quoteParam, estimateTransactionQuoteData);
+          const estimateTransactionResult = await ServiceMap[bridgeStore.quoteDataService].estimateTransaction({
+            ..._quote.data.quoteParam,
+            wallet: wallet.wallet,
+          }, estimateTransactionQuoteData);
           csl("transfer", "green-500", "final estimate transaction result: %o", estimateTransactionResult);
           bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
             fees: estimateTransactionResult.fees,
