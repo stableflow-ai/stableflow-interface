@@ -144,15 +144,6 @@ export class Usdt0Service {
     return result;
   }
 
-  public async send(params: any) {
-    const {
-      wallet,
-      ...rest
-    } = params;
-
-    return wallet.send(SendType.SEND, rest);
-  }
-
   public async estimateTransaction(params: any, quoteData: any) {
     const {
       fromToken,
@@ -204,6 +195,15 @@ export class Usdt0Service {
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
     return result;
+  }
+
+  public async send(params: any) {
+    const {
+      wallet,
+      ...rest
+    } = params;
+
+    return wallet.send(SendType.SEND, rest);
   }
 
   public async getStatus(params: any): Promise<{ status: string; toTxHash?: string }> {
