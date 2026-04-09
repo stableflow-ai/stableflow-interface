@@ -20,12 +20,13 @@ import { formatNumber } from "@/utils/format/number";
 import { formatAddress } from "@/utils/format/address";
 import Skeleton from "@/components/skeleton";
 import { csl } from "@/utils/log";
-import { TradeProject } from "@/config/trade";
+import { TradeProject, TradeProjectMap } from "@/config/trade";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_REDEEM_AND_MINT_CONTRACT } from "@/services/fraxzero/config";
 import { useSwitchChain } from "wagmi";
 import usdt0Service from "@/services/usdt0";
 import { useConfigStore } from "@/stores/use-config";
+import { TrackTransferStage, useTrack } from "@/hooks/use-track";
 
 const ContinueTransfer = (props: any) => {
   const { history, reload } = props;
@@ -38,37 +39,69 @@ const ContinueTransfer = (props: any) => {
   const historyStore = useHistoryStore();
   const { switchChainAsync } = useSwitchChain();
   const configStore = useConfigStore();
+  const { addTransfer: addTransferTrack } = useTrack();
 
   const [continueVisible, setContinueVisible] = useState(false);
   const [transactionData, setTransactionData] = useState<any>();
   const [transactionDataLoading, setTransactionDataLoading] = useState<any>(false);
 
   const { runAsync: handleContinue, loading } = useRequest(async () => {
+    // @ts-ignore
+    const wallet = wallets["tron"];
+    // @ts-ignore
+    const evmWallet = wallets["evm"];
+
+    const isFromOneClickHybridProject = [TradeProject.OneClickUsdt0, TradeProject.OneClickFraxZero].includes(history.project);
+    // Need to sign permit for USDT(MIDDLE_TOKEN_CHAIN) on the Arbitrum chain
+    const isOneClickUsdt0 = history.project === TradeProject.OneClickUsdt0;
+    // Need to sign permit for USDC(FRAXZERO_MIDDLE_TOKEN_USDC) on the Ethereum chain
+    const isOneClickFraxZero = history.project === TradeProject.OneClickFraxZero;
+
+    const fromToken = tokens.find((token) => token.blockchain === history.from_chain && token.symbol === history.symbol);
+    const sourceToToken = tokens.find((token) => token.blockchain === history.to_chain && token.symbol === history.to_symbol);
+    let toToken = sourceToToken;
+    let permitSpender;
+    if (isOneClickUsdt0) {
+      toToken = MIDDLE_TOKEN_CHAIN;
+      permitSpender = MIDDLE_CHAIN_LAYERZERO_EXECUTOR;
+    }
+    if (isOneClickFraxZero) {
+      toToken = FRAXZERO_MIDDLE_TOKEN_USDC;
+      permitSpender = FRAXZERO_REDEEM_AND_MINT_CONTRACT;
+    }
+
+    const addTrackParams: any = {
+      type: "continue_button",
+      service: TradeProjectMap[history.project as TradeProject].service,
+      quoteData: {
+        quoteParam: {
+          estimateTime: history.complete_time,
+          outputAmount: history.token_out_amount,
+          amountWei: Big(history.token_in_amount || 0).times(10 ** (fromToken?.decimals || 6)).toFixed(0),
+          recipient: history.receive_address,
+          refundTo: history.address,
+          fromToken: {
+            blockchain: history.from_chain,
+            symbol: history.symbol,
+            address: fromToken?.contractAddress,
+            decimals: fromToken?.decimals,
+            chainType: fromToken?.chainType,
+          },
+          toToken: {
+            blockchain: history.to_chain,
+            symbol: history.to_symbol,
+            address: sourceToToken?.contractAddress,
+            decimals: sourceToToken?.decimals,
+            chainType: sourceToToken?.chainType,
+          },
+        },
+      },
+      stage: TrackTransferStage.Start,
+    };
+
+    addTransferTrack(addTrackParams);
+
     try {
-      // @ts-ignore
-      const wallet = wallets["tron"];
-      // @ts-ignore
-      const evmWallet = wallets["evm"];
-
-      const isFromOneClickHybridProject = [TradeProject.OneClickUsdt0, TradeProject.OneClickFraxZero].includes(history.project);
-      // Need to sign permit for USDT(MIDDLE_TOKEN_CHAIN) on the Arbitrum chain
-      const isOneClickUsdt0 = history.project === TradeProject.OneClickUsdt0;
-      // Need to sign permit for USDC(FRAXZERO_MIDDLE_TOKEN_USDC) on the Ethereum chain
-      const isOneClickFraxZero = history.project === TradeProject.OneClickFraxZero;
-
-      const fromToken = tokens.find((token) => token.blockchain === history.from_chain && token.symbol === history.symbol);
-      const sourceToToken = tokens.find((token) => token.blockchain === history.to_chain && token.symbol === history.to_symbol);
-      let toToken = sourceToToken;
-      let permitSpender;
-      if (isOneClickUsdt0) {
-        toToken = MIDDLE_TOKEN_CHAIN;
-        permitSpender = MIDDLE_CHAIN_LAYERZERO_EXECUTOR;
-      }
-      if (isOneClickFraxZero) {
-        toToken = FRAXZERO_MIDDLE_TOKEN_USDC;
-        permitSpender = FRAXZERO_REDEEM_AND_MINT_CONTRACT;
-      }
-
       if (!fromToken || !toToken) {
         throw new Error(`Get quote data failed: no quote response or no from token or no to token`);
       }
@@ -87,6 +120,9 @@ const ContinueTransfer = (props: any) => {
 
       setContinueVisible(true);
       setTransactionDataLoading(true);
+
+
+      addTrackParams.stage = TrackTransferStage.Quote;
 
       let quoteResponse;
       try {
@@ -165,6 +201,9 @@ const ContinueTransfer = (props: any) => {
         params: _formatQuoteDataParams,
       });
 
+      addTrackParams.quoteData = _quoteData;
+      addTransferTrack(addTrackParams);
+
       csl("ContinueTransfer handleContinue", "rose-400", "_quoteData: %o", _quoteData);
 
       setTransactionData({
@@ -182,6 +221,7 @@ const ContinueTransfer = (props: any) => {
 
       csl("ContinueTransfer handleContinue", "rose-400", "final quoteData: %o", quoteData);
 
+      addTrackParams.stage = TrackTransferStage.CheckNativeBalance;
       // get TRX balance
       try {
         const estimateGas = Big(TRON_RENTAL_FEE.Normal).times(10 ** fromToken.nativeToken.decimals).toFixed(0);
@@ -196,6 +236,8 @@ const ContinueTransfer = (props: any) => {
       } catch (error: any) {
         console.error("get TRX balance failed: %o", error);
       }
+
+      addTransferTrack(addTrackParams);
 
       const localHistoryData = {
         type: Service.OneClick,
@@ -270,13 +312,17 @@ const ContinueTransfer = (props: any) => {
       bridgeStore.setTronTransferVisible(true, { quoteData });
 
       if (needsEnergy) {
+        addTrackParams.stage = TrackTransferStage.TronEnergy;
         await getEnergy({
           wallet: wallet.wallet,
           account: wallet.account || "",
         });
+        addTransferTrack(addTrackParams);
       } else {
         bridgeStore.setTronTransferStep(TronTransferStepStatus.EnergyReady);
       }
+
+      addTrackParams.stage = TrackTransferStage.Send;
 
       bridgeStore.setTronTransferStep(TronTransferStepStatus.WalletPrompt);
 
@@ -312,6 +358,11 @@ const ContinueTransfer = (props: any) => {
         title: "Transfer submitted"
       });
 
+      addTrackParams.addonData = {
+        txHash: hash,
+      };
+      addTransferTrack(addTrackParams);
+
       // reload history list
       await reload?.();
     } catch (error: any) {
@@ -324,6 +375,9 @@ const ContinueTransfer = (props: any) => {
         title: "Continue transfer failed",
         text: errorMsg,
       });
+
+      addTrackParams.errMsg = errorMsg;
+      addTransferTrack(addTrackParams);
     }
 
     setTransactionData(null);
