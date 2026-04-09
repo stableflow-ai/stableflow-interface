@@ -288,7 +288,7 @@ export default class TronWallet {
       fromToken,
       prices,
       defaultEnergyUsed: 100000,
-      defaultRawDataHexLength: 100,
+      defaultRawDataHexLength: 500,
     });
   }
 
