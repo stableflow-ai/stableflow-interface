@@ -2,11 +2,13 @@ import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import { useConfigStore } from "@/stores/use-config";
+import { useTrack } from "@/hooks/use-track";
 
 export default function Setting() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const configStore = useConfigStore();
+  const { addSetSlippage } = useTrack();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -76,6 +78,7 @@ export default function Setting() {
                   }
 
                   configStore.set({ slippage: sanitizedValue });
+                  addSetSlippage({ value: sanitizedValue });
                 }}
                 className="w-[94px] h-[22px] bg-transparent outline-none border-b border-[#EDF0F7] text-[#0E3616] text-[16px]"
               />
@@ -87,6 +90,7 @@ export default function Setting() {
                     isActive={item === Number(configStore.slippage)}
                     onClick={() => {
                       configStore.set({ slippage: item });
+                      addSetSlippage({ value: item.toString() });
                     }}
                   />
                 ))}
