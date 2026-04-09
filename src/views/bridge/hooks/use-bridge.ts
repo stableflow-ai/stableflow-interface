@@ -509,7 +509,7 @@ export default function useBridge(props?: any) {
       // If the user has energy, it should be added together with TRX
       if (!params?.estimateGas && _quoteData?.quoteParam?.fromToken?.chainType === "tron") {
         const tronAccountResources = await wallet.wallet.getAccountResources({ account: wallet.account });
-        const tronAccountEnergyAsTRX = Big(tronAccountResources.energy || 0).times(10 ** 3);
+        const tronAccountEnergyAsTRX = Big(tronAccountResources.energy || 0).times(10 ** 2);
         csl("estimateNativeTokenBalance", "teal-700", "Estimate %s balance. Required: %s %s, Available: %s %s, Available Energy: %s(as %s %s), Total Available: %s %s", nativeTokenName, estimateGas, nativeTokenName, nativeBalance, nativeTokenName, tronAccountResources.energy, Big(tronAccountEnergyAsTRX).toFixed(0), nativeTokenName, Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX).toFixed(0), nativeTokenName);
         nativeBalance = Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX);
       } else {
