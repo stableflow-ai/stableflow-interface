@@ -8,6 +8,7 @@ import { csl } from "@/utils/log";
 import axios from "axios";
 import Big from "big.js";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 export const TrackAction = {
   Connect: "connect_wallet",
@@ -69,18 +70,21 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   }, [wallets]);
 
   const init = () => {
-    initSessionId();
+    const _sessionId = uuidv4();
+    initSessionId(_sessionId);
     csl("useTrack", "yellow-700", "init session id: %o", sessionId);
+    return _sessionId;
   };
 
   const add = async (params: TrackParams) => {
-    if (!sessionId) {
-      init();
+    let _sessionId = sessionId;
+    if (!_sessionId) {
+      _sessionId = init();
     }
 
     const reportParams = {
       source: "stableflow",
-      session_id: sessionId,
+      session_id: _sessionId,
       ...params,
     };
 
