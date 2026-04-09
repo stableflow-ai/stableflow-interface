@@ -21,6 +21,7 @@ const Developer = lazy(() => import("./views/developer"));
 const DeveloperMD = lazy(() => import("./views/developer/md"));
 
 const TronEnergyModal = lazy(() => import("./views/bridge/components/tron-energy/modal"));
+const TractRoot = lazy(() => import("./components/track-root"));
 
 const router = createBrowserRouter([
   {
@@ -125,6 +126,10 @@ function App() {
 
       <Suspense fallback={null}>
         <TronEnergyModal />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <TractRoot />
       </Suspense>
     </WalletsProvider>
   );
