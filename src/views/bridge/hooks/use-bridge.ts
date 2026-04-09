@@ -626,6 +626,20 @@ export default function useBridge(props?: any) {
         ? _quote.data.needApprove.some(Boolean)
         : _quote?.data?.needApprove;
       if (needApprove && !isFromTronEnergy) {
+        if (_quote?.data?.estimateApproveGas) {
+          const { isContinue } = await estimateNativeTokenBalance({
+            estimateGas: _quote?.data?.estimateApproveGas,
+          });
+          if (!isContinue) {
+            bridgeStore.set({ transferring: false });
+            toast.fail({
+              title: "Approve failed",
+              text: "Insufficient native token balance"
+            });
+            return;
+          }
+        }
+
         const approveSpenders = Array.isArray(_quote?.data?.approveSpender)
           ? _quote.data.approveSpender
           : [_quote?.data?.approveSpender];
@@ -676,6 +690,27 @@ export default function useBridge(props?: any) {
           needApprove: false,
         });
         // return;
+      }
+
+      // Try to re-estimate gas
+      if (ServiceMap[bridgeStore.quoteDataService].estimateTransaction) {
+        const estimateTransactionQuoteData = {
+          ..._quote.data,
+          needApprove: false,
+        };
+        try {
+          const estimateTransactionResult = await ServiceMap[bridgeStore.quoteDataService].estimateTransaction(_quote.data.quoteParam, estimateTransactionQuoteData);
+          csl("transfer", "green-500", "final estimate transaction result: %o", estimateTransactionResult);
+          bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+            fees: estimateTransactionResult.fees,
+            estimateSourceGas: estimateTransactionResult.estimateSourceGas,
+            totalEstimateSourceGas: estimateTransactionResult.totalEstimateSourceGas,
+            estimateSourceGasUsd: estimateTransactionResult.estimateSourceGasUsd,
+            totalFeesUsd: estimateTransactionResult.totalFeesUsd,
+          });
+        } catch (error) {
+          csl("transfer", "red-500", "final estimate transaction failed: %o", error);
+        }
       }
 
       // create solana usdc account for CCTP
