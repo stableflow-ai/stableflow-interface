@@ -274,7 +274,7 @@ export default class TronWallet {
     } = params;
 
     const approveParams = [
-      spender,
+      fromToken.contractAddress,
       "approve(address,uint256)",
       {},
       [
