@@ -194,7 +194,7 @@ export class Usdt0Service {
         fromToken,
         prices,
       });
-      result.totalEstimateSourceGas += estApptroveGas.estimateSourceGas;
+      result.estimateApproveGas = estApptroveGas.estimateSourceGas;
     }
 
     for (const feeKey in result.fees) {
