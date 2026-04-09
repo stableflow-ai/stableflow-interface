@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "swiper/css";
+@import "swiper/css/navigation";
+@import "swiper/css/pagination";
 @import "react-toastify/dist/ReactToastify.css";
 
 #root {
@@ -114,6 +116,15 @@ div::-webkit-scrollbar-thumb:hover {
   .Toastify__toast-container--top-right .stableflow-toast-top-right.Toastify__toast {
     padding: 0px var(--toastify-toast-padding) 0px var(--toastify-toast-padding);
   }
+}
+
+/* Bridge Trusted by — Swiper pagination (matches page palette) */
+.trusted-swiper-pagination-host .swiper-pagination-bullet {
+  background: #9fa7ba;
+  opacity: 1;
+}
+.trusted-swiper-pagination-host .swiper-pagination-bullet-active {
+  background: #6284f5;
 }
 
 #launcher {

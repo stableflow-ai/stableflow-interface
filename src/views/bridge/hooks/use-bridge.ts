@@ -509,7 +509,7 @@ export default function useBridge(props?: any) {
       // If the user has energy, it should be added together with TRX
       if (!params?.estimateGas && _quoteData?.quoteParam?.fromToken?.chainType === "tron") {
         const tronAccountResources = await wallet.wallet.getAccountResources({ account: wallet.account });
-        const tronAccountEnergyAsTRX = Big(tronAccountResources.energy || 0).times(10 ** 3);
+        const tronAccountEnergyAsTRX = Big(tronAccountResources.energy || 0).times(10 ** 2);
         csl("estimateNativeTokenBalance", "teal-700", "Estimate %s balance. Required: %s %s, Available: %s %s, Available Energy: %s(as %s %s), Total Available: %s %s", nativeTokenName, estimateGas, nativeTokenName, nativeBalance, nativeTokenName, tronAccountResources.energy, Big(tronAccountEnergyAsTRX).toFixed(0), nativeTokenName, Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX).toFixed(0), nativeTokenName);
         nativeBalance = Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX);
       } else {
@@ -599,8 +599,6 @@ export default function useBridge(props?: any) {
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
-      const isFromTron = walletStore.fromToken.chainType === "tron";
-      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
       const {
         isExactOutput,
         isOneClickService,
@@ -609,6 +607,8 @@ export default function useBridge(props?: any) {
         quoteData: _quote.data,
         bridgeStore,
       });
+      const isFromTron = walletStore.fromToken.chainType === "tron";
+      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && isOneClickService;
 
       if (isExactOutput) {
         _amount = _quote.data.quote.minAmountIn;
@@ -626,6 +626,20 @@ export default function useBridge(props?: any) {
         ? _quote.data.needApprove.some(Boolean)
         : _quote?.data?.needApprove;
       if (needApprove && !isFromTronEnergy) {
+        if (_quote?.data?.estimateApproveGas) {
+          const { isContinue } = await estimateNativeTokenBalance({
+            estimateGas: _quote?.data?.estimateApproveGas,
+          });
+          if (!isContinue) {
+            bridgeStore.set({ transferring: false });
+            toast.fail({
+              title: "Approve failed",
+              text: "Insufficient native token balance"
+            });
+            return;
+          }
+        }
+
         const approveSpenders = Array.isArray(_quote?.data?.approveSpender)
           ? _quote.data.approveSpender
           : [_quote?.data?.approveSpender];
@@ -676,6 +690,30 @@ export default function useBridge(props?: any) {
           needApprove: false,
         });
         // return;
+      }
+
+      // Try to re-estimate gas
+      if (ServiceMap[bridgeStore.quoteDataService].estimateTransaction) {
+        const estimateTransactionQuoteData = {
+          ..._quote.data,
+          needApprove: false,
+        };
+        try {
+          const estimateTransactionResult = await ServiceMap[bridgeStore.quoteDataService].estimateTransaction({
+            ..._quote.data.quoteParam,
+            wallet: wallet.wallet,
+          }, estimateTransactionQuoteData);
+          csl("transfer", "green-500", "final estimate transaction result: %o", estimateTransactionResult);
+          bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+            fees: estimateTransactionResult.fees,
+            estimateSourceGas: estimateTransactionResult.estimateSourceGas,
+            totalEstimateSourceGas: estimateTransactionResult.totalEstimateSourceGas,
+            estimateSourceGasUsd: estimateTransactionResult.estimateSourceGasUsd,
+            totalFeesUsd: estimateTransactionResult.totalFeesUsd,
+          });
+        } catch (error) {
+          csl("transfer", "red-500", "final estimate transaction failed: %o", error);
+        }
       }
 
       // create solana usdc account for CCTP
@@ -793,6 +831,7 @@ export default function useBridge(props?: any) {
           fromToken: walletStore.fromToken,
           depositAddress: _quote.data.quote.depositAddress,
           amountWei: _amount,
+          isFromTronEnergy,
         });
 
         localHistoryData.txHash = hash;
