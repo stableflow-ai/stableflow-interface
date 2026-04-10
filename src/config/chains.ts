@@ -37,6 +37,12 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
     color: "#0098EA",
     bg: "linear-gradient(90deg, rgba(0, 152, 234, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
   },
+  sui: {
+    value: "sui",
+    name: "Sui",
+    color: "#298DFF",
+    bg: "linear-gradient(90deg, rgba(41, 141, 255, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
+  },
 };
 
 const HeliusRpcApiKey = import.meta.env.VITE_HELIUS_RPC_API_KEY;
@@ -67,6 +73,8 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
   "Ton": ["https://toncenter.com/api/v2/jsonRPC"],
   "Fraxtal": ["https://rpc.frax.com"],
+  "Sui": ["https://fullnode.mainnet.sui.io:443"],
+  "Katana": ["https://rpc.katana.network", "https://katana.drpc.org"],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
@@ -260,7 +268,7 @@ const chains = {
     chainIconGray: "/chains/berachain-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 80094,
-    blockExplorerUrl: "https://berascan.com/tx/",
+    blockExplorerUrl: "https://berascan.com/tx",
     primaryColor: "#F37325",
     nativeToken: {
       symbol: "BERA",
@@ -275,7 +283,7 @@ const chains = {
     chainIconGray: "/chains/xlayer-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 196,
-    blockExplorerUrl: "https://www.oklink.com/xlayer/tx/",
+    blockExplorerUrl: "https://www.oklink.com/xlayer/tx",
     primaryColor: "#000000",
     nativeToken: {
       symbol: "OKB",
@@ -290,7 +298,7 @@ const chains = {
     chainIconGray: "/chains/plasma-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 9745,
-    blockExplorerUrl: "https://plasmascan.to/tx/",
+    blockExplorerUrl: "https://plasmascan.to/tx",
     primaryColor: "#162F29",
     nativeToken: {
       symbol: "XPL",
@@ -304,7 +312,7 @@ const chains = {
     chainIcon: "/chains/ton.png",
     chainIconGray: "/chains/ton-gray.png",
     chainType: chainTypes.ton.value,
-    blockExplorerUrl: "https://tonviewer.com/transaction/",
+    blockExplorerUrl: "https://tonviewer.com/transaction",
     primaryColor: "#0098EA",
     nativeToken: {
       symbol: "TON",
@@ -319,7 +327,7 @@ const chains = {
     chainIconGray: "/chains/mantle-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 5000,
-    blockExplorerUrl: "https://mantlescan.xyz/tx/",
+    blockExplorerUrl: "https://mantlescan.xyz/tx",
     primaryColor: "#162F29",
     nativeToken: {
       symbol: "MNT",
@@ -334,7 +342,7 @@ const chains = {
     chainIconGray: "/chains/megaeth-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 4326,
-    blockExplorerUrl: "https://mega.etherscan.io/tx/",
+    blockExplorerUrl: "https://mega.etherscan.io/tx",
     primaryColor: "#19191A",
     nativeToken: {
       symbol: "ETH",
@@ -349,7 +357,7 @@ const chains = {
     chainIconGray: "/chains/ink-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 57073,
-    blockExplorerUrl: "https://explorer.inkonchain.com/tx/",
+    blockExplorerUrl: "https://explorer.inkonchain.com/tx",
     primaryColor: "#7132F5",
     nativeToken: {
       symbol: "ETH",
@@ -364,7 +372,7 @@ const chains = {
     chainIconGray: "/chains/stable-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 988,
-    blockExplorerUrl: "https://uniscan.xyz/tx/",
+    blockExplorerUrl: "https://uniscan.xyz/tx",
     primaryColor: "#01241D",
     nativeToken: {
       symbol: "USDT0",
@@ -379,7 +387,7 @@ const chains = {
     chainIconGray: "/chains/celo-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 42_220,
-    blockExplorerUrl: "https://celoscan.io/tx/",
+    blockExplorerUrl: "https://celoscan.io/tx",
     primaryColor: "#FCFF52",
     nativeToken: {
       symbol: "CELO",
@@ -394,7 +402,7 @@ const chains = {
     chainIconGray: "/chains/sei-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 1329,
-    blockExplorerUrl: "https://seitrace.com/tx/",
+    blockExplorerUrl: "https://seitrace.com/tx",
     primaryColor: "#991717",
     nativeToken: {
       symbol: "SEI",
@@ -409,7 +417,7 @@ const chains = {
     chainIconGray: "/chains/flare-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 14,
-    blockExplorerUrl: "https://flare-explorer.flare.network/tx/",
+    blockExplorerUrl: "https://flare-explorer.flare.network/tx",
     primaryColor: "#E62058",
     nativeToken: {
       symbol: "FLR",
@@ -424,13 +432,42 @@ const chains = {
     chainIconGray: "/chains/frax-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 252,
-    blockExplorerUrl: "https://fraxscan.com/tx/",
+    blockExplorerUrl: "https://fraxscan.com/tx",
     primaryColor: "#000",
     nativeToken: {
       symbol: "FRAX",
       decimals: 18,
     },
     ...getChainRpcUrl("Fraxtal"),
+  },
+  sui: {
+    chainName: "Sui",
+    blockchain: "sui",
+    chainIcon: "/chains/sui.png",
+    chainIconGray: "/chains/sui-gray.png",
+    chainType: chainTypes.sui.value,
+    blockExplorerUrl: "https://suiscan.xyz/mainnet/tx",
+    primaryColor: "#298DFF",
+    nativeToken: {
+      symbol: "SUI",
+      decimals: 9,
+    },
+    ...getChainRpcUrl("Sui"),
+  },
+  katana: {
+    chainName: "Katana",
+    blockchain: "katana",
+    chainIcon: "/chains/katana.png",
+    chainIconGray: "/chains/katana-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 747474,
+    blockExplorerUrl: "https://katanascan.com/tx",
+    primaryColor: "#F6FF0D",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Katana"),
   },
 };
 

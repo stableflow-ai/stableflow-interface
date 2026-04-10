@@ -32,6 +32,11 @@ const TonProvider = lazy(() =>
     default: ({ children }: { children: React.ReactNode }) => <>{children}</>
   }))
 );
+const SuiProvider = lazy(() =>
+  import("./sui/provider").catch(() => ({
+    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
+  }))
+);
 
 // Loading component with individual Suspense boundaries
 const WalletProviderLoader = ({ children }: { children: React.ReactNode }) => (
@@ -47,7 +52,11 @@ const WalletProviderLoader = ({ children }: { children: React.ReactNode }) => (
                     <AptosProvider>
                       <Suspense fallback={null}>
                         <TonProvider>
-                          {children}
+                          <Suspense fallback={null}>
+                            <SuiProvider>
+                              {children}
+                            </SuiProvider>
+                          </Suspense>
                         </TonProvider>
                       </Suspense>
                     </AptosProvider>
