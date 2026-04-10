@@ -120,7 +120,6 @@ const Content = () => {
     const suiWallet = new SuiWallet({
       account: account || null,
       signAndExecuteTransaction,
-      suiClient: currentClient as any,
     });
     setWallets({
       sui: {

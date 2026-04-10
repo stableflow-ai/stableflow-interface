@@ -1,30 +1,29 @@
-import { Transaction } from "@mysten/sui/transactions";
+import { coinWithBalance, Transaction } from "@mysten/sui/transactions";
 import Big from "big.js";
 import { getPrice } from "@/utils/format/price";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "../types";
 import { Service } from "@/services/constants";
 import { csl } from "@/utils/log";
+import { BridgeDefaultWallets } from "@/config";
+import { SuiGrpcClient } from "@mysten/sui/grpc";
+import { getChainRpcUrl } from "@/config/chains";
 
 const SUI_COIN_TYPE = "0x2::sui::SUI";
-
-type SuiWalletClient = {
-  listCoins: (input: any) => Promise<any>;
-  getBalance: (input: any) => Promise<any>;
-  simulateTransaction: (input: any) => Promise<any>;
-  getReferenceGasPrice: () => Promise<any>;
-  getTransaction: (input: any) => Promise<any>;
-};
+const DEFAULT_GAS_LIMIT = 3000000n;
 
 export default class SuiWallet {
   private account: any | null;
   private signAndExecuteTransaction: any;
-  private suiClient: SuiWalletClient;
+  private suiClient: SuiGrpcClient;
 
-  constructor(options: { account: any | null; signAndExecuteTransaction: any; suiClient: SuiWalletClient; }) {
+  constructor(options: { account: any | null; signAndExecuteTransaction: any; }) {
     this.signAndExecuteTransaction = options.signAndExecuteTransaction;
     this.account = options.account;
-    this.suiClient = options.suiClient;
+    this.suiClient = new SuiGrpcClient({
+      network: "mainnet",
+      baseUrl: getChainRpcUrl("Sui").rpcUrl,
+    });
   }
 
   // Transfer SUI
@@ -52,13 +51,7 @@ export default class SuiWallet {
         },
       });
 
-      // const executedTransaction = await this.aptos.waitForTransaction({ transactionHash: typeof result === "string" ? result : result.hash });
-      // if (executedTransaction.success !== true) {
-      //   csl("Aptos transferAPT", "red-500", "Transfer APT token failed: %o", executedTransaction);
-      //   throw new Error("Transfer token failed");
-      // }
-
-      return typeof result === "string" ? result : result.digest;
+      return typeof result === "string" ? result : result.Transaction.digest;
     } catch (error) {
       csl("Sui transferSUI", "red-500", "Transfer APT failed: %o", error);
       throw error;
@@ -110,7 +103,7 @@ export default class SuiWallet {
         },
       });
 
-      return typeof result === "string" ? result : result.digest;
+      return typeof result === "string" ? result : result.Transaction.digest;
     } catch (error) {
       csl("Sui transferToken", "red-500", "Transfer token failed: %o", error);
       throw error;
@@ -141,7 +134,7 @@ export default class SuiWallet {
 
   async getSUIBalance(account: string) {
     try {
-      const response = await this.suiClient.getBalance({
+      const response = await this.suiClient.core.getBalance({
         owner: account,
         coinType: SUI_COIN_TYPE,
       });
@@ -154,11 +147,10 @@ export default class SuiWallet {
 
   async getTokenBalance(contractAddress: string, account: string) {
     try {
-      const response = await this.suiClient.getBalance({
+      const response = await this.suiClient.core.getBalance({
         owner: account,
         coinType: contractAddress,
       });
-      console.log("response: %o", response)
       return response.balance.balance || "0";
     } catch (error) {
       csl("Sui getTokenBalance", "red-500", "Get token balance failed: %o", error);
@@ -226,38 +218,125 @@ export default class SuiWallet {
       tx.transferObjects([coinToSend], depositAddress);
     }
 
-    const simulation = await this.suiClient.simulateTransaction({
-      transaction: tx,
-      include: {
-        effects: true,
-      },
+    const ett = await this.estimateTransaction({
+      dry: false,
+      tx,
+      fromToken,
+      prices: {},
     });
-    const simulationTx = simulation.$kind === "Transaction" ? simulation.Transaction : simulation.FailedTransaction;
-    const gasUsed = simulationTx?.effects?.gasUsed;
-    const computationCost = BigInt(gasUsed?.computationCost || "0");
-    const storageCost = BigInt(gasUsed?.storageCost || "0");
-    const storageRebate = BigInt(gasUsed?.storageRebate || "0");
-    const gasLimit = computationCost + storageCost - storageRebate;
-
-    const gasPriceResponse = await this.suiClient.getReferenceGasPrice();
-    const gasPrice = BigInt(gasPriceResponse.referenceGasPrice || "0");
 
     return {
-      gasLimit,
-      gasPrice,
-      estimateGas: gasLimit * gasPrice,
+      gasLimit: ett.estimateSourceGasLimit,
+      gasPrice: 1n,
+      estimateGas: ett.estimateSourceGas,
     };
+  }
+
+  async getEstimateGas(params: any) {
+    const { gasLimit, price, nativeToken } = params;
+
+    const finalGasPrice = 1;
+    // try {
+    //   const { referenceGasPrice } = await this.suiClient.getReferenceGasPrice();
+    //   finalGasPrice = referenceGasPrice || BigInt("600");
+    // } catch {
+    // }
+
+    const estimateGas = BigInt(gasLimit) * BigInt(finalGasPrice);
+    const estimateGasAmount = Big(estimateGas.toString()).div(10 ** nativeToken.decimals);
+    const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
+
+    return {
+      gasPrice: finalGasPrice,
+      usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
+      wei: estimateGas,
+      amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
+    };
+  }
+
+  async estimateTransaction(params: any) {
+    const {
+      dry,
+      tx,
+      fromToken,
+      prices,
+      defaultGasLimit = DEFAULT_GAS_LIMIT,
+    } = params;
+
+    const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
+
+    const result = {
+      estimateSourceGasLimit: DEFAULT_GAS_LIMIT,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: "0",
+    };
+
+    const setDefaultGasLimit = async () => {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: DEFAULT_GAS_LIMIT,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+      });
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    };
+
+    let finalGasLimit = defaultGasLimit;
+
+    if (dry) {
+      await setDefaultGasLimit();
+      return result;
+    }
+
+    let sender = this.account?.address;
+    if (!sender) {
+      sender = BridgeDefaultWallets["sui"];
+    }
+    let simulation: any;
+    try {
+      tx.setSender(sender);
+
+      const txBytes = await tx.build({ client: this.suiClient });
+
+      const simulation = await this.suiClient.core.simulateTransaction({
+        transaction: txBytes,
+        checksEnabled: false,
+        include: {
+          effects: true,
+        },
+      });
+
+      const simulationTx = simulation.$kind === "Transaction" ? simulation.Transaction : simulation.FailedTransaction;
+      const gasUsed = simulationTx?.effects?.gasUsed;
+      finalGasLimit = BigInt(gasUsed?.computationCost || "0")
+        + BigInt(gasUsed?.storageCost || "0")
+        - BigInt(gasUsed?.storageRebate || "0");
+
+      finalGasLimit = (finalGasLimit * 150n) / 100n; // Add 50% buffer
+
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: finalGasLimit,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+      });
+
+      result.estimateSourceGasLimit = finalGasLimit;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    } catch (error) {
+      csl("Aptos estimateTransaction", "red-500", "simulation failed: %o", error);
+      await setDefaultGasLimit();
+    }
+
+    return result;
   }
 
   async checkTransactionStatus(signature: string) {
     try {
-      const tx = await this.suiClient.getTransaction({
+      const tx = await this.suiClient.core.waitForTransaction({
         digest: signature,
       });
-      if (tx?.$kind === "Transaction") {
-        return tx.Transaction?.status?.success === true;
-      }
-      return tx?.status?.success === true;
+      return tx.Transaction?.status?.success === true;
     } catch (error) {
       csl("Sui checkTransactionStatus", "red-500", "Check transaction status failed: %o", error);
       return false;
@@ -266,6 +345,7 @@ export default class SuiWallet {
 
   async quoteOneClickProxy(params: any) {
     const {
+      dry,
       proxyAddress,
       fromToken,
       depositAddress,
@@ -279,64 +359,32 @@ export default class SuiWallet {
       throw new Error("depositAddress is required");
     }
 
-    try {
-      const tx = new Transaction();
-      const defaultTarget = `${proxyAddress}::stableflow_proxy::proxy_transfer`;
-      const functionTarget = params?.functionTarget || defaultTarget;
-      const typeArguments = params?.typeArguments || [fromToken.contractAddress];
-      const functionArguments = params?.functionArguments || [depositAddress, amountWei];
+    const tx = new Transaction();
 
-      tx.moveCall({
-        target: functionTarget,
-        typeArguments,
-        arguments: functionArguments.map((arg: any) => {
-          if (typeof arg === "bigint") {
-            return tx.pure.u64(arg);
-          }
-          if (typeof arg === "number") {
-            return tx.pure.u64(BigInt(Math.floor(arg)));
-          }
-          if (typeof arg === "string" && /^\d+$/.test(arg)) {
-            return tx.pure.u64(BigInt(arg));
-          }
-          return tx.pure.string(String(arg));
-        }),
-      });
+    const payCoin = coinWithBalance({
+      type: fromToken.contractAddress,
+      balance: amountWei,
+      useGasCoin: false,
+    });
 
-      const simulation = await this.suiClient.simulateTransaction({
-        transaction: tx,
-        include: {
-          effects: true,
-        },
-      });
-      const simulationTx = simulation.$kind === "Transaction" ? simulation.Transaction : simulation.FailedTransaction;
-      const gasUsed = simulationTx?.effects?.gasUsed;
-      const gasLimit = BigInt(gasUsed?.computationCost || "0")
-        + BigInt(gasUsed?.storageCost || "0")
-        - BigInt(gasUsed?.storageRebate || "0");
-      const gasPriceRes = await this.suiClient.getReferenceGasPrice();
-      const gasPrice = BigInt(gasPriceRes.referenceGasPrice || "0");
-      const estimateGas = gasLimit * gasPrice;
-      const estimateGasUsd = Big(estimateGas.toString())
-        .div(10 ** (fromToken.nativeToken?.decimals || 9))
-        .times(getPrice(prices, fromToken.nativeToken?.symbol || "SUI"));
+    tx.moveCall({
+      target: `${proxyAddress}::proxy_transfer::proxy_transfer`,
+      typeArguments: [fromToken.contractAddress],
+      arguments: [payCoin, tx.pure.u64(amountWei), tx.pure.address(depositAddress)],
+    });
 
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-      result.estimateSourceGas = estimateGas.toString();
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-      result.sendParam = { tx };
+    result.sendParam = { tx };
 
-    } catch (error) {
-      csl("Sui quoteOneClickProxy", "red-500", "oneclick quote proxy failed: %o", error);
-      // Return default values on error
-      const defaultEstimateGas = 1000000n;
-      const estimateGasUsd = Big(defaultEstimateGas.toString())
-        .div(10 ** (fromToken.nativeToken?.decimals || 9))
-        .times(getPrice(prices, fromToken.nativeToken?.symbol || "SUI"));
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-      result.estimateSourceGas = defaultEstimateGas.toString();
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-    }
+    const ett = await this.estimateTransaction({
+      dry,
+      tx,
+      fromToken,
+      prices,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
     return result;
   }
@@ -362,7 +410,7 @@ export default class SuiWallet {
         },
       });
 
-      return typeof result === "string" ? result : result.digest;
+      return typeof result === "string" ? result : result.Transaction.digest;
     } catch (error) {
       csl("Sui sendTransaction", "red-500", "Send transaction failed: %o", error);
       throw error;

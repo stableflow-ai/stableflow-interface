@@ -1,6 +1,6 @@
 import { create } from "zustand/index";
 
-export type WalletType = "near" | "sol" | "evm" | "tron" | "aptos" | "ton";
+export type WalletType = "near" | "sol" | "evm" | "tron" | "aptos" | "ton" | "sui";
 
 interface WalletsState {
   near: {
