@@ -95,6 +95,9 @@ const ContinueTransfer = (props: any) => {
             chainType: sourceToToken?.chainType,
           },
         },
+        quote: {
+          depositAddress: history.deposit_address,
+        }
       },
       stage: TrackTransferStage.Start,
     };
