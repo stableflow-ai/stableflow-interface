@@ -19,7 +19,7 @@ export function useHistory() {
 
   const accounts = useMemo(() => {
     const _accounts = Object.values(wallets ?? {}).map((wallet) => wallet.account).filter((account) => !!account);
-    return _accounts;
+    return _accounts.join(",");
   }, [wallets]);
 
   const { runAsync: getList, loading } = useRequest(async (params?: any) => {
@@ -29,7 +29,7 @@ export function useHistory() {
         params: {
           type: 0,
           status: "success,failed,continue",
-          address: params?.address ?? accounts.join(","),
+          address: params?.address ?? accounts,
           page: params?.page ?? page.current,
           page_size: page.size,
         },
@@ -91,7 +91,7 @@ export function useHistory() {
 
   useEffect(() => {
     cancelGetList();
-    if (!accounts || accounts.length === 0) {
+    if (!accounts) {
       setList([]);
       setPage(() => {
         return {
@@ -104,7 +104,7 @@ export function useHistory() {
       return;
     }
     debouncedGetList({
-      address: accounts.join(","),
+      address: accounts,
       page: 1,
     });
   }, [accounts]);
@@ -112,7 +112,7 @@ export function useHistory() {
   const handleChangePage = (page: number) => {
     if (loading) return;
     getList({
-      address: accounts.join(","),
+      address: accounts,
       page,
     });
   };
