@@ -208,6 +208,97 @@ export default class TronWallet {
     };
   }
 
+  async getEstimateGas(params: any) {
+    const { gasLimit, price, nativeToken } = params;
+
+    const energyPrice = BigInt(100);
+    const estimateGas = Big(gasLimit.toString()).times(energyPrice.toString());
+    const estimateGasAmount = Big(estimateGas).div(10 ** nativeToken.decimals);
+    const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
+
+    return {
+      gasPrice: energyPrice,
+      usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
+      wei: BigInt(estimateGas.toFixed(0)),
+      amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
+    };
+  }
+
+  async estimateTransaction(params: any) {
+    const {
+      dry,
+      transactionParams,
+      fromToken,
+      prices,
+      defaultEnergyUsed,
+      defaultRawDataHexLength,
+      buffer,
+    } = params;
+
+    const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
+
+    let energyUsed = defaultEnergyUsed || 200000;
+    let rawDataHexLength = defaultRawDataHexLength || 1000;
+    try {
+      const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
+      energyUsed = transaction.energy_used || 200000;
+      rawDataHexLength = transaction.transaction.raw_data_hex.length || 1000;
+    } catch (error) {
+      csl("Usdt0 Tron", "red-500", "estimateTransaction triggerConstantContract error: %o, action: %o", error, transactionParams?.[1]);
+    }
+    const bandwidthAmount = Big(Big(rawDataHexLength).div(2).plus(DATA_HEX_PROTOBUF_EXTRA).plus(SIGNATURE_SIZE)).times(1e-3);
+    const bandwidthUsed = Big(bandwidthAmount).div(1e2).times(10 ** fromToken.nativeToken.decimals);
+    let totalUsed = Big(energyUsed).plus(bandwidthUsed);
+
+    if (buffer) {
+      totalUsed = Big(totalUsed).times(Big(1).plus(buffer));
+    }
+
+    const { usd, wei } = await this.getEstimateGas({
+      gasLimit: totalUsed.toFixed(0),
+      price: nativeTokenPrice,
+      nativeToken: fromToken.nativeToken,
+    });
+
+    const result = {
+      estimateSourceGasLimit: energyUsed,
+      estimateSourceGas: wei,
+      estimateSourceGasUsd: usd,
+    };
+
+    return result;
+  }
+
+  async estimateApprove(params: any) {
+    const {
+      dry,
+      spender,
+      amountWei,
+      fromToken,
+      prices,
+    } = params;
+
+    const approveParams = [
+      fromToken.contractAddress,
+      "approve(address,uint256)",
+      {},
+      [
+        { type: "address", value: spender },
+        { type: "uint256", value: amountWei }
+      ]
+    ];
+    return this.estimateTransaction({
+      dry,
+      transactionParams: approveParams,
+      fromToken,
+      prices,
+      defaultEnergyUsed: 100000,
+      defaultRawDataHexLength: 500,
+      // +10%
+      buffer: 0.1,
+    });
+  }
+
   async pollingTransactionStatus(txHash: string, options?: {
     maxPolls?: number;
     pollInterval?: number;
@@ -409,6 +500,7 @@ export default class TronWallet {
 
   async quoteOFT(params: any) {
     const {
+      dry,
       abi,
       dstEid,
       recipient,
@@ -554,7 +646,7 @@ export default class TronWallet {
     let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
     csl("Tron quoteOFT", "red-600", "nativeFee: %o", nativeMsgFee);
     if (nativeMsgFee) {
-      nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(Number(NATIVE_MSG_FEE_BUFFER)/100).toFixed(0));
+      nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(Number(NATIVE_MSG_FEE_BUFFER) / 100).toFixed(0));
     }
     csl("Tron quoteOFT", "red-600", "nativeFee after buffer: %o", nativeMsgFee);
     result.estimateSourceGas = nativeMsgFee;
@@ -617,29 +709,29 @@ export default class TronWallet {
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
     result.sendParam.tx = tx;
 
-    try {
-      const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
-      const energyUsed = transaction.energy_used || 200000;
-      const rawDataHexLength = transaction.transaction.raw_data_hex.length || 1000;
-      const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
+    const ett = await this.estimateTransaction({
+      dry,
+      transactionParams,
+      fromToken,
+      prices,
+      defaultEnergyUsed: 300000,
+      defaultRawDataHexLength: 1000,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    // result.estimateSourceGas = ett.estimateSourceGas;
+    // result.totalEstimateSourceGas += ett.estimateSourceGas;
+    result.estimateSourceGas += ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
-      const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
-      const totalAmount = Big(amount).plus(bandwidthAmount);
-      const usd = numberRemoveEndZero(Big(totalAmount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = numberRemoveEndZero(Big(totalAmount).times(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      const energyUsed = 200000;
-      const rawDataHexLength = 1000;
-      const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
-
-      const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
-      const totalAmount = Big(amount).plus(bandwidthAmount);
-      const usd = numberRemoveEndZero(Big(totalAmount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = numberRemoveEndZero(Big(totalAmount).times(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
-      result.estimateSourceGasUsd = usd;
+    if (result.needApprove) {
+      const estApproveGas = await this.estimateApprove({
+        dry,
+        amountWei,
+        spender: result.approveSpender,
+        fromToken,
+        prices,
+      });
+      result.estimateApproveGas = estApproveGas.estimateSourceGas;
     }
 
     // calculate total fees
@@ -747,6 +839,7 @@ export default class TronWallet {
 
   async quoteOneClickProxy(params: any) {
     const {
+      dry,
       proxyAddress,
       abi,
       fromToken,
@@ -812,29 +905,28 @@ export default class TronWallet {
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
     result.sendParam.tx = tx;
 
-    try {
-      const transaction = await this.tronWeb.transactionBuilder.triggerConstantContract(...transactionParams);
-      const energyUsed = transaction.energy_used || 30000;
-      const rawDataHexLength = transaction.transaction.raw_data_hex.length || 500;
-      const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
+    const ett = await this.estimateTransaction({
+      dry,
+      transactionParams,
+      fromToken,
+      prices,
+      defaultEnergyUsed: 200000,
+      defaultRawDataHexLength: 500,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
-      const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
-      const totalAmount = Big(amount).plus(bandwidthAmount);
-      const usd = numberRemoveEndZero(Big(totalAmount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
-      result.fees.sourceGasFeeUsd = usd;
-      result.estimateSourceGas = numberRemoveEndZero(Big(totalAmount).times(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      const energyUsed = 169000;
-      const rawDataHexLength = 500;
-      const bandwidthAmount = (rawDataHexLength / 2 + DATA_HEX_PROTOBUF_EXTRA + SIGNATURE_SIZE) * 0.001;
-
-      const amount = Big(energyUsed || 0).times(energyPrice).div(10 ** fromToken.nativeToken.decimals);
-      const totalAmount = Big(amount).plus(bandwidthAmount);
-      const usd = numberRemoveEndZero(Big(totalAmount).times(getPrice(prices, fromToken.nativeToken.symbol)).toFixed(20));
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = numberRemoveEndZero(Big(totalAmount).times(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
-      result.estimateSourceGasUsd = usd;
+    if (result.needApprove) {
+      const estApproveGas = await this.estimateApprove({
+        dry,
+        amountWei,
+        spender: result.approveSpender,
+        fromToken,
+        prices,
+      });
+      result.estimateApproveGas = estApproveGas.estimateSourceGas;
     }
 
     result.sendParam.transactionParams = transactionParams;

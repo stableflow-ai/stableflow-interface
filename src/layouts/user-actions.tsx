@@ -9,6 +9,7 @@ import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
 import NavigationMenu, { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
+import { useTrack } from "@/hooks/use-track";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -17,6 +18,7 @@ export default function UserActions() {
   const pathname = useLocation();
   const isMobile = useIsMobile();
   const historyStore = useHistoryStore();
+  const { addHistory } = useTrack();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isHistory = useMemo(() => {
@@ -66,6 +68,7 @@ export default function UserActions() {
                   {!isHistory && !isOverview && (
                     <HistoryButton
                       onClick={() => {
+                        addHistory({ type: "click" });
                         if (isMobile) {
                           historyStore.setOpenDrawer(!historyStore.openDrawer);
                           return;

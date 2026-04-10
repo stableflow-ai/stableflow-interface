@@ -3,10 +3,17 @@ import Pending from "./pending";
 import CompleteTransfers from "./complete-transfers";
 import { useHistory } from "./hooks/use-history";
 import { usePendingHistory } from "./hooks/use-pending-history";
+import { useTrack } from "@/hooks/use-track";
+import { useEffect } from "react";
 
 export default function History() {
   const history = useHistory();
   const pendingHistory = usePendingHistory(history);
+  const { addHistory } = useTrack();
+
+  useEffect(() => {
+    addHistory({ type: "view" });
+  }, []);
 
   return (
     <div className="w-full md:w-[680px] px-[10px] md:px-0 mx-auto pt-[72px] relative pb-[150px]">

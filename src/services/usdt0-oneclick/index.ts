@@ -90,6 +90,12 @@ export class Usdt0OneClickService {
     };
   }
 
+  public async estimateTransaction(params: any, quoteData: any) {
+    const { } = params;
+
+    return usdt0Service.estimateTransaction(params, quoteData);
+  }
+
   public async send(params: any) {
     const {
       wallet,

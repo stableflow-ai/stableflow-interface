@@ -4,6 +4,8 @@ import axios from "axios";
 import { SendType } from "@/libs/wallets/types";
 import { Service } from "@/services/constants";
 import { calculateEstimateTime } from "../utils";
+import Big from "big.js";
+import { numberRemoveEndZero } from "@/utils/format/number";
 
 export const PayInLzToken = false;
 
@@ -12,6 +14,7 @@ export const excludeFees: string[] = ["estimateGasUsd"];
 export class Usdt0Service {
   public async quote(params: any) {
     const {
+      dry,
       wallet,
       originChain,
       destinationChain,
@@ -102,6 +105,7 @@ export class Usdt0Service {
     }
 
     const oftParams: any = {
+      dry,
       dstEid: destinationLayerzero.eid,
       refundTo,
       recipient,
@@ -136,6 +140,59 @@ export class Usdt0Service {
     });
 
     result.estimateTime = estimateTime;
+
+    return result;
+  }
+
+  public async estimateTransaction(params: any, quoteData: any) {
+    const {
+      fromToken,
+      amountWei,
+      wallet,
+      prices,
+      evmGasFees,
+    } = params;
+
+    const result: any = { fees: {}, ...quoteData };
+
+    const isFromTron = fromToken.chainType === "tron";
+    const nativeTokenDecimals = fromToken.nativeToken.decimals;
+
+    const estimateTransactionParams = {
+      dry: false,
+      ...quoteData.sendParam,
+      fromToken,
+      prices,
+      evmGasFees,
+    };
+    if (isFromTron) {
+      estimateTransactionParams.defaultEnergyUsed = 300000;
+      estimateTransactionParams.defaultRawDataHexLength = 1000;
+    }
+    const ett = await wallet.estimateTransaction(estimateTransactionParams);
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.totalEstimateSourceGas = BigInt(Big(quoteData.fees?.nativeFee || 0).times(10 ** nativeTokenDecimals).toFixed(0)) + ett.estimateSourceGas;
+
+    if (result.needApprove && wallet.estimateApprove) {
+      const estApptroveGas = await wallet.estimateApprove({
+        dry: false,
+        amountWei,
+        spender: result.approveSpender,
+        fromToken,
+        prices,
+      });
+      result.estimateApproveGas = estApptroveGas.estimateSourceGas;
+    }
+
+    for (const feeKey in result.fees) {
+      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+        continue;
+      }
+      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+    }
+    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
     return result;
   }

@@ -30,6 +30,7 @@ import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/
 import { csl } from "@/utils/log";
 import { sortQuoteData } from "../utils";
 import { getQuoteModes } from "@/services/utils";
+import { TrackTransferStage, useTrack } from "@/hooks/use-track";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 1;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -56,6 +57,7 @@ export default function useBridge(props?: any) {
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
   const prevToTokenRef = useRef<any>(null);
+  const { addQuote: addQuoteTrack, addTransfer: addTransferTrack } = useTrack();
 
   const [fromWalletAddress, toWalletAddress] = useMemo(() => {
     const _fromChainType: WalletType = walletStore.fromToken?.chainType;
@@ -79,104 +81,81 @@ export default function useBridge(props?: any) {
   // Amount state
   const [amountError, setAmountError] = useState<string>("");
 
-  const onReportError = async (reportData: any) => {
-    const params = {
-      address: fromWalletAddress,
-      api: "oneclick/quote",
-      ...reportData,
+  const quoteRoutes = async (service: Service, params: any, requestId: number): Promise<QuoteData> => {
+    // Check request ID, skip setting loading state if not the latest request
+    if (requestId !== undefined && requestId !== requestIdRef.current) {
+      throw new Error("Request cancelled: outdated request");
+    }
+    bridgeStore.setQuoting(service, requestId, true);
+    const isFromTron = walletStore.fromToken.chainType === "tron";
+
+    const formatQuoteParams = async () => {
+      const _params: any = {
+        dry: params.dry,
+        amountWei: params.amountWei,
+        refundTo: fromWalletAddress || "",
+        recipient: bridgeStore.recipientAddress || toWalletAddress || "",
+        wallet: params.wallet,
+        wallets: params.wallets,
+        switchChainAsync: params.switchChainAsync,
+        fromToken: walletStore.fromToken,
+        toToken: walletStore.toToken,
+        prices,
+        slippageTolerance: configStore.slippage,
+      };
+      if (([
+        Service.OneClick,
+        Service.Usdt0OneClick,
+        Service.OneClickUsdt0,
+        Service.FraxZeroOneClick,
+        Service.OneClickFraxZero,
+      ] as Service[]).includes(service)) {
+        _params.originAsset = walletStore.fromToken.assetId;
+        _params.destinationAsset = walletStore.toToken.assetId;
+        _params.refundType = "ORIGIN_CHAIN";
+        _params.acceptTronEnergy = bridgeStore.acceptTronEnergy;
+
+        if (isFromTron && bridgeStore.acceptTronEnergy) {
+          const { needsEnergy, needsBandwidth, needsBandwidthTRX, needsEnergyTRX } = await getEstimateNeedsEnergy({
+            wallet: params.wallet,
+            account: fromWalletAddress || "",
+          });
+          _params.needsEnergy = needsEnergy;
+          _params.needsBandwidth = needsBandwidth;
+          _params.needsBandwidthTRX = needsBandwidthTRX;
+
+          if (needsEnergy) {
+            _params.needsEnergyAmount = needsEnergyTRX;
+          } else {
+            const fixedFee = BridgeFees.Normal;
+            const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
+            _params.appFees = [
+              {
+                recipient: BridgeFee[0].recipient,
+                fee: BridgeFee[0].fee + fixedFeePercentage,
+              },
+            ];
+          }
+        }
+
+        if (params.appFees) {
+          _params.appFees = params.appFees;
+        }
+      }
+      if (([Service.Usdt0, Service.CCTP, Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
+        _params.originChain = walletStore.fromToken.chainName;
+        _params.destinationChain = walletStore.toToken.chainName;
+      }
+      if (([Service.Native] as Service[]).includes(service)) {
+        _params.dry = params.dry;
+      }
+
+      return _params;
     };
 
-    // remove default wallet address
-    if (Object.values(BridgeDefaultWallets).some((addr) => addr === params.address)) {
-      params.address = "";
-    }
-
-    // truncate content if it's too long
-    if (params.content.length >= 1000) {
-      params.content = params.content.slice(0, 996) + "...";
-    }
+    const quoteParams = await formatQuoteParams();
 
     try {
-      await axios.post(`${BASE_API_URL}/v1/api/error`, params);
-    } catch (error) {
-      csl("onReportError", "gray-500", "Report error failed: %o", error);
-    }
-  };
-
-  const quoteRoutes = async (service: Service, params: any, requestId: number): Promise<QuoteData> => {
-    try {
-      // Check request ID, skip setting loading state if not the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
-        throw new Error("Request cancelled: outdated request");
-      }
-      bridgeStore.setQuoting(service, requestId, true);
-      const isFromTron = walletStore.fromToken.chainType === "tron";
-
-      const formatQuoteParams = async () => {
-        const _params: any = {
-          dry: params.dry,
-          amountWei: params.amountWei,
-          refundTo: fromWalletAddress || "",
-          recipient: bridgeStore.recipientAddress || toWalletAddress || "",
-          wallet: params.wallet,
-          wallets: params.wallets,
-          switchChainAsync: params.switchChainAsync,
-          fromToken: walletStore.fromToken,
-          toToken: walletStore.toToken,
-          prices,
-          slippageTolerance: configStore.slippage,
-        };
-        if (([
-          Service.OneClick,
-          Service.Usdt0OneClick,
-          Service.OneClickUsdt0,
-          Service.FraxZeroOneClick,
-          Service.OneClickFraxZero,
-        ] as Service[]).includes(service)) {
-          _params.originAsset = walletStore.fromToken.assetId;
-          _params.destinationAsset = walletStore.toToken.assetId;
-          _params.refundType = "ORIGIN_CHAIN";
-          _params.acceptTronEnergy = bridgeStore.acceptTronEnergy;
-
-          if (isFromTron && bridgeStore.acceptTronEnergy) {
-            const { needsEnergy, needsBandwidth, needsBandwidthTRX, needsEnergyTRX } = await getEstimateNeedsEnergy({
-              wallet: params.wallet,
-              account: fromWalletAddress || "",
-            });
-            _params.needsEnergy = needsEnergy;
-            _params.needsBandwidth = needsBandwidth;
-            _params.needsBandwidthTRX = needsBandwidthTRX;
-
-            if (needsEnergy) {
-              _params.needsEnergyAmount = needsEnergyTRX;
-            } else {
-              const fixedFee = BridgeFees.Normal;
-              const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
-              _params.appFees = [
-                {
-                  recipient: BridgeFee[0].recipient,
-                  fee: BridgeFee[0].fee + fixedFeePercentage,
-                },
-              ];
-            }
-          }
-
-          if (params.appFees) {
-            _params.appFees = params.appFees;
-          }
-        }
-        if (([Service.Usdt0, Service.CCTP, Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
-          _params.originChain = walletStore.fromToken.chainName;
-          _params.destinationChain = walletStore.toToken.chainName;
-        }
-        if (([Service.Native] as Service[]).includes(service)) {
-          _params.dry = params.dry;
-        }
-
-        return _params;
-      };
-
-      const quoteParams = await formatQuoteParams();
       const quoteRes = await ServiceMap[service].quote(quoteParams);
 
       bridgeStore.setQuoting(service, requestId, false);
@@ -187,6 +166,11 @@ export default function useBridge(props?: any) {
       }
 
       bridgeStore.setQuoteData(service, quoteRes);
+
+      addQuoteTrack({
+        quoteData: quoteRes,
+        service,
+      });
 
       return {
         type: service,
@@ -238,23 +222,19 @@ export default function useBridge(props?: any) {
 
         const _errorMessage = getQuoteErrorMessage();
         _finalErrorMessage = _errorMessage.message;
-
-        // Report error
-        onReportError({
-          content: _errorMessage.sourceMessage,
-          amount: bridgeStore.amount,
-          from_chain: walletStore.fromToken.chainName,
-          symbol: walletStore.fromToken.symbol,
-          to_chain: walletStore.toToken.chainName,
-          to_symbol: walletStore.toToken.symbol,
-        });
       }
 
       const _quoteData = {
         type: service,
+        quoteParam: quoteParams,
         errMsg: _finalErrorMessage,
       };
       bridgeStore.setQuoteData(service, _quoteData);
+
+      addQuoteTrack({
+        quoteData: _quoteData,
+        service,
+      });
 
       return _quoteData;
     }
@@ -509,7 +489,7 @@ export default function useBridge(props?: any) {
       // If the user has energy, it should be added together with TRX
       if (!params?.estimateGas && _quoteData?.quoteParam?.fromToken?.chainType === "tron") {
         const tronAccountResources = await wallet.wallet.getAccountResources({ account: wallet.account });
-        const tronAccountEnergyAsTRX = Big(tronAccountResources.energy || 0).times(10 ** 3);
+        const tronAccountEnergyAsTRX = Big(tronAccountResources.energy || 0).times(10 ** 2);
         csl("estimateNativeTokenBalance", "teal-700", "Estimate %s balance. Required: %s %s, Available: %s %s, Available Energy: %s(as %s %s), Total Available: %s %s", nativeTokenName, estimateGas, nativeTokenName, nativeBalance, nativeTokenName, tronAccountResources.energy, Big(tronAccountEnergyAsTRX).toFixed(0), nativeTokenName, Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX).toFixed(0), nativeTokenName);
         nativeBalance = Big(nativeBalance || 0).plus(tronAccountEnergyAsTRX);
       } else {
@@ -582,14 +562,26 @@ export default function useBridge(props?: any) {
   };
 
   const transfer = async () => {
+    const addTrackParams: any = {
+      type: "transfer_button",
+      service: bridgeStore.quoteDataService,
+      quoteData: bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService),
+      stage: TrackTransferStage.Start,
+    };
+
     if (!walletStore.fromToken) return;
     try {
       bridgeStore.set({ transferring: true });
+      addTransferTrack(addTrackParams);
+      addTrackParams.stage = TrackTransferStage.Quote;
       const _quote = await quoteWithRequestId({ dry: false }, true);
 
       if (!_quote.data) {
         throw new Error(_quote.errMsg || "Transfer failed");
       }
+
+      addTrackParams.quoteData = _quote.data;
+      addTransferTrack(addTrackParams);
 
       // @ts-ignore
       const wallet = wallets[walletStore.fromToken.chainType];
@@ -599,8 +591,6 @@ export default function useBridge(props?: any) {
         .times(10 ** walletStore.fromToken.decimals)
         .toFixed(0);
 
-      const isFromTron = walletStore.fromToken.chainType === "tron";
-      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
       const {
         isExactOutput,
         isOneClickService,
@@ -609,6 +599,8 @@ export default function useBridge(props?: any) {
         quoteData: _quote.data,
         bridgeStore,
       });
+      const isFromTron = walletStore.fromToken.chainType === "tron";
+      const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && isOneClickService;
 
       if (isExactOutput) {
         _amount = _quote.data.quote.minAmountIn;
@@ -617,6 +609,12 @@ export default function useBridge(props?: any) {
       // check latest balance
       const { wei: latestBalanceWei } = await getBalance();
       csl("transfer", "teal-400", "latest balance: %s", latestBalanceWei.toString());
+      addTrackParams.stage = TrackTransferStage.CheckBalance;
+      addTrackParams.addonData = {
+        balance: latestBalanceWei.toString(),
+        realInputAmount: _amount,
+      };
+      addTransferTrack(addTrackParams);
       if (Big(latestBalanceWei.toString()).lt(_amount)) {
         throw new Error("Insufficient balance");
       }
@@ -626,6 +624,19 @@ export default function useBridge(props?: any) {
         ? _quote.data.needApprove.some(Boolean)
         : _quote?.data?.needApprove;
       if (needApprove && !isFromTronEnergy) {
+        addTrackParams.stage = TrackTransferStage.Approve;
+        addTrackParams.addonData = {
+          spender: _quote?.data?.approveSpender,
+        };
+        if (_quote?.data?.estimateApproveGas) {
+          const { isContinue } = await estimateNativeTokenBalance({
+            estimateGas: _quote?.data?.estimateApproveGas,
+          });
+          if (!isContinue) {
+            throw new Error("nsufficient native token balance for approve");
+          }
+        }
+
         const approveSpenders = Array.isArray(_quote?.data?.approveSpender)
           ? _quote.data.approveSpender
           : [_quote?.data?.approveSpender];
@@ -662,11 +673,7 @@ export default function useBridge(props?: any) {
             amountWei: approveAmountWei,
           });
           if (!approveResult) {
-            toast.fail({
-              title: "Approve failed"
-            });
-            bridgeStore.set({ transferring: false });
-            return;
+            throw new Error("Approve failed");
           }
         }
         toast.success({
@@ -675,20 +682,42 @@ export default function useBridge(props?: any) {
         bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
           needApprove: false,
         });
-        // return;
+        addTransferTrack(addTrackParams);
+      }
+
+      // Try to re-estimate gas
+      if (ServiceMap[bridgeStore.quoteDataService].estimateTransaction) {
+        const estimateTransactionQuoteData = {
+          ..._quote.data,
+          needApprove: false,
+        };
+        try {
+          const estimateTransactionResult = await ServiceMap[bridgeStore.quoteDataService].estimateTransaction({
+            ..._quote.data.quoteParam,
+            wallet: wallet.wallet,
+          }, estimateTransactionQuoteData);
+          csl("transfer", "green-500", "final estimate transaction result: %o", estimateTransactionResult);
+          bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
+            fees: estimateTransactionResult.fees,
+            estimateSourceGas: estimateTransactionResult.estimateSourceGas,
+            totalEstimateSourceGas: estimateTransactionResult.totalEstimateSourceGas,
+            estimateSourceGasUsd: estimateTransactionResult.estimateSourceGasUsd,
+            totalFeesUsd: estimateTransactionResult.totalFeesUsd,
+          });
+        } catch (error) {
+          csl("transfer", "red-500", "final estimate transaction failed: %o", error);
+        }
       }
 
       // create solana usdc account for CCTP
       if (_quote?.data?.needCreateTokenAccount) {
+        addTrackParams.stage = TrackTransferStage.CreateATA;
         const createResult = await toWallet.wallet?.createAssociatedTokenAddress?.({
           tokenMint: walletStore.toToken.contractAddress,
         });
         bridgeStore.set({ transferring: false });
         if (!createResult) {
-          toast.fail({
-            title: `Initialize Solana ${walletStore.toToken.symbol} Account failed`,
-          });
-          return;
+          throw new Error(`Initialize Solana ${walletStore.toToken.symbol} Account failed`);
         }
         toast.success({
           title: `Initialize Solana ${walletStore.toToken.symbol} Account success`,
@@ -696,6 +725,7 @@ export default function useBridge(props?: any) {
         bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
           needCreateTokenAccount: false,
         });
+        addTransferTrack(addTrackParams);
         return;
       }
 
@@ -726,6 +756,8 @@ export default function useBridge(props?: any) {
         timeEstimate: _quote.data.estimateTime,
       };
 
+      addTrackParams.stage = TrackTransferStage.CheckNativeBalance;
+
       // 1click transfer
       if (isOneClickService) {
         const estNativeTokenParams: any = {};
@@ -743,17 +775,14 @@ export default function useBridge(props?: any) {
         }
         const { isContinue } = await estimateNativeTokenBalance(estNativeTokenParams);
         if (!isContinue) {
-          bridgeStore.set({ transferring: false });
-          toast.fail({
-            title: "Transfer failed",
-            text: "Insufficient native token balance"
-          });
-          return;
+          throw new Error("Insufficient native token balance for transaction");
         }
 
         if (!_quote?.data?.quote?.depositAddress) {
           throw new Error("Failed to get quote");
         }
+
+        addTrackParams.stage = TrackTransferStage.PermitSignature;
 
         // oneclick-usdt0 permit signature
         const permitResultData = await permitSignature({ _quote });
@@ -764,12 +793,15 @@ export default function useBridge(props?: any) {
           if (([Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService)) {
             reportData.frax_zero_permit = permitResultData;
           }
+          addTransferTrack(addTrackParams);
         }
 
         if (isFromTron && bridgeStore.acceptTronEnergy) {
+          addTrackParams.stage = TrackTransferStage.TronEnergy;
           bridgeStore.setTronTransferVisible(true, { quoteData: _quote });
           if (needsEnergy) {
             await getEnergy(fromTronParams);
+            addTransferTrack(addTrackParams);
           } else {
             bridgeStore.setTronTransferStep(TronTransferStepStatus.EnergyReady);
           }
@@ -787,12 +819,14 @@ export default function useBridge(props?: any) {
           // proxyTransfer.recipient = depositAddress
           _quote.data.sendParam.param[1] = _quote.data.quote.depositAddress;
         }
+        addTrackParams.stage = TrackTransferStage.Send;
         const hash = await ServiceMap[bridgeStore.quoteDataService].send({
           sendParam: _quote?.data?.sendParam,
           wallet: wallet.wallet,
           fromToken: walletStore.fromToken,
           depositAddress: _quote.data.quote.depositAddress,
           amountWei: _amount,
+          isFromTronEnergy,
         });
 
         localHistoryData.txHash = hash;
@@ -803,6 +837,10 @@ export default function useBridge(props?: any) {
 
         reportData.tx_hash = hash;
         report(reportData);
+        addTrackParams.addonData = {
+          txHash: hash,
+        };
+        addTransferTrack(addTrackParams);
 
         if (isFromTron && bridgeStore.acceptTronEnergy) {
           bridgeStore.setTronTransferStep(TronTransferStepStatus.Broadcasting);
@@ -831,13 +869,10 @@ export default function useBridge(props?: any) {
       else {
         const { isContinue } = await estimateNativeTokenBalance();
         if (!isContinue) {
-          bridgeStore.set({ transferring: false });
-          toast.fail({
-            title: "Transfer failed",
-            text: "Insufficient native token balance"
-          });
-          return;
+          throw new Error("Insufficient native token balance for transaction");
         }
+
+        addTrackParams.stage = TrackTransferStage.PermitSignature;
 
         // oneclick-usdt0 permit signature
         const permitResultData = await permitSignature({ _quote });
@@ -845,7 +880,10 @@ export default function useBridge(props?: any) {
           if (([Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
             reportData.frax_zero_permit = permitResultData;
           }
+          addTransferTrack(addTrackParams);
         }
+
+        addTrackParams.stage = TrackTransferStage.Send;
 
         const sendParams: any = {
           ..._quote?.data?.sendParam,
@@ -872,6 +910,10 @@ export default function useBridge(props?: any) {
         historyStore.updateStatus(hash, "PENDING_DEPOSIT");
 
         report(reportData);
+        addTrackParams.addonData = {
+          txHash: hash,
+        };
+        addTransferTrack(addTrackParams);
       }
 
       bridgeStore.set({ transferring: false });
@@ -901,6 +943,8 @@ export default function useBridge(props?: any) {
       toast.fail({
         title: _finalErrorMessage,
       });
+      addTrackParams.errMsg = _finalErrorMessage;
+      addTransferTrack(addTrackParams);
     }
   };
 
