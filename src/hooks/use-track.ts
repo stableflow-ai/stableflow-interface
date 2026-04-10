@@ -5,6 +5,7 @@ import { useTrackStore } from "@/stores/use-track";
 import useWalletStore from "@/stores/use-wallet";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import { csl } from "@/utils/log";
+import { useDebounceFn } from "ahooks";
 import axios from "axios";
 import Big from "big.js";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -105,69 +106,87 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   };
 
   const toSnakeCase = (str: string): string => {
-    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    try {
+      return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    } catch {
+      return str;
+    }
   };
 
   const transformObject = (obj: any): any => {
-    if (obj === null || typeof obj !== 'object') {
-      if (typeof obj === 'bigint') {
-        return obj.toString();
+    try {
+      if (obj === null || typeof obj !== 'object') {
+        if (typeof obj === 'bigint') {
+          return obj.toString();
+        }
+        return obj;
       }
+
+      if (Array.isArray(obj)) {
+        return obj.map(v => transformObject(v));
+      }
+
+      return Object.keys(obj).reduce((acc, key) => {
+        const snakeKey = toSnakeCase(key);
+        const value = obj[key];
+
+        acc[snakeKey] = transformObject(value);
+
+        return acc;
+      }, {} as Record<string, any>);
+    } catch {
       return obj;
     }
-
-    if (Array.isArray(obj)) {
-      return obj.map(v => transformObject(v));
-    }
-
-    return Object.keys(obj).reduce((acc, key) => {
-      const snakeKey = toSnakeCase(key);
-      const value = obj[key];
-
-      acc[snakeKey] = transformObject(value);
-
-      return acc;
-    }, {} as Record<string, any>);
   }
 
   const formatQuoteData = (quoteData: any) => {
-    const {
-      fromToken,
-      toToken,
-      amountWei,
-      recipient,
-      refundTo,
-      slippageTolerance,
-    } = quoteData?.quoteParam ?? {};
+    try {
+      const {
+        fromToken,
+        toToken,
+        amountWei,
+        recipient,
+        refundTo,
+        slippageTolerance,
+        dry,
+      } = quoteData?.quoteParam ?? {};
+      const { depositAddress } = quoteData?.quote ?? {};
+      const { appFees } = quoteData?.quoteRequest ?? {};
 
-    return {
-      estimate_time: quoteData?.estimateTime ?? 0,
-      output_amount: quoteData?.outputAmount ?? "0",
-      input_amount: Big(amountWei || 0).div(10 ** (fromToken?.decimals || 6)).toFixed(fromToken?.decimals || 6, Big.roundDown),
-      recipient: checkIsValidAddress(recipient) ? recipient : "",
-      refund_to: checkIsValidAddress(refundTo) ? refundTo : "",
-      slippage: slippageTolerance,
-      from_chain: fromToken?.blockchain,
-      from_token: {
-        symbol: fromToken?.symbol,
-        address: fromToken?.contractAddress,
-        decimals: fromToken?.decimals,
-        chain: fromToken?.blockchain,
-        chain_type: fromToken?.chainType,
-      },
-      to_chain: toToken?.blockchain,
-      to_token: {
-        symbol: toToken?.symbol,
-        address: toToken?.contractAddress,
-        decimals: toToken?.decimals,
-        chain: toToken?.blockchain,
-        chain_type: toToken?.chainType,
-      },
-      estimate_from_gas: quoteData?.estimateSourceGas?.toString() ?? "0",
-      // exclude estimate_from_gas
-      total_fees_usd: quoteData?.totalFeesUsd ?? "0",
-      fees: transformObject(quoteData?.fees ?? {}),
-    };
+      return {
+        estimate_time: quoteData?.estimateTime ?? 0,
+        output_amount: quoteData?.outputAmount ?? "0",
+        input_amount: Big(amountWei || 0).div(10 ** (fromToken?.decimals || 6)).toFixed(fromToken?.decimals || 6, Big.roundDown),
+        recipient: checkIsValidAddress(recipient) ? recipient : "",
+        refund_to: checkIsValidAddress(refundTo) ? refundTo : "",
+        slippage: slippageTolerance,
+        from_chain: fromToken?.blockchain,
+        from_token: {
+          symbol: fromToken?.symbol,
+          address: fromToken?.contractAddress,
+          decimals: fromToken?.decimals,
+          chain: fromToken?.blockchain,
+          chain_type: fromToken?.chainType,
+        },
+        to_chain: toToken?.blockchain,
+        to_token: {
+          symbol: toToken?.symbol,
+          address: toToken?.contractAddress,
+          decimals: toToken?.decimals,
+          chain: toToken?.blockchain,
+          chain_type: toToken?.chainType,
+        },
+        estimate_from_gas: quoteData?.estimateSourceGas?.toString() ?? "0",
+        // exclude estimate_from_gas
+        total_fees_usd: quoteData?.totalFeesUsd ?? "0",
+        fees: transformObject(quoteData?.fees ?? {}),
+        deposit_address: depositAddress,
+        dry,
+        app_fees: appFees,
+      };
+    } catch {
+      return {};
+    }
   };
 
   const fromTokenAddress = useMemo(() => {
@@ -274,7 +293,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     });
   };
 
-  const addEnterAmount = (params: { amount?: string; }) => {
+  const { run: addEnterAmount } = useDebounceFn((params: { amount?: string; }) => {
     const { amount } = params ?? {};
     return add({
       action: TrackAction.EnterAmount,
@@ -283,7 +302,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
         amount: amount ?? "",
       }),
     });
-  };
+  }, { wait: 1000 });
 
   const addSetSlippage = (params: { value?: string; }) => {
     const { value } = params ?? {};
