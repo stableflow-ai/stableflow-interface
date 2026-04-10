@@ -109,6 +109,11 @@ export const LAYERZZERO_CHAINS: Record<string, LayerZeroChainConfig> = {
     chainKey: "ton",
     blockTime: 2.71,
   },
+  Katana: {
+    eid: 30375,
+    chainKey: "katana",
+    blockTime: 1,
+  },
 };
 
 /**

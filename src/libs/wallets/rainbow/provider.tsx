@@ -19,6 +19,7 @@ import {
   sei,
   flare,
   fraxtal,
+  katana,
 } from "viem/chains";
 import {
   WagmiProvider,
@@ -77,6 +78,7 @@ const RpcUrls: any = {
   [sei.id]: fallback(getChainRpcUrl("Sei").rpcUrls.map((rpc) => http(rpc))),
   [flare.id]: fallback(getChainRpcUrl("Flare").rpcUrls.map((rpc) => http(rpc))),
   [fraxtal.id]: fallback(getChainRpcUrl("Fraxtal").rpcUrls.map((rpc) => http(rpc))),
+  [katana.id]: fallback(getChainRpcUrl("Katana").rpcUrls.map((rpc) => http(rpc))),
 };
 
 const config = getDefaultConfig({
@@ -105,6 +107,7 @@ const config = getDefaultConfig({
     sei,
     flare,
     fraxtal,
+    katana,
   ],
   transports: {
     [mainnet.id]: RpcUrls[mainnet.id] || http(),
@@ -126,6 +129,7 @@ const config = getDefaultConfig({
     [sei.id]: RpcUrls[sei.id] || http(),
     [flare.id]: RpcUrls[flare.id] || http(),
     [fraxtal.id]: RpcUrls[fraxtal.id] || http(),
+    [katana.id]: RpcUrls[katana.id] || http(),
   },
 });
 const connectors: any = connectorsForWallets(

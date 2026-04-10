@@ -74,6 +74,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Fraxtal": ["https://rpc.frax.com"],
   "Ton": ["https://toncenter.com/api/v2/jsonRPC"],
   "Sui": ["https://fullnode.mainnet.sui.io:443"],
+  "Katana": ["https://rpc.katana.network", "https://katana.drpc.org"],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
@@ -452,6 +453,21 @@ const chains = {
       decimals: 9,
     },
     ...getChainRpcUrl("Sui"),
+  },
+  katana: {
+    chainName: "Katana",
+    blockchain: "katana",
+    chainIcon: "/chains/katana.png",
+    chainIconGray: "/chains/katana-gray.png",
+    chainType: chainTypes.evm.value,
+    chainId: 747474,
+    blockExplorerUrl: "https://katanascan.com/tx",
+    primaryColor: "#F6FF0D",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Katana"),
   },
 };
 
