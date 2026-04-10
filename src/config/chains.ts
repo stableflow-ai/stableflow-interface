@@ -267,7 +267,7 @@ const chains = {
     chainIconGray: "/chains/berachain-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 80094,
-    blockExplorerUrl: "https://berascan.com/tx/",
+    blockExplorerUrl: "https://berascan.com/tx",
     primaryColor: "#F37325",
     nativeToken: {
       symbol: "BERA",
@@ -282,7 +282,7 @@ const chains = {
     chainIconGray: "/chains/xlayer-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 196,
-    blockExplorerUrl: "https://www.oklink.com/xlayer/tx/",
+    blockExplorerUrl: "https://www.oklink.com/xlayer/tx",
     primaryColor: "#000000",
     nativeToken: {
       symbol: "OKB",
@@ -297,7 +297,7 @@ const chains = {
     chainIconGray: "/chains/plasma-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 9745,
-    blockExplorerUrl: "https://plasmascan.to/tx/",
+    blockExplorerUrl: "https://plasmascan.to/tx",
     primaryColor: "#162F29",
     nativeToken: {
       symbol: "XPL",
@@ -311,7 +311,7 @@ const chains = {
     chainIcon: "/chains/ton.png",
     chainIconGray: "/chains/ton-gray.png",
     chainType: chainTypes.ton.value,
-    blockExplorerUrl: "https://tonviewer.com/transaction/",
+    blockExplorerUrl: "https://tonviewer.com/transaction",
     primaryColor: "#0098EA",
     nativeToken: {
       symbol: "TON",
@@ -326,7 +326,7 @@ const chains = {
     chainIconGray: "/chains/mantle-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 5000,
-    blockExplorerUrl: "https://mantlescan.xyz/tx/",
+    blockExplorerUrl: "https://mantlescan.xyz/tx",
     primaryColor: "#162F29",
     nativeToken: {
       symbol: "MNT",
@@ -341,7 +341,7 @@ const chains = {
     chainIconGray: "/chains/megaeth-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 4326,
-    blockExplorerUrl: "https://mega.etherscan.io/tx/",
+    blockExplorerUrl: "https://mega.etherscan.io/tx",
     primaryColor: "#19191A",
     nativeToken: {
       symbol: "ETH",
@@ -356,7 +356,7 @@ const chains = {
     chainIconGray: "/chains/ink-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 57073,
-    blockExplorerUrl: "https://explorer.inkonchain.com/tx/",
+    blockExplorerUrl: "https://explorer.inkonchain.com/tx",
     primaryColor: "#7132F5",
     nativeToken: {
       symbol: "ETH",
@@ -371,7 +371,7 @@ const chains = {
     chainIconGray: "/chains/stable-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 988,
-    blockExplorerUrl: "https://uniscan.xyz/tx/",
+    blockExplorerUrl: "https://uniscan.xyz/tx",
     primaryColor: "#01241D",
     nativeToken: {
       symbol: "USDT0",
@@ -386,7 +386,7 @@ const chains = {
     chainIconGray: "/chains/celo-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 42_220,
-    blockExplorerUrl: "https://celoscan.io/tx/",
+    blockExplorerUrl: "https://celoscan.io/tx",
     primaryColor: "#FCFF52",
     nativeToken: {
       symbol: "CELO",
@@ -401,7 +401,7 @@ const chains = {
     chainIconGray: "/chains/sei-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 1329,
-    blockExplorerUrl: "https://seitrace.com/tx/",
+    blockExplorerUrl: "https://seitrace.com/tx",
     primaryColor: "#991717",
     nativeToken: {
       symbol: "SEI",
@@ -416,7 +416,7 @@ const chains = {
     chainIconGray: "/chains/flare-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 14,
-    blockExplorerUrl: "https://flare-explorer.flare.network/tx/",
+    blockExplorerUrl: "https://flare-explorer.flare.network/tx",
     primaryColor: "#E62058",
     nativeToken: {
       symbol: "FLR",
@@ -431,7 +431,7 @@ const chains = {
     chainIconGray: "/chains/frax-gray.png",
     chainType: chainTypes.evm.value,
     chainId: 252,
-    blockExplorerUrl: "https://fraxscan.com/tx/",
+    blockExplorerUrl: "https://fraxscan.com/tx",
     primaryColor: "#000",
     nativeToken: {
       symbol: "FRAX",
@@ -445,7 +445,7 @@ const chains = {
     chainIcon: "/chains/sui.png",
     chainIconGray: "/chains/sui-gray.png",
     chainType: chainTypes.sui.value,
-    blockExplorerUrl: "https://suiscan.xyz/mainnet/tx/",
+    blockExplorerUrl: "https://suiscan.xyz/mainnet/tx",
     primaryColor: "#298DFF",
     nativeToken: {
       symbol: "SUI",
