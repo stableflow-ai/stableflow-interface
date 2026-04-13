@@ -220,6 +220,7 @@ function Content() {
           chainId: account.chainId,
           wallet: wallet,
           walletIcon: evmWalletInfo.icon,
+          walletName: evmWalletInfo.name,
           connect: () => {
             openConnectModal?.();
           },

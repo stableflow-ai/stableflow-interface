@@ -20,21 +20,9 @@ export const TrackAction = {
   SetSlippage: "set_slippage",
   ExternalLinkClick: "external_link_click",
   History: "history_page",
+  CreateSolanaATA: "create_solana_ata",
 } as const;
 export type TrackAction = (typeof TrackAction)[keyof typeof TrackAction];
-
-export const TrackTransferStage = {
-  Start: "start",
-  Quote: "quote_latest",
-  CheckBalance: "check_balance",
-  CreateATA: "create_solana_associated_token_address",
-  Approve: "approve",
-  CheckNativeBalance: "check_native_balance",
-  PermitSignature: "permit_signature",
-  TronEnergy: "get_tron_energy",
-  Send: "send",
-} as const;
-export type TrackTransferStage = (typeof TrackTransferStage)[keyof typeof TrackTransferStage];
 
 interface TrackParams {
   action: TrackAction;
@@ -59,11 +47,13 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   const [isReportedOpen, setIsReportedOpen] = useState(false);
 
   const [accounts, _accountAddresses, accountAddressesStr] = useMemo(() => {
-    const __accounts = Object.entries(wallets)
-      .filter(([chainType]) => !["set"].includes(chainType))
+    const _connectedWallets = Object.entries(wallets)
+      .filter(([chainType]) => !["set"].includes(chainType));
+    const __accounts = _connectedWallets
       .map(([chainType, wallet]) => ({
         chain_type: chainType,
         address: wallet.account,
+        wallet_name: wallet.walletName,
       }))
       .filter((wallet) => !!wallet.address);
     const __accountAddresses = __accounts.map((account: any) => account.address);
@@ -246,44 +236,22 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   const addTransfer = (
     params: {
       type: "transfer_button" | "continue_button";
-      stage: TrackTransferStage;
       quoteData?: any;
       service: Service;
       errMsg?: string;
-      addonData?: {
-        balance?: string;
-        realInputAmount?: string;
-        spender?: string;
-        txHash?: string;
-      };
+      txHash?: string;
     }
   ) => {
-    const { type, stage, quoteData, service, errMsg, addonData } = params;
-    const {
-      balance,
-      realInputAmount,
-      spender,
-      txHash,
-    } = addonData ?? {};
+    const { type, quoteData, service, errMsg, txHash } = params;
 
     const reportContent: any = {
       type,
+      tx_hash: txHash,
       route: ServiceBackend[service as Service],
-      stage,
       ...formatQuoteData(quoteData),
     };
     if (errMsg) {
       reportContent.error_message = errMsg;
-    }
-    if (stage === TrackTransferStage.CheckBalance) {
-      reportContent.latest_balance = balance;
-      reportContent.real_input_amount = realInputAmount;
-    }
-    if (stage === TrackTransferStage.Approve) {
-      reportContent.spender = spender;
-    }
-    if (stage === TrackTransferStage.Send) {
-      reportContent.tx_hash = txHash;
     }
 
     return add({
@@ -337,6 +305,28 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     });
   };
 
+  const addCreateSolanaATA = (params: {
+    quoteData?: any;
+    service: Service;
+    errMsg?: string;
+  }) => {
+    const { quoteData, service, errMsg } = params;
+
+    const reportContent: any = {
+      route: ServiceBackend[service as Service],
+      ...formatQuoteData(quoteData),
+    };
+    if (errMsg) {
+      reportContent.error_message = errMsg;
+    }
+
+    return add({
+      action: TrackAction.CreateSolanaATA,
+      address: checkIsValidAddress(quoteData?.quoteParam?.refundTo) ? quoteData?.quoteParam?.refundTo : "",
+      content: JSON.stringify(reportContent),
+    });
+  };
+
   return {
     sessionId,
     add,
@@ -347,5 +337,6 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     addSetSlippage,
     addExternalLinkClick,
     addHistory,
+    addCreateSolanaATA,
   };
 }

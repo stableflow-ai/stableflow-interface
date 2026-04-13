@@ -119,6 +119,7 @@ const Content = () => {
         account: publicKey?.toString() || null,
         wallet: solanaWallet,
         walletIcon: wallet?.adapter.icon,
+        walletName: wallet?.adapter.name,
         connect: () => {
           if (wallet) {
             connect();
@@ -189,6 +190,7 @@ const MobileContent = () => {
         account,
         wallet: solanaWallet,
         walletIcon: icon,
+        walletName: "OKX Wallet",
         connect: connect,
         disconnect: disconnect,
       }

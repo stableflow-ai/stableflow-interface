@@ -174,7 +174,8 @@ const Content = () => {
         account: adapter.address,
         wallet: walletRef.current,
         ...params,
-        walletIcon: adapter.icon
+        walletIcon: adapter.icon,
+        walletName: adapter.name,
       }
     });
 
@@ -186,7 +187,8 @@ const Content = () => {
           account: address,
           wallet: walletRef.current,
           ...params,
-          walletIcon: adapter.icon
+          walletIcon: adapter.icon,
+          walletName: adapter.name,
         }
       });
     });
@@ -264,6 +266,7 @@ const MobileWallet = () => {
         account,
         wallet: tronWallet,
         walletIcon: icon,
+        walletName: "OKX Wallet",
         connect,
         disconnect,
       }

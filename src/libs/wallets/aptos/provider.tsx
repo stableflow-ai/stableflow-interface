@@ -101,6 +101,7 @@ const Content = () => {
         account: account?.address.toString() || null,
         wallet: aptosWallet,
         walletIcon: wallet?.icon,
+        walletName: wallet?.name,
         connect: () => {
           if (wallet) {
             onConnect(wallet.name);
@@ -185,6 +186,7 @@ const MobileContent = () => {
         account: account?.address?.toString(),
         wallet: aptosWallet,
         walletIcon: icon,
+        walletName: "OKX Wallet",
         connect: connect,
         disconnect: disconnect,
       }
