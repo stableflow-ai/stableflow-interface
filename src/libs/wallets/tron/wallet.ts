@@ -448,9 +448,16 @@ export default class TronWallet {
       spender,
       amountWei,
       isApproveMax = false,
+      isDetails = false,
     } = params;
 
     await this.waitForTronWeb();
+
+    const detailResult: any = {
+      success: false,
+      data: {},
+      message: null,
+    };
 
     try {
       // Determine approval amount
@@ -474,9 +481,21 @@ export default class TronWallet {
       );
 
       // Sign and send transaction
-      return this.sendTransaction({ tx });
-    } catch (error) {
+      const txHash = await this.sendTransaction({ tx });
+
+      if (isDetails) {
+        detailResult.success = true;
+        detailResult.data = { txHash: txHash };
+        return detailResult;
+      }
+
+      return txHash;
+    } catch (error: any) {
       csl("TronWallet approve", "red-500", "Error approve: %o", error);
+      if (isDetails) {
+        detailResult.message = error.message;
+        return detailResult;
+      }
       return false;
     }
   }

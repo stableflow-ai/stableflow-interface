@@ -118,6 +118,7 @@ export default function NEARProvider({
               near: {
                 ...params,
                 walletIcon: wallet?.metadata.iconUrl,
+                walletName: wallet?.metadata.name,
                 account:
                   state.accounts.find((account) => account.active)?.accountId ||
                   null

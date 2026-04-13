@@ -32,7 +32,7 @@ import { sortQuoteData } from "../utils";
 import { getQuoteModes } from "@/services/utils";
 import useEvmGasFeesStore from "@/stores/use-evm-gas-fees";
 import { ExecTime } from "@/utils/exec-time";
-import { TrackTransferStage, useTrack } from "@/hooks/use-track";
+import { useTrack } from "@/hooks/use-track";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 0.01;
 const CCTP_AUTO_REQUOTE_DURATION = 20000; // 20s
@@ -60,7 +60,7 @@ export default function useBridge(props?: any) {
   const toast = useToast();
   const prevToTokenRef = useRef<any>(null);
   const { byChainId: evmGasFees } = useEvmGasFeesStore();
-  const { addQuote: addQuoteTrack, addTransfer: addTransferTrack } = useTrack();
+  const { addQuote: addQuoteTrack, addTransfer: addTransferTrack, addCreateSolanaATA: addCreateSolanaATATrack } = useTrack();
 
   const [fromWalletAddress, toWalletAddress] = useMemo(() => {
     const _fromChainType: WalletType = walletStore.fromToken?.chainType;
@@ -603,14 +603,11 @@ export default function useBridge(props?: any) {
       type: "transfer_button",
       service: bridgeStore.quoteDataService,
       quoteData: bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService),
-      stage: TrackTransferStage.Start,
     };
 
     if (!walletStore.fromToken) return;
     try {
       bridgeStore.set({ transferring: true });
-      addTransferTrack(addTrackParams);
-      addTrackParams.stage = TrackTransferStage.Quote;
       const _quote = await quoteWithRequestId({ dry: false }, true);
 
       if (!_quote.data) {
@@ -618,7 +615,6 @@ export default function useBridge(props?: any) {
       }
 
       addTrackParams.quoteData = _quote.data;
-      addTransferTrack(addTrackParams);
 
       // @ts-ignore
       const wallet = wallets[walletStore.fromToken.chainType];
@@ -646,12 +642,6 @@ export default function useBridge(props?: any) {
       // check latest balance
       const { wei: latestBalanceWei } = await getBalance();
       csl("transfer", "teal-400", "latest balance: %s", latestBalanceWei.toString());
-      addTrackParams.stage = TrackTransferStage.CheckBalance;
-      addTrackParams.addonData = {
-        balance: latestBalanceWei.toString(),
-        realInputAmount: _amount,
-      };
-      addTransferTrack(addTrackParams);
       if (Big(latestBalanceWei.toString()).lt(_amount)) {
         throw new Error("Insufficient balance");
       }
@@ -661,10 +651,6 @@ export default function useBridge(props?: any) {
         ? _quote.data.needApprove.some(Boolean)
         : _quote?.data?.needApprove;
       if (needApprove && !isFromTronEnergy) {
-        addTrackParams.stage = TrackTransferStage.Approve;
-        addTrackParams.addonData = {
-          spender: _quote?.data?.approveSpender,
-        };
         if (_quote?.data?.estimateApproveGas) {
           const { isContinue } = await estimateNativeTokenBalance({
             estimateGas: _quote?.data?.estimateApproveGas,
@@ -708,9 +694,10 @@ export default function useBridge(props?: any) {
             contractAddress: walletStore.fromToken.contractAddress,
             spender: approveSpenders[i],
             amountWei: approveAmountWei,
+            isDetails: true,
           });
-          if (!approveResult) {
-            throw new Error("Approve failed");
+          if (!approveResult.success) {
+            throw new Error(approveResult.message || "Approve failed");
           }
         }
         toast.success({
@@ -719,7 +706,6 @@ export default function useBridge(props?: any) {
         bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
           needApprove: false,
         });
-        addTransferTrack(addTrackParams);
       }
 
       // Try to re-estimate gas
@@ -748,7 +734,6 @@ export default function useBridge(props?: any) {
 
       // create solana usdc account for CCTP
       if (_quote?.data?.needCreateTokenAccount) {
-        addTrackParams.stage = TrackTransferStage.CreateATA;
         const createResult = await toWallet.wallet?.createAssociatedTokenAddress?.({
           tokenMint: walletStore.toToken.contractAddress,
         });
@@ -762,7 +747,7 @@ export default function useBridge(props?: any) {
         bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
           needCreateTokenAccount: false,
         });
-        addTransferTrack(addTrackParams);
+        addCreateSolanaATATrack(addTrackParams);
         return;
       }
 
@@ -793,8 +778,6 @@ export default function useBridge(props?: any) {
         timeEstimate: _quote.data.estimateTime,
       };
 
-      addTrackParams.stage = TrackTransferStage.CheckNativeBalance;
-
       // 1click transfer
       if (isOneClickService) {
         const estNativeTokenParams: any = {};
@@ -819,8 +802,6 @@ export default function useBridge(props?: any) {
           throw new Error("Failed to get quote");
         }
 
-        addTrackParams.stage = TrackTransferStage.PermitSignature;
-
         // oneclick-usdt0 permit signature
         const permitResultData = await permitSignature({ _quote });
         if (permitResultData) {
@@ -830,15 +811,12 @@ export default function useBridge(props?: any) {
           if (([Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService)) {
             reportData.frax_zero_permit = permitResultData;
           }
-          addTransferTrack(addTrackParams);
         }
 
         if (isFromTron && bridgeStore.acceptTronEnergy) {
-          addTrackParams.stage = TrackTransferStage.TronEnergy;
           bridgeStore.setTronTransferVisible(true, { quoteData: _quote });
           if (needsEnergy) {
             await getEnergy(fromTronParams);
-            addTransferTrack(addTrackParams);
           } else {
             bridgeStore.setTronTransferStep(TronTransferStepStatus.EnergyReady);
           }
@@ -856,7 +834,6 @@ export default function useBridge(props?: any) {
           // proxyTransfer.recipient = depositAddress
           _quote.data.sendParam.param[1] = _quote.data.quote.depositAddress;
         }
-        addTrackParams.stage = TrackTransferStage.Send;
         const hash = await ServiceMap[bridgeStore.quoteDataService].send({
           sendParam: _quote?.data?.sendParam,
           wallet: wallet.wallet,
@@ -874,9 +851,7 @@ export default function useBridge(props?: any) {
 
         reportData.tx_hash = hash;
         report(reportData);
-        addTrackParams.addonData = {
-          txHash: hash,
-        };
+        addTrackParams.txHash = hash;
         addTransferTrack(addTrackParams);
 
         if (isFromTron && bridgeStore.acceptTronEnergy) {
@@ -909,18 +884,13 @@ export default function useBridge(props?: any) {
           throw new Error("Insufficient native token balance for transaction");
         }
 
-        addTrackParams.stage = TrackTransferStage.PermitSignature;
-
         // oneclick-usdt0 permit signature
         const permitResultData = await permitSignature({ _quote });
         if (permitResultData) {
           if (([Service.FraxZeroOneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
             reportData.frax_zero_permit = permitResultData;
           }
-          addTransferTrack(addTrackParams);
         }
-
-        addTrackParams.stage = TrackTransferStage.Send;
 
         const sendParams: any = {
           ..._quote?.data?.sendParam,
@@ -947,9 +917,7 @@ export default function useBridge(props?: any) {
         historyStore.updateStatus(hash, "PENDING_DEPOSIT");
 
         report(reportData);
-        addTrackParams.addonData = {
-          txHash: hash,
-        };
+        addTrackParams.txHash = hash;
         addTransferTrack(addTrackParams);
       }
 
