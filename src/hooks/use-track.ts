@@ -5,9 +5,11 @@ import { useTrackStore } from "@/stores/use-track";
 import useWalletStore from "@/stores/use-wallet";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import { csl } from "@/utils/log";
+import { useDebounceFn } from "ahooks";
 import axios from "axios";
 import Big from "big.js";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 export const TrackAction = {
   Connect: "connect_wallet",
@@ -18,21 +20,9 @@ export const TrackAction = {
   SetSlippage: "set_slippage",
   ExternalLinkClick: "external_link_click",
   History: "history_page",
+  CreateSolanaATA: "create_solana_ata",
 } as const;
 export type TrackAction = (typeof TrackAction)[keyof typeof TrackAction];
-
-export const TrackTransferStage = {
-  Start: "start",
-  Quote: "quote_latest",
-  CheckBalance: "check_balance",
-  CreateATA: "create_solana_associated_token_address",
-  Approve: "approve",
-  CheckNativeBalance: "check_native_balance",
-  PermitSignature: "permit_signature",
-  TronEnergy: "get_tron_energy",
-  Send: "send",
-} as const;
-export type TrackTransferStage = (typeof TrackTransferStage)[keyof typeof TrackTransferStage];
 
 interface TrackParams {
   action: TrackAction;
@@ -57,11 +47,13 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   const [isReportedOpen, setIsReportedOpen] = useState(false);
 
   const [accounts, _accountAddresses, accountAddressesStr] = useMemo(() => {
-    const __accounts = Object.entries(wallets)
-      .filter(([chainType]) => !["set"].includes(chainType))
+    const _connectedWallets = Object.entries(wallets)
+      .filter(([chainType]) => !["set"].includes(chainType));
+    const __accounts = _connectedWallets
       .map(([chainType, wallet]) => ({
         chain_type: chainType,
         address: wallet.account,
+        wallet_name: wallet.walletName,
       }))
       .filter((wallet) => !!wallet.address);
     const __accountAddresses = __accounts.map((account: any) => account.address);
@@ -69,18 +61,21 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   }, [wallets]);
 
   const init = () => {
-    initSessionId();
+    const _sessionId = uuidv4();
+    initSessionId(_sessionId);
     csl("useTrack", "yellow-700", "init session id: %o", sessionId);
+    return _sessionId;
   };
 
   const add = async (params: TrackParams) => {
-    if (!sessionId) {
-      init();
+    let _sessionId = sessionId;
+    if (!_sessionId) {
+      _sessionId = init();
     }
 
     const reportParams = {
       source: "stableflow",
-      session_id: sessionId,
+      session_id: _sessionId,
       ...params,
     };
 
@@ -101,69 +96,87 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   };
 
   const toSnakeCase = (str: string): string => {
-    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    try {
+      return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    } catch {
+      return str;
+    }
   };
 
   const transformObject = (obj: any): any => {
-    if (obj === null || typeof obj !== 'object') {
-      if (typeof obj === 'bigint') {
-        return obj.toString();
+    try {
+      if (obj === null || typeof obj !== 'object') {
+        if (typeof obj === 'bigint') {
+          return obj.toString();
+        }
+        return obj;
       }
+
+      if (Array.isArray(obj)) {
+        return obj.map(v => transformObject(v));
+      }
+
+      return Object.keys(obj).reduce((acc, key) => {
+        const snakeKey = toSnakeCase(key);
+        const value = obj[key];
+
+        acc[snakeKey] = transformObject(value);
+
+        return acc;
+      }, {} as Record<string, any>);
+    } catch {
       return obj;
     }
-
-    if (Array.isArray(obj)) {
-      return obj.map(v => transformObject(v));
-    }
-
-    return Object.keys(obj).reduce((acc, key) => {
-      const snakeKey = toSnakeCase(key);
-      const value = obj[key];
-
-      acc[snakeKey] = transformObject(value);
-
-      return acc;
-    }, {} as Record<string, any>);
   }
 
   const formatQuoteData = (quoteData: any) => {
-    const {
-      fromToken,
-      toToken,
-      amountWei,
-      recipient,
-      refundTo,
-      slippageTolerance,
-    } = quoteData?.quoteParam ?? {};
+    try {
+      const {
+        fromToken,
+        toToken,
+        amountWei,
+        recipient,
+        refundTo,
+        slippageTolerance,
+        dry,
+      } = quoteData?.quoteParam ?? {};
+      const { depositAddress } = quoteData?.quote ?? {};
+      const { appFees } = quoteData?.quoteRequest ?? {};
 
-    return {
-      estimate_time: quoteData?.estimateTime ?? 0,
-      output_amount: quoteData?.outputAmount ?? "0",
-      input_amount: Big(amountWei || 0).div(10 ** (fromToken?.decimals || 6)).toFixed(fromToken?.decimals || 6, Big.roundDown),
-      recipient: checkIsValidAddress(recipient) ? recipient : "",
-      refund_to: checkIsValidAddress(refundTo) ? refundTo : "",
-      slippage: slippageTolerance,
-      from_chain: fromToken?.blockchain,
-      from_token: {
-        symbol: fromToken?.symbol,
-        address: fromToken?.contractAddress,
-        decimals: fromToken?.decimals,
-        chain: fromToken?.blockchain,
-        chain_type: fromToken?.chainType,
-      },
-      to_chain: toToken?.blockchain,
-      to_token: {
-        symbol: toToken?.symbol,
-        address: toToken?.contractAddress,
-        decimals: toToken?.decimals,
-        chain: toToken?.blockchain,
-        chain_type: toToken?.chainType,
-      },
-      estimate_from_gas: quoteData?.estimateSourceGas?.toString() ?? "0",
-      // exclude estimate_from_gas
-      total_fees_usd: quoteData?.totalFeesUsd ?? "0",
-      fees: transformObject(quoteData?.fees ?? {}),
-    };
+      return {
+        estimate_time: quoteData?.estimateTime ?? 0,
+        output_amount: quoteData?.outputAmount ?? "0",
+        input_amount: Big(amountWei || 0).div(10 ** (fromToken?.decimals || 6)).toFixed(fromToken?.decimals || 6, Big.roundDown),
+        recipient: checkIsValidAddress(recipient) ? recipient : "",
+        refund_to: checkIsValidAddress(refundTo) ? refundTo : "",
+        slippage: slippageTolerance,
+        from_chain: fromToken?.blockchain,
+        from_token: {
+          symbol: fromToken?.symbol,
+          address: fromToken?.contractAddress,
+          decimals: fromToken?.decimals,
+          chain: fromToken?.blockchain,
+          chain_type: fromToken?.chainType,
+        },
+        to_chain: toToken?.blockchain,
+        to_token: {
+          symbol: toToken?.symbol,
+          address: toToken?.contractAddress,
+          decimals: toToken?.decimals,
+          chain: toToken?.blockchain,
+          chain_type: toToken?.chainType,
+        },
+        estimate_from_gas: quoteData?.estimateSourceGas?.toString() ?? "0",
+        // exclude estimate_from_gas
+        total_fees_usd: quoteData?.totalFeesUsd ?? "0",
+        fees: transformObject(quoteData?.fees ?? {}),
+        deposit_address: depositAddress,
+        dry,
+        app_fees: appFees,
+      };
+    } catch {
+      return {};
+    }
   };
 
   const fromTokenAddress = useMemo(() => {
@@ -223,44 +236,22 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   const addTransfer = (
     params: {
       type: "transfer_button" | "continue_button";
-      stage: TrackTransferStage;
       quoteData?: any;
       service: Service;
       errMsg?: string;
-      addonData?: {
-        balance?: string;
-        realInputAmount?: string;
-        spender?: string;
-        txHash?: string;
-      };
+      txHash?: string;
     }
   ) => {
-    const { type, stage, quoteData, service, errMsg, addonData } = params;
-    const {
-      balance,
-      realInputAmount,
-      spender,
-      txHash,
-    } = addonData ?? {};
+    const { type, quoteData, service, errMsg, txHash } = params;
 
     const reportContent: any = {
       type,
+      tx_hash: txHash,
       route: ServiceBackend[service as Service],
-      stage,
       ...formatQuoteData(quoteData),
     };
     if (errMsg) {
       reportContent.error_message = errMsg;
-    }
-    if (stage === TrackTransferStage.CheckBalance) {
-      reportContent.latest_balance = balance;
-      reportContent.real_input_amount = realInputAmount;
-    }
-    if (stage === TrackTransferStage.Approve) {
-      reportContent.spender = spender;
-    }
-    if (stage === TrackTransferStage.Send) {
-      reportContent.tx_hash = txHash;
     }
 
     return add({
@@ -270,7 +261,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     });
   };
 
-  const addEnterAmount = (params: { amount?: string; }) => {
+  const { run: addEnterAmount } = useDebounceFn((params: { amount?: string; }) => {
     const { amount } = params ?? {};
     return add({
       action: TrackAction.EnterAmount,
@@ -279,7 +270,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
         amount: amount ?? "",
       }),
     });
-  };
+  }, { wait: 1000 });
 
   const addSetSlippage = (params: { value?: string; }) => {
     const { value } = params ?? {};
@@ -314,6 +305,28 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     });
   };
 
+  const addCreateSolanaATA = (params: {
+    quoteData?: any;
+    service: Service;
+    errMsg?: string;
+  }) => {
+    const { quoteData, service, errMsg } = params;
+
+    const reportContent: any = {
+      route: ServiceBackend[service as Service],
+      ...formatQuoteData(quoteData),
+    };
+    if (errMsg) {
+      reportContent.error_message = errMsg;
+    }
+
+    return add({
+      action: TrackAction.CreateSolanaATA,
+      address: checkIsValidAddress(quoteData?.quoteParam?.refundTo) ? quoteData?.quoteParam?.refundTo : "",
+      content: JSON.stringify(reportContent),
+    });
+  };
+
   return {
     sessionId,
     add,
@@ -324,5 +337,6 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     addSetSlippage,
     addExternalLinkClick,
     addHistory,
+    addCreateSolanaATA,
   };
 }

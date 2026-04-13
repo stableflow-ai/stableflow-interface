@@ -41,6 +41,8 @@ const WalletProvider = (props: any) => {
         wallet: tonWallet,
         // @ts-ignore
         walletIcon: wallet?.imageUrl,
+         // @ts-ignore
+        walletName: wallet?.name,
         connect: () => {
           tonConnectUI.openModal();
         },

@@ -26,7 +26,7 @@ import { FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_REDEEM_AND_MINT_CONTRACT } from "@
 import { useSwitchChain } from "wagmi";
 import usdt0Service from "@/services/usdt0";
 import { useConfigStore } from "@/stores/use-config";
-import { TrackTransferStage, useTrack } from "@/hooks/use-track";
+import { useTrack } from "@/hooks/use-track";
 
 const ContinueTransfer = (props: any) => {
   const { history, reload } = props;
@@ -95,11 +95,11 @@ const ContinueTransfer = (props: any) => {
             chainType: sourceToToken?.chainType,
           },
         },
+        quote: {
+          depositAddress: history.deposit_address,
+        }
       },
-      stage: TrackTransferStage.Start,
     };
-
-    addTransferTrack(addTrackParams);
 
     try {
       if (!fromToken || !toToken) {
@@ -120,9 +120,6 @@ const ContinueTransfer = (props: any) => {
 
       setContinueVisible(true);
       setTransactionDataLoading(true);
-
-
-      addTrackParams.stage = TrackTransferStage.Quote;
 
       let quoteResponse;
       try {
@@ -202,7 +199,6 @@ const ContinueTransfer = (props: any) => {
       });
 
       addTrackParams.quoteData = _quoteData;
-      addTransferTrack(addTrackParams);
 
       csl("ContinueTransfer handleContinue", "rose-400", "_quoteData: %o", _quoteData);
 
@@ -221,7 +217,6 @@ const ContinueTransfer = (props: any) => {
 
       csl("ContinueTransfer handleContinue", "rose-400", "final quoteData: %o", quoteData);
 
-      addTrackParams.stage = TrackTransferStage.CheckNativeBalance;
       // get TRX balance
       try {
         const estimateGas = Big(TRON_RENTAL_FEE.Normal).times(10 ** fromToken.nativeToken.decimals).toFixed(0);
@@ -236,8 +231,6 @@ const ContinueTransfer = (props: any) => {
       } catch (error: any) {
         console.error("get TRX balance failed: %o", error);
       }
-
-      addTransferTrack(addTrackParams);
 
       const localHistoryData = {
         type: Service.OneClick,
@@ -312,17 +305,13 @@ const ContinueTransfer = (props: any) => {
       bridgeStore.setTronTransferVisible(true, { quoteData });
 
       if (needsEnergy) {
-        addTrackParams.stage = TrackTransferStage.TronEnergy;
         await getEnergy({
           wallet: wallet.wallet,
           account: wallet.account || "",
         });
-        addTransferTrack(addTrackParams);
       } else {
         bridgeStore.setTronTransferStep(TronTransferStepStatus.EnergyReady);
       }
-
-      addTrackParams.stage = TrackTransferStage.Send;
 
       bridgeStore.setTronTransferStep(TronTransferStepStatus.WalletPrompt);
 
@@ -358,9 +347,7 @@ const ContinueTransfer = (props: any) => {
         title: "Transfer submitted"
       });
 
-      addTrackParams.addonData = {
-        txHash: hash,
-      };
+      addTrackParams.txHash = hash;
       addTransferTrack(addTrackParams);
 
       // reload history list
