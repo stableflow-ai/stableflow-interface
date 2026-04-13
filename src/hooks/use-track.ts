@@ -191,7 +191,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
 
   // Automatically report when the user connects different wallets
   useEffect(() => {
-    if (!isRoot || !isReportedOpen) return;
+    if (!isRoot || !isReportedOpen || !accounts?.length) return;
     addConnect({
       content: accounts,
     });
