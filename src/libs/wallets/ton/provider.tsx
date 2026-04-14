@@ -1,8 +1,9 @@
 import useWalletsStore from "@/stores/use-wallets";
 import { TonConnectUIProvider, useTonAddress, useTonWallet, useTonConnectUI } from "@tonconnect/ui-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TonWallet from "./wallet";
 import { useDebounceFn } from "ahooks";
+import { useTrack } from "@/hooks/use-track";
 
 export default function TonProvider({
   children
@@ -22,6 +23,9 @@ const WalletProvider = (props: any) => {
   const { children } = props;
 
   const setWallets = useWalletsStore((state) => state.set);
+  const { addDisconnect } = useTrack();
+  const prevTonAddressRef = useRef<string | null>(null);
+  const prevTonWalletNameRef = useRef<string | null>(null);
 
   const wallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
@@ -59,6 +63,12 @@ const WalletProvider = (props: any) => {
         }
       }
     });
+
+    if (userFriendlyAddress) {
+      prevTonAddressRef.current = userFriendlyAddress;
+      // @ts-ignore
+      prevTonWalletNameRef.current = wallet?.name ?? "";
+    }
   }, { wait: 500 });
 
   useEffect(() => {
@@ -70,6 +80,18 @@ const WalletProvider = (props: any) => {
 
     const unsubscribe = tonConnectUI.onStatusChange((walletInfo) => {
       console.log('TON wallet status changed:', walletInfo);
+      if (walletInfo === null && prevTonAddressRef.current) {
+        addDisconnect({
+          address: prevTonAddressRef.current,
+          content: {
+            address: prevTonAddressRef.current,
+            wallet_name: prevTonWalletNameRef.current ?? "",
+            wallet_type: "ton",
+          },
+        });
+        prevTonAddressRef.current = null;
+        prevTonWalletNameRef.current = null;
+      }
       debouncedSetWallets();
     });
 

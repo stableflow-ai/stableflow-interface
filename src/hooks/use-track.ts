@@ -21,6 +21,7 @@ export const TrackAction = {
   ExternalLinkClick: "external_link_click",
   History: "history_page",
   CreateSolanaATA: "create_solana_ata",
+  Disconnect: "logout_wallet",
 } as const;
 export type TrackAction = (typeof TrackAction)[keyof typeof TrackAction];
 
@@ -330,6 +331,18 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     });
   };
 
+  const addDisconnect = (params: {
+    address: string;
+    content: { address: string; wallet_name: string; wallet_type: string };
+  }) => {
+    const { address, content } = params;
+    return add({
+      action: TrackAction.Disconnect,
+      address,
+      content: JSON.stringify(content),
+    });
+  };
+
   return {
     sessionId,
     add,
@@ -341,5 +354,6 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     addExternalLinkClick,
     addHistory,
     addCreateSolanaATA,
+    addDisconnect,
   };
 }

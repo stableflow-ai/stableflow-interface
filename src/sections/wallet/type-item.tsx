@@ -87,7 +87,8 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
       ) : (
         <button
           className="duration-300 cursor-pointer w-[90px] h-[32px] rounded-[16px] bg-white shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-[14px] text-[#444C59] hover:bg-[#6284F5] hover:text-white"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             wallet.connect();
           }}
         >
