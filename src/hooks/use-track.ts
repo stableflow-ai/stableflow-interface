@@ -143,6 +143,8 @@ export function useTrack(props?: { isRoot?: boolean; }) {
       const { depositAddress } = quoteData?.quote ?? {};
       const { appFees } = quoteData?.quoteRequest ?? {};
 
+      const originWalletName = accounts.find((account) => account.chain_type === fromToken?.chainType)?.wallet_name;
+
       return {
         estimate_time: quoteData?.estimateTime ?? 0,
         output_amount: quoteData?.outputAmount ?? "0",
@@ -173,6 +175,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
         deposit_address: depositAddress,
         dry,
         app_fees: appFees,
+        wallet_name: originWalletName,
       };
     } catch {
       return {};
