@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ConnectionProvider,
   WalletProvider
@@ -21,7 +21,6 @@ import { useWatchOKXConnect } from "../okxconnect";
 import SolanaWalletSelectorProvider, { useSolanaWalletModal } from "./wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
 import { getAvailableSolanaRpcUrl } from "../utils/solana";
-import { useTrack } from "@/hooks/use-track";
 
 export const adapters = [
   new SolflareWalletAdapter(),
@@ -108,24 +107,9 @@ const Content = () => {
   const { publicKey, disconnect, connect, wallet } = walletAdapter;
   const { setVisible } = useSolanaWalletModal();
   const setBalancesStore = useBalancesStore((state) => state.set);
-  const { addDisconnect } = useTrack();
-  const prevSolAccountRef = useRef<{ address: string; walletName: string; } | null>(null);
 
   const { run: connect2SolanaWallets } = useDebounceFn(() => {
     if (!mounted) return;
-
-    if (!publicKey && prevSolAccountRef.current?.address) {
-      addDisconnect({
-        address: prevSolAccountRef.current.address,
-        content: {
-          address: prevSolAccountRef.current.address,
-          wallet_name: prevSolAccountRef.current.walletName,
-          wallet_type: "sol",
-        },
-      });
-      prevSolAccountRef.current = null;
-    }
-
     const solanaWallet = new SolanaWallet({
       publicKey,
       signer: walletAdapter,
@@ -159,13 +143,6 @@ const Content = () => {
         }
       }
     });
-
-    if (publicKey) {
-      prevSolAccountRef.current = {
-        address: publicKey.toString(),
-        walletName: wallet?.adapter.name ?? "",
-      };
-    }
   }, { wait: 500 });
 
   useEffect(() => {
@@ -192,31 +169,11 @@ const Content = () => {
 
 const MobileContent = () => {
   const setWallets = useWalletsStore((state) => state.set);
-  const { addDisconnect } = useTrack();
-  const prevOkxAccountRef = useRef<{ address: string; wallet_name: string; } | null>(null);
 
   useWatchOKXConnect((okxConnect: any) => {
     const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
     const provider = new OKXSolanaProvider(okxUniversalProvider);
     const account = provider.getAccount()?.address || null;
-
-    if (!account && prevOkxAccountRef.current?.address) {
-      addDisconnect({
-        address: prevOkxAccountRef.current.address,
-        content: {
-          address: prevOkxAccountRef.current.address,
-          wallet_name: prevOkxAccountRef.current.wallet_name,
-          wallet_type: "sol",
-        },
-      });
-      prevOkxAccountRef.current = null;
-    }
-    if (account) {
-      prevOkxAccountRef.current = {
-        address: account,
-        wallet_name: "OKX Wallet",
-      };
-    }
     const solanaWallet = new SolanaWallet({
       publicKey: account ? new PublicKey(account) : null,
       signer: {

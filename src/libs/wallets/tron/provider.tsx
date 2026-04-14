@@ -13,7 +13,6 @@ import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
 import { metadata } from "../rainbow/provider";
 import { csl } from "@/utils/log";
-import { useTrack } from "@/hooks/use-track";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
@@ -85,9 +84,6 @@ const Content = () => {
   const configStore = useConfigStore();
   const setBalancesStore = useBalancesStore((state) => state.set);
   const walletRef = useRef<TronWallet | null>(null);
-  /** Tron adapters often clear `address` before the disconnect listener runs; keep last known session for tracking. */
-  const lastTronConnectionRef = useRef<{ address: string; walletName: string; } | null>(null);
-  const { addDisconnect } = useTrack();
 
   // Wallet selector
   const {
@@ -183,20 +179,9 @@ const Content = () => {
       }
     });
 
-    if (adapter.address) {
-      lastTronConnectionRef.current = {
-        address: adapter.address,
-        walletName: adapter.name ?? "",
-      };
-    }
-
     adapter.on("connect", (address: any) => {
       csl("TronProvider", "teal-400", "Adaptor connected, address is: %o", address);
       setWindowWallet(address);
-      lastTronConnectionRef.current = {
-        address,
-        walletName: adapter.name ?? "",
-      };
       setWallets({
         tron: {
           account: address,
@@ -209,18 +194,6 @@ const Content = () => {
     });
 
     adapter.on("disconnect", () => {
-      const last = lastTronConnectionRef.current;
-      if (last?.address) {
-        addDisconnect({
-          address: last.address,
-          content: {
-            address: last.address,
-            wallet_name: last.walletName,
-            wallet_type: "tron",
-          },
-        });
-      }
-      lastTronConnectionRef.current = null;
       setWallets({
         tron: {
           account: null,
@@ -246,15 +219,6 @@ const Content = () => {
         : null;
 
       csl("TronProvider", "teal-400", "Accounts changed, new address is: %o", newAccount);
-
-      if (newAccount) {
-        lastTronConnectionRef.current = {
-          address: newAccount,
-          walletName: adapter.name ?? "",
-        };
-      } else {
-        lastTronConnectionRef.current = null;
-      }
 
       setWindowWallet(newAccount);
       setWallets({
@@ -282,8 +246,6 @@ const Content = () => {
 
 const MobileWallet = () => {
   const setWallets = useWalletsStore((state) => state.set);
-  const { addDisconnect } = useTrack();
-  const prevOkxAccountRef = useRef<{ address: string; wallet_name: string; } | null>(null);
 
   useWatchOKXConnect((okxConnect: any) => {
     const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
@@ -291,24 +253,6 @@ const MobileWallet = () => {
 
     // @ts-ignore
     const account = provider.getAccount()?.address || null;
-
-    if (!account && prevOkxAccountRef.current?.address) {
-      addDisconnect({
-        address: prevOkxAccountRef.current.address,
-        content: {
-          address: prevOkxAccountRef.current.address,
-          wallet_name: prevOkxAccountRef.current.wallet_name,
-          wallet_type: "tron",
-        },
-      });
-      prevOkxAccountRef.current = null;
-    }
-    if (account) {
-      prevOkxAccountRef.current = {
-        address: account,
-        wallet_name: "OKX Wallet",
-      };
-    }
     account && tronWeb.setAddress(account);
     const tronWallet = new TronWallet({
       signAndSendTransaction: (transaction: any) => {
