@@ -50,6 +50,7 @@ export default function NEARProvider({
   };
   const walletsStore = useWalletsStore();
   const setBalancesStore = useBalancesStore((state) => state.set);
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -118,6 +119,7 @@ export default function NEARProvider({
               near: {
                 ...params,
                 walletIcon: wallet?.metadata.iconUrl,
+                walletName: wallet?.metadata.name,
                 account:
                   state.accounts.find((account) => account.active)?.accountId ||
                   null

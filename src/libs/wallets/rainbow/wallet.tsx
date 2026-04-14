@@ -178,6 +178,7 @@ export default class RainbowWallet {
       spender,
       amountWei,
       isApproveMax = false,
+      isDetails = false,
     } = params;
 
     const contract = new ethers.Contract(contractAddress, erc20Abi, this.signer);
@@ -187,15 +188,37 @@ export default class RainbowWallet {
       _amountWei = ethers.MaxUint256;
     }
 
+    const detailResult: any = {
+      success: false,
+      data: {},
+      message: null,
+    };
+
     try {
       const tx = await contract.approve(spender, _amountWei);
       const txReceipt = await tx.wait();
       if (txReceipt.status === 1) {
+        if (isDetails) {
+          detailResult.success = true;
+          detailResult.data = { txHash: txReceipt.hash };
+          return detailResult;
+        }
         return true;
       }
+      if (isDetails) {
+        detailResult.message = "Arrove failed";
+        return detailResult;
+      }
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error approve: %o", error)
+      if (isDetails) {
+        detailResult.message = error.message;
+      }
+    }
+
+    if (isDetails) {
+      return detailResult;
     }
 
     return false;
