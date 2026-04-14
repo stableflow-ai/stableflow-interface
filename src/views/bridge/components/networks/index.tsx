@@ -15,7 +15,6 @@ export default function Networks({ addressValidation }: any) {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
   const { switchChain } = useSwitchChain();
-  const { addEnterAmount } = useTrack();
   const timer = useRef<any>(null);
   const [toggleLoading, setToggleLoading] = useState(false);
 
@@ -72,7 +71,6 @@ export default function Networks({ addressValidation }: any) {
               value={bridgeStore.amount}
               onNumberChange={(value) => {
                 bridgeStore.set({ amount: value });
-                addEnterAmount({ amount: value });
               }}
               decimals={walletStore.fromToken?.decimals || 6}
               placeholder="0"
