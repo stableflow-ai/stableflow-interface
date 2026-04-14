@@ -333,13 +333,18 @@ export function useTrack(props?: { isRoot?: boolean; }) {
 
   const addDisconnect = (params: {
     address: string;
-    content: { address: string; wallet_name: string; wallet_type: string };
+    walletName: string | null;
+    walletType: string;
   }) => {
-    const { address, content } = params;
+    const { address, walletName, walletType } = params;
     return add({
       action: TrackAction.Disconnect,
       address,
-      content: JSON.stringify(content),
+      content: JSON.stringify({
+        address,
+        wallet_name: walletName ?? "",
+        wallet_type: walletType,
+      }),
     });
   };
 

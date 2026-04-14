@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import {
   setupWalletSelector,
   type WalletSelector,
@@ -19,7 +19,6 @@ import useWalletsStore from "@/stores/use-wallets";
 import "@near-wallet-selector/modal-ui/styles.css";
 import NearWallet from "./wallet";
 import useBalancesStore from "@/stores/use-balances";
-import { useTrack } from "@/hooks/use-track";
 
 interface NEARContextType {
   selector: WalletSelector | null;
@@ -51,8 +50,6 @@ export default function NEARProvider({
   };
   const walletsStore = useWalletsStore();
   const setBalancesStore = useBalancesStore((state) => state.set);
-  const { addDisconnect } = useTrack();
-  const prevNearAccountRef = useRef<{ address: string; walletName: string; } | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -116,51 +113,20 @@ export default function NEARProvider({
         });
 
         _selector.store.observable.subscribe(async (state) => {
-          const newAccountId =
-            state.accounts.find((account) => account.active)?.accountId || null;
-
-          if (!newAccountId && prevNearAccountRef.current?.address) {
-            addDisconnect({
-              address: prevNearAccountRef.current.address,
-              content: {
-                address: prevNearAccountRef.current.address,
-                wallet_name: prevNearAccountRef.current.walletName,
-                wallet_type: "near",
-              },
-            });
-            prevNearAccountRef.current = null;
-          }
-
-          let walletIcon: string | null | undefined;
-          let walletName: string | null | undefined;
-
           try {
             const wallet = await _selector.wallet();
-            walletIcon = wallet?.metadata.iconUrl;
-            walletName = wallet?.metadata.name;
-            if (newAccountId) {
-              prevNearAccountRef.current = {
-                address: newAccountId,
-                walletName: walletName ?? "",
-              };
-            }
-          } catch {
-            if (newAccountId) {
-              prevNearAccountRef.current = {
-                address: newAccountId,
-                walletName: "",
-              };
-            }
+            walletsStore.set({
+              near: {
+                ...params,
+                walletIcon: wallet?.metadata.iconUrl,
+                walletName: wallet?.metadata.name,
+                account:
+                  state.accounts.find((account) => account.active)?.accountId ||
+                  null
+              }
+            });
+          } catch (error) {
           }
-
-          walletsStore.set({
-            near: {
-              ...params,
-              walletIcon: walletIcon ?? null,
-              walletName: walletName ?? null,
-              account: newAccountId,
-            }
-          });
         });
       } catch (error) {
         console.error("init near wallet selector failed:", error);

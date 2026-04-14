@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   mainnet,
   polygon,
@@ -48,7 +48,6 @@ import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet,
 import { createClient, fallback } from "viem";
 import { getChainRpcUrl } from "@/config/chains";
 import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
-import { useTrack } from "@/hooks/use-track";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 export const metadata = {
@@ -200,27 +199,10 @@ function Content() {
   const [mounted, setMounted] = useState(false);
   const setWallets = useWalletsStore((state) => state.set);
   const evmWalletInfo = useEVMWalletInfo();
-  const { addDisconnect } = useTrack();
-  const prevAddressRef = useRef<string | null>(null);
-  const prevWalletNameRef = useRef<string | null>(null);
 
   const { run: debouncedDisconnect } = useDebounceFn(
     async () => {
       if (!publicClient || !mounted) return;
-
-      if (!account.address && prevAddressRef.current) {
-        addDisconnect({
-          address: prevAddressRef.current,
-          content: {
-            address: prevAddressRef.current,
-            wallet_name: prevWalletNameRef.current ?? "",
-            wallet_type: "evm",
-          },
-        });
-        prevAddressRef.current = null;
-        prevWalletNameRef.current = null;
-      }
-
       const provider = new ethers.BrowserProvider(publicClient);
 
       const signer = walletClient
@@ -260,11 +242,6 @@ function Content() {
           }
         }
       });
-
-      if (account.address) {
-        prevAddressRef.current = account.address;
-        prevWalletNameRef.current = evmWalletInfo.name ?? "";
-      }
     },
     {
       wait: 500
