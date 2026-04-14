@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import AptosWallet from "@/libs/wallets/aptos/wallet";
 import useWalletsStore from "@/stores/use-wallets";
 import useBalancesStore from "@/stores/use-balances";
@@ -12,6 +12,7 @@ import { OKXAptosProvider } from "@okxconnect/aptos-provider";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import WalletSelector from "../components/wallet-selector";
 import { csl } from "@/utils/log";
+import { useTrack } from "@/hooks/use-track";
 
 export default function AptosProvider({
   children
@@ -76,6 +77,8 @@ const Content = () => {
   } = useWallet();
 
   const setBalancesStore = useBalancesStore((state) => state.set);
+  const { addDisconnect } = useTrack();
+  const prevAptosAccountRef = useRef<{ address: string; walletName: string; } | null>(null);
 
   // Wallet selector
   const {
@@ -92,6 +95,19 @@ const Content = () => {
 
   const { run: connect2AptosWallets } = useDebounceFn(() => {
     if (!mounted) return;
+
+    if (!account && prevAptosAccountRef.current?.address) {
+      addDisconnect({
+        address: prevAptosAccountRef.current.address,
+        content: {
+          address: prevAptosAccountRef.current.address,
+          wallet_name: prevAptosAccountRef.current.walletName,
+          wallet_type: "aptos",
+        },
+      });
+      prevAptosAccountRef.current = null;
+    }
+
     const aptosWallet = new AptosWallet({
       account: account || null,
       signAndSubmitTransaction,
@@ -125,6 +141,13 @@ const Content = () => {
         }
       }
     });
+
+    if (account?.address) {
+      prevAptosAccountRef.current = {
+        address: account.address.toString(),
+        walletName: wallet?.name ?? "",
+      };
+    }
   }, { wait: 500 });
 
   useEffect(() => {
@@ -161,11 +184,32 @@ const Content = () => {
 
 const MobileContent = () => {
   const setWallets = useWalletsStore((state) => state.set);
+  const { addDisconnect } = useTrack();
+  const prevOkxAccountRef = useRef<{ address: string; wallet_name: string; } | null>(null);
 
   useWatchOKXConnect((okxConnect: any) => {
     const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
     const provider = new OKXAptosProvider(okxUniversalProvider);
     const account = provider.getAccount("aptos:mainnet") || null;
+    const accountAddress = account?.address?.toString() || null;
+
+    if (!accountAddress && prevOkxAccountRef.current?.address) {
+      addDisconnect({
+        address: prevOkxAccountRef.current.address,
+        content: {
+          address: prevOkxAccountRef.current.address,
+          wallet_name: prevOkxAccountRef.current.wallet_name,
+          wallet_type: "aptos",
+        },
+      });
+      prevOkxAccountRef.current = null;
+    }
+    if (accountAddress) {
+      prevOkxAccountRef.current = {
+        address: accountAddress,
+        wallet_name: "OKX Wallet",
+      };
+    }
     const config = new AptosConfig({
       network: Network.MAINNET,
     });
