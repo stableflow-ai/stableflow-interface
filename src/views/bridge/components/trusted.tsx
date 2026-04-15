@@ -74,9 +74,8 @@ const CardList = [
     name: "Mantle",
     description: (
       <div className="line-clamp-5">
-        Stablecoins are a huge part of how real-world finance moves onchain.<br />
-        And the distribution layer is where that finance flows.<br />
-        Now live on Mantle, <span className="text-[#6284F5] cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); window.open("https://x.com/0xStableFlow", "_blank"); }}>@0xStableFlow</span> just made moving stablecoins frictionless from any chain with zero slippage.
+        Now live on Mantle, 
+        <span className="text-[#6284F5] cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); window.open("https://x.com/0xStableFlow", "_blank"); }}>@0xStableFlow</span> just made moving stablecoins frictionless from any chain with zero slippage.
       </div>
     ),
     link: "https://x.com/mantle_official/status/2042208500127031762?s=46",
