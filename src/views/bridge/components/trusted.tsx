@@ -74,11 +74,23 @@ const CardList = [
     name: "Mantle",
     description: (
       <div className="line-clamp-5">
-        Now live on Mantle, 
+        Now live on Mantle,
         <span className="text-[#6284F5] cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); window.open("https://x.com/0xStableFlow", "_blank"); }}>@0xStableFlow</span> just made moving stablecoins frictionless from any chain with zero slippage.
       </div>
     ),
     link: "https://x.com/mantle_official/status/2042208500127031762?s=46",
+  },
+  {
+    img: "/bridge/trusted/avatar-frax.jpg",
+    name: "Frax Finance",
+    description: (
+      <div className="line-clamp-5">
+        frxUSD is now live on <span className="text-[#6284F5] cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); window.open("https://x.com/0xStableFlow", "_blank"); }}>@0xStableFlow</span><br />
+
+        Swap between frxUSD and USDC/USDT in one click across 25+ chains.
+      </div>
+    ),
+    link: "https://x.com/fraxfinance/status/2044038162175922670?s=46",
   },
 ];
 
