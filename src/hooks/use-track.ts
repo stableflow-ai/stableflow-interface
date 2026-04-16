@@ -21,6 +21,7 @@ export const TrackAction = {
   ExternalLinkClick: "external_link_click",
   History: "history_page",
   CreateSolanaATA: "create_solana_ata",
+  Disconnect: "logout_wallet",
 } as const;
 export type TrackAction = (typeof TrackAction)[keyof typeof TrackAction];
 
@@ -143,6 +144,8 @@ export function useTrack(props?: { isRoot?: boolean; }) {
       const { depositAddress } = quoteData?.quote ?? {};
       const { appFees } = quoteData?.quoteRequest ?? {};
 
+      const originWalletName = accounts.find((account) => account.chain_type === fromToken?.chainType)?.wallet_name;
+
       return {
         estimate_time: quoteData?.estimateTime ?? 0,
         output_amount: quoteData?.outputAmount ?? "0",
@@ -173,6 +176,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
         deposit_address: depositAddress,
         dry,
         app_fees: appFees,
+        wallet_name: originWalletName,
       };
     } catch {
       return {};
@@ -191,7 +195,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
 
   // Automatically report when the user connects different wallets
   useEffect(() => {
-    if (!isRoot || !isReportedOpen) return;
+    if (!isRoot || !isReportedOpen || !accounts?.length) return;
     addConnect({
       content: accounts,
     });
@@ -327,6 +331,23 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     });
   };
 
+  const addDisconnect = (params: {
+    address: string;
+    walletName: string | null;
+    walletType: string;
+  }) => {
+    const { address, walletName, walletType } = params;
+    return add({
+      action: TrackAction.Disconnect,
+      address,
+      content: JSON.stringify({
+        address,
+        wallet_name: walletName ?? "",
+        wallet_type: walletType,
+      }),
+    });
+  };
+
   return {
     sessionId,
     add,
@@ -338,5 +359,6 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     addExternalLinkClick,
     addHistory,
     addCreateSolanaATA,
+    addDisconnect,
   };
 }

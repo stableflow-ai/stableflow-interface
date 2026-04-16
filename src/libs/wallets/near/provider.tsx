@@ -50,6 +50,7 @@ export default function NEARProvider({
   };
   const walletsStore = useWalletsStore();
   const setBalancesStore = useBalancesStore((state) => state.set);
+
   useEffect(() => {
     const init = async () => {
       try {
