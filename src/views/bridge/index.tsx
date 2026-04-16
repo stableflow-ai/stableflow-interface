@@ -1,7 +1,8 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import useBridge from "./hooks/use-bridge";
 import MainTitle from "@/components/main-title";
 import PendingTransfer from "./components/pending";
+import { useTrack } from "@/hooks/use-track";
 
 // Dynamic import components
 const Networks = lazy(() => import("./components/networks"));
@@ -17,6 +18,11 @@ const LoadingSpinner = () => null;
 
 export default function Bridge() {
   const { quote, transfer, addressValidation, errorChain } = useBridge();
+  const { addOpen } = useTrack();
+
+  useEffect(() => {
+    addOpen();
+  }, []);
 
   return (
     <div className="relative w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
