@@ -278,8 +278,6 @@ export class OneClickService {
     execTime.breakpoint();
     const res = await this.api.post("/quote", quoteParams);
 
-    execTime.breakpoint();
-    const res = await this.api.post("/quote", quoteParams);
     execTime.log("1click API /quote");
 
     execTime.breakpoint();
