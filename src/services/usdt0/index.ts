@@ -2,7 +2,7 @@ import { USDT0_CONFIG, USDT0_DVN_COUNT } from "./config";
 import { OFT_ABI, SOLANA_IDL } from "./contract";
 import axios from "axios";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services/constants";
+import { getRouteStatus, Service } from "@/services/constants";
 import { calculateEstimateTime } from "../utils";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
@@ -40,6 +40,8 @@ export class Usdt0Service {
       originConfig: originLayerzero,
       destinationConfig: destinationLayerzero,
     });
+
+    const routeStatus = getRouteStatus(Service.Usdt0);
 
     if (fromToken.chainType === "evm") {
       destinationLayerzeroAddress = destinationLayerzero.oft || destinationLayerzero.oftLegacy;
@@ -84,6 +86,7 @@ export class Usdt0Service {
       });
 
       result.estimateTime = estimateTime;
+      result.routeDisabled = routeStatus.disabled;
 
       return result;
     }
@@ -140,6 +143,7 @@ export class Usdt0Service {
     });
 
     result.estimateTime = estimateTime;
+    result.routeDisabled = routeStatus.disabled;
 
     return result;
   }

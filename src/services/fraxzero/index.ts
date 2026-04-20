@@ -1,4 +1,4 @@
-import { Service } from "@/services/constants";
+import { getRouteStatus, Service } from "@/services/constants";
 import { FRAXZERO_CONFIG, FRAXZERO_REQUIRED_DVN_COUNT } from "./config";
 import { FRAXZERO_ABI } from "./contract";
 import { calculateEstimateTime } from "../utils";
@@ -30,6 +30,8 @@ export class FraxZeroService extends Usdt0Service {
     const isFraxtal = fromToken.chainId === 252 || toToken.chainId === 252;
     const isFromSolana = fromToken.chainName === "Solana";
 
+    const routeStatus = getRouteStatus(Service.FraxZero);
+
     if (isFromSolana) {
       // only support Ethereum and Fraxtal
       if (![1, 252].includes(toToken.chainId)) {
@@ -57,6 +59,7 @@ export class FraxZeroService extends Usdt0Service {
       });
 
       result.estimateTime = estimateTime;
+      result.routeDisabled = routeStatus.disabled;
 
       return result;
     }
@@ -70,6 +73,7 @@ export class FraxZeroService extends Usdt0Service {
     });
 
     result.estimateTime = estimateTime;
+    result.routeDisabled = routeStatus.disabled;
 
     return result;
   }

@@ -6,7 +6,7 @@ import axios, { type AxiosInstance } from "axios";
 import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services/constants";
+import { getRouteStatus, Service } from "@/services/constants";
 import { csl } from "@/utils/log";
 
 export const BridgeFee = [
@@ -283,7 +283,12 @@ export class OneClickService {
 
     const res = await this.api.post("/quote", quoteParams);
 
-    return this.formatQuoteData({ data: res.data, params });
+    const quoteRes = await this.formatQuoteData({ data: res.data, params });
+
+    const routeStatus = getRouteStatus(Service.OneClick);
+    quoteRes.routeDisabled = routeStatus.disabled;
+
+    return quoteRes;
   }
 
   public async estimateTransaction(params: any, quoteData: any) {

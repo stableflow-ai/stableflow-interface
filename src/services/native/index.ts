@@ -3,7 +3,7 @@ import type { AxiosInstance } from "axios";
 import axios from "axios";
 import Big from "big.js";
 import { NativeChains, NativeV4Routes } from "./contract";
-import { Service } from "../constants";
+import { getRouteStatus, Service } from "../constants";
 
 class NativeService {
   private api: AxiosInstance;
@@ -87,12 +87,17 @@ class NativeService {
       throw new Error(errorMessage);
     }
 
-    return wallet.quote(Service.Native, {
+    const quoteRes = await wallet.quote(Service.Native, {
       ...params,
       ...quoteParams,
       quoteResponse: res.data,
       bridgeRouterAddress: isSwap ? NativeV4Routes[fromToken.chainName].swap : NativeV4Routes[fromToken.chainName].bridge,
     });
+
+    const routeStatus = getRouteStatus(Service.Native);
+    quoteRes.routeDisabled = routeStatus.disabled;
+
+    return quoteRes;
   }
 
   public async send(params: any) {

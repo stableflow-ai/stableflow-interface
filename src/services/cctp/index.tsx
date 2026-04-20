@@ -3,7 +3,7 @@ import axios, { type AxiosInstance } from "axios";
 import { CCTP_DOMAINS, IRIS_API_URL } from "./config";
 import { BASE_API_URL } from "@/config/api";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services/constants";
+import { getRouteStatus, Service } from "@/services/constants";
 import { csl } from "@/utils/log";
 
 export const PayInLzToken = false;
@@ -64,7 +64,7 @@ export class CCTPService {
     const destinationDomain = CCTP_DOMAINS[toToken.chainName];
     const proxyAddress = CCTP_TOKEN_PROXY[fromToken.chainName];
 
-    return wallet.quote(Service.CCTP, {
+    const quoteRes = await wallet.quote(Service.CCTP, {
       proxyAddress,
       abi: CCTP_TOKEN_PROXY_ABI,
       amountWei,
@@ -78,6 +78,11 @@ export class CCTPService {
       destinationDomain,
       sourceDomain,
     });
+
+    const routeStatus = getRouteStatus(Service.CCTP);
+    quoteRes.routeDisabled = routeStatus.disabled;
+
+    return quoteRes;
   }
 
   public async send(params: any) {

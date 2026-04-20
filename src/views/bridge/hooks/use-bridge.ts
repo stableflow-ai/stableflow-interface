@@ -577,6 +577,10 @@ export default function useBridge(props?: any) {
         throw new Error(_quote.errMsg || "Transfer failed");
       }
 
+      if (_quote.data.routeDisabled) {
+        throw new Error("This route is temporarily unavailable");
+      }
+
       addTrackParams.quoteData = _quote.data;
 
       // @ts-ignore
@@ -1035,6 +1039,7 @@ export default function useBridge(props?: any) {
     toWalletAddress,
   ]);
 
+  // button status check
   useEffect(() => {
     const check = () => {
       if (!walletStore.fromToken?.contractAddress) {
@@ -1091,6 +1096,9 @@ export default function useBridge(props?: any) {
         if (Big(priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD) && !bridgeStore.acceptPriceImpact) {
           return "Large Price Impact";
         }
+      }
+      if (quoteData?.routeDisabled) {
+        return "This route is temporarily unavailable";
       }
 
       const { isExactOutput, isPermitWithNonce } = getQuoteModes({
