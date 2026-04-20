@@ -26,12 +26,19 @@ export const ServiceBackend: Record<Service, string> = {
 export const getRouteStatus = (service: Service): { disabled: boolean; } => {
   const result = { disabled: false };
 
-  const IS_PAUSE_ALL = import.meta.env.VITE_ROUTE_PAUSE === "true";
-  const IS_PAUSE_NEAR_INTENTS = import.meta.env.VITE_ROUTE_PAUSE_NEAR_INTENTS === "true";
-  const IS_PAUSE_USDT0 = import.meta.env.VITE_ROUTE_PAUSE_USDT0 === "true";
-  const IS_PAUSE_CCTP = import.meta.env.VITE_ROUTE_PAUSE_CCTP === "true";
-  const IS_PAUSE_FRAXZERO = import.meta.env.VITE_ROUTE_PAUSE_FRAXZERO === "true";
-  const IS_PAUSE_NATIVE = import.meta.env.VITE_ROUTE_PAUSE_NATIVE === "true";
+  // const IS_PAUSE_ALL = import.meta.env.VITE_ROUTE_PAUSE === "true";
+  // const IS_PAUSE_NEAR_INTENTS = import.meta.env.VITE_ROUTE_PAUSE_NEAR_INTENTS === "true";
+  // const IS_PAUSE_USDT0 = import.meta.env.VITE_ROUTE_PAUSE_USDT0 === "true";
+  // const IS_PAUSE_CCTP = import.meta.env.VITE_ROUTE_PAUSE_CCTP === "true";
+  // const IS_PAUSE_FRAXZERO = import.meta.env.VITE_ROUTE_PAUSE_FRAXZERO === "true";
+  // const IS_PAUSE_NATIVE = import.meta.env.VITE_ROUTE_PAUSE_NATIVE === "true";
+
+  const IS_PAUSE_ALL = false;
+  const IS_PAUSE_NEAR_INTENTS = false;
+  const IS_PAUSE_USDT0 = false;
+  const IS_PAUSE_CCTP = false;
+  const IS_PAUSE_FRAXZERO = false;
+  const IS_PAUSE_NATIVE = false;
 
   if (IS_PAUSE_ALL) {
     result.disabled = true;
