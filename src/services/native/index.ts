@@ -3,7 +3,7 @@ import type { AxiosInstance } from "axios";
 import axios from "axios";
 import Big from "big.js";
 import { NativeChains, NativeV4Routes } from "./contract";
-import { Service } from "../constants";
+import { getRouteStatus, Service } from "../constants";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
 
@@ -104,6 +104,9 @@ class NativeService {
     execTime.log("wallet.quoteNative");
 
     execTime.logTotal("NativeService.quote");
+
+    const routeStatus = getRouteStatus(Service.Native);
+    result.routeDisabled = routeStatus.disabled;
 
     return result;
   }

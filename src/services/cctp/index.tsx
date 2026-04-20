@@ -3,7 +3,7 @@ import axios, { type AxiosInstance } from "axios";
 import { CCTP_DOMAINS, IRIS_API_URL } from "./config";
 import { BASE_API_URL } from "@/config/api";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services/constants";
+import { getRouteStatus, Service } from "@/services/constants";
 import { csl } from "@/utils/log";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
@@ -90,6 +90,10 @@ export class CCTPService {
     });
 
     execTime.logTotal("CCTPService.quote");
+
+    const routeStatus = getRouteStatus(Service.CCTP);
+    result.routeDisabled = routeStatus.disabled;
+
     return result;
   }
 
