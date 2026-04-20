@@ -187,12 +187,6 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     return wallets?.[walletStore.fromToken?.chainType as WalletType]?.account ?? "";
   }, [walletStore.fromToken, wallets]);
 
-  useEffect(() => {
-    if (!isRoot) return;
-    setIsReportedOpen(true);
-    addOpen();
-  }, [isRoot]);
-
   // Automatically report when the user connects different wallets
   useEffect(() => {
     if (!isRoot || !isReportedOpen || !accounts?.length) return;
@@ -351,6 +345,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   return {
     sessionId,
     add,
+    addOpen,
     addConnect,
     addQuote,
     addTransfer,
