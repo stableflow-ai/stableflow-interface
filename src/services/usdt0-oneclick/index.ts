@@ -9,6 +9,7 @@ import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
+import { getRouteStatus, Service } from "../constants";
 
 export class Usdt0OneClickService {
   public async quote(params: any) {
@@ -81,6 +82,8 @@ export class Usdt0OneClickService {
 
     execTime.logTotal("Usdt0OneClickService.quote");
 
+    const routeStatus = getRouteStatus(Service.Usdt0OneClick);
+
     return {
       ...usdt0Result,
       fees,
@@ -96,6 +99,7 @@ export class Usdt0OneClickService {
         recipient: params.recipient,
         depositAddress: oneClickResult.quote.depositAddress,
       },
+      routeDisabled: routeStatus.disabled,
     };
   }
 

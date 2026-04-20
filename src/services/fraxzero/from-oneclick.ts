@@ -10,6 +10,7 @@ import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "@/libs/wallets/types";
 import { ExecTime } from "@/utils/exec-time";
+import { getRouteStatus, Service } from "../constants";
 
 export class OneClick2FraxZeroService extends FraxZeroService {
   public override async quote(params: any) {
@@ -38,6 +39,8 @@ export class OneClick2FraxZeroService extends FraxZeroService {
     const isToSolana = toToken.chainName === "Solana";
     const isToFraxtal = toToken.chainId === 252;
     const isSend = !isToEthereumFrxUSD && !isToSolana && !isToFraxtal;
+
+    const routeStatus = getRouteStatus(Service.OneClickFraxZero);
 
     const providers = FRAXZERO_MIDDLE_TOKEN_USDC.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, FRAXZERO_MIDDLE_TOKEN_USDC.chainId));
     const provider = new ethers.FallbackProvider(providers);
@@ -176,6 +179,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
 
       return {
         ...firstStepResult,
+        routeDisabled: routeStatus.disabled,
         needPermit: true,
         permitSpender: FRAXZERO_REDEEM_AND_MINT_CONTRACT,
         permitToken: FRAXZERO_MIDDLE_TOKEN_USDC,
@@ -226,6 +230,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
 
       return {
         ...firstStepResult,
+        routeDisabled: routeStatus.disabled,
         quoteParam: {
           ...firstStepResult.quoteParam,
           middleToken: FRAXZERO_MIDDLE_TOKEN_USDC,
@@ -299,6 +304,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
 
     return {
       ...firstStepResult,
+      routeDisabled: routeStatus.disabled,
       fees,
       totalFeesUsd: numberRemoveEndZero(Big(totalFeesUsd).toFixed(20)),
       estimateTime: firstStepResult.estimateTime + secondStepResult.estimateTime,

@@ -8,6 +8,13 @@ export const sortQuoteData = (quoteDataMap: Map<string, any>) => {
     const [_serviceA, dataA] = a;
     const [_serviceB, dataB] = b;
 
+    const disabledA = !!dataA.routeDisabled;
+    const disabledB = !!dataB.routeDisabled;
+    if (disabledA !== disabledB) {
+      if (disabledA) return 1;
+      return -1;
+    }
+
     let netA = Big(dataA.outputAmount || 0);
     let netB = Big(dataB.outputAmount || 0);
 
