@@ -5,6 +5,7 @@ import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "../types";
 import { Service } from "@/services/constants";
 import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
 
 export default class NearWallet {
   private selector: any;
@@ -204,6 +205,82 @@ export default class NearWallet {
     };
   }
 
+  async getEstimateGas(params: any) {
+    const { gasLimit, price, nativeToken, gasPrice } = params;
+
+    let finalGasPrice = gasPrice;
+    if (!finalGasPrice) {
+      try {
+        const gasPriceResponse = await fetch(this.rpcUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: "dontcare",
+            method: "gas_price",
+            params: {}
+          })
+        });
+        const gasPriceJson = await gasPriceResponse.json();
+        finalGasPrice = BigInt(gasPriceJson.result.gas_price);
+      } catch {
+        finalGasPrice = BigInt("100000000");
+      }
+    }
+
+    const estimateGas = BigInt(gasLimit) * BigInt(finalGasPrice);
+    const estimateGasAmount = Big(estimateGas.toString()).div(10 ** nativeToken.decimals);
+    const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
+
+    return {
+      gasPrice: finalGasPrice,
+      usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
+      wei: estimateGas,
+      amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
+    };
+  }
+
+  async estimateTransaction(params: any) {
+    const {
+      dry,
+      transactions,
+      fromToken,
+      prices,
+    } = params;
+
+    const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
+
+    let totalGasLimit = BigInt("50000000000000"); // ft_transfer_call gas
+    for (let i = 1; i < transactions.length; i++) {
+      totalGasLimit += BigInt("15000000000000");
+    }
+    // Add 20% buffer
+    totalGasLimit = (totalGasLimit * 120n) / 100n;
+
+    const result = {
+      estimateSourceGasLimit: totalGasLimit,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: "0",
+    };
+
+    const setDefaultGasLimit = async () => {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: totalGasLimit,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+        gasPrice: dry ? "100000000" : void 0,
+      });
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    };
+
+    await setDefaultGasLimit();
+
+    return result;
+  }
+
   async checkTransactionStatus(txHash: string) {
     const wallet = await this.selector.wallet();
     const accounts = await wallet.getAccounts();
@@ -236,6 +313,7 @@ export default class NearWallet {
 
   async quoteOneClickProxy(params: any) {
     const {
+      dry,
       proxyAddress,
       fromToken,
       refundTo,
@@ -243,6 +321,8 @@ export default class NearWallet {
       amountWei,
       prices,
     } = params;
+
+    const execTime = new ExecTime({ type: "OneClick NEAR", logStyle: "lime-200" });
 
     const result: any = { fees: {} };
 
@@ -267,13 +347,26 @@ export default class NearWallet {
       const transactions: any[] = [];
 
       // Check if depositAddress (intents address) is registered
-      const checkStorageDepositAddress = await this.query(
-        tokenContract,
-        "storage_balance_of",
-        {
-          account_id: depositAddress
-        }
-      );
+      // Check if stableflowstg.near is registered
+      execTime.breakpoint();
+      const mergedCalls = [
+        this.query(
+          tokenContract,
+          "storage_balance_of",
+          {
+            account_id: depositAddress
+          }
+        ),
+        this.query(
+          tokenContract,
+          "storage_balance_of",
+          {
+            account_id: STABLEFLOW_CONTRACT
+          }
+        )
+      ];
+      const [checkStorageDepositAddress, checkStorageStableflow] = await Promise.all(mergedCalls);
+      execTime.log("query storage_balance_of (depositAddress and STABLEFLOW_CONTRACT)");
 
       if (!checkStorageDepositAddress?.available) {
         transactions.push({
@@ -294,15 +387,6 @@ export default class NearWallet {
           ]
         });
       }
-
-      // Check if stableflowstg.near is registered
-      const checkStorageStableflow = await this.query(
-        tokenContract,
-        "storage_balance_of",
-        {
-          account_id: STABLEFLOW_CONTRACT
-        }
-      );
 
       if (!checkStorageStableflow?.available) {
         transactions.push({
@@ -344,30 +428,19 @@ export default class NearWallet {
         ]
       });
 
-      // Calculate gas fees
-      let totalGasLimit = BigInt("50000000000000"); // ft_transfer_call gas
-      if (!checkStorageDepositAddress?.available) {
-        totalGasLimit += BigInt("15000000000000"); // storage_deposit gas
-      }
-      if (!checkStorageStableflow?.available) {
-        totalGasLimit += BigInt("15000000000000"); // storage_deposit gas
-      }
+      execTime.breakpoint();
+      const ett = await this.estimateTransaction({
+        dry,
+        transactions,
+        fromToken,
+        prices,
+      });
+      execTime.log("estimateTransaction");
 
-      // Add 20% buffer
-      totalGasLimit = (totalGasLimit * 120n) / 100n;
-
-      // NEAR gas price: 100000000 yoctoNEAR per gas unit
-      const gasPrice = BigInt("100000000");
-      const estimateGas = totalGasLimit * gasPrice;
-
-      // Calculate USD fees
-      const estimateGasUsd = Big(estimateGas.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
-
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-      result.estimateSourceGas = estimateGas.toString();
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas;
+      result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
       // Set sendParam for subsequent transaction sending
       result.sendParam = {
@@ -378,18 +451,20 @@ export default class NearWallet {
     } catch (error) {
       csl("Near quoteOneClickProxy", "red-500", "oneclick quote proxy failed: %o", error);
       // Use default gas estimation
-      const defaultGasLimit = BigInt("80000000000000"); // default gas limit
-      const gasPrice = BigInt("100000000");
-      const estimateGas = defaultGasLimit * gasPrice;
-      const estimateGasUsd = Big(estimateGas.toString())
-        .div(10 ** fromToken.nativeToken.decimals)
-        .times(getPrice(prices, fromToken.nativeToken.symbol));
+      const ett = await this.estimateTransaction({
+        dry,
+        transactions: [null, null, null],
+        fromToken,
+        prices,
+      });
 
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
-      result.estimateSourceGas = estimateGas.toString();
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas;
+      result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
     }
 
+    execTime.logTotal("quoteOneClickProxy");
     return result;
   }
 

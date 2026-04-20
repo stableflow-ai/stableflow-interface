@@ -16,6 +16,7 @@ import { buildEndpointV2LzComposePayload, NATIVE_MSG_FEE_BUFFER } from "../utils
 import { OFT_ABI } from "@/services/usdt0/contract";
 import { csl } from "@/utils/log";
 import { createMulticall3, type Call } from "@/utils/multicall3";
+import { ExecTime } from "@/utils/exec-time";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -179,6 +180,7 @@ export default class RainbowWallet {
       amountWei,
       isApproveMax = false,
       isDetails = false,
+      isWaitTxReceipt = true,
     } = params;
 
     const contract = new ethers.Contract(contractAddress, erc20Abi, this.signer);
@@ -225,25 +227,90 @@ export default class RainbowWallet {
   }
 
   async getEstimateGas(params: any) {
-    const { gasLimit, price, nativeToken, provider } = params;
+    const { gasLimit, price, nativeToken, provider, gasPrice } = params;
 
-    const feeData = await provider.getFeeData();
-    const gasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
+    let finalGasPrice = gasPrice;
+    if (!finalGasPrice) {
+      const feeData = await provider.getFeeData();
+      finalGasPrice = feeData.maxFeePerGas || feeData.gasPrice || BigInt("20000000000"); // Default 20 gwei
+    }
 
-    const estimateGas = BigInt(gasLimit) * BigInt(gasPrice);
+    const estimateGas = BigInt(gasLimit) * BigInt(finalGasPrice);
     const estimateGasAmount = Big(estimateGas.toString()).div(10 ** nativeToken.decimals);
     const estimateGasUsd = Big(estimateGasAmount).times(price || 1);
 
     return {
-      gasPrice,
+      gasPrice: finalGasPrice,
       usd: numberRemoveEndZero(Big(estimateGasUsd).toFixed(20)),
       wei: estimateGas,
       amount: numberRemoveEndZero(Big(estimateGasAmount).toFixed(nativeToken.decimals)),
     };
   }
 
+  async estimateTransaction(params: any) {
+    const {
+      dry,
+      contract,
+      method,
+      param,
+      fromToken,
+      prices,
+      evmGasFees,
+      defaultGasLimit = DEFAULT_GAS_LIMIT,
+    } = params;
+
+    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+    const provider = new ethers.FallbackProvider(providers);
+    const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
+
+    const result = {
+      estimateSourceGasLimit: dry ? 4000000n : DEFAULT_GAS_LIMIT,
+      estimateSourceGas: 0n,
+      estimateSourceGasUsd: "0",
+    };
+
+    const setDefaultGasLimit = async () => {
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: DEFAULT_GAS_LIMIT,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+        provider,
+        gasPrice: dry ? evmGasFees[fromToken.chainId].gasPrice : void 0,
+      });
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    };
+
+    let finalGasLimit = defaultGasLimit;
+
+    if (dry) {
+      await setDefaultGasLimit();
+      return result;
+    }
+
+    try {
+      const gasLimit = await contract[method].estimateGas(...param);
+      finalGasLimit = gasLimit * 120n / 100n;
+      const { usd, wei } = await this.getEstimateGas({
+        gasLimit: finalGasLimit,
+        price: nativeTokenPrice,
+        nativeToken: fromToken.nativeToken,
+        provider,
+      });
+      result.estimateSourceGasLimit = finalGasLimit;
+      result.estimateSourceGas = wei;
+      result.estimateSourceGasUsd = usd;
+    } catch (error) {
+      // csl("EVM estimateTransaction", "red-500", "%s estimateGas failed: %o", method, error);
+      await setDefaultGasLimit();
+    }
+
+    return result;
+  }
+
   async quoteOFT(params: any) {
     const {
+      dry,
       abi,
       dstEid,
       recipient,
@@ -253,6 +320,7 @@ export default class RainbowWallet {
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       originLayerzeroAddress,
       destinationLayerzeroAddress,
       excludeFees,
@@ -275,12 +343,15 @@ export default class RainbowWallet {
         destinationLayerzeroAddress: destinationLayerzeroAddress,
       },
       fees: {},
-      totalFeesUsd: void 0,
-      estimateSourceGas: void 0,
-      estimateSourceGasUsd: void 0,
+      totalFeesUsd: "0",
+      estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
+      estimateSourceGasUsd: "0",
       estimateTime: 0, // seconds - dynamically calculated using LayerZero formula
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
+
+    const execTime = new ExecTime({ type: `Usdt0 EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-100" });
 
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
@@ -289,35 +360,22 @@ export default class RainbowWallet {
     const oftContractRead = new ethers.Contract(originLayerzeroAddress, abi, provider);
 
     // csl("EVM quoteOFT", "blue-900", "params: %o", params);
+    execTime.breakpoint();
 
     // 1. check if need approve
-    const approvalRequired = await oftContractRead.approvalRequired();
+    const approvalRequired = isOriginLegacy ? originLayerzero.oftLegacyApprovalRequired : originLayerzero.oftApprovalRequired;
     csl("EVM quoteOFT", "blue-900", "approvalRequired: %o", approvalRequired);
-
-    // If approval is required, check actual allowance
-    if (approvalRequired) {
-      try {
-        // Check allowance
-        const allowanceResult = await this.allowance({
-          contractAddress: fromToken.contractAddress,
-          spender: originLayerzeroAddress,
-          address: refundTo,
-          amountWei,
-          provider,
-        });
-        result.needApprove = allowanceResult.needApprove;
-      } catch (error) {
-        csl("EVM checking allowance", "red-500", "Error checking allowance: %o", error);
-      }
-    }
+    execTime.log("approvalRequired");
 
     const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : (destinationLayerzero.lzReceiveOptionGas || 200000);
     let lzReceiveOptionValue = 0;
 
+    execTime.breakpoint();
     const destATA = await getDestinationAssociatedTokenAddress({
       recipient,
       toToken,
     });
+    execTime.log("getDestinationAssociatedTokenAddress");
     if (destATA.needCreateTokenAccount) {
       lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
     }
@@ -358,10 +416,12 @@ export default class RainbowWallet {
         composeMsg: "0x",
         oftCmd: "0x",
       };
+      execTime.breakpoint();
       const hopMsgFee = await getHopMsgFee({
         sendParam: composeMsgSendParam,
         toToken,
       });
+      execTime.log("getHopMsgFee");
 
       sendParam.extraOptions = Options.newOptions()
         .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
@@ -374,20 +434,43 @@ export default class RainbowWallet {
     }
 
     // csl("EVM quoteOFT", "blue-900", "sendParam: %o", sendParam);
-
+    execTime.breakpoint();
     const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
     const [, , oftReceipt] = oftData;
     sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
     // csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
+    execTime.log("quoteOFT.staticCall");
 
-    const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
+    execTime.breakpoint();
+    const mergedCall = [
+      oftContractRead.quoteSend.staticCall(sendParam, payInLzToken),
+    ];
+    if (approvalRequired) {
+      mergedCall.push(
+        this.allowance({
+          contractAddress: fromToken.contractAddress,
+          spender: originLayerzeroAddress,
+          address: refundTo,
+          amountWei,
+          provider,
+        })
+      );
+    }
+    const [msgFee, allowanceResult] = await Promise.all(mergedCall);
+    // csl("EVM quoteOFT", "blue-900", "quoteSend: %o", msgFee);
+    if (approvalRequired) {
+      result.needApprove = allowanceResult?.needApprove;
+    }
+    execTime.log("quoteSend.staticCall and allowance");
+
+    // const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, payInLzToken);
     let nativeMsgFee = msgFee[0];
     const lzMsgFee = msgFee[1];
-    result.estimateSourceGas = nativeMsgFee;
-    csl("EVM quoteOFT", "blue-900", "msgFee: %o, nativeMsgFee: %o", msgFee, nativeMsgFee);
+    result.totalEstimateSourceGas = nativeMsgFee;
+    // csl("EVM quoteOFT", "blue-900", "msgFee: %o, nativeMsgFee: %o", msgFee, nativeMsgFee);
     // add 5% buffer
     nativeMsgFee = nativeMsgFee * NATIVE_MSG_FEE_BUFFER / 100n;
-    csl("EVM quoteOFT", "blue-900", "msgFee after buffer: %o", nativeMsgFee);
+    // csl("EVM quoteOFT", "blue-900", "msgFee after buffer: %o", nativeMsgFee);
 
     // csl("EVM quoteOFT", "blue-900", "Params: %o", result.sendParam);
 
@@ -403,53 +486,49 @@ export default class RainbowWallet {
       result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
     }
 
-    let sendWithFeeGasLimit = 4000000n;
-    try {
-      const gasLimit = await oftContract.send.estimateGas(...result.sendParam.param);
-      sendWithFeeGasLimit = gasLimit * 120n / 100n;
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas += wei;
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas += wei;
-      result.estimateSourceGasUsd = usd;
-    }
+    const finalSendParam = [
+      sendParam,
+      {
+        nativeFee: nativeMsgFee,
+        lzTokenFee: lzMsgFee,
+      },
+      refundTo,
+      { value: nativeMsgFee }
+    ];
+
+    execTime.breakpoint();
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: oftContract,
+      method: "send",
+      param: finalSendParam,
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas += ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    finalSendParam[3].gasLimit = ett.estimateSourceGasLimit;
+    execTime.log("send.estimateGas");
 
     result.sendParam = {
       contract: oftContract,
       method: "send",
-      param: [
-        sendParam,
-        {
-          nativeFee: nativeMsgFee,
-          lzTokenFee: lzMsgFee,
-        },
-        refundTo,
-        { value: nativeMsgFee, gasLimit: sendWithFeeGasLimit }
-      ],
+      param: finalSendParam,
     };
 
     // calculate total fees
     for (const feeKey in result.fees) {
-      if (excludeFees.includes(feeKey)) {
+      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
         continue;
       }
       result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
     }
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
+    execTime.logTotal("quoteOFT");
 
     return result;
   }
@@ -558,6 +637,7 @@ export default class RainbowWallet {
 
   async quoteCCTP(params: any) {
     const {
+      dry,
       proxyAddress,
       abi,
       refundTo,
@@ -567,6 +647,7 @@ export default class RainbowWallet {
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       excludeFees,
       destinationDomain,
       sourceDomain,
@@ -585,6 +666,7 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: void 0,
       estimateTime: Math.floor(Math.random() * 8) + 3,
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
@@ -593,27 +675,45 @@ export default class RainbowWallet {
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
+    const execTime = new ExecTime({ type: `CCTP EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-200" });
+
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
     const proxyContractRead = new ethers.Contract(proxyAddress, abi, provider);
 
     let realRecipient = recipient;
-    // get ATA address
-    const destATA = await getDestinationAssociatedTokenAddress({
-      recipient,
-      toToken,
-    });
+    execTime.breakpoint();
+    // 1. get user nonce
+    const getUsrNonce = async () => {
+      let userNonce = 0n;
+      try {
+        userNonce = await proxyContract.userNonces(refundTo);
+      } catch (error) {
+      }
+      return userNonce;
+    };
+    const mergedCalls = [
+      getDestinationAssociatedTokenAddress({
+        recipient,
+        toToken,
+      }),
+      getUsrNonce(),
+      this.allowance({
+        contractAddress: fromToken.contractAddress,
+        address: refundTo,
+        spender: proxyAddress,
+        amountWei,
+        provider,
+      })
+    ];
+    const [destATA, userNonce, allowance]: any = await Promise.all(mergedCalls);
+    execTime.log("getDestinationATA & getUsrNonce & get allowance", "destATA: %o, userNonce: %o, allowance: %o", destATA, userNonce, allowance);
     result.needCreateTokenAccount = destATA.needCreateTokenAccount;
     if (destATA.associatedTokenAddress) {
       realRecipient = destATA.associatedTokenAddress;
     }
+    result.needApprove = allowance.needApprove;
 
-    // 1. get user nonce
-    let userNonce = 0n;
-    try {
-      userNonce = await proxyContract.userNonces(refundTo);
-    } catch (error) {
-    }
-
+    execTime.breakpoint();
     // 2. quote signature
     const signatureRes = await quoteSignature({
       address: refundTo,
@@ -632,6 +732,7 @@ export default class RainbowWallet {
       signature,
       destination_caller,
     } = signatureRes;
+    execTime.log("quoteSignature");
 
     result.fees.estimateMintGasUsd = numberRemoveEndZero(Big(mint_fee || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
     result.fees.bridgeFeeUsd = numberRemoveEndZero(Big(bridge_fee || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
@@ -659,64 +760,44 @@ export default class RainbowWallet {
       signature,
     ];
 
+    execTime.breakpoint();
     // 3. estimate deposit gas
-    let depositWithFeeGasLimit = 4000000n;
-    try {
-      const gasLimit = await proxyContract.depositWithFee.estimateGas(...depositParam);
-      depositWithFeeGasLimit = gasLimit * 120n / 100n;
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateDepositGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateDepositGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-    }
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: proxyContract,
+      method: "depositWithFee",
+      param: depositParam,
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateDepositGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    depositParam.push({ gasLimit: ett.estimateSourceGasLimit });
+    execTime.log("estimateTransaction");
 
     result.sendParam = {
       method: "depositWithFee",
       contract: proxyContract,
-      param: [
-        ...depositParam,
-        { gasLimit: depositWithFeeGasLimit }
-      ],
+      param: depositParam,
     };
 
-    // 4. check approve
-    const allowance = await this.allowance({
-      contractAddress: fromToken.contractAddress,
-      address: refundTo,
-      spender: proxyAddress,
-      amountWei,
-      provider,
-    });
-    result.needApprove = allowance.needApprove;
     // get approve gas cost
     if (result.needApprove) {
-      try {
-        const gasLimit = await allowance.contract.approve.estimateGas(proxyAddress, amountWei);
-        const { usd } = await this.getEstimateGas({
-          gasLimit,
-          price: getPrice(prices, fromToken.nativeToken.symbol),
-          nativeToken: fromToken.nativeToken,
-          provider,
-        });
-        result.fees.estimateApproveGasUsd = usd;
-      } catch (error) {
-        csl("EVM quoteCCTP", "red-500", "estimate approve gas failed: %o", error);
-      }
+      execTime.breakpoint();
+      const etapprove = await this.estimateTransaction({
+        dry,
+        contract: allowance.contract,
+        method: "approve",
+        param: [proxyAddress, amountWei],
+        fromToken,
+        prices,
+        evmGasFees,
+      });
+      result.fees.estimateApproveGasUsd = etapprove.estimateSourceGasUsd;
+      execTime.log("approve.estimateTransaction");
     }
 
     // 5. calculate total fees
@@ -728,11 +809,14 @@ export default class RainbowWallet {
     }
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
+    execTime.logTotal("quoteCCTP");
+
     return result;
   }
 
   async quoteOneClickProxy(params: any) {
     const {
+      dry,
       proxyAddress,
       abi,
       fromToken,
@@ -740,26 +824,15 @@ export default class RainbowWallet {
       depositAddress,
       amountWei,
       prices,
+      evmGasFees,
     } = params;
+
+    const execTime = new ExecTime({ type: `OneClick EVM ${fromToken.chainName}`, logStyle: "stone-300" });
 
     const result: any = { fees: {} };
 
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
-
-    try {
-      const allowance = await this.allowance({
-        contractAddress: fromToken.contractAddress,
-        address: refundTo,
-        spender: proxyAddress,
-        amountWei: amountWei,
-        provider,
-      });
-      result.needApprove = allowance.needApprove;
-      result.approveSpender = proxyAddress;
-    } catch (error) {
-      csl("EVM quoteOneClickProxy", "red-500", "check allowance failed: %o", error);
-    }
 
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
     const proxyParam: any = [
@@ -771,39 +844,42 @@ export default class RainbowWallet {
       amountWei,
     ];
 
-    let proxyTransferGasLimit = 4000000n;
-    try {
-      const gasLimit = await proxyContract.proxyTransfer.estimateGas(...proxyParam);
-      proxyTransferGasLimit = gasLimit * 120n / 100n;
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
+    execTime.breakpoint();
+    const mergedCalls = [
+      this.allowance({
+        contractAddress: fromToken.contractAddress,
+        address: refundTo,
+        spender: proxyAddress,
+        amountWei: amountWei,
         provider,
-      });
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    } catch (error) {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    }
+      }),
+      this.estimateTransaction({
+        dry,
+        contract: proxyContract,
+        method: "proxyTransfer",
+        param: proxyParam,
+        fromToken,
+        prices,
+        evmGasFees,
+      })
+    ];
+    const [allowance, ett]: any = await Promise.all(mergedCalls);
+    result.needApprove = allowance.needApprove;
+    result.approveSpender = proxyAddress;
+    result.fees.estimateDepositGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    proxyParam.push({ gasLimit: ett.estimateSourceGasLimit });
+    execTime.log("allowance & estimateTransaction");
 
     result.sendParam = {
       method: "proxyTransfer",
       contract: proxyContract,
-      param: [
-        ...proxyParam,
-        { gasLimit: proxyTransferGasLimit }
-      ],
+      param: proxyParam,
     };
+
+    execTime.logTotal("quoteOneClickPorxy");
 
     return result;
   }
@@ -821,6 +897,7 @@ export default class RainbowWallet {
       fromToken,
       toToken,
       prices,
+      evmGasFees,
     } = restParams;
 
     const result: any = {
@@ -836,77 +913,93 @@ export default class RainbowWallet {
       },
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: void 0,
       estimateTime: quoteResponse.priority === "fast" ? Math.floor(Math.random() * 10) + 50 : Math.floor(Math.random() * 60) + 300,
       outputAmount: 0,
     };
 
+    const execTime = new ExecTime({ type: `Native EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-400" });
+
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
-    const allowanceResult = await this.allowance({
-      contractAddress: fromToken.contractAddress,
-      spender: bridgeRouterAddress,
-      address: refundTo,
-      amountWei,
-    });
-    result.needApprove = allowanceResult.needApprove;
-
-    if (dry) {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-
-      result.outputAmount = quoteResponse.buyerTokenAmount + "";
-      result.fees = {
-        sourceGasFeeUsd: usd,
-        widgetFeeUsd: quoteResponse.widgetFeeUsd,
-        liquidityProviderFeeUsd: quoteResponse.liquidityProviderFeeUsd,
-      };
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-      result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.totalFeeUsd).toFixed(20));
-    }
-    else {
-      let gasEstimate = DEFAULT_GAS_LIMIT;
-      try {
-        gasEstimate = await provider.estimateGas({
-          to: quoteResponse.txRequest.target,
-          data: quoteResponse.txRequest.calldata,
-          from: refundTo,
+    const estimateNativeGas = async () => {
+      if (dry) {
+        const ett = await this.estimateTransaction({
+          dry,
+          fromToken,
+          prices,
+          evmGasFees,
         });
-        result.txRequest.gasLimit = gasEstimate;
-      } catch (error) {
-        result.txRequest.gasLimit = 4000000n;
-      }
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: gasEstimate,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
 
-      result.outputAmount = Big(quoteResponse.amountOut || 0).div(10 ** (toToken.decimals || 6)).toFixed(toToken.decimals || 6, 0);
-      result.fees = {
-        sourceGasFeeUsd: usd,
-        // maybe 100 = 1%
-        widgetFeeUsd: numberRemoveEndZero(Big(amountWei || 0).div(10 ** (fromToken.decimals || 6)).times(quoteResponse.widgetFee.feeRate || 0).toFixed(20, 0)),
-        // not return by api
-        liquidityProviderFeeUsd: "0",
-      };
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-      result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.amountOutBeforeFee || 0).minus(quoteResponse.amountOut).div(10 ** (fromToken.decimals || 6)).toFixed(20, 0));
-    }
+        result.outputAmount = quoteResponse.buyerTokenAmount + "";
+        result.fees = {
+          sourceGasFeeUsd: ett.estimateSourceGasUsd,
+          widgetFeeUsd: quoteResponse.widgetFeeUsd,
+          liquidityProviderFeeUsd: quoteResponse.liquidityProviderFeeUsd,
+        };
+        result.estimateSourceGas = ett.estimateSourceGas;
+        result.totalEstimateSourceGas = ett.estimateSourceGas;
+        result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+        result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.totalFeeUsd).toFixed(20));
+      }
+      else {
+        let gasEstimate = DEFAULT_GAS_LIMIT;
+        try {
+          gasEstimate = await provider.estimateGas({
+            to: quoteResponse.txRequest.target,
+            data: quoteResponse.txRequest.calldata,
+            from: refundTo,
+          });
+          result.txRequest.gasLimit = gasEstimate;
+        } catch (error) {
+          result.txRequest.gasLimit = 4000000n;
+        }
+        const { usd, wei } = await this.getEstimateGas({
+          gasLimit: gasEstimate,
+          price: getPrice(prices, fromToken.nativeToken.symbol),
+          nativeToken: fromToken.nativeToken,
+          provider,
+        });
+
+        result.outputAmount = Big(quoteResponse.amountOut || 0).div(10 ** (toToken.decimals || 6)).toFixed(toToken.decimals || 6, 0);
+        result.fees = {
+          sourceGasFeeUsd: usd,
+          // maybe 100 = 1%
+          widgetFeeUsd: numberRemoveEndZero(Big(amountWei || 0).div(10 ** (fromToken.decimals || 6)).times(quoteResponse.widgetFee.feeRate || 0).toFixed(20, 0)),
+          // not return by api
+          liquidityProviderFeeUsd: "0",
+        };
+        result.estimateSourceGas = wei;
+        result.totalEstimateSourceGas = wei;
+        result.estimateSourceGasUsd = usd;
+        result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.amountOutBeforeFee || 0).minus(quoteResponse.amountOut).div(10 ** (fromToken.decimals || 6)).toFixed(20, 0));
+      }
+    };
+
+    execTime.breakpoint();
+    const mergedCalls = [
+      this.allowance({
+        contractAddress: fromToken.contractAddress,
+        spender: bridgeRouterAddress,
+        address: refundTo,
+        amountWei,
+      }),
+      estimateNativeGas()
+    ];
+    const [allowanceResult]: any = await Promise.all(mergedCalls);
+    result.needApprove = allowanceResult.needApprove;
+    execTime.log("allowance & estimateNativeGas");
+
+    execTime.logTotal("quoteNative");
 
     return result;
   }
 
   async quoteFraxZero(params: any) {
     const {
+      dry,
       abi,
       recipient,
       amountWei,
@@ -914,6 +1007,7 @@ export default class RainbowWallet {
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       excludeFees,
       refundTo,
       originLayerzero,
@@ -941,6 +1035,7 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: 0,
       estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime: 0,
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
@@ -949,24 +1044,12 @@ export default class RainbowWallet {
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
+    const execTime = new ExecTime({ type: `FraxZero EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-500" });
+
     const remoteHopContract = new ethers.Contract(remoteHop, abi, this.signer);
     const remoteHopContractRead = new ethers.Contract(remoteHop, abi, provider);
 
     // 1. check if need approve
-    try {
-      // Check allowance
-      const allowanceResult = await this.allowance({
-        contractAddress: fromToken.contractAddress,
-        spender: remoteHop,
-        address: refundTo,
-        amountWei,
-        provider,
-      });
-      result.needApprove = allowanceResult.needApprove;
-    } catch (error) {
-      csl("EVM quoteFraxZero", "red-500", "Error checking allowance: %o", error);
-    }
-
     // 2. get message fee
     const sendParams = [
       // _oft
@@ -978,13 +1061,29 @@ export default class RainbowWallet {
       // _amountLD
       amountWei
     ];
-    const msgFee = await remoteHopContractRead.quote.staticCall(...sendParams);
+    execTime.breakpoint();
+    const mergedCalls = [
+      this.allowance({
+        contractAddress: fromToken.contractAddress,
+        spender: remoteHop,
+        address: refundTo,
+        amountWei,
+        provider,
+      }),
+      remoteHopContractRead.quote.staticCall(...sendParams)
+    ];
+    const [allowanceResult, msgFee]: any = await Promise.all(mergedCalls);
+    execTime.log("allowance & quote.staticCall");
+
+    result.needApprove = allowanceResult.needApprove;
+
     let nativeMsgFee = msgFee[0];
     csl("EVM quoteFraxZero", "blue-700", "nativeMsgFee: %o", nativeMsgFee);
+
     // add 5% buffer
     nativeMsgFee = nativeMsgFee * NATIVE_MSG_FEE_BUFFER / 100n;
     csl("EVM quoteFraxZero", "blue-700", "nativeMsgFee after buffer: %o", nativeMsgFee);
-    result.estimateSourceGas = nativeMsgFee;
+    result.totalEstimateSourceGas = nativeMsgFee;
 
     const nativeFeeUsd = Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).times(getPrice(prices, fromToken.nativeToken.symbol));
     result.fees.nativeFee = numberRemoveEndZero(Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
@@ -993,51 +1092,42 @@ export default class RainbowWallet {
 
     csl("EVM quoteFraxZero", "blue-700", "msgFee: %o", msgFee);
 
+    execTime.breakpoint();
     // 3. estimate send gas
-    let sendWithFeeGasLimit = 4000000n;
-    try {
-      const gasLimit = await remoteHopContract.sendOFT.estimateGas(...sendParams, { value: nativeMsgFee });
-      sendWithFeeGasLimit = gasLimit * 120n / 100n;
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas += wei;
-      result.estimateSourceGasUsd = usd;
-    } catch (error) {
-      csl("EVM quoteFraxZero", "red-500", "estimate send gas failed: %o", error);
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: DEFAULT_GAS_LIMIT,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas += wei;
-      result.estimateSourceGasUsd = usd;
-    }
+    const finalSendParam = [...sendParams, { value: nativeMsgFee }];
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: remoteHopContract,
+      method: "sendOFT",
+      param: finalSendParam,
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas += ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    finalSendParam[finalSendParam.length - 1].gasLimit = ett.estimateSourceGasLimit;
+    execTime.log("sendOFT.estimateTransaction");
 
     // 4. generate transaction
     result.sendParam = {
       contract: remoteHopContract,
       method: "sendOFT",
-      param: [
-        ...sendParams,
-        { value: nativeMsgFee, gasLimit: sendWithFeeGasLimit }
-      ],
+      param: finalSendParam,
     };
 
     // 5. calculate total fees
     for (const feeKey in result.fees) {
-      if (excludeFees.includes(feeKey)) {
+      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
         continue;
       }
       result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
     }
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
+    execTime.logTotal("quoteFraxZero");
 
     return result;
   }
@@ -1052,7 +1142,9 @@ export default class RainbowWallet {
       redemptionAddress,
     } = params;
 
-    csl("EVM preivewRedeemFrxUSD", "blue-700", "params: %o", params);
+    // csl("EVM preivewRedeemFrxUSD", "blue-700", "params: %o", params);
+
+    const execTime = new ExecTime({ type: `FraxZero EVM preivewRedeemFrxUSD ${fromToken.chainName}`, logStyle: "stone-600" });
 
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
@@ -1062,10 +1154,12 @@ export default class RainbowWallet {
     const rwaCustodian = new ethers.Contract(rwaCustodianAddress, abi, provider);
     const redemption = new ethers.Contract(redemptionAddress, abi, provider);
 
+    execTime.breakpoint();
     const [usdcView, redemptionView] = await Promise.all([
       usdcCustodian.mdwrComboView.staticCall(),
       redemption.maxUstbRedemptionAmount.staticCall(),
     ]);
+    execTime.log("usdcCustodian & redemption");
 
     // This value is the frxUSD wei amount
     const maxUsdc = usdcView[3]; // maxSharesRedeemable
@@ -1085,14 +1179,18 @@ export default class RainbowWallet {
 
     if (amountWeiBigInt <= maxUsdc) {
       // USDC path only
+      execTime.breakpoint();
       const assetsOut = await usdcCustodian.previewRedeem.staticCall(amountWeiBigInt);
+      execTime.log("usdcCustodian.previewRedeem (USDC only)");
       csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC path only, usdcCustodian previewRedeem input: %o, value: %o", amountWeiBigInt, assetsOut);
       totalAssetsOut = assetsOut;
       csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC path only, totalAssetsOut: %o", totalAssetsOut);
     } else {
       // USDC first (maxUsdc), then RWA for remainder
       if (maxUsdc > 0n) {
+        execTime.breakpoint();
         const usdcAssetsOut = await usdcCustodian.previewRedeem.staticCall(maxUsdc);
+        execTime.log("usdcCustodian.previewRedeem (mixed)");
         csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC first (maxUsdc), usdcCustodian previewRedeem input: %o, value: %o", maxUsdc, usdcAssetsOut);
         totalAssetsOut += usdcAssetsOut;
         csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC first (maxUsdc), totalAssetsOut: %o", totalAssetsOut);
@@ -1100,9 +1198,13 @@ export default class RainbowWallet {
       const rwaAmount = amountWeiBigInt - maxUsdc;
       csl("EVM preivewRedeemFrxUSD", "blue-700", "RWA for remainder, rwaAmount: %o", rwaAmount);
       if (rwaAmount > 0n) {
+        execTime.breakpoint();
         const superstateTokenInAmount = await rwaCustodian.previewRedeem.staticCall(rwaAmount);
+        execTime.log("rwaCustodian.previewRedeem (mixed)");
         csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC first (maxUsdc), rwaCustodian previewRedeem input: %o, superstateTokenInAmount: %o", rwaAmount, superstateTokenInAmount);
+        execTime.breakpoint();
         const [rwaAssetsOut] = await redemption.calculateUsdcOut.staticCall(superstateTokenInAmount);
+        execTime.log("redemption.calculateUsdcOut (mixed)");
         csl("EVM preivewRedeemFrxUSD", "blue-700", "USDC first (maxUsdc), rwaCustodian previewRedeem input: %o, value: %o", rwaAmount, rwaAssetsOut);
         totalAssetsOut += rwaAssetsOut;
         csl("EVM preivewRedeemFrxUSD", "blue-700", "RWA for remainder, totalAssetsOut: %o", totalAssetsOut);
@@ -1115,6 +1217,8 @@ export default class RainbowWallet {
 
     csl("EVM preivewRedeemFrxUSD", "blue-700", "final totalAssetsOut: %o", totalAssetsOut);
     csl("EVM preivewRedeemFrxUSD", "blue-700", "final insufficient liquidity: %o", isInsufficientLiquidity);
+
+    execTime.logTotal("preivewRedeemFrxUSD");
 
     return {
       maxUsdc,
@@ -1135,20 +1239,28 @@ export default class RainbowWallet {
 
     csl("EVM previewMintFrxUSD", "blue-700", "params: %o", params);
 
+    const execTime = new ExecTime({ type: `FraxZero EVM previewMintFrxUSD ${fromToken.chainName}`, logStyle: "stone-700" });
+
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
     // Get maxAssetsDepositable (index 0) from mdwrComboView for both custodians
     const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
 
+    execTime.breakpoint();
     const usdcView = await usdcCustodian.mdwrComboView.staticCall();
+    execTime.log("usdcCustodian.mdwrComboView");
 
     const maxUsdc = usdcView[0]; // maxAssetsDepositable
 
     const amountWeiBigInt = BigInt(amountWei || 0);
     const totalMax = maxUsdc;
 
+    execTime.breakpoint();
     const totalAssetsOut = await usdcCustodian.previewDeposit.staticCall(amountWeiBigInt);
+    execTime.log("usdcCustodian.previewDeposit");
+
+    execTime.logTotal("previewMintFrxUSD");
 
     return {
       maxUsdc,
@@ -1165,16 +1277,19 @@ export default class RainbowWallet {
    */
   async redeemFrxUSD(params: any) {
     const {
+      dry,
       recipient,
       amountWei,
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       refundTo,
       abi,
       usdcCustodianAddress,
       rwaCustodianAddress,
       redeemAndMintContractAddress,
+      preivewRedeemResult,
     } = params;
 
     csl("EVM redeemFrxUSD", "blue-700", "params: %o", params);
@@ -1193,6 +1308,7 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: 0,
       estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime,
       outputAmount: "0",
@@ -1201,16 +1317,24 @@ export default class RainbowWallet {
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
+    const execTime = new ExecTime({ type: `FraxZero EVM redeemFrxUSD ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-800" });
+
     const redeemContractRead = new ethers.Contract(redeemAndMintContractAddress, abi, provider);
     const redeemContract = new ethers.Contract(redeemAndMintContractAddress, abi, this.signer);
 
+    execTime.breakpoint();
+    let finalPreivewRedeemResult = preivewRedeemResult;
+    if (!finalPreivewRedeemResult) {
+      finalPreivewRedeemResult = await this.preivewRedeemFrxUSD(params);
+    }
     const {
       maxUsdc,
       maxRwa,
       amountWeiBigInt,
       isInsufficientLiquidity,
       totalAssetsOut,
-    } = await this.preivewRedeemFrxUSD(params);
+    } = finalPreivewRedeemResult;
+    execTime.log("preivewRedeemFrxUSD");
 
     if (isInsufficientLiquidity) {
       throw new Error("Insufficient liquidity");
@@ -1221,6 +1345,7 @@ export default class RainbowWallet {
       Big(totalAssetsOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
     );
 
+    execTime.breakpoint();
     // check allowance of fromToken for redeemAndMintContractAddress
     try {
       const allowanceResult = await this.allowance({
@@ -1233,6 +1358,7 @@ export default class RainbowWallet {
       result.needApprove = allowanceResult.needApprove;
     } catch {
     }
+    execTime.log("allowance");
 
     result.sendParam = {
       contract: redeemContract,
@@ -1243,32 +1369,26 @@ export default class RainbowWallet {
       ],
     };
 
-    let redeemGasLimit = DEFAULT_GAS_LIMIT;
-    try {
-      const gasLimit = await redeemContract[result.sendParam.method].estimateGas(...result.sendParam.param);
-      redeemGasLimit = (gasLimit * 120n) / 100n;
-    } catch (error) {
-      csl("EVM redeemFrxUSD", "red-500", "estimate redeem gas failed: %o", error);
-    }
-
-    result.sendParam.param[2] = { gasLimit: redeemGasLimit };
-
+    execTime.breakpoint();
     // Estimate gas for multicall aggregate and compute fees
-    try {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: redeemGasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    } catch (error) {
-      // skip gas estimation on error
-      // csl("EVM redeemFrxUSD", "red-500", "estimate redeem gas failed: %o", error);
-    }
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: redeemContract,
+      method: result.sendParam.method,
+      param: [...result.sendParam.param, { gasLimit: 4000000n }],
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.totalFeesUsd = ett.estimateSourceGasUsd;
+    result.sendParam.param[2] = { gasLimit: ett.estimateSourceGasLimit };
+    execTime.log("estimateTransaction");
+
+    execTime.logTotal("redeemFrxUSD");
 
     return result;
   }
@@ -1280,14 +1400,17 @@ export default class RainbowWallet {
    */
   async mintFrxUSD(params: any) {
     const {
+      dry,
       recipient,
       amountWei,
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       refundTo,
       abi,
       usdcCustodianAddress,
+      previewMintResult,
     } = params;
 
     csl("EVM mintFrxUSD", "blue-700", "params: %o", params);
@@ -1306,14 +1429,18 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: 0,
       estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime,
       outputAmount: "0",
     };
 
+    const execTime = new ExecTime({ type: `FraxZero EVM mintFrxUSD ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-900" });
+
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
+    execTime.breakpoint();
     // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
     try {
       const allowanceResult = await this.allowance({
@@ -1327,29 +1454,27 @@ export default class RainbowWallet {
     } catch (error) {
       csl("EVM mintFrxUSD", "red-500", "Error checking allowance: %o", error);
     }
+    execTime.log("allowance");
 
     const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
     const usdcCustodianWithSigner = new ethers.Contract(usdcCustodianAddress, abi, this.signer);
 
+    execTime.breakpoint();
+    let finalPreviewMintResult = previewMintResult;
+    if (!finalPreviewMintResult) {
+      finalPreviewMintResult = await this.previewMintFrxUSD(params);
+    }
     const {
       maxUsdc,
       amountWeiBigInt,
       totalMax,
       totalAssetsOut,
-    } = await this.previewMintFrxUSD(params);
+    } = finalPreviewMintResult;
+    execTime.log("previewMintFrxUSD");
 
     result.outputAmount = numberRemoveEndZero(
       Big(totalAssetsOut.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, 0)
     );
-
-    // Build sendParam for deposit(assetsIn, receiver)
-    let depositGasLimit = DEFAULT_GAS_LIMIT;
-    try {
-      const gasLimit = await usdcCustodianWithSigner.deposit.estimateGas(amountWeiBigInt, recipient);
-      depositGasLimit = (gasLimit * 120n) / 100n;
-    } catch {
-      // use default if estimation fails
-    }
 
     result.sendParam = {
       contract: usdcCustodianWithSigner,
@@ -1357,42 +1482,49 @@ export default class RainbowWallet {
       param: [
         amountWeiBigInt,
         recipient,
-        { gasLimit: depositGasLimit },
       ],
     };
 
+    execTime.breakpoint();
     // Estimate gas fees
-    try {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: depositGasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    } catch {
-      // skip gas estimation on error
-    }
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: usdcCustodianWithSigner,
+      method: "deposit",
+      param: [...result.sendParam.param, { gasLimit: 4000000n }],
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.totalFeesUsd = ett.estimateSourceGasUsd;
+    result.sendParam.param[2] = { gasLimit: ett.estimateSourceGasLimit };
+    execTime.log("estimateTransaction");
+
+    execTime.logTotal("mintFrxUSD");
 
     return result;
   }
 
   async mintAndSendFrxUSD(params: any) {
     const {
+      dry,
       recipient,
       amountWei,
       fromToken,
       toToken,
       prices,
+      evmGasFees,
       refundTo,
       abi,
       usdcCustodianAddress,
       redeemAndMintContractAddress,
       originLayerzero,
       destinationLayerzero,
+      previewMintResult,
     } = params;
 
     csl("EVM mintAndSendFrxUSD", "blue-700", "params: %o", params);
@@ -1415,14 +1547,18 @@ export default class RainbowWallet {
       fees: {},
       totalFeesUsd: 0,
       estimateSourceGas: 0n,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime,
       outputAmount: "0",
     };
 
+    const execTime = new ExecTime({ type: `FraxZero EVM mintAndSendFrxUSD ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-950" });
+
     const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
     const provider = new ethers.FallbackProvider(providers);
 
+    execTime.breakpoint();
     // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
     try {
       const allowanceResult = await this.allowance({
@@ -1436,12 +1572,22 @@ export default class RainbowWallet {
     } catch (error) {
       csl("EVM mintAndSendFrxUSD", "red-500", "Error checking allowance: %o", error);
     }
+    execTime.log("allowance");
 
     const redeemAndMintContractWithSigner = new ethers.Contract(redeemAndMintContractAddress, abi, this.signer);
 
+    execTime.breakpoint();
+    let finalPreviewMintResult = previewMintResult;
+    if (!finalPreviewMintResult) {
+      finalPreviewMintResult = await this.previewMintFrxUSD(params);
+    }
     const {
+      maxUsdc,
+      amountWeiBigInt,
+      totalMax,
       totalAssetsOut,
-    } = await this.previewMintFrxUSD(params);
+    } = finalPreviewMintResult;
+    execTime.log("previewMintFrxUSD");
     csl("EVM mintAndSendFrxUSD", "gray-600", "previewMintFrxUSD totalAssetsOut: %o", totalAssetsOut);
 
     result.outputAmount = numberRemoveEndZero(
@@ -1457,38 +1603,33 @@ export default class RainbowWallet {
       // receiver
       addressToBytes32(toToken.chainType, recipient)
     ];
-    let depositGasLimit = DEFAULT_GAS_LIMIT;
-    try {
-      const gasLimit = await redeemAndMintContractWithSigner.mintAndSend.estimateGas(...mintAndSendParam);
-      depositGasLimit = (gasLimit * 120n) / 100n;
-    } catch {
-      // use default if estimation fails
-    }
 
     result.sendParam = {
       contract: redeemAndMintContractWithSigner,
       method: "mintAndSend",
-      param: [
-        ...mintAndSendParam,
-        { gasLimit: depositGasLimit },
-      ],
+      param: mintAndSendParam,
     };
 
+    execTime.breakpoint();
     // Estimate gas fees
-    try {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: depositGasLimit,
-        price: getPrice(prices, fromToken.nativeToken.symbol),
-        nativeToken: fromToken.nativeToken,
-        provider,
-      });
-      result.fees.estimateGasUsd = usd;
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-      result.totalFeesUsd = numberRemoveEndZero(Big(usd).toFixed(20));
-    } catch {
-      // skip gas estimation on error
-    }
+    const ett = await this.estimateTransaction({
+      dry,
+      contract: redeemAndMintContractWithSigner,
+      method: "mintAndSend",
+      param: [...mintAndSendParam, { gasLimit: 4000000n }],
+      fromToken,
+      prices,
+      evmGasFees,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.totalFeesUsd = ett.estimateSourceGasUsd;
+    result.sendParam.param.push({ gasLimit: ett.estimateSourceGasLimit });
+    execTime.log("estimateTransaction");
+
+    execTime.logTotal("mintAndSendFrxUSD");
 
     return result;
   }

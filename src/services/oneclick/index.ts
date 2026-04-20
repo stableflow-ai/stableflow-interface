@@ -6,8 +6,9 @@ import axios, { type AxiosInstance } from "axios";
 import Big from "big.js";
 import { ONECLICK_PROXY, ONECLICK_PROXY_ABI } from "./contract";
 import { SendType } from "@/libs/wallets/types";
-import { Service } from "@/services/constants";
+import { getRouteStatus, Service } from "@/services/constants";
 import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
 
 export const BridgeFee = [
   {
@@ -59,11 +60,15 @@ export class OneClickService {
 
   public async formatQuoteData(res: { data: any; params: any; }) {
     const { params } = res;
-    const { isProxy = true } = params;
+    const { isProxy = true, needsBandwidthTRX, needsEnergyAmount, prices } = params;
 
     const isFromTron = params.fromToken.chainType === "tron";
     const isFromTronEnergy = isFromTron && params.acceptTronEnergy;
     const isExactOutput = params.swapType === "EXACT_OUTPUT";
+    const nativeTokenPrice = getPrice(prices, params.fromToken.nativeToken.symbol);
+    const nativeTokenDecimals = params.fromToken.nativeToken.decimals;
+
+    const execTime = new ExecTime({ type: "OneClickService formatQuoteData", logStyle: "lime-300" });
 
     if (res.data) {
       // Updated the time estimate for bridge quotes to ensure it does not exceed a maximum threshold.
@@ -101,6 +106,15 @@ export class OneClickService {
         res.data.exchangeRate = numberRemoveEndZero(Big(res.data.quote?.amountOutFormatted || 0).div(res.data.quote?.amountInFormatted || 1).toFixed(params.toToken.decimals, 0));
       }
 
+      if (isFromTron) {
+        const energySourceGasFee = {
+          estimateGas: Big(Big(needsBandwidthTRX || 0).plus(needsEnergyAmount || 0)).times(10 ** nativeTokenDecimals).toFixed(nativeTokenDecimals)
+        };
+        res.data.energySourceGasFee = energySourceGasFee.estimateGas;
+        const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
+        res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
+      }
+
       try {
         // const bridgeFee = BridgeFee.reduce((acc, item) => {
         //   return acc.plus(Big(item.fee).div(100));
@@ -126,37 +140,9 @@ export class OneClickService {
           destinationGasFeeUsd: numberRemoveEndZero(Big(destinationGasFee).toFixed(20)),
         };
 
-        try {
-          res.data.transferSourceGasFee = await params.wallet.estimateTransferGas({
-            fromToken: params.fromToken,
-            depositAddress: res.data?.quote?.depositAddress || BridgeDefaultWallets[params.fromToken.chainType as WalletType],
-            amount: params.amountWei,
-            account: params.refundTo,
-          });
-          const transferSourceGasFeeUsd = Big(res.data.transferSourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-          res.data.transferSourceGasFeeUsd = numberRemoveEndZero(Big(transferSourceGasFeeUsd).toFixed(20));
-          const energySourceGasFee = {
-            estimateGas: Big(Big(params.needsBandwidthTRX || 0).plus(params.needsEnergyAmount || 0)).times(10 ** params.fromToken.nativeToken.decimals).toFixed(params.fromToken.nativeToken.decimals)
-          };
-          res.data.energySourceGasFee = energySourceGasFee.estimateGas;
-          const energySourceGasFeeUsd = Big(energySourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-          res.data.energySourceGasFeeUsd = numberRemoveEndZero(Big(energySourceGasFeeUsd).toFixed(20));
-          let sourceGasFee = res.data.transferSourceGasFee;
-          if (isFromTronEnergy) {
-            sourceGasFee = energySourceGasFee;
-          }
-
-          const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** params.fromToken.nativeToken.decimals).times(getPrice(params.prices, params.fromToken.nativeToken.symbol));
-          res.data.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
-          res.data.estimateSourceGas = sourceGasFee.estimateGas;
-          res.data.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
-        } catch (err) {
-          // csl("OneClickService formatQuoteData", "red-500", "oneclick estimate gas failed: %o", err);
-        }
-
         // calculate total fees
         for (const feeKey in res.data.fees) {
-          if (excludeFees.includes(feeKey)) {
+          if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
             continue;
           }
           res.data.totalFeesUsd = Big(res.data.totalFeesUsd || 0).plus(res.data.fees[feeKey] || 0);
@@ -179,15 +165,18 @@ export class OneClickService {
           recipient: params.recipient,
           amountWei: isExactOutput ? res.data?.quote?.minAmountIn : params.amountWei,
           prices: params.prices,
+          evmGasFees: params.evmGasFees,
           depositAddress: res.data?.quote?.depositAddress ?? BridgeDefaultWallets[params.fromToken.chainType as WalletType],
         };
         try {
+          execTime.breakpoint();
           const proxyResult = await params.wallet.quote(Service.OneClick, proxyParams);
+          execTime.log("wallet.quoteOneClickProxy");
 
           for (const proxyKey in proxyResult) {
             if (proxyKey === "fees") {
               for (const feeKey in proxyResult.fees) {
-                if (excludeFees.includes(feeKey)) {
+                if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
                   continue;
                 }
                 res.data.fees[feeKey] = proxyResult.fees[feeKey];
@@ -210,6 +199,8 @@ export class OneClickService {
         ...proxyParams,
       };
     }
+
+    execTime.logTotal("OneClickService.formatQuoteData");
 
     return res.data || {};
   }
@@ -247,6 +238,9 @@ export class OneClickService {
       swapType,
     } = params;
 
+    const _quoteType = `OneClickService ${fromToken?.chainName}->${toToken?.chainName}`;
+    const execTime = new ExecTime({ type: _quoteType, logStyle: "lime-400" });
+
     const quoteParams: any = {
       depositMode: "SIMPLE",
       swapType: swapType || "EXACT_INPUT",
@@ -281,9 +275,20 @@ export class OneClickService {
       quoteParams.amount = Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
     }
 
+    execTime.breakpoint();
     const res = await this.api.post("/quote", quoteParams);
+    execTime.log("1click API /quote");
 
-    return this.formatQuoteData({ data: res.data, params });
+    execTime.breakpoint();
+    const result = await this.formatQuoteData({ data: res.data, params });
+    execTime.log("formatQuoteData");
+
+    execTime.logTotal("OneClickService.quote");
+
+    const routeStatus = getRouteStatus(Service.OneClick);
+    result.routeDisabled = routeStatus.disabled;
+
+    return result;
   }
 
   public async estimateTransaction(params: any, quoteData: any) {

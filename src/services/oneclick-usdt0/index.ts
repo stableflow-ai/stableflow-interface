@@ -8,6 +8,8 @@ import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { getPrice } from "@/utils/format/price";
 import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
+import { getRouteStatus, Service } from "../constants";
 
 export class OneClickUsdt0Service {
   public async quote(params: any) {
@@ -16,6 +18,8 @@ export class OneClickUsdt0Service {
       fromToken,
       prices,
     } = params;
+
+    const execTime = new ExecTime({ type: "OneClickUsdt0", logStyle: "lime-500" });
 
     let middleChainWallet = wallets?.evm?.wallet;
     let destinationRecipientAddress = wallets?.evm?.account;
@@ -43,7 +47,9 @@ export class OneClickUsdt0Service {
       wallet: middleChainWallet,
     };
 
+    execTime.breakpoint();
     const usdt0Result = await usdt0Service.quote(usdt0Params);
+    execTime.log("usdt0Service.quote");
 
     const usdt0MessageFeeBuffer = 1.2;
     usdt0Result.fees.nativeFeeUsd = numberRemoveEndZero(Big(usdt0Result.fees?.nativeFeeUsd || 0).times(1 + usdt0MessageFeeBuffer).toFixed(20));
@@ -65,9 +71,9 @@ export class OneClickUsdt0Service {
       .times(10000)
       .toFixed(0, Big.roundUp);
 
-    csl("OneClickUsdt0Service quote", "rose-400", "usdt0MessageFeeAmount: %o", usdt0MessageFeeAmount);
-    csl("OneClickUsdt0Service quote", "rose-400", "amount: %o", Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
-    csl("OneClickUsdt0Service quote", "rose-400", "oneClickFeeRatio: %o", oneClickFeeRatio);
+    // csl("OneClickUsdt0Service quote", "rose-400", "usdt0MessageFeeAmount: %o", usdt0MessageFeeAmount);
+    // csl("OneClickUsdt0Service quote", "rose-400", "amount: %o", Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
+    // csl("OneClickUsdt0Service quote", "rose-400", "oneClickFeeRatio: %o", oneClickFeeRatio);
 
     if (Big(oneClickFeeRatio).gt(10000)) {
       return { errMsg: `Amount is too low, at least ${usdt0MessageFeeAmount}` };
@@ -77,6 +83,7 @@ export class OneClickUsdt0Service {
     // The destination chain is arb
     // Since the exact amount transferred by oneclick needs to be signed, EXACT_OUTPUT mode must be used
     // In EXACT_OUTPUT mode, the output amount equals the expected value
+    execTime.breakpoint();
     const oneClickResult = await oneClickService.quote({
       ...params,
       toToken: MIDDLE_TOKEN_CHAIN,
@@ -92,6 +99,7 @@ export class OneClickUsdt0Service {
         },
       ],
     });
+    execTime.log("oneClickService.quote");
 
     let totalFeesUsd = Big(0);
     let _destinationGasFeeUsd = Big(oneClickResult.fees?.destinationGasFeeUsd || 0).minus(usdt0MessageFeeUsd);
@@ -117,6 +125,10 @@ export class OneClickUsdt0Service {
 
     const usdt0SendParam = usdt0Result.sendParam?.param?.[0];
     const usdt0MessageFee = usdt0Result.sendParam?.param?.[1];
+
+    execTime.log("OneClickUsdt0Service.quote");
+
+    const routeStatus = getRouteStatus(Service.OneClickUsdt0);
 
     return {
       ...oneClickResult,
@@ -148,6 +160,7 @@ export class OneClickUsdt0Service {
       },
       usdt0SendParam,
       usdt0MessageFee,
+      routeDisabled: routeStatus.disabled,
     };
   }
 

@@ -8,6 +8,8 @@ import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "./config";
 import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { csl } from "@/utils/log";
+import { ExecTime } from "@/utils/exec-time";
+import { getRouteStatus, Service } from "../constants";
 
 export class Usdt0OneClickService {
   public async quote(params: any) {
@@ -16,6 +18,8 @@ export class Usdt0OneClickService {
       wallets,
       fromToken,
     } = params;
+
+    const execTime = new ExecTime({ type: "Usdt0OneClickService", logStyle: "lime-700" });
 
     let middleChainWallet = wallets?.evm?.wallet;
     if (!middleChainWallet) {
@@ -30,6 +34,7 @@ export class Usdt0OneClickService {
       destinationChain: MIDDLE_TOKEN_CHAIN.chainName,
     };
 
+    execTime.breakpoint();
     const oneClickResult = await oneClickService.quote({
       ...params,
       fromToken: MIDDLE_TOKEN_CHAIN,
@@ -39,6 +44,7 @@ export class Usdt0OneClickService {
       refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
       wallet: middleChainWallet,
     });
+    execTime.log("oneClickService.quote");
 
     if (oneClickResult.errMsg) {
       return oneClickResult;
@@ -50,7 +56,9 @@ export class Usdt0OneClickService {
       usdt0Params.recipient = MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
+    execTime.breakpoint();
     const usdt0Result = await usdt0Service.quote(usdt0Params);
+    execTime.log("usdt0Service.quote");
 
     csl("Usdt0OneClickService quote", "rose-600", "oneClickResult: %o", oneClickResult);
     csl("Usdt0OneClickService quote", "rose-600", "usdt0Result: %o", usdt0Result);
@@ -72,6 +80,10 @@ export class Usdt0OneClickService {
       totalFeesUsd = Big(totalFeesUsd || 0).plus(fees[feeKey] || 0);
     }
 
+    execTime.logTotal("Usdt0OneClickService.quote");
+
+    const routeStatus = getRouteStatus(Service.Usdt0OneClick);
+
     return {
       ...usdt0Result,
       fees,
@@ -87,6 +99,7 @@ export class Usdt0OneClickService {
         recipient: params.recipient,
         depositAddress: oneClickResult.quote.depositAddress,
       },
+      routeDisabled: routeStatus.disabled,
     };
   }
 
@@ -107,7 +120,7 @@ export class Usdt0OneClickService {
 
   public async getStatus(params: any): Promise<{ status: string; toTxHash?: string }> {
     const { hash, history, fromWallet } = params;
-    
+
     // First, get the status of layerzero
     const usdt0Result = await usdt0Service.getStatus(params);
 
@@ -115,7 +128,7 @@ export class Usdt0OneClickService {
     if (usdt0Result.status !== "SUCCESS") {
       return usdt0Result;
     }
-    
+
     return oneClickService.getStatus({
       depositAddress: history?.depositAddress,
     });

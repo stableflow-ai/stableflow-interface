@@ -30,6 +30,8 @@ import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/
 import { csl } from "@/utils/log";
 import { sortQuoteData } from "../utils";
 import { getQuoteModes } from "@/services/utils";
+import useEvmGasFeesStore from "@/stores/use-evm-gas-fees";
+import { ExecTime } from "@/utils/exec-time";
 import { useTrack } from "@/hooks/use-track";
 
 const TRANSFER_MIN_AMOUNT = import.meta.env.VITE_TRANSFER_MIN_AMOUNT || 1;
@@ -57,6 +59,7 @@ export default function useBridge(props?: any) {
   const [errorChain, setErrorChain] = useState<number>(0);
   const toast = useToast();
   const prevToTokenRef = useRef<any>(null);
+  const { byChainId: evmGasFees } = useEvmGasFeesStore();
   const { addQuote: addQuoteTrack, addTransfer: addTransferTrack, addCreateSolanaATA: addCreateSolanaATATrack } = useTrack();
 
   const [fromWalletAddress, toWalletAddress] = useMemo(() => {
@@ -82,8 +85,9 @@ export default function useBridge(props?: any) {
   const [amountError, setAmountError] = useState<string>("");
 
   const quoteRoutes = async (service: Service, params: any, requestId: number): Promise<QuoteData> => {
+    const execTime = new ExecTime({ type: "useBridge.quoteRoutes", logStyle: "sky-300" });
     // Check request ID, skip setting loading state if not the latest request
-    if (requestId !== undefined && requestId !== requestIdRef.current) {
+    if (requestId !== requestIdRef.current) {
       throw new Error("Request cancelled: outdated request");
     }
     bridgeStore.setQuoting(service, requestId, true);
@@ -101,6 +105,7 @@ export default function useBridge(props?: any) {
         fromToken: walletStore.fromToken,
         toToken: walletStore.toToken,
         prices,
+        evmGasFees,
         slippageTolerance: configStore.slippage,
       };
       if (([
@@ -115,7 +120,7 @@ export default function useBridge(props?: any) {
         _params.refundType = "ORIGIN_CHAIN";
         _params.acceptTronEnergy = bridgeStore.acceptTronEnergy;
 
-        if (isFromTron && bridgeStore.acceptTronEnergy) {
+        if (isFromTron) {
           const { needsEnergy, needsBandwidth, needsBandwidthTRX, needsEnergyTRX } = await getEstimateNeedsEnergy({
             wallet: params.wallet,
             account: fromWalletAddress || "",
@@ -127,14 +132,16 @@ export default function useBridge(props?: any) {
           if (needsEnergy) {
             _params.needsEnergyAmount = needsEnergyTRX;
           } else {
-            const fixedFee = BridgeFees.Normal;
-            const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
-            _params.appFees = [
-              {
-                recipient: BridgeFee[0].recipient,
-                fee: BridgeFee[0].fee + fixedFeePercentage,
-              },
-            ];
+            if (bridgeStore.acceptTronEnergy) {
+              const fixedFee = BridgeFees.Normal;
+              const fixedFeePercentage = Number(Big(fixedFee).div(bridgeStore.amount).times(10000).toFixed(0, 0));
+              _params.appFees = [
+                {
+                  recipient: BridgeFee[0].recipient,
+                  fee: BridgeFee[0].fee + fixedFeePercentage,
+                },
+              ];
+            }
           }
         }
 
@@ -157,15 +164,32 @@ export default function useBridge(props?: any) {
 
     try {
       const quoteRes = await ServiceMap[service].quote(quoteParams);
+      quoteRes.quoteId = requestId;
+
+      execTime.logTotal("useBridge.quoteRoutes");
 
       bridgeStore.setQuoting(service, requestId, false);
 
       // Check request ID again before setting result to ensure it's still the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
+      if (requestId !== requestIdRef.current) {
         throw new Error("Request cancelled: outdated request");
       }
 
       bridgeStore.setQuoteData(service, quoteRes);
+
+      if (params.dry) {
+        ServiceMap[service].estimateTransaction(quoteParams, quoteRes)
+          .then((estimateRes: any) => {
+            csl("quoteRoutes", "green-500", "%s estimateTransaction res: %o", service, estimateRes);
+            if (estimateRes.quoteId !== requestIdRef.current) {
+              return;
+            }
+            bridgeStore.setQuoteData(service, estimateRes);
+          })
+          .catch((estimateErr: any) => {
+            // csl("quoteRoutes", "red-500", "%s estimateTransaction failed: %o", service, estimateErr);
+          });
+      }
 
       addQuoteTrack({
         quoteData: quoteRes,
@@ -185,7 +209,7 @@ export default function useBridge(props?: any) {
       }
 
       // Check request ID, ignore error if not the latest request
-      if (requestId !== undefined && requestId !== requestIdRef.current) {
+      if (requestId !== requestIdRef.current) {
         throw new Error("Request cancelled: outdated request");
       }
 
@@ -226,6 +250,7 @@ export default function useBridge(props?: any) {
 
       const _quoteData = {
         type: service,
+        quoteId: requestId,
         quoteParam: quoteParams,
         errMsg: _finalErrorMessage,
       };
@@ -249,6 +274,8 @@ export default function useBridge(props?: any) {
   const prevQuotingRef = useRef<boolean>(false);
 
   const quote = async (params: { dry: boolean; }, isSync?: boolean, requestId?: number) => {
+    const execTime = new ExecTime({ type: "useBridge.quote", logStyle: "sky-400" });
+
     if (!isSync) {
       bridgeStore.clearQuoteData();
     }
@@ -380,24 +407,29 @@ export default function useBridge(props?: any) {
       const currentQuoteService = quoteServices.find((service: any) => service.service === bridgeStore.quoteDataService);
       // Sync calls don't need request ID check
       const _quoteRes = await currentQuoteService.quote(currentRequestId);
+      execTime.logTotal("useBridge.quote sync");
       csl("quote", "green-400", "[%s]Sync Quote Result: %o", bridgeStore.quoteDataService, _quoteRes);
       return _quoteRes;
     }
 
     csl("quote", "pink-950", "quoteServices: %o", quoteServices);
 
+    const quotePromises: Promise<any>[] = [];
     for (let i = 0; i < quoteServices.length; i++) {
       const quoteService = quoteServices[i];
+      const execTime = new ExecTime({ type: "useBridge: quote a Service", logStyle: "sky-500" });
       // Pass request ID to service function
-      quoteService.quote(currentRequestId).then((_quoteRes: any) => {
+      const p = quoteService.quote(currentRequestId).then((_quoteRes: any) => {
         // Check if it's the latest request, ignore result if not
         if (currentRequestId !== requestIdRef.current) {
           csl("quote", "gray-500", "[%s] Ignored outdated quote result, current requestId: %s, result requestId: %s", quoteService.service, requestIdRef.current, currentRequestId);
           return;
         }
 
+        execTime.logTotal("service success", "(%s)", quoteService.service);
         csl("quote", "green-400", "[%s]Quote Result: %o", quoteService.service, _quoteRes);
       }).catch((error: any) => {
+        execTime.logTotal("service failed", "(%s)", quoteService.service);
         // Silently ignore if it's a cancelled request error
         if (error?.message === "Request cancelled: outdated request") {
           csl("quote", "gray-500", "[%s] Request cancelled: outdated request", quoteService.service);
@@ -415,6 +447,7 @@ export default function useBridge(props?: any) {
           setAutoSelect(true);
         }
       });
+      quotePromises.push(p);
 
       // Change to sequential requests to avoid exceeding RPC request rate limits
       // try {
@@ -443,6 +476,10 @@ export default function useBridge(props?: any) {
 
       // setAutoSelect(true);
     }
+
+    Promise.allSettled(quotePromises).then(() => {
+      execTime.logTotal("useBridge.quote all services", "(services: %s)", quoteServices.map((s: any) => s.service).join(", "));
+    });
   };
 
   const report = async (params: any) => {
@@ -468,7 +505,7 @@ export default function useBridge(props?: any) {
     }
 
     const _quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
-    let _estimateSourceGas = _quoteData?.estimateSourceGas || 0n;
+    let _estimateSourceGas = _quoteData?.totalEstimateSourceGas || 0n;
 
     // stale chain
     // The native token of the stable chain is USDT0, so the transfer amount also needs to be included in the estimateGas.
@@ -577,6 +614,10 @@ export default function useBridge(props?: any) {
         throw new Error(_quote.errMsg || "Transfer failed");
       }
 
+      if (_quote.data.routeDisabled) {
+        throw new Error("This route is temporarily unavailable");
+      }
+
       addTrackParams.quoteData = _quote.data;
 
       // @ts-ignore
@@ -610,59 +651,65 @@ export default function useBridge(props?: any) {
       }
 
       // approve
-      const needApprove = Array.isArray(_quote?.data?.needApprove)
-        ? _quote.data.needApprove.some(Boolean)
-        : _quote?.data?.needApprove;
+      const needApprove = _quote?.data?.needApprove;
+      const approveSpender = _quote?.data?.approveSpender;
+      const isFromEthereum = walletStore.fromToken.chainName === "Ethereum";
+      const approveAmount = isExactOutput ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
+      const approveAmountWei = Big(approveAmount || 0).times(10 ** walletStore.fromToken.decimals).toFixed(0);
       if (needApprove && !isFromTronEnergy) {
         if (_quote?.data?.estimateApproveGas) {
           const { isContinue } = await estimateNativeTokenBalance({
             estimateGas: _quote?.data?.estimateApproveGas,
           });
           if (!isContinue) {
-            throw new Error("nsufficient native token balance for approve");
+            throw new Error("Insufficient native token balance for approve");
           }
         }
 
-        const approveSpenders = Array.isArray(_quote?.data?.approveSpender)
-          ? _quote.data.approveSpender
-          : [_quote?.data?.approveSpender];
-        const needApprovePerSpender = Array.isArray(_quote?.data?.needApprove)
-          ? _quote.data.needApprove
-          : approveSpenders.map(() => true);
-
-        // check is from ethereum erc20
-        if (walletStore.fromToken.chainName === "Ethereum") {
-          for (let i = 0; i < approveSpenders.length; i++) {
-            if (!needApprovePerSpender[i]) continue;
-            const allowance = await wallet.wallet.allowance({
-              contractAddress: walletStore.fromToken.contractAddress,
-              spender: approveSpenders[i],
-              address: fromWalletAddress,
-              amountWei: _amount,
-            });
-            if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
-              await wallet.wallet.approve({
-                contractAddress: walletStore.fromToken.contractAddress,
-                spender: approveSpenders[i],
-                amountWei: "0",
-              });
-            }
-          }
-        }
-        const approveAmount = isExactOutput ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
-        const approveAmountWei = Big(approveAmount || 0).times(10 ** walletStore.fromToken.decimals).toFixed(0);
-        for (let i = 0; i < approveSpenders.length; i++) {
-          if (!needApprovePerSpender[i]) continue;
-          const approveResult = await wallet.wallet.approve({
+        // If it's Ethereum, if there was a previous approval, it needs to be revoked first
+        // Then approve the new amount
+        if (isFromEthereum) {
+          const allowance = await wallet.wallet.allowance({
             contractAddress: walletStore.fromToken.contractAddress,
-            spender: approveSpenders[i],
+            spender: approveSpender,
+            address: fromWalletAddress,
             amountWei: approveAmountWei,
-            isDetails: true,
           });
-          if (!approveResult.success) {
-            throw new Error(approveResult.message || "Approve failed");
+          if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
+            await wallet.wallet.approve({
+              contractAddress: walletStore.fromToken.contractAddress,
+              spender: approveSpender,
+              // revoked approval
+              amountWei: "0",
+            });
           }
         }
+
+        // Normal approve
+        const approveResult = await wallet.wallet.approve({
+          contractAddress: walletStore.fromToken.contractAddress,
+          spender: approveSpender,
+          amountWei: approveAmountWei,
+          isDetails: true,
+        });
+        if (!approveResult.success) {
+          throw new Error(approveResult.message || "Approve failed");
+        }
+
+        const latestAllowance = await wallet.wallet.allowance({
+          contractAddress: walletStore.fromToken.contractAddress,
+          spender: approveSpender,
+          address: fromWalletAddress,
+          amountWei: approveAmountWei,
+        });
+
+        csl("transfer", "blue-600", "latest allowance: %o", latestAllowance);
+
+        // Insufficient approval amount, aborting transaction
+        if (latestAllowance.needApprove) {
+          throw new Error("Insufficient approval amount");
+        }
+
         toast.success({
           title: "Approve success"
         });
@@ -1035,6 +1082,7 @@ export default function useBridge(props?: any) {
     toWalletAddress,
   ]);
 
+  // button status check
   useEffect(() => {
     const check = () => {
       if (!walletStore.fromToken?.contractAddress) {
@@ -1091,6 +1139,9 @@ export default function useBridge(props?: any) {
         if (Big(priceImpact || 0).gt(PRICE_IMPACT_THRESHOLD) && !bridgeStore.acceptPriceImpact) {
           return "Large Price Impact";
         }
+      }
+      if (quoteData?.routeDisabled) {
+        return "This route is temporarily unavailable";
       }
 
       const { isExactOutput, isPermitWithNonce } = getQuoteModes({
@@ -1158,6 +1209,7 @@ export default function useBridge(props?: any) {
     // This allows immediate selection when first request completes, and updates when better quotes arrive
     if (validQuoteList.length === 1) {
       bridgeStore.set({ quoteDataService: validQuoteList[0][0], showFee: true });
+      csl("QuoteRoutes", "pink-950", "Quote Sorted Result: %o", validQuoteList);
       setAutoSelect(false);
       return;
     }
