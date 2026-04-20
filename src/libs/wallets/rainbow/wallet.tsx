@@ -179,6 +179,7 @@ export default class RainbowWallet {
       amountWei,
       isApproveMax = false,
       isDetails = false,
+      isWaitTxReceipt = true,
     } = params;
 
     const contract = new ethers.Contract(contractAddress, erc20Abi, this.signer);

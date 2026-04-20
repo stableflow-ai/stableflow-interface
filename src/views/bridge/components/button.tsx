@@ -58,9 +58,7 @@ export default function BridgeButton({
     const quoteData = bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
     const isFromTron = quoteData?.quoteParam?.fromToken?.chainType === "tron";
     const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
-    const needApprove = Array.isArray(quoteData?.needApprove)
-      ? quoteData.needApprove.some(Boolean)
-      : quoteData?.needApprove;
+    const needApprove = quoteData?.needApprove;
     if (needApprove && !isFromTronEnergy) {
       return "Approve";
     }

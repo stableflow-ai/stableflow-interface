@@ -614,59 +614,65 @@ export default function useBridge(props?: any) {
       }
 
       // approve
-      const needApprove = Array.isArray(_quote?.data?.needApprove)
-        ? _quote.data.needApprove.some(Boolean)
-        : _quote?.data?.needApprove;
+      const needApprove = _quote?.data?.needApprove;
+      const approveSpender = _quote?.data?.approveSpender;
+      const isFromEthereum = walletStore.fromToken.chainName === "Ethereum";
+      const approveAmount = isExactOutput ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
+      const approveAmountWei = Big(approveAmount || 0).times(10 ** walletStore.fromToken.decimals).toFixed(0);
       if (needApprove && !isFromTronEnergy) {
         if (_quote?.data?.estimateApproveGas) {
           const { isContinue } = await estimateNativeTokenBalance({
             estimateGas: _quote?.data?.estimateApproveGas,
           });
           if (!isContinue) {
-            throw new Error("nsufficient native token balance for approve");
+            throw new Error("Insufficient native token balance for approve");
           }
         }
 
-        const approveSpenders = Array.isArray(_quote?.data?.approveSpender)
-          ? _quote.data.approveSpender
-          : [_quote?.data?.approveSpender];
-        const needApprovePerSpender = Array.isArray(_quote?.data?.needApprove)
-          ? _quote.data.needApprove
-          : approveSpenders.map(() => true);
-
-        // check is from ethereum erc20
-        if (walletStore.fromToken.chainName === "Ethereum") {
-          for (let i = 0; i < approveSpenders.length; i++) {
-            if (!needApprovePerSpender[i]) continue;
-            const allowance = await wallet.wallet.allowance({
-              contractAddress: walletStore.fromToken.contractAddress,
-              spender: approveSpenders[i],
-              address: fromWalletAddress,
-              amountWei: _amount,
-            });
-            if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
-              await wallet.wallet.approve({
-                contractAddress: walletStore.fromToken.contractAddress,
-                spender: approveSpenders[i],
-                amountWei: "0",
-              });
-            }
-          }
-        }
-        const approveAmount = isExactOutput ? _quote?.data?.quote?.amountInFormatted : bridgeStore.amount;
-        const approveAmountWei = Big(approveAmount || 0).times(10 ** walletStore.fromToken.decimals).toFixed(0);
-        for (let i = 0; i < approveSpenders.length; i++) {
-          if (!needApprovePerSpender[i]) continue;
-          const approveResult = await wallet.wallet.approve({
+        // If it's Ethereum, if there was a previous approval, it needs to be revoked first
+        // Then approve the new amount
+        if (isFromEthereum) {
+          const allowance = await wallet.wallet.allowance({
             contractAddress: walletStore.fromToken.contractAddress,
-            spender: approveSpenders[i],
+            spender: approveSpender,
+            address: fromWalletAddress,
             amountWei: approveAmountWei,
-            isDetails: true,
           });
-          if (!approveResult.success) {
-            throw new Error(approveResult.message || "Approve failed");
+          if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
+            await wallet.wallet.approve({
+              contractAddress: walletStore.fromToken.contractAddress,
+              spender: approveSpender,
+              // revoked approval
+              amountWei: "0",
+            });
           }
         }
+
+        // Normal approve
+        const approveResult = await wallet.wallet.approve({
+          contractAddress: walletStore.fromToken.contractAddress,
+          spender: approveSpender,
+          amountWei: approveAmountWei,
+          isDetails: true,
+        });
+        if (!approveResult.success) {
+          throw new Error(approveResult.message || "Approve failed");
+        }
+
+        const latestAllowance = await wallet.wallet.allowance({
+          contractAddress: walletStore.fromToken.contractAddress,
+          spender: approveSpender,
+          address: fromWalletAddress,
+          amountWei: approveAmountWei,
+        });
+
+        csl("transfer", "blue-600", "latest allowance: %o", latestAllowance);
+
+        // Insufficient approval amount, aborting transaction
+        if (latestAllowance.needApprove) {
+          throw new Error("Insufficient approval amount");
+        }
+
         toast.success({
           title: "Approve success"
         });

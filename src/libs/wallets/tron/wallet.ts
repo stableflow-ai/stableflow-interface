@@ -448,6 +448,7 @@ export default class TronWallet {
       amountWei,
       isApproveMax = false,
       isDetails = false,
+      isWaitTxReceipt = true,
     } = params;
 
     await this.waitForTronWeb();
@@ -481,6 +482,21 @@ export default class TronWallet {
 
       // Sign and send transaction
       const txHash = await this.sendTransaction({ tx });
+
+      if (isWaitTxReceipt) {
+        const pollingResult = await this.pollingTransactionStatus(txHash, {
+          maxPolls: 120,
+          pollInterval: 2000,
+        });
+        if (!pollingResult) {
+          csl("TronWallet approve", "red-500", "Failed polling approve transaction status");
+          if (isDetails) {
+            detailResult.message = "Failed to get approve result";
+            return detailResult;
+          }
+          return false;
+        }
+      }
 
       if (isDetails) {
         detailResult.success = true;
