@@ -1,5 +1,6 @@
+import useIsMobile from "@/hooks/use-is-mobile";
 import clsx from "clsx";
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Swiper as SwiperType } from "swiper";
 import { Pagination, Autoplay } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -101,11 +102,25 @@ const Trusted = () => {
   const paginationElSelector = `#trusted-swiper-pg-${rawPaginationId}`;
   const swiperRef = useRef<SwiperType | null>(null);
 
+  const isMobile = useIsMobile();
+
   const [edge, setEdge] = useState({ beginning: true, end: false });
 
   const updateEdge = useCallback((s: SwiperType) => {
     setEdge({ beginning: s.isBeginning, end: s.isEnd });
   }, []);
+
+  useEffect(() => {
+    const swiper = swiperRef.current;
+    if (!swiper?.autoplay) return;
+
+    if (isMobile) {
+      swiper.autoplay.stop();
+      return;
+    }
+
+    swiper.autoplay.start();
+  }, [isMobile]);
 
   return (
     <div className="w-full md:max-w-[1440px] mx-auto mt-[50px] px-[10px] md:px-0">
@@ -116,9 +131,9 @@ const Trusted = () => {
         <div className="mx-auto w-full md:max-w-[712px] lg:max-w-[1074px]">
           <Swiper
             className="trusted-swiper w-full"
-            modules={[Pagination, Autoplay]}
+            modules={isMobile ? [] : [Pagination, Autoplay]}
             loop
-            autoplay={{
+            autoplay={isMobile ? false : {
               delay: 3000,
               pauseOnMouseEnter: true,
             }}
@@ -159,22 +174,26 @@ const Trusted = () => {
             ))}
           </Swiper>
         </div>
-        <div className="mt-6 flex items-center justify-center gap-3 md:gap-5">
-          <CarouselNavButton
-            direction="prev"
-            disabled={false}
-            onPress={() => swiperRef.current?.slidePrev()}
-          />
-          <div
-            id={`trusted-swiper-pg-${rawPaginationId}`}
-            className="trusted-swiper-pagination-host flex min-h-[24px] min-w-0 flex-1 max-w-[min(280px,100%)] items-center justify-center"
-          />
-          <CarouselNavButton
-            direction="next"
-            disabled={false}
-            onPress={() => swiperRef.current?.slideNext()}
-          />
-        </div>
+        {
+          !isMobile && (
+            <div className="mt-6 flex items-center justify-center gap-3 md:gap-5">
+              <CarouselNavButton
+                direction="prev"
+                disabled={false}
+                onPress={() => swiperRef.current?.slidePrev()}
+              />
+              <div
+                id={`trusted-swiper-pg-${rawPaginationId}`}
+                className="trusted-swiper-pagination-host flex min-h-[24px] min-w-0 flex-1 max-w-[min(280px,100%)] items-center justify-center"
+              />
+              <CarouselNavButton
+                direction="next"
+                disabled={false}
+                onPress={() => swiperRef.current?.slideNext()}
+              />
+            </div>
+          )
+        }
       </div>
     </div>
   );
