@@ -10,7 +10,6 @@ import Layout from "./layouts";
 import { lazy, Suspense } from "react";
 import { useEvmGasFees } from "./hooks/use-evm-gas-fees";
 import { usePrices } from "./hooks/use-prices";
-import Terms from "./components/terms";
 
 const History = lazy(() => import("./views/history"));
 const LearnMore = lazy(() => import("./views/learn-more"));
@@ -79,6 +78,7 @@ function App() {
   return (
     <WalletsProvider>
       <RouterProvider router={router} />
+
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -90,39 +90,6 @@ function App() {
         pauseOnFocusLoss
         closeButton={false}
       />
-      <div className="fixed z-[11] bottom-[10px] left-[15px] flex items-center gap-[8px]">
-        {/* <a
-          href="https://www.dapdap.net"
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="w-[73px] h-[26px] bg-[url('/logo-dapdap.svg')] bg-no-repeat bg-center bg-[length:55px_15px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
-        /> */}
-        <a
-          href="https://x.com/0xStableFlow"
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="w-[26px] h-[26px] bg-[url('/logo-x.svg')] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
-        />
-        <a
-          href="https://t.me/stableflowai"
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="w-[26px] h-[26px] bg-[url('/logo-telegram.svg')] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
-        />
-        <a
-          href="https://paragraph.com/@stableflow"
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="w-[26px] h-[26px] bg-[url('/logo-paragraph.svg')] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
-        />
-        <a
-          href="https://docs.stableflow.ai/"
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="w-[26px] h-[26px] bg-[url('/logo-gitbook.svg')] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
-        />
-      </div>
-      <Terms className="fixed z-[11] bottom-[7px] md:bottom-[9px] right-[10px] md:right-[120px]" />
 
       <Suspense fallback={null}>
         <TronEnergyModal />
@@ -131,6 +98,7 @@ function App() {
       <Suspense fallback={null}>
         <TrackRoot />
       </Suspense>
+
     </WalletsProvider>
   );
 }
