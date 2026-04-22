@@ -769,9 +769,9 @@ export default function useBridge(props?: any) {
         deposit_address: isOneClickService ? _quote.data.quote.depositAddress : "",
         receive_address: _quote.data.quoteParam.recipient,
         from_chain: walletStore.fromToken.blockchain,
-        symbol: /^USD₮0$/i.test(walletStore.fromToken.symbol) ? "USDT0" : walletStore.fromToken.symbol,
+        symbol: /^USD₮0$/i.test(walletStore.fromToken.symbol) ? "USDT" : walletStore.fromToken.symbol,
         to_chain: walletStore.toToken.blockchain,
-        to_symbol: /^USD₮0$/i.test(walletStore.toToken.symbol) ? "USDT0" : walletStore.toToken.symbol,
+        to_symbol: /^USD₮0$/i.test(walletStore.toToken.symbol) ? "USDT" : walletStore.toToken.symbol,
         tx_hash: "",
       };
       const localHistoryData: any = {
