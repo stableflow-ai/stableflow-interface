@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import useTokenBalance from "@/hooks/use-token-balance";
 import Loading from "@/components/loading/icon";
 import Big from "big.js";
+import LazyImage from "@/components/lazy-image";
 
 export default function Chain({ token, isTo }: any) {
   const walletStore = useWalletStore();
@@ -34,7 +35,15 @@ export default function Chain({ token, isTo }: any) {
         )}
         onClick={openWallet}
       >
-        <div className="w-[50px] h-[50px] rounded-full bg-[#EDF0F7]" />
+        <LazyImage
+          src="/select-token.gif"
+          alt=""
+          containerClassName="w-[50px] h-[50px] rounded-full shrink-0 overflow-hidden"
+          className="object-center scale-120"
+          fallbackSrc={(
+            <div className="w-full h-full rounded-full bg-[#EDF0F7]" />
+          )}
+        />
         <div
           className={clsx(
             "text-[14px] text-[#9FA7BA] mt-[6px] w-full text-center",
