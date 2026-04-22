@@ -16,7 +16,7 @@ export default function Token({
   totalBalance
 }: any) {
   const walletStore = useWalletStore();
-  const { switchChain } = useSwitchChain();
+  const { switchChainAsync } = useSwitchChain();
   return (
     <div className="rounded-[12px]">
       <div className="flex items-center justify-between h-[50px] mx-[10px]">
@@ -80,7 +80,7 @@ export default function Token({
                       };
 
                       if (!walletStore.isTo) {
-                        await switchChain({ chainId: chain.chainId });
+                        await switchChainAsync({ chainId: chain.chainId });
                       }
 
                       if (walletStore.isTo) {
