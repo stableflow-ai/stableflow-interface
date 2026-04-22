@@ -138,7 +138,7 @@ const Trusted = () => {
               pauseOnMouseEnter: true,
             }}
             spaceBetween={SLIDE_GAP}
-            slidesPerView={1.15}
+            slidesPerView={isMobile ? 1 : 1.15}
             breakpoints={{
               768: {
                 slidesPerView: 2,
