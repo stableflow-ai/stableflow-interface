@@ -13,7 +13,7 @@ export default function Chain({ token, isTo }: any) {
     // Determine which token is currently selected for this side
     const currentToken = isTo ? walletStore.toToken : walletStore.fromToken;
     const tokenSymbol = currentToken?.symbol || (isTo ? walletStore.fromToken?.symbol : walletStore.toToken?.symbol);
-    
+
     const params: Record<string, any> = {
       showWallet: true,
       isTo,
@@ -37,11 +37,11 @@ export default function Chain({ token, isTo }: any) {
         <div className="w-[50px] h-[50px] rounded-full bg-[#EDF0F7]" />
         <div
           className={clsx(
-            "text-[14px] text-[#9FA7BA] mt-[6px]",
-            isTo && "text-right"
+            "text-[14px] text-[#9FA7BA] mt-[6px] w-full text-center",
+            // isTo && "text-right"
           )}
         >
-          Select Network
+          {isTo ? "To" : "From"}
         </div>
       </div>
     );
