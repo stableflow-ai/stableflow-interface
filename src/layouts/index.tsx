@@ -2,14 +2,16 @@ import { Outlet } from "react-router-dom";
 import Wallet from "@/sections/wallet";
 import UserActions from "./user-actions";
 // import useUpdateTxns from "@/hooks/use-update-txns";
-import ZendeskWidget from "@/components/zendesk-widget";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useRef } from "react";
 // import SupportButton from "@/components/support-button";
 // import { AuroraBackground } from "./bg";
 
 const MaintenanceBanner = lazy(() => import("@/components/maintenance-banner"));
+const Footer = lazy(() => import("./footer"));
 
 export default function Layout() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // useUpdateTxns();
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -34,14 +36,15 @@ export default function Layout() {
       </Suspense>
 
       {/* Content Layer */}
-      <div className="relative z-10 w-full h-full overflow-y-auto">
+      <div ref={containerRef} className="relative z-10 w-full h-full overflow-y-auto">
         <UserActions />
         <Outlet />
         <Wallet />
-      </div>
 
-      {/* Zendesk Customer Support Widget */}
-      <ZendeskWidget />
+        <Suspense fallback={null}>
+          <Footer containerRef={containerRef} />
+        </Suspense>
+      </div>
     </div>
   );
 }
