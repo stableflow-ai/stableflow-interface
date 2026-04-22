@@ -47,6 +47,19 @@ const getTooltipDateLabel = (selectedPeriod: "day" | "week" | "month"): string =
   }
 };
 
+const MIN_BAR_PX = 3;
+
+function barRectYHeight(
+  value: number,
+  yScale: d3.ScaleLinear<number, number>,
+  plotHeight: number,
+  minPx: number
+): { y: number; h: number } {
+  if (value <= 0) return { y: plotHeight, h: 0 };
+  const h = Math.max(minPx, plotHeight - yScale(value));
+  return { y: plotHeight - h, h };
+}
+
 interface ChartData {
   stat_time: number;
   symbol: string;
@@ -126,9 +139,9 @@ const VolumeChart = ({ data, selectedPeriod, isMobile }: { data: ChartData[], se
       .append("rect")
       .attr("class", "bar")
       .attr("x", d => xScale(formatXAxisLabel(d.date, selectedPeriod)) || 0)
-      .attr("y", d => yScale(d.volume))
+      .attr("y", d => barRectYHeight(d.volume, yScale, height, MIN_BAR_PX).y)
       .attr("width", xScale.bandwidth())
-      .attr("height", d => height - yScale(d.volume))
+      .attr("height", d => barRectYHeight(d.volume, yScale, height, MIN_BAR_PX).h)
       .attr("fill", "#6284F5")
       .attr("rx", 2)
       .on("mouseover", function (_, d) {
@@ -258,9 +271,9 @@ const TransactionsChart = ({ data, selectedPeriod, isMobile }: { data: ChartData
       .append("rect")
       .attr("class", "bar")
       .attr("x", d => xScale(formatXAxisLabel(d.date, selectedPeriod)) || 0)
-      .attr("y", d => yScale(d.transactions))
+      .attr("y", d => barRectYHeight(d.transactions, yScale, height, MIN_BAR_PX).y)
       .attr("width", xScale.bandwidth())
-      .attr("height", d => height - yScale(d.transactions))
+      .attr("height", d => barRectYHeight(d.transactions, yScale, height, MIN_BAR_PX).h)
       .attr("fill", "#56DEAD")
       .attr("rx", 2)
       .on("mouseover", function (_, d) {
