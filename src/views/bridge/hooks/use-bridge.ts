@@ -1086,10 +1086,10 @@ export default function useBridge(props?: any) {
   useEffect(() => {
     const check = () => {
       if (!walletStore.fromToken?.contractAddress) {
-        return "Select the chain you are sending from";
+        return "Select source chain";
       }
       if (!walletStore.toToken?.contractAddress) {
-        return "Select the chain you want to receive";
+        return "Select destination chain";
       }
       if (!bridgeStore.amount) {
         return "Please enter amount";
@@ -1105,7 +1105,7 @@ export default function useBridge(props?: any) {
         walletStore.fromToken.chainType === "evm" &&
         walletStore.fromToken.chainId !== walletStore.fromToken.chainId
       ) {
-        return "Select the chain you are sending from";
+        return "Select source chain";
       }
       if (
         walletStore.fromToken?.chainType === "evm" &&
