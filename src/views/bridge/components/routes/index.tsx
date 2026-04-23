@@ -3,6 +3,7 @@ import useBridgeStore from "@/stores/use-bridge";
 import { useMemo } from "react";
 import { sortQuoteData } from "../../utils";
 import useWalletStore from "@/stores/use-wallet";
+import Big from "big.js";
 
 const QuoteRoutes = (props: any) => {
   const { } = props;
@@ -14,6 +15,7 @@ const QuoteRoutes = (props: any) => {
     quoteDataService,
     set,
     showRoutes,
+    amount,
   } = useBridgeStore();
   const {
     fromToken,
@@ -72,7 +74,7 @@ const QuoteRoutes = (props: any) => {
             : (
               <div className="text-center text-[12px]">
                 {
-                  (!!fromToken?.symbol && !!toToken?.symbol)
+                  (!!fromToken?.symbol && !!toToken?.symbol && !!amount && Big(amount).gt(0))
                     ? "No routes found"
                     : ""
                 }

@@ -576,7 +576,7 @@ export default class RainbowWallet {
       return tx.hash;
     } catch (error: any) {
       csl("EVM sendTransaction", "red-500", "Error sending transaction: %o, message: %o", error, error.message);
-      let _finalErrorMessage = "Transaction failed";
+      let _finalErrorMessage = `Transaction failed: ${error.message}`;
       if (error?.message?.includes("user rejected action")) {
         _finalErrorMessage = error.message;
       }
