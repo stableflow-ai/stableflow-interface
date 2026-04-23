@@ -17,7 +17,7 @@ import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { BridgeDefaultWallets, PRICE_IMPACT_THRESHOLD } from "@/config";
 import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
-import { Service, ServiceBackend } from "@/services/constants";
+import { getRouteStatus, Service, ServiceBackend } from "@/services/constants";
 import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
 import { BASE_API_URL } from "@/config/api";
@@ -85,7 +85,7 @@ export default function useBridge(props?: any) {
   const [amountError, setAmountError] = useState<string>("");
 
   const quoteRoutes = async (service: Service, params: any, requestId: number): Promise<QuoteData> => {
-    const execTime = new ExecTime({ type: "useBridge.quoteRoutes", logStyle: "sky-300" });
+    const execTime = new ExecTime({ type: "useBridge QuoteRoutes", logStyle: "sky-300" });
     // Check request ID, skip setting loading state if not the latest request
     if (requestId !== requestIdRef.current) {
       throw new Error("Request cancelled: outdated request");
@@ -166,7 +166,7 @@ export default function useBridge(props?: any) {
       const quoteRes = await ServiceMap[service].quote(quoteParams);
       quoteRes.quoteId = requestId;
 
-      execTime.logTotal("useBridge.quoteRoutes");
+      execTime.logTotal("useBridge QuoteRoutes");
 
       bridgeStore.setQuoting(service, requestId, false);
 
@@ -180,14 +180,14 @@ export default function useBridge(props?: any) {
       if (params.dry) {
         ServiceMap[service].estimateTransaction(quoteParams, quoteRes)
           .then((estimateRes: any) => {
-            csl("quoteRoutes", "green-500", "%s estimateTransaction res: %o", service, estimateRes);
+            csl("QuoteRoutes", "green-500", "%s estimateTransaction res: %o", service, estimateRes);
             if (estimateRes.quoteId !== requestIdRef.current) {
               return;
             }
             bridgeStore.setQuoteData(service, estimateRes);
           })
           .catch((estimateErr: any) => {
-            // csl("quoteRoutes", "red-500", "%s estimateTransaction failed: %o", service, estimateErr);
+            // csl("QuoteRoutes", "red-500", "%s estimateTransaction failed: %o", service, estimateErr);
           });
       }
 
@@ -305,15 +305,23 @@ export default function useBridge(props?: any) {
       switchChainAsync,
     };
 
+    const pushQuoteService = (_service: Service) => {
+      const serviceStatus = getRouteStatus(_service);
+      if (serviceStatus.disabled) {
+        return;
+      }
+      quoteServices.push({
+        service: _service,
+        quote: (_requestId: number) => {
+          return quoteRoutes(_service, quoteParams, _requestId);
+        }
+      });
+    };
+
     const quoteServices: any = [];
     for (const service of Object.values(Service)) {
       if (walletStore.fromToken.services.includes(service) && walletStore.toToken.services.includes(service)) {
-        quoteServices.push({
-          service,
-          quote: (_requestId: number) => {
-            return quoteRoutes(service, quoteParams, _requestId);
-          }
-        });
+        pushQuoteService(service);
       }
     }
     // Usdt0OneClick mode
@@ -332,20 +340,10 @@ export default function useBridge(props?: any) {
     ) {
       if (isFromUsdt && isToUsdt) {
         if (walletStore.toToken.chainName !== "Arbitrum") {
-          quoteServices.push({
-            service: Service.Usdt0OneClick,
-            quote: (_requestId: number) => {
-              return quoteRoutes(Service.Usdt0OneClick, quoteParams, _requestId);
-            }
-          });
+          pushQuoteService(Service.Usdt0OneClick);
         }
       } else {
-        quoteServices.push({
-          service: Service.Usdt0OneClick,
-          quote: (_requestId: number) => {
-            return quoteRoutes(Service.Usdt0OneClick, quoteParams, _requestId);
-          }
-        });
+        pushQuoteService(Service.Usdt0OneClick);
       }
     }
 
@@ -357,20 +355,10 @@ export default function useBridge(props?: any) {
     ) {
       if (isFromUsdt && isToUsdt) {
         if (walletStore.fromToken.chainName !== "Arbitrum") {
-          quoteServices.push({
-            service: Service.OneClickUsdt0,
-            quote: (_requestId: number) => {
-              return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
-            }
-          });
+          pushQuoteService(Service.OneClickUsdt0);
         }
       } else {
-        quoteServices.push({
-          service: Service.OneClickUsdt0,
-          quote: (_requestId: number) => {
-            return quoteRoutes(Service.OneClickUsdt0, quoteParams, _requestId);
-          }
-        });
+        pushQuoteService(Service.OneClickUsdt0);
       }
     }
 
@@ -379,12 +367,7 @@ export default function useBridge(props?: any) {
       walletStore.fromToken.services.includes(Service.FraxZero)
       && walletStore.toToken.services.includes(Service.OneClick)
     ) {
-      quoteServices.push({
-        service: Service.FraxZeroOneClick,
-        quote: (_requestId: number) => {
-          return quoteRoutes(Service.FraxZeroOneClick, quoteParams, _requestId);
-        }
-      });
+      pushQuoteService(Service.FraxZeroOneClick);
     }
 
     // OneClickFraxZero mode
@@ -392,12 +375,7 @@ export default function useBridge(props?: any) {
       walletStore.fromToken.services.includes(Service.OneClick)
       && walletStore.toToken.services.includes(Service.FraxZero)
     ) {
-      quoteServices.push({
-        service: Service.OneClickFraxZero,
-        quote: (_requestId: number) => {
-          return quoteRoutes(Service.OneClickFraxZero, quoteParams, _requestId);
-        }
-      });
+      pushQuoteService(Service.OneClickFraxZero);
     }
 
     // Use request ID to ensure only the latest request results are processed
