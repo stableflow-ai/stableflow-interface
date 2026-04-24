@@ -1,4 +1,5 @@
 import useIsMobile from "@/hooks/use-is-mobile";
+import { getStableflowTrustAvatar } from "@/utils/format/logo";
 import clsx from "clsx";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Swiper as SwiperType } from "swiper";
@@ -7,7 +8,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 
 const CardList = [
   {
-    img: "/bridge/trusted/avatar-near.png",
+    img: getStableflowTrustAvatar("avatar-near.png"),
     name: "NEAR Protocol",
     description: (
       <div className="line-clamp-5">
@@ -17,7 +18,7 @@ const CardList = [
     link: "https://x.com/NEARProtocol/status/1976316826431705412",
   },
   {
-    img: "/bridge/trusted/avatar-arb.png",
+    img: getStableflowTrustAvatar("avatar-arb.png"),
     name: "Arbitrum",
     description: (
       <div className="line-clamp-5">
@@ -27,7 +28,7 @@ const CardList = [
     link: "https://x.com/arbitrum/status/1978135970282168509",
   },
   {
-    img: "/bridge/trusted/avatar-polygon.png",
+    img: getStableflowTrustAvatar("avatar-polygon.png"),
     name: "Polygon",
     description: (
       <div className="line-clamp-5">
@@ -37,7 +38,7 @@ const CardList = [
     link: "https://x.com/0xPolygon/status/1981359965198573920",
   },
   {
-    img: "/bridge/trusted/avatar-aptos.png",
+    img: getStableflowTrustAvatar("avatar-aptos.png"),
     name: "Aptos",
     description: (
       <div className="line-clamp-5">
@@ -49,7 +50,7 @@ const CardList = [
     link: "https://x.com/Aptos/status/1983919379856421334",
   },
   {
-    img: "/bridge/trusted/avatar-plasma.jpg",
+    img: getStableflowTrustAvatar("avatar-plasma.jpg"),
     name: "Plasma",
     description: (
       <div className="line-clamp-5">
@@ -60,7 +61,7 @@ const CardList = [
     link: "https://x.com/plasma/status/2016228518972244197?s=46",
   },
   {
-    img: "/bridge/trusted/avatar-stable.jpg",
+    img: getStableflowTrustAvatar("avatar-stable.jpg"),
     name: "Stable",
     description: (
       <div className="line-clamp-5">
@@ -71,7 +72,7 @@ const CardList = [
     link: "https://x.com/stable/status/2038980573235151054?s=46",
   },
   {
-    img: "/bridge/trusted/avatar-mantle.jpg",
+    img: getStableflowTrustAvatar("avatar-mantle.jpg"),
     name: "Mantle",
     description: (
       <div className="line-clamp-5">
@@ -82,7 +83,7 @@ const CardList = [
     link: "https://x.com/mantle_official/status/2042208500127031762?s=46",
   },
   {
-    img: "/bridge/trusted/avatar-frax.jpg",
+    img: getStableflowTrustAvatar("avatar-frax.jpg"),
     name: "Frax Finance",
     description: (
       <div className="line-clamp-5">

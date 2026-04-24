@@ -13,6 +13,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { arbitrum } from "viem/chains";
 import Loading from "@/components/loading/icon";
 import { csl } from "@/utils/log";
+import { getStableflowIcon } from "@/utils/format/logo";
 
 export default function Pending(props: any) {
   const { className, isTitle = true, contentClassName, history } = props;
@@ -215,7 +216,7 @@ const PendingItem = ({ className, data, layerzeroData, wallets, toast, evmAccoun
             </span>
           </span>
           <img
-            src="/icon-arrow-right.svg"
+            src={getStableflowIcon("icon-arrow-right.svg")}
             alt=""
             className="w-[5px] h-[8px] object-center object-contain shrink-0"
           />
@@ -253,7 +254,7 @@ const PendingItem = ({ className, data, layerzeroData, wallets, toast, evmAccoun
             }}
           />
           <img
-            src="/icon-arrow-right.svg"
+            src={getStableflowIcon("icon-arrow-right.svg")}
             alt=""
             className="w-[5px] h-[8px] object-center object-contain shrink-0"
           />

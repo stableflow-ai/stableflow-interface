@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import clsx from "clsx";
 import { useTrack } from "@/hooks/use-track";
+import { getStableflowLogo } from "@/utils/format/logo";
 
 export const menuItems = [
   {
@@ -27,7 +28,7 @@ export default function NavigationMenu() {
     <nav className="flex items-center gap-[24px] md:gap-[32px]">
       <Link to="/" className="shrink-0 flex items-center">
         <img
-          src="/logo.svg"
+          src={getStableflowLogo("logo-stableflow.svg")}
           alt="StableFlow"
           className="h-[20px] md:h-[24px] w-auto"
         />
@@ -93,7 +94,7 @@ export const HyperliquidDeposit = (props: any) => {
         Cheapest way to deposit
       </span>
       <img
-        src="/logo-hyperliquid.svg"
+        src={getStableflowLogo("/logo-hyperliquid.svg")}
         alt=""
         className="w-22 h-3 object-center object-contain shrink-0"
       />

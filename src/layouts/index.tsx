@@ -3,6 +3,7 @@ import Wallet from "@/sections/wallet";
 import UserActions from "./user-actions";
 // import useUpdateTxns from "@/hooks/use-update-txns";
 import { lazy, Suspense, useRef } from "react";
+import { getLogo } from "@/utils/format/logo";
 // import SupportButton from "@/components/support-button";
 // import { AuroraBackground } from "./bg";
 
@@ -25,7 +26,7 @@ export default function Layout() {
           playsInline
           preload="none"
         >
-          <source src="/bg.mp4" type="video/mp4" />
+          <source src={getLogo("/stableflow/bg.mp4")} type="video/mp4" />
         </video>
       </div>
       {/* <AuroraBackground /> */}

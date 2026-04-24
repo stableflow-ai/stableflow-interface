@@ -3,6 +3,7 @@ import { usdtAptos, usdtEvm, usdtNear, usdtSol, usdtTron, usdtChains, usdtTon } 
 import { usdt0Chains, usdt0Evm } from "./usdt0";
 import { frxusdChains, frxusdEvm, frxusdSol } from "./frxusd";
 import type { TokenChain } from "../chains";
+import { getStableflowTokenLogo } from "@/utils/format/logo";
 
 const evmTokenChains = [
   usdcEvm.chains,
@@ -85,12 +86,12 @@ export const stablecoinWithChains: any = {
 };
 
 export const stablecoinLogoMap: Record<string, string> = {
-  "USDT": "/usdt.png",
-  "USDC": "/usdc.png",
-  "USD₮0": "/usdt0.png",
-  "USDT0": "/usdt0.png",
-  "USD₮": "/usdt0.png",
-  "frxUSD": "/frxusd.png",
+  "USDT": getStableflowTokenLogo("usdt"),
+  "USDC": getStableflowTokenLogo("usdc"),
+  "USD₮0": getStableflowTokenLogo("usdt0"),
+  "USDT0": getStableflowTokenLogo("usdt0"),
+  "USD₮": getStableflowTokenLogo("usdt0"),
+  "frxUSD": getStableflowTokenLogo("frxusd"),
 };
 
 export const tokens = [
