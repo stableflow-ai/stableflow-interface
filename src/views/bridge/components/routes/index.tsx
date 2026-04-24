@@ -48,38 +48,39 @@ const QuoteRoutes = (props: any) => {
   return (
     <div className="w-full px-[5px] mt-[15px] flex flex-col gap-[6px] overflow-hidden">
       {
-        isQuoting
-          ? (
-            <div className="text-center text-[12px]">
-              Quoting...
-            </div>
-          )
-          : displayedList?.length > 0
-            ? displayedList.map((data) => (
-              <QuoteRoute
-                key={data.service}
-                service={data.service}
-                data={data}
-                selected={quoteDataService === data.service}
-                onSelect={() => {
-                  if (quoteDataService === data.service) {
-                    return;
-                  }
-                  set({
-                    quoteDataService: data.service,
-                  });
-                }}
-              />
-            ))
-            : (
-              <div className="text-center text-[12px]">
-                {
-                  (!!fromToken?.symbol && !!toToken?.symbol && !!amount && Big(amount).gt(0))
-                    ? "No routes found"
-                    : ""
+        displayedList?.length > 0
+          ? displayedList.map((data) => (
+            <QuoteRoute
+              key={data.service}
+              service={data.service}
+              data={data}
+              selected={quoteDataService === data.service}
+              onSelect={() => {
+                if (quoteDataService === data.service) {
+                  return;
                 }
+                set({
+                  quoteDataService: data.service,
+                });
+              }}
+            />
+          ))
+          : (
+            isQuoting ? (
+              <div className="text-center text-[12px]">
+                Quoting...
               </div>
             )
+              : (
+                <div className="text-center text-[12px]">
+                  {
+                    (!!fromToken?.symbol && !!toToken?.symbol && !!amount && Big(amount).gt(0))
+                      ? "No routes found"
+                      : ""
+                  }
+                </div>
+              )
+          )
       }
     </div>
   );
