@@ -8,8 +8,13 @@
   <title>StableFlow: Move Stablecoins at Scale | Fast, Secure, and Built for Size.</title>
   <meta name="description" content="Move stablecoins across 12+ chains with 1-click, near 1:1 transfers. Low fees (1 bps), atomic security, and support for USDT & USDC. No KYC. Start your transfer today.">
   <style>
+    html, body, #root {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
     @keyframes breathing {
-
       0%,
       100% {
         opacity: 0.5;
@@ -24,9 +29,12 @@
 
 <body>
   <div id="root">
-    <div style="width: 100%; height: 98dvh; display: flex; align-items: center; justify-content: center;">
-      <img src="https://assets.dapdap.net/stableflow/logos/logo-stableflow.svg" alt="Loading"
-        style="width: 120px; height: 120px; animation: breathing 2s ease-in-out infinite;" />
+    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+      <img
+        src="https://assets.dapdap.net/stableflow/logos/logo-stableflow.svg"
+        alt="Loading"
+        style="width: 120px; height: 120px; animation: breathing 2s ease-in-out infinite;" 
+      />
     </div>
   </div>
   <script type="module" src="/src/main.tsx"></script>

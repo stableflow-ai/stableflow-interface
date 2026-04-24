@@ -33,31 +33,33 @@ const TonProvider = lazy(() =>
   }))
 );
 
+const LoadingSpinner = () => {
+  return (
+    <div className="w-full h-dvh flex justify-center items-center">
+      <img
+        src="https://assets.dapdap.net/stableflow/logos/logo-stableflow.svg"
+        alt="Loading"
+        className="w-30 h-30 object-center object-contain animate-pulse"
+      />
+    </div>
+  );
+};
+
 // Loading component with individual Suspense boundaries
 const WalletProviderLoader = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={null}>
+  <Suspense fallback={<LoadingSpinner />}>
     <RainbowProvider>
-      <Suspense fallback={null}>
-        <SolanaProvider>
-          <Suspense fallback={null}>
-            <NEARProvider>
-              <Suspense fallback={null}>
-                <TronProvider>
-                  <Suspense fallback={null}>
-                    <AptosProvider>
-                      <Suspense fallback={null}>
-                        <TonProvider>
-                          {children}
-                        </TonProvider>
-                      </Suspense>
-                    </AptosProvider>
-                  </Suspense>
-                </TronProvider>
-              </Suspense>
-            </NEARProvider>
-          </Suspense>
-        </SolanaProvider>
-      </Suspense>
+      <SolanaProvider>
+        <NEARProvider>
+          <TronProvider>
+            <AptosProvider>
+              <TonProvider>
+                {children}
+              </TonProvider>
+            </AptosProvider>
+          </TronProvider>
+        </NEARProvider>
+      </SolanaProvider>
     </RainbowProvider>
   </Suspense>
 );
