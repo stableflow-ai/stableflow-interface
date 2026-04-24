@@ -70,7 +70,7 @@ export default function SolanaProvider({
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={adapters} autoConnect={true}>
+      <WalletProvider wallets={adapters} autoConnect={false}>
         <SolanaWalletSelectorProvider walletOrder={walletOrder}>
           {children}<DeviceDetector />
         </SolanaWalletSelectorProvider>
@@ -150,7 +150,7 @@ const Content = () => {
   }, [publicKey, mounted]);
 
   const { run: connectDelay } = useDebounceFn(() => {
-    if (!wallet) {
+    if (!wallet || wallet.readyState === "NotDetected") {
       return;
     }
     connect();
