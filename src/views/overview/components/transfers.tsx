@@ -62,7 +62,7 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
   const [filters, setFilters] = useState({
     fromChain: "",
     toChain: "",
-    project: "",
+    route: "",
     toSymbol: "",
   });
   const [pageSize, setPageSize] = useState(20);
@@ -78,7 +78,7 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
 
       if (filters.fromChain) params.append("from_chain", filters.fromChain);
       if (filters.toChain) params.append("to_chain", filters.toChain);
-      if (filters.project !== "") params.append("project", filters.project);
+      if (filters.route !== "") params.append("route", filters.route);
       if (filters.toSymbol) params.append("to_symbol", filters.toSymbol.toLowerCase());
 
       const response = await axios.get<ApiResponse>(
@@ -104,7 +104,7 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
     setFilters((prev) => {
       return {
         ...prev,
-        project: "",
+        route: "",
         toSymbol: "",
       };
     });
@@ -153,8 +153,8 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
       },
     },
     {
-      title: "Project",
-      dataIndex: "project",
+      title: "Route",
+      dataIndex: "route",
       width: 100,
       render: (transfer: TransferData, idx: number) => {
         const currentProject = TradeProjectMap[transfer.project];
@@ -342,10 +342,10 @@ export default function Transfers({ selectedToken, onTokenChange }: TransfersPro
           </div>
 
           <div>
-            <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Project:</label>
+            <label className="text-[12px] text-[#9FA7BA] mb-[4px] block">Route:</label>
             <select
-              value={filters.project === "" ? "" : filters.project.toString()}
-              onChange={(e) => setFilters(prev => ({ ...prev, project: e.target.value === "" ? "" : e.target.value }))}
+              value={filters.route === "" ? "" : filters.route.toString()}
+              onChange={(e) => setFilters(prev => ({ ...prev, route: e.target.value === "" ? "" : e.target.value }))}
               className="button w-full px-[8px] py-[6px] border border-[#F2F2F2] rounded-[6px] text-[12px]"
             >
               <option value="">All</option>

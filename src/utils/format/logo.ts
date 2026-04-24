@@ -1,21 +1,19 @@
-export const DefaultIcon = "https://assets.db3.app/tokens/default_icon.png";
-
-export const getTokenLogo = (name: string) => {
-  name = name.toLowerCase();
-
-  if (name) {
-    return `https://assets.db3.app/token/${name}.png`;
-  }
-  return DefaultIcon;
+export const LogoHost = "https://assets.dapdap.net";
+export const DefaultIcon = `${LogoHost}/tokens/default_icon.png`;
+export const getLogo = (path: string) => {
+  const host = "https://assets.dapdap.net";
+  path = /^\//.test(path) ? path : `/${path}`;
+  return `${host}${path}`;
 };
-
-export const getChainLogo = (name: string) => {
+export const getStableflowChainLogo = (name: string) => {
   name = name.toLowerCase();
-  if (name === "arbitrum one") {
-    name = "arbitrum";
-  }
-  if (name) {
-    return `https://assets.db3.app/chain/${name}.png`;
-  }
-  return DefaultIcon;
+  return getLogo(`/stableflow/networks/${name}.png`);
+};
+export const getStableflowTokenLogo = (name: string) => {
+  name = name.toLowerCase();
+  return getLogo(`/stableflow/tokens/${name}.png`);
+};
+export const getStableflowRouteLogo = (name: string) => {
+  name = name.toLowerCase();
+  return getLogo(`/stableflow/routes/${name}`);
 };

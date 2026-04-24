@@ -1,4 +1,5 @@
 import { Service, ServiceBackend } from "@/services/constants";
+import { getStableflowRouteLogo } from "@/utils/format/logo";
 
 export const TradeStatus = {
   Pending: 0,
@@ -44,63 +45,63 @@ interface TradeProjectConfig {
 
 export const TradeProjectMap: Record<TradeProject, TradeProjectConfig> = {
   [TradeProject.OneClick]: {
-    logo: "/bridge/logo-near-intents.svg",
+    logo: getStableflowRouteLogo("logo-near-intents.svg"),
     name: "OneClick",
     service: Service.OneClick,
     tokens: ["USDT", "USDC"],
     value: ServiceBackend[Service.OneClick],
   },
   [TradeProject.USDT0]: {
-    logo: "/bridge/logo-usdt0.svg",
+    logo: getStableflowRouteLogo("logo-usdt0.svg"),
     name: "USDT0",
     service: Service.Usdt0,
     tokens: ["USDT"],
     value: ServiceBackend[Service.Usdt0],
   },
   [TradeProject.CCTP]: {
-    logo: "/bridge/logo-circle.avif",
+    logo: getStableflowRouteLogo("logo-circle.avif"),
     name: "CCTP",
     service: Service.CCTP,
     tokens: ["USDC"],
     value: ServiceBackend[Service.CCTP],
   },
   [TradeProject.USDT0OneClick]: {
-    logo: "/bridge/logo-usdt0-near-intents.svg",
+    logo: getStableflowRouteLogo("logo-usdt0-near-intents.svg"),
     name: "USDT0OneClick",
     service: Service.Usdt0OneClick,
     tokens: ["USDT", "USDC"],
     value: ServiceBackend[Service.Usdt0OneClick],
   },
   [TradeProject.OneClickUSDT0]: {
-    logo: "/bridge/logo-near-intents-usdt0.svg",
+    logo: getStableflowRouteLogo("logo-near-intents-usdt0.svg"),
     name: "OneClickUSDT0",
     service: Service.OneClickUsdt0,
     tokens: ["USDT", "USDC"],
     value: ServiceBackend[Service.OneClickUsdt0],
   },
   [TradeProject.Native]: {
-    logo: "/bridge/logo-native.svg",
+    logo: getStableflowRouteLogo("logo-native.svg"),
     name: "Native",
     service: Service.Native,
     tokens: ["USDT", "USDC"],
     value: ServiceBackend[Service.Native],
   },
   [TradeProject.FraxZero]: {
-    logo: "/bridge/logo-fraxzero.svg",
+    logo: getStableflowRouteLogo("logo-fraxzero.svg"),
     name: "Native",
     service: Service.FraxZero,
     tokens: ["frxUSD"],
     value: ServiceBackend[Service.FraxZero],
   },
   [TradeProject.FraxZeroOneClick]: {
-    logo: "/bridge/logo-fraxzero.svg",
+    logo: getStableflowRouteLogo("logo-fraxzero-near-intents.svg"),
     name: "FraxZeroOneClick",
     service: Service.FraxZeroOneClick,
     tokens: ["frxUSD", "USDT", "USDC"],
     value: ServiceBackend[Service.FraxZeroOneClick],
   },
   [TradeProject.OneClickFraxZero]: {
-    logo: "/bridge/logo-fraxzero.svg",
+    logo: getStableflowRouteLogo("logo-near-intents-fraxzero.svg"),
     name: "OneClickFraxZero",
     service: Service.OneClickFraxZero,
     tokens: ["frxUSD", "USDT", "USDC"],

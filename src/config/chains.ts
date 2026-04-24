@@ -1,4 +1,5 @@
 import type { Service } from "@/services/constants";
+import { getStableflowChainLogo } from "@/utils/format/logo";
 
 export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
   near: {
@@ -37,6 +38,12 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
     color: "#0098EA",
     bg: "linear-gradient(90deg, rgba(0, 152, 234, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
   },
+  sui: {
+    value: "sui",
+    name: "Sui",
+    color: "#298DFF",
+    bg: "linear-gradient(90deg, rgba(41, 141, 255, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
+  },
 };
 
 export const chainsRpcUrls: Record<string, string[]> = {
@@ -64,6 +71,8 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
   "Ton": ["https://toncenter.com/api/v2/jsonRPC"],
   "Fraxtal": ["https://rpc.frax.com"],
+  "Sui": ["https://fullnode.mainnet.sui.io:443"],
+  "Katana": ["https://rpc.katana.network", "https://katana.drpc.org"],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
@@ -94,8 +103,8 @@ const chains: Record<string, Chain> = {
   near: {
     chainName: "Near",
     blockchain: "near", // https://1click.chaindefuser.com/v0/tokens blockchain
-    chainIcon: "/chains/near.png",
-    chainIconGray: "/chains/near-gray.png",
+    chainIcon: getStableflowChainLogo("near"),
+    chainIconGray: getStableflowChainLogo("near-gray"),
     chainType: chainTypes.near.value,
     blockExplorerUrl: "https://nearblocks.io/txns",
     primaryColor: "#76EA9E",
@@ -108,8 +117,8 @@ const chains: Record<string, Chain> = {
   sol: {
     chainName: "Solana",
     blockchain: "sol",
-    chainIcon: "/chains/solana.png",
-    chainIconGray: "/chains/solana-gray.png",
+    chainIcon: getStableflowChainLogo("solana"),
+    chainIconGray: getStableflowChainLogo("solana-gray"),
     chainType: chainTypes.sol.value,
     blockExplorerUrl: "https://solscan.io/tx",
     primaryColor: "#B93EF0",
@@ -122,8 +131,8 @@ const chains: Record<string, Chain> = {
   eth: {
     chainName: "Ethereum",
     blockchain: "eth",
-    chainIcon: "/chains/ethereum.png",
-    chainIconGray: "/chains/ethereum-gray.png",
+    chainIcon: getStableflowChainLogo("Ethereum"),
+    chainIconGray: getStableflowChainLogo("Ethereum-gray"),
     chainType: chainTypes.evm.value,
     chainId: 1,
     blockExplorerUrl: "https://etherscan.io/tx",
@@ -137,8 +146,8 @@ const chains: Record<string, Chain> = {
   arb: {
     chainName: "Arbitrum",
     blockchain: "arb",
-    chainIcon: "/chains/arbitrum.png",
-    chainIconGray: "/chains/arbitrum-gray.png",
+    chainIcon: getStableflowChainLogo("Arbitrum"),
+    chainIconGray: getStableflowChainLogo("Arbitrum-gray"),
     chainType: chainTypes.evm.value,
     chainId: 42161,
     blockExplorerUrl: "https://arbiscan.io/tx",
@@ -152,8 +161,8 @@ const chains: Record<string, Chain> = {
   bsc: {
     chainName: "BNB Chain",
     blockchain: "bsc",
-    chainIcon: "/chains/bsc.png",
-    chainIconGray: "/chains/bsc-gray.png",
+    chainIcon: getStableflowChainLogo("bsc"),
+    chainIconGray: getStableflowChainLogo("bsc-gray"),
     chainType: chainTypes.evm.value,
     chainId: 56,
     blockExplorerUrl: "https://bscscan.com/tx",
@@ -167,8 +176,8 @@ const chains: Record<string, Chain> = {
   avax: {
     chainName: "Avalanche",
     blockchain: "avax",
-    chainIcon: "/chains/avalanche.png",
-    chainIconGray: "/chains/avalanche-gray.png",
+    chainIcon: getStableflowChainLogo("Avalanche"),
+    chainIconGray: getStableflowChainLogo("Avalanche-gray"),
     chainType: chainTypes.evm.value,
     chainId: 43114,
     blockExplorerUrl: "https://snowtrace.io/tx",
@@ -182,8 +191,8 @@ const chains: Record<string, Chain> = {
   base: {
     chainName: "Base",
     blockchain: "base",
-    chainIcon: "/chains/base.png",
-    chainIconGray: "/chains/base-gray.png",
+    chainIcon: getStableflowChainLogo("Base"),
+    chainIconGray: getStableflowChainLogo("Base-gray"),
     chainType: chainTypes.evm.value,
     chainId: 8453,
     blockExplorerUrl: "https://basescan.org/tx",
@@ -197,8 +206,8 @@ const chains: Record<string, Chain> = {
   pol: {
     chainName: "Polygon",
     blockchain: "pol",
-    chainIcon: "/chains/polygon.png",
-    chainIconGray: "/chains/polygon-gray.png",
+    chainIcon: getStableflowChainLogo("Polygon"),
+    chainIconGray: getStableflowChainLogo("Polygon-gray"),
     chainType: chainTypes.evm.value,
     chainId: 137,
     blockExplorerUrl: "https://polygonscan.com/tx",
@@ -212,8 +221,8 @@ const chains: Record<string, Chain> = {
   gnosis: {
     chainName: "Gnosis",
     blockchain: "gnosis",
-    chainIcon: "/chains/gnosis.png",
-    chainIconGray: "/chains/gnosis-gray.png",
+    chainIcon: getStableflowChainLogo("Gnosis"),
+    chainIconGray: getStableflowChainLogo("Gnosis-gray"),
     chainType: chainTypes.evm.value,
     chainId: 100,
     blockExplorerUrl: "https://gnosisscan.io/tx",
@@ -227,8 +236,8 @@ const chains: Record<string, Chain> = {
   op: {
     chainName: "Optimism",
     blockchain: "op",
-    chainIcon: "/chains/optimism.png",
-    chainIconGray: "/chains/optimism-gray.png",
+    chainIcon: getStableflowChainLogo("Optimism"),
+    chainIconGray: getStableflowChainLogo("Optimism-gray"),
     chainType: chainTypes.evm.value,
     chainId: 10,
     blockExplorerUrl: "https://optimistic.etherscan.io/tx",
@@ -242,8 +251,8 @@ const chains: Record<string, Chain> = {
   tron: {
     chainName: "Tron",
     blockchain: "tron",
-    chainIcon: "/chains/tron.png",
-    chainIconGray: "/chains/tron-gray.png",
+    chainIcon: getStableflowChainLogo("Tron"),
+    chainIconGray: getStableflowChainLogo("Tron-gray"),
     chainType: chainTypes.tron.value,
     blockExplorerUrl: "https://tronscan.org/#/transaction",
     primaryColor: "#BC3221",
@@ -256,8 +265,8 @@ const chains: Record<string, Chain> = {
   aptos: {
     chainName: "Aptos",
     blockchain: "aptos",
-    chainIcon: "/chains/aptos.png",
-    chainIconGray: "/chains/aptos-gray.png",
+    chainIcon: getStableflowChainLogo("Aptos"),
+    chainIconGray: getStableflowChainLogo("Aptos-gray"),
     chainType: chainTypes.aptos.value,
     blockExplorerUrl: "https://aptoscan.com/transaction",
     primaryColor: "#000000",
@@ -270,8 +279,8 @@ const chains: Record<string, Chain> = {
   bera: {
     chainName: "Berachain",
     blockchain: "bera",
-    chainIcon: "/chains/berachain.png",
-    chainIconGray: "/chains/berachain-gray.png",
+    chainIcon: getStableflowChainLogo("Berachain"),
+    chainIconGray: getStableflowChainLogo("Berachain-gray"),
     chainType: chainTypes.evm.value,
     chainId: 80094,
     blockExplorerUrl: "https://berascan.com/tx/",
@@ -285,8 +294,8 @@ const chains: Record<string, Chain> = {
   xlayer: {
     chainName: "X Layer",
     blockchain: "xlayer",
-    chainIcon: "/chains/xlayer.png",
-    chainIconGray: "/chains/xlayer-gray.png",
+    chainIcon: getStableflowChainLogo("xlayer"),
+    chainIconGray: getStableflowChainLogo("xlayer-gray"),
     chainType: chainTypes.evm.value,
     chainId: 196,
     blockExplorerUrl: "https://www.oklink.com/xlayer/tx/",
@@ -300,8 +309,8 @@ const chains: Record<string, Chain> = {
   plasma: {
     chainName: "Plasma",
     blockchain: "plasma",
-    chainIcon: "/chains/plasma.png",
-    chainIconGray: "/chains/plasma-gray.png",
+    chainIcon: getStableflowChainLogo("Plasma"),
+    chainIconGray: getStableflowChainLogo("Plasma-gray"),
     chainType: chainTypes.evm.value,
     chainId: 9745,
     blockExplorerUrl: "https://plasmascan.to/tx/",
@@ -315,8 +324,8 @@ const chains: Record<string, Chain> = {
   ton: {
     chainName: "Ton",
     blockchain: "ton",
-    chainIcon: "/chains/ton.png",
-    chainIconGray: "/chains/ton-gray.png",
+    chainIcon: getStableflowChainLogo("Ton"),
+    chainIconGray: getStableflowChainLogo("Ton-gray"),
     chainType: chainTypes.ton.value,
     blockExplorerUrl: "https://tonviewer.com/transaction/",
     primaryColor: "#0098EA",
@@ -329,8 +338,8 @@ const chains: Record<string, Chain> = {
   mantle: {
     chainName: "Mantle",
     blockchain: "mantle",
-    chainIcon: "/chains/mantle.png",
-    chainIconGray: "/chains/mantle-gray.png",
+    chainIcon: getStableflowChainLogo("Mantle"),
+    chainIconGray: getStableflowChainLogo("Mantle-gray"),
     chainType: chainTypes.evm.value,
     chainId: 5000,
     blockExplorerUrl: "https://mantlescan.xyz/tx/",
@@ -344,8 +353,8 @@ const chains: Record<string, Chain> = {
   megaeth: {
     chainName: "MegaETH",
     blockchain: "megaeth",
-    chainIcon: "/chains/megaeth.png",
-    chainIconGray: "/chains/megaeth-gray.png",
+    chainIcon: getStableflowChainLogo("MegaETH"),
+    chainIconGray: getStableflowChainLogo("MegaETH-gray"),
     chainType: chainTypes.evm.value,
     chainId: 4326,
     blockExplorerUrl: "https://mega.etherscan.io/tx/",
@@ -359,8 +368,8 @@ const chains: Record<string, Chain> = {
   ink: {
     chainName: "Ink",
     blockchain: "ink",
-    chainIcon: "/chains/ink.png",
-    chainIconGray: "/chains/ink-gray.png",
+    chainIcon: getStableflowChainLogo("Ink"),
+    chainIconGray: getStableflowChainLogo("Ink-gray"),
     chainType: chainTypes.evm.value,
     chainId: 57073,
     blockExplorerUrl: "https://explorer.inkonchain.com/tx/",
@@ -374,8 +383,8 @@ const chains: Record<string, Chain> = {
   stable: {
     chainName: "Stable",
     blockchain: "stable",
-    chainIcon: "/chains/stable.png",
-    chainIconGray: "/chains/stable-gray.png",
+    chainIcon: getStableflowChainLogo("Stable"),
+    chainIconGray: getStableflowChainLogo("Stable-gray"),
     chainType: chainTypes.evm.value,
     chainId: 988,
     blockExplorerUrl: "https://uniscan.xyz/tx/",
@@ -389,8 +398,8 @@ const chains: Record<string, Chain> = {
   celo: {
     chainName: "Celo",
     blockchain: "celo",
-    chainIcon: "/chains/celo.png",
-    chainIconGray: "/chains/celo-gray.png",
+    chainIcon: getStableflowChainLogo("Celo"),
+    chainIconGray: getStableflowChainLogo("Celo-gray"),
     chainType: chainTypes.evm.value,
     chainId: 42_220,
     blockExplorerUrl: "https://celoscan.io/tx/",
@@ -404,8 +413,8 @@ const chains: Record<string, Chain> = {
   sei: {
     chainName: "Sei",
     blockchain: "sei",
-    chainIcon: "/chains/sei.png",
-    chainIconGray: "/chains/sei-gray.png",
+    chainIcon: getStableflowChainLogo("Sei"),
+    chainIconGray: getStableflowChainLogo("Sei-gray"),
     chainType: chainTypes.evm.value,
     chainId: 1329,
     blockExplorerUrl: "https://seitrace.com/tx/",
@@ -419,8 +428,8 @@ const chains: Record<string, Chain> = {
   flare: {
     chainName: "Flare",
     blockchain: "flare",
-    chainIcon: "/chains/flare.png",
-    chainIconGray: "/chains/flare-gray.png",
+    chainIcon: getStableflowChainLogo("Flare"),
+    chainIconGray: getStableflowChainLogo("Flare-gray"),
     chainType: chainTypes.evm.value,
     chainId: 14,
     blockExplorerUrl: "https://flare-explorer.flare.network/tx/",
@@ -434,8 +443,8 @@ const chains: Record<string, Chain> = {
   frax: {
     chainName: "Fraxtal",
     blockchain: "frax",
-    chainIcon: "/chains/frax.png",
-    chainIconGray: "/chains/frax-gray.png",
+    chainIcon: getStableflowChainLogo("Frax"),
+    chainIconGray: getStableflowChainLogo("Frax-gray"),
     chainType: chainTypes.evm.value,
     chainId: 252,
     blockExplorerUrl: "https://fraxscan.com/tx/",
@@ -445,6 +454,35 @@ const chains: Record<string, Chain> = {
       decimals: 18,
     },
     ...getChainRpcUrl("Fraxtal"),
+  },
+  sui: {
+    chainName: "Sui",
+    blockchain: "sui",
+    chainIcon: getStableflowChainLogo("Sui"),
+    chainIconGray: getStableflowChainLogo("Sui-gray"),
+    chainType: chainTypes.sui.value,
+    blockExplorerUrl: "https://suiscan.xyz/mainnet/tx",
+    primaryColor: "#298DFF",
+    nativeToken: {
+      symbol: "SUI",
+      decimals: 9,
+    },
+    ...getChainRpcUrl("Sui"),
+  },
+  katana: {
+    chainName: "Katana",
+    blockchain: "katana",
+    chainIcon: getStableflowChainLogo("Katana"),
+    chainIconGray: getStableflowChainLogo("Katana-gray"),
+    chainType: chainTypes.evm.value,
+    chainId: 747474,
+    blockExplorerUrl: "https://katanascan.com/tx",
+    primaryColor: "#F6FF0D",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Katana"),
   },
 };
 

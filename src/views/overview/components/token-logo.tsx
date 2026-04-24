@@ -1,6 +1,6 @@
 import chains from "@/config/chains";
 import { stablecoinLogoMap } from "@/config/tokens";
-import { getTokenLogo } from "@/utils/format/logo";
+import { getStableflowTokenLogo } from "@/utils/format/logo";
 import clsx from "clsx";
 
 const TokenLogo = (props: any) => {
@@ -10,7 +10,7 @@ const TokenLogo = (props: any) => {
     <div
       className={clsx("relative shrink-0 w-[20px] h-[20px] bg-center bg-contain bg-no-repeat", className)}
       style={{
-        backgroundImage: `url(${stablecoinLogoMap[symbol] || getTokenLogo(symbol)})`,
+        backgroundImage: `url(${stablecoinLogoMap[symbol] || getStableflowTokenLogo(symbol)})`,
       }}
     >
       <img
