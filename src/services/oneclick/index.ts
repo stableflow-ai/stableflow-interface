@@ -13,7 +13,7 @@ import { ExecTime } from "@/utils/exec-time";
 export const BridgeFee = [
   {
     includeChains: ["BNB Chain", "Tron"],
-    recipient: "reffer.near",
+    recipient: "lemonl.near",
     // No bridge fee will be charged temporarily
     fee: 1, // 100=1% 1=0.01%
   },
