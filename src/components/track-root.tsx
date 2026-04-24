@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 type WalletSnapshot = { address: string; walletName: string | null } | null;
 
 const TrackRoot = () => {
-  const { addDisconnect } = useTrack({ isRoot: true });
+  const { addDisconnect, addConnect } = useTrack({ isRoot: true });
   const addLogoutRef = useRef(addDisconnect);
   addLogoutRef.current = addDisconnect;
 
@@ -70,6 +70,36 @@ const TrackRoot = () => {
     tonAccount,
     tonWalletName,
   ]);
+
+  useEffect(() => {
+    if (!evmAccount) return;
+    addConnect({ address: evmAccount, walletName: evmWalletName, walletType: "evm" });
+  }, [evmAccount]);
+
+  useEffect(() => {
+    if (!solAccount) return;
+    addConnect({ address: solAccount, walletName: solWalletName, walletType: "sol" });
+  }, [solAccount]);
+
+  useEffect(() => {
+    if (!nearAccount) return;
+    addConnect({ address: nearAccount, walletName: nearWalletName, walletType: "near" });
+  }, [nearAccount]);
+
+  useEffect(() => {
+    if (!aptosAccount) return;
+    addConnect({ address: aptosAccount, walletName: aptosWalletName, walletType: "aptos" });
+  }, [aptosAccount]);
+
+  useEffect(() => {
+    if (!tronAccount) return;
+    addConnect({ address: tronAccount, walletName: tronWalletName, walletType: "tron" });
+  }, [tronAccount]);
+
+  useEffect(() => {
+    if (!tonAccount) return;
+    addConnect({ address: tonAccount, walletName: tonWalletName, walletType: "ton" });
+  }, [tonAccount]);
 
   return null;
 };
