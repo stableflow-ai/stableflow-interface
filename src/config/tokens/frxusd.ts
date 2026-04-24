@@ -1,10 +1,11 @@
 import chains, { type TokenChain } from "@/config/chains";
 import { Service } from "@/services/constants";
+import { getStableflowTokenLogo } from "@/utils/format/logo";
 
 export const frxusd = {
   symbol: "frxUSD",
   decimals: 18,
-  icon: "/frxusd.png"
+  icon: getStableflowTokenLogo("frxusd"),
 };
 
 // https://docs.frax.com/frxusd/frxusd-contracts

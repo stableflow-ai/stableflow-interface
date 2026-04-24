@@ -10,6 +10,7 @@ import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
 import NavigationMenu, { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
 import { useTrack } from "@/hooks/use-track";
+import { getStableflowIcon } from "@/utils/format/logo";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -121,7 +122,7 @@ const HistoryButton = ({ onClick }: any) => {
         className="flex md:hidden relative button px-[12px] md:px-[18px] h-[38px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[19px] md:rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
       >
         <img
-          src="/icon-records.svg"
+          src={getStableflowIcon("icon-records.svg")}
           alt=""
           className="w-[14px] h-[16px] object-center object-contain shrink-0"
         />
@@ -143,7 +144,7 @@ const HistoryButton = ({ onClick }: any) => {
         ) : (
           <>
             <img
-              src="/icon-records.svg"
+              src={getStableflowIcon("icon-records.svg")}
               alt=""
               className="w-[14px] h-[16px] object-center object-contain shrink-0"
             />

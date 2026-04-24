@@ -1,3 +1,4 @@
+import { getStableflowIcon } from "@/utils/format/logo";
 import { csl } from "@/utils/log";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
@@ -119,7 +120,7 @@ export default function ZendeskWidget(props: any) {
       }}
     >
       <img
-        src="/icon-help.svg"
+        src={getStableflowIcon("icon-help.svg")}
         alt=""
         className="w-4 h-4 object-center object-contain shrink-0"
       />

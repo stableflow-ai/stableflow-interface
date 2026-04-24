@@ -1,3 +1,4 @@
+import { getStableflowTokenLogo } from "@/utils/format/logo";
 import clsx from "clsx";
 
 interface TokenTabsProps {
@@ -6,9 +7,9 @@ interface TokenTabsProps {
 }
 
 const tokens = [
-  { symbol: "USDT", icon: "/usdt.png", available: true },
-  { symbol: "USDC", icon: "/usdc.png", available: false },
-  { symbol: "USD1", icon: "/usd1.png", available: false },
+  { symbol: "USDT", icon: getStableflowTokenLogo("USDT"), available: true },
+  { symbol: "USDC", icon: getStableflowTokenLogo("USDC"), available: false },
+  { symbol: "USD1", icon: getStableflowTokenLogo("USD1"), available: false },
 ];
 
 export default function TokenTabs({ selectedToken, onTokenChange }: TokenTabsProps) {

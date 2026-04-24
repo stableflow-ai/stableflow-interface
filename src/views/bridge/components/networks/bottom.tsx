@@ -11,6 +11,7 @@ import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import Loading from "@/components/loading/icon";
 import Big from "big.js";
 import { formatNumber, numberRemoveEndZero } from "@/utils/format/number";
+import { getStableflowLogo } from "@/utils/format/logo";
 
 export default function Bottom({ token }: { token: any }) {
   const [progress, setProgress] = useState(0);
@@ -337,7 +338,7 @@ const Pointer = ({
       )} */}
 
       <img
-        src="/logo.svg"
+        src={getStableflowLogo("logo-stableflow.svg")}
         className={clsx(
           "w-[26px] h-[26px] relative z-10 object-center object-contain shrink-0",
           disabled ? "grayscale" : "cursor-pointer",

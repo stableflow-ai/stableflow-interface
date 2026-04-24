@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import Popover from "../popover";
+import { getStableflowIcon } from "@/utils/format/logo";
 
 const TipInfo = (props: any) => {
   const { children, className, containerClassName } = props;
@@ -19,7 +20,10 @@ const TipInfo = (props: any) => {
     >
       <button
         type="button"
-        className="button w-[16px] h-[16px] bg-[url('/icon-info.svg')] bg-no-repeat bg-center bg-contain shrink-0"
+        className="button w-[16px] h-[16px] bg-no-repeat bg-center bg-contain shrink-0"
+        style={{
+          backgroundImage: `url('${getStableflowIcon("icon-info.svg")}')`
+        }}
       />
     </Popover>
   );

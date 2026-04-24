@@ -1,17 +1,18 @@
 import chains, { type TokenChain } from "@/config/chains";
 import { Service } from "@/services/constants";
+import { getStableflowTokenLogo } from "@/utils/format/logo";
 
 export const usdt0 = {
   symbol: "USD₮0",
   decimals: 6,
-  icon: "/usdt0.png"
+  icon: getStableflowTokenLogo("USDT0"),
 };
 
 export const usdt0Chains: Record<string, TokenChain> = {
   eth: {
     ...usdt0,
     symbol: "USDT",
-    icon: "/usdt.png",
+    icon: getStableflowTokenLogo("USDT"),
     assetId: "nep141:eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near",
     contractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
     ...chains.eth,

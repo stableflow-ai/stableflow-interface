@@ -7,6 +7,7 @@ import useTokenBalance from "@/hooks/use-token-balance";
 import Loading from "@/components/loading/icon";
 import Big from "big.js";
 import LazyImage from "@/components/lazy-image";
+import { getStableflowIcon } from "@/utils/format/logo";
 
 export default function Chain({ token, isTo }: any) {
   const walletStore = useWalletStore();
@@ -36,7 +37,7 @@ export default function Chain({ token, isTo }: any) {
         onClick={openWallet}
       >
         <LazyImage
-          src="/select-token.gif"
+          src={getStableflowIcon("select-token.gif")}
           alt=""
           containerClassName="w-11 md:w-12.5 h-11 md:h-12.5 rounded-full shrink-0 overflow-hidden"
           className="object-center scale-120"
@@ -92,7 +93,7 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
           <div className="text-[#0E3616] text-[11px] md:text-[12px] font-[400]">{token.chainName}</div>
         </div>
         <img
-          src="/icon-arrow-down.svg"
+          src={getStableflowIcon("icon-arrow-down.svg")}
           className="w-[10px] h-[5px] shrink-0 object-center object-contain"
           alt=""
         />
