@@ -107,3 +107,35 @@ export const TradeProjectMap: Record<TradeProject, TradeProjectConfig> = {
     value: ServiceBackend[Service.OneClickFraxZero],
   },
 };
+
+
+export const StableflowProject = {
+  Stableflow: "stableflow",
+  Tron: "tron",
+  Safelink: "invite",
+} as const;
+export type StableflowProject = (typeof StableflowProject)[keyof typeof StableflowProject];
+
+export interface StableflowProjectConfig {
+  project: StableflowProject;
+  name: string;
+  logo: string;
+}
+
+export const StableflowProjectMap: Record<StableflowProject, StableflowProjectConfig> = {
+  [StableflowProject.Stableflow]: {
+    project: StableflowProject.Stableflow,
+    name: "Stableflow",
+    logo: "/projects/stableflow.svg",
+  },
+  [StableflowProject.Tron]: {
+    project: StableflowProject.Tron,
+    name: "Tron",
+    logo: "/projects/tron.svg",
+  },
+  [StableflowProject.Safelink]: {
+    project: StableflowProject.Safelink,
+    name: "Safelink",
+    logo: "/projects/safelink.svg",
+  },
+};

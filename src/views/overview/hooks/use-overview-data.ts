@@ -23,6 +23,8 @@ interface ApiResponse<T> {
   data: T;
 }
 
+const STABLEFLOW_PROJECT = "stableflow";
+
 export default function useOverviewData(
   selectedToken: "USDT" | "USDC" | "USD1",
   timePeriod: "day" | "week" | "month"
@@ -36,7 +38,7 @@ export default function useOverviewData(
   const fetchDashboardData = async (token: string) => {
     try {
       const response = await axios.get<ApiResponse<DashboardData>>(
-        `${BASE_API_URL}/v1/dashboard?symbol=${token}`
+        `${BASE_API_URL}/v1/dashboard?symbol=${token}&project=${STABLEFLOW_PROJECT}`
       );
 
       if (response.data.code === 200) {
@@ -54,7 +56,7 @@ export default function useOverviewData(
     try {
       setChartLoading(true);
       const response = await axios.get<ApiResponse<ChartData[]>>(
-        `${BASE_API_URL}/v1/dashboard/${period}?symbol=${token}`
+        `${BASE_API_URL}/v1/dashboard/${period}?symbol=${token}&project=${STABLEFLOW_PROJECT}`
       );
 
       if (response.data.code === 200) {
@@ -91,7 +93,7 @@ export default function useOverviewData(
 
   const { runAsync: getChainData, loading: chainLoading, data: chainData } = useRequest(async () => {
     try {
-      const res = await axios.get(`${BASE_API_URL}/v1/dashboard/chain?symbol=${selectedToken}`);
+      const res = await axios.get(`${BASE_API_URL}/v1/dashboard/chain?symbol=${selectedToken}&project=${STABLEFLOW_PROJECT}`);
       if (res.status !== 200 || res.data?.code !== 200) {
         console.log("get /stableflow/dashboard/chain failed: %o", res);
         return;

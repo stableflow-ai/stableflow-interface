@@ -40,7 +40,8 @@ export default function OverviewStats({ data, loading, selectedToken }: Overview
       setProjectVolumesLoading(true);
       try {
         const params = new URLSearchParams({
-          symbol: selectedToken.toLowerCase()
+          symbol: selectedToken.toLowerCase(),
+          project: "stableflow"
         });
         const response = await axios.get<ProjectVolumeResponse>(
           `${BASE_API_URL}/v1/stats/project?${params.toString()}`
