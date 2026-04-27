@@ -71,6 +71,7 @@ export default function NavigationMenu() {
           if (typeof item.path !== "string") {
             return (
               <Popover
+                key={index}
                 ref={popoverRef}
                 placement="Bottom"
                 trigger="Hover"
@@ -95,7 +96,7 @@ export default function NavigationMenu() {
                             {
                               child.isExternal && (
                                 <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">
-                                  <path d="M3.83333 0.5H2.5C1.39543 0.5 0.5 1.39543 0.5 2.5V8.5C0.5 9.60457 1.39543 10.5 2.5 10.5H8.5C9.60457 10.5 10.5 9.60457 10.5 8.5V7M4.5 6.81579L10.5 0.5M10.5 0.5H6.5M10.5 0.5V4.5" stroke="#9FA7BA" stroke-linecap="round" stroke-linejoin="round" />
+                                  <path d="M3.83333 0.5H2.5C1.39543 0.5 0.5 1.39543 0.5 2.5V8.5C0.5 9.60457 1.39543 10.5 2.5 10.5H8.5C9.60457 10.5 10.5 9.60457 10.5 8.5V7M4.5 6.81579L10.5 0.5M10.5 0.5H6.5M10.5 0.5V4.5" stroke="#9FA7BA" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                               )
                             }
@@ -126,7 +127,7 @@ export default function NavigationMenu() {
                   fill="none"
                   className="rotate-180 group-hover:rotate-0 duration-150"
                 >
-                  <path d="M0.5 4.5L5.67241 0.5L10.5 4.5" stroke="#444C59" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M0.5 4.5L5.67241 0.5L10.5 4.5" stroke="#444C59" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </Popover>
             );
@@ -200,7 +201,7 @@ export const HyperliquidDeposit = (props: any) => {
       />
       <span className="w-5 h-5 flex justify-center items-center bg-black rounded-full text-white">
         <svg width="5" height="8" viewBox="0 0 5 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M1 1L4 4.10345L1 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M1 1L4 4.10345L1 7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
     </a>

@@ -28,10 +28,6 @@ export default function UserActions() {
     return pathname.pathname === "/history";
   }, [pathname]);
 
-  const isOverview = useMemo(() => {
-    return pathname.pathname === "/overview";
-  }, [pathname]);
-
   const hideActions = useMemo(() => {
     const regs = [
       /^\/developer/,
@@ -63,7 +59,7 @@ export default function UserActions() {
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  {!isHistory && !isOverview && (
+                  {!isHistory && (
                     <HistoryButton
                       onClick={() => {
                         addHistory({ type: "click" });
@@ -73,14 +69,6 @@ export default function UserActions() {
                         }
                         navigate("/history");
                       }}
-                    />
-                  )}
-                  {!isHistory && !isOverview && (
-                    <OverviewButton
-                      onClick={() => {
-                        navigate("/overview");
-                      }}
-                      hidden={true}
                     />
                   )}
                   <ChainsButton
@@ -148,57 +136,6 @@ const HistoryButton = ({ onClick }: any) => {
             <span className="text-[#444C59]">History</span>
           </>
         )}
-      </button>
-    </>
-  );
-};
-
-const OverviewButton = ({ onClick, hidden }: any) => {
-  if (hidden) {
-    return null;
-  }
-  return (
-    <>
-      <button
-        onClick={onClick}
-        className="flex md:hidden button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-[#444C59]"
-        >
-          <path d="M3 3v18h18" />
-          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
-        </svg>
-      </button>
-      <button
-        onClick={onClick}
-        className="hidden md:flex button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-[#444C59]"
-        >
-          <path d="M3 3v18h18" />
-          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
-        </svg>
-        <span className="text-[#444C59]">Overview</span>
       </button>
     </>
   );
@@ -357,14 +294,14 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             {menuItems.map((item, index) => {
               if (typeof item.path !== "string") {
                 return (
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex flex-col gap-0.5" key={index}>
                     <div className="flex flex-col gap-0.5">
                       {
-                        item.children.map((child, index) => {
+                        item.children.map((child, idx) => {
                           const isActive = location.pathname.startsWith(child.path);
                           return (
                             <Link
-                              key={index}
+                              key={`${index}-${idx}`}
                               to={child.path}
                               target={child.isExternal ? "_blank" : undefined}
                               className={clsx(
@@ -377,7 +314,7 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                               {
                                 child.isExternal && (
                                   <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">
-                                    <path d="M3.83333 0.5H2.5C1.39543 0.5 0.5 1.39543 0.5 2.5V8.5C0.5 9.60457 1.39543 10.5 2.5 10.5H8.5C9.60457 10.5 10.5 9.60457 10.5 8.5V7M4.5 6.81579L10.5 0.5M10.5 0.5H6.5M10.5 0.5V4.5" stroke="#9FA7BA" stroke-linecap="round" stroke-linejoin="round" />
+                                    <path d="M3.83333 0.5H2.5C1.39543 0.5 0.5 1.39543 0.5 2.5V8.5C0.5 9.60457 1.39543 10.5 2.5 10.5H8.5C9.60457 10.5 10.5 9.60457 10.5 8.5V7M4.5 6.81579L10.5 0.5M10.5 0.5H6.5M10.5 0.5V4.5" stroke="#9FA7BA" strokeLinecap="round" strokeLinejoin="round" />
                                   </svg>
                                 )
                               }
