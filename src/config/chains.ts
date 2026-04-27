@@ -444,8 +444,8 @@ const chains = {
   sui: {
     chainName: "Sui",
     blockchain: "sui",
-    chainIcon: "/chains/sui.png",
-    chainIconGray: "/chains/sui-gray.png",
+    chainIcon: getStableflowChainLogo("Sui"),
+    chainIconGray: getStableflowChainLogo("Sui-gray"),
     chainType: chainTypes.sui.value,
     blockExplorerUrl: "https://suiscan.xyz/mainnet/tx",
     primaryColor: "#298DFF",
@@ -458,8 +458,8 @@ const chains = {
   katana: {
     chainName: "Katana",
     blockchain: "katana",
-    chainIcon: "/chains/katana.png",
-    chainIconGray: "/chains/katana-gray.png",
+    chainIcon: getStableflowChainLogo("Katana"),
+    chainIconGray: getStableflowChainLogo("Katana-gray"),
     chainType: chainTypes.evm.value,
     chainId: 747474,
     blockExplorerUrl: "https://katanascan.com/tx",
