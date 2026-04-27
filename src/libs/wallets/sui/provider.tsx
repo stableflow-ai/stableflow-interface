@@ -126,6 +126,7 @@ const Content = () => {
         account: account?.address || null,
         wallet: suiWallet,
         walletIcon: currentWallet?.icon,
+        walletName: currentWallet?.name,
         connect: () => {
           if (currentWallet) {
             onConnect(currentWallet.name);
@@ -142,7 +143,13 @@ const Content = () => {
             sui: {
               account: null,
               wallet: null,
-              connect: () => { },
+              connect: () => {
+                if (currentWallet) {
+                  onConnect(currentWallet.name);
+                } else {
+                  onOpen();
+                }
+              },
               disconnect: () => { }
             }
           });
