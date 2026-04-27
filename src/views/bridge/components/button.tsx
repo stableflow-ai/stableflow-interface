@@ -89,7 +89,7 @@ export default function BridgeButton({
       <Button
         disabled={buttonDisabled}
         loading={loading}
-        className="w-full h-[50px] mt-[10px] rounded-[25px] bg-[#6284F5] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-white text-[16px]"
+        className="w-full h-14 mt-4.5 rounded-xl bg-[#6284F5] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-white text-lg! font-medium!"
         onClick={() => {
           if (errorConnect) {
             wallet?.connect?.();

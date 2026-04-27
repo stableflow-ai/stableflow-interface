@@ -46,3 +46,65 @@ export const sortQuoteData = (quoteDataMap: Map<string, any>) => {
 
   return sortedQuoteData;
 };
+
+export const routeHybridPath = (quoteData: any, service: Service) => {
+  if (!quoteData) return [];
+
+  const p = quoteData.quoteParam;
+
+  const buildPath = (
+    steps: Array<{ from: any; to: any; svc: Service; skip?: boolean }>
+  ) =>
+    steps
+      .filter((s) => !s.skip)
+      .map(({ from, to, svc }) => ({ fromToken: from, toToken: to, service: svc }));
+
+  switch (service) {
+    case Service.OneClickUsdt0:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick },
+        { from: p?.middleToken, to: p?.toToken, svc: Service.Usdt0 },
+      ]);
+    case Service.Usdt0OneClick:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken, svc: Service.Usdt0 },
+        { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick },
+      ]);
+    case Service.OneClickFraxZero:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick, skip: p?.isFromEthereumUSDC },
+        { from: p?.middleToken, to: p?.middleToken2, svc: Service.FraxZero },
+        { from: p?.middleToken2, to: p?.toToken, svc: Service.FraxZero, skip: p?.isToEthereumFrxUSD },
+      ]);
+    case Service.FraxZeroOneClick:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken2, svc: Service.FraxZero, skip: p?.isFromEthereumFrxUSD },
+        { from: p?.middleToken2, to: p?.middleToken, svc: Service.FraxZero },
+        { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick, skip: p?.isToEthereumUSDC },
+      ]);
+    default:
+      return [];
+  }
+};
+
+export const routeFullPath = (quoteData: any, service: Service) => {
+  if (!quoteData) return [];
+
+  const p = quoteData.quoteParam;
+
+  const hybridPath = routeHybridPath(quoteData, service);
+
+  // not hybrid path
+  if (!hybridPath.length) {
+    return [
+      { token: p?.fromToken },
+      { token: p?.toToken },
+    ];
+  }
+
+  return [
+    { token: hybridPath[0].fromToken },
+    { token: hybridPath[0].toToken },
+    ...hybridPath.slice(1).map((item) => ({ token: item.toToken })),
+  ];
+};
