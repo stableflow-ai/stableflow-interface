@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { lazy, Suspense, useRef } from "react";
 import UserActions from "./user-actions";
 import { getLogo } from "@/utils/format/logo";
+import PixelBlast from "@/components/pixel-blast";
 
 // import useUpdateTxns from "@/hooks/use-update-txns";
 // import SupportButton from "@/components/support-button";
@@ -22,16 +23,7 @@ export default function Layout() {
     <div className="relative w-full h-screen overflow-hidden">
       {/* Video Background */}
       <div className="absolute inset-0 w-full h-full z-0 bg-white">
-        <video
-          className="w-full h-full object-cover opacity-40"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="none"
-        >
-          <source src={getLogo("/stableflow/bg.mp4")} type="video/mp4" />
-        </video>
+        <PixelBlast />
       </div>
       {/* <AuroraBackground /> */}
 
