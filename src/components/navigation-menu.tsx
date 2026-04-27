@@ -3,8 +3,9 @@ import clsx from "clsx";
 import { useTrack } from "@/hooks/use-track";
 import { getStableflowLogo } from "@/utils/format/logo";
 import Popover from "./popover";
-import { useRef } from "react";
-import Social from "./social";
+import { lazy, Suspense, useRef } from "react";
+
+const Social = lazy(() => import("@/components/social"));
 
 export const menuItems = [
   {
@@ -106,7 +107,9 @@ export default function NavigationMenu() {
                       <div className="">
                         Social
                       </div>
-                      <Social className="gap-2.5! mt-3" />
+                      <Suspense fallback={null}>
+                        <Social className="gap-2.5! mt-3" />
+                      </Suspense>
                     </div>
                   </div>
                 )}

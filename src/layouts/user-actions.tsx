@@ -3,15 +3,16 @@ import ChainIcon from "./chain-icon";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useHistoryStore } from "@/stores/use-history";
-import { useMemo, useState } from "react";
-import MainTitle from "@/components/main-title";
+import { lazy, Suspense, useMemo, useState } from "react";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
-import NavigationMenu, { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
+import { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
 import { useTrack } from "@/hooks/use-track";
 import { getStableflowIcon } from "@/utils/format/logo";
-import Social from "@/components/social";
+
+const Social = lazy(() => import("@/components/social"));
+const NavigationMenu = lazy(() => import("@/components/navigation-menu"));
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -42,7 +43,9 @@ export default function UserActions() {
   return (
     <>
       <div className="w-full absolute z-9 pl-1.5 md:pl-5 pr-2.5 top-4 flex justify-between items-center gap-2.5">
-        <NavigationMenu />
+        <Suspense fallback={null}>
+          <NavigationMenu />
+        </Suspense>
         <div className="shrink-0 flex items-center gap-2">
           {!hideActions ? (
             <>
@@ -387,7 +390,9 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                       <div className="">
                         Social
                       </div>
-                      <Social className="gap-2.5! mt-3" />
+                      <Suspense fallback={null}>
+                        <Social className="gap-2.5! mt-3" />
+                      </Suspense>
                     </div>
                   </div>
                 )
