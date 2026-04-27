@@ -5,9 +5,7 @@ import { useTrack } from "@/hooks/use-track";
 // Dynamic import components
 const Networks = lazy(() => import("./components/networks"));
 const BridgeButton = lazy(() => import("./components/button"));
-const SupportedNetworks = lazy(() => import("./components/supported-networks"));
 const HistoryDrawer = lazy(() => import("../history/drawer"));
-const Trusted = lazy(() => import("./components/trusted"));
 const PendingTransfer = lazy(() => import("./components/pending"));
 
 // Loading component
@@ -42,12 +40,6 @@ export default function Bridge() {
           </div>
         </div>
       </div>
-      <Suspense fallback={null}>
-        <Trusted />
-      </Suspense>
-      <Suspense fallback={<LoadingSpinner />}>
-        <SupportedNetworks />
-      </Suspense>
       <Suspense fallback={null}>
         <HistoryDrawer />
       </Suspense>

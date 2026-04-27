@@ -1,8 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { lazy, Suspense, useRef } from "react";
 import UserActions from "./user-actions";
-import { getLogo } from "@/utils/format/logo";
-import PixelBlast from "@/components/pixel-blast";
 
 // import useUpdateTxns from "@/hooks/use-update-txns";
 // import SupportButton from "@/components/support-button";
@@ -11,6 +9,7 @@ import PixelBlast from "@/components/pixel-blast";
 const MaintenanceBanner = lazy(() => import("@/components/maintenance-banner"));
 const Footer = lazy(() => import("./footer"));
 const Wallet = lazy(() => import("@/sections/wallet"));
+const PixelBlast = lazy(() => import("@/components/pixel-blast"));
 
 const LoadingSpinner = () => null;
 
@@ -23,7 +22,9 @@ export default function Layout() {
     <div className="relative w-full h-screen overflow-hidden">
       {/* Video Background */}
       <div className="absolute inset-0 w-full h-full z-0 bg-white">
-        <PixelBlast />
+        <Suspense fallback={<LoadingSpinner />}>
+          <PixelBlast />
+        </Suspense>
       </div>
       {/* <AuroraBackground /> */}
 

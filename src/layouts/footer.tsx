@@ -2,7 +2,6 @@ import clsx from "clsx";
 import { lazy, Suspense, useEffect, useState } from "react";
 
 const Terms = lazy(() => import("../components/terms"));
-const Social = lazy(() => import("../components/social"));
 const ZendeskWidget = lazy(() => import("../components/zendesk-widget"));
 
 const Footer = (props: any) => {
@@ -28,15 +27,13 @@ const Footer = (props: any) => {
 
   return (
     <div className={clsx("w-full flex justify-between items-center gap-1 static md:fixed z-[11] bottom-2 py-1 pl-4 pr-2.5", className)}>
-      <Suspense fallback={null}>
-        <Social />
-      </Suspense>
-      <div className="flex justify-end items-end gap-2">
+      <div className="hidden md:block"></div>
+      <div className="w-full md:w-auto flex justify-between flex-row-reverse md:flex-row md:justify-end items-end gap-9">
         <Suspense fallback={null}>
           <Terms />
         </Suspense>
         <Suspense fallback={null}>
-          <ZendeskWidget className={clsx("fixed md:static z-12", isNearBottom ? "bottom-11" : "bottom-2")} />
+          <ZendeskWidget className={clsx("fixed md:static z-12", isNearBottom ? "bottom-2" : "bottom-2")} />
         </Suspense>
       </div>
     </div>
