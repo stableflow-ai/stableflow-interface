@@ -41,19 +41,20 @@ const QuoteRoute = (props: any) => {
   return (
     <motion.div
       className={clsx(
-        "button w-full h-[34px] shrink-0 rounded-[8px] bg-[#EDF0F7] border border-[#EDF0F7] flex justify-between items-center gap-[10px] pl-[6px] pr-[10px]",
+        "button w-full h-[34px] shrink-0 rounded-[8px] bg-[#FFFFFF] border flex justify-between items-center gap-[10px] pl-3 pr-3",
         selected ? "" : "",
       )}
       onClick={onSelect}
       animate={{
-        backgroundImage: selected ? "linear-gradient(90deg, rgba(1, 237, 151, 0.20) 0%, rgba(1, 237, 151, 0.00) 50%)" : "none",
+        backgroundImage: selected ? "linear-gradient(0deg, rgba(98, 132, 245, 0.10) 0%, rgba(98, 132, 245, 0.10) 100%)" : "none",
+        borderColor: selected ? "#6284F5" : "#F2F2F2",
       }}
     >
       <div className="flex items-center justify-start gap-[5px]">
-        <InputRadio
+        {/* <InputRadio
           checked={selected}
           onChange={onSelect}
-        />
+        /> */}
         <img
           src={displayServiceLogo}
           alt=""
@@ -64,10 +65,9 @@ const QuoteRoute = (props: any) => {
         />
       </div>
       <div className="flex items-center justify-end gap-[10px] text-[12px] font-[400] text-[#444C59] leading-[100%]">
-        <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
-        <div className="flex items-center gap-[4px] border-r border-[#EBF0F8]">
+        <div className="flex items-center gap-[4px]">
           <img
-            src={getStableflowIcon("icon-gas.svg")}
+            src={getStableflowIcon("icon-fee.svg")}
             alt=""
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />
@@ -83,7 +83,7 @@ const QuoteRoute = (props: any) => {
           </div>
         </div>
         <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
-        <div className="flex items-center gap-[4px] border-r border-[#EBF0F8]">
+        <div className="flex items-center gap-[4px]">
           <img
             src={getStableflowIcon("icon-time.svg")}
             alt=""

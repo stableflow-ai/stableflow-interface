@@ -11,6 +11,7 @@ import clsx from "clsx";
 import NavigationMenu, { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
 import { useTrack } from "@/hooks/use-track";
 import { getStableflowIcon } from "@/utils/format/logo";
+import Social from "@/components/social";
 
 export default function UserActions() {
   const walletStore = useWalletStore();
@@ -40,16 +41,9 @@ export default function UserActions() {
 
   return (
     <>
-      <div className="w-full absolute z-[9] pl-[6px] md:pl-0 pr-[10px] top-[14px] flex justify-between items-center gap-[10px]">
-        <div className="flex items-center gap-[32px] md:gap-[48px]">
-          <div className="shrink-0">
-            <MainTitle className="!flex md:!hidden !w-[unset]" />
-          </div>
-          <div className="hidden md:flex">
-            <NavigationMenu />
-          </div>
-        </div>
-        <div className="shrink-0 flex items-center gap-[7px]">
+      <div className="w-full absolute z-9 pl-1.5 md:pl-5 pr-2.5 top-4 flex justify-between items-center gap-2.5">
+        <NavigationMenu />
+        <div className="shrink-0 flex items-center gap-2">
           {!hideActions ? (
             <>
               {!walletsStore.evm.account &&
@@ -60,12 +54,12 @@ export default function UserActions() {
                   onClick={() => {
                     walletStore.set({ showWallet: true });
                   }}
-                  className="button px-[15px] md:px-[20px] py-[6px] md:py-[8px] bg-[#6284F5] rounded-[18px] text-[16px] text-white"
+                  className="button px-3.5 md:px-5 py-1.5 md:py-2 bg-[#6284F5] rounded-4.5 text-base text-white"
                 >
                   Connect
                 </button>
               ) : (
-                <div className="flex items-center gap-[7px]">
+                <div className="flex items-center gap-2">
                   {!isHistory && !isOverview && (
                     <HistoryButton
                       onClick={() => {
@@ -95,7 +89,7 @@ export default function UserActions() {
               )}
             </>
           ) : (
-            <div className="h-[38px]"></div>
+            <div className="h-9.5"></div>
           )}
           {/* Mobile menu button */}
           <MobileMenuButton
@@ -119,7 +113,7 @@ const HistoryButton = ({ onClick }: any) => {
     <>
       <button
         onClick={onClick}
-        className="flex md:hidden relative button px-[12px] md:px-[18px] h-[38px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[19px] md:rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+        className="flex md:hidden relative button px-3 md:px-4.5 h-9.5 md:h-9 justify-center items-center text-[14px] gap-2 rounded-[19px] md:rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
       >
         <img
           src={getStableflowIcon("icon-records.svg")}
@@ -356,8 +350,49 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         </div>
 
         <div className="pt-4 pb-5 px-5">
-          <nav className="flex flex-col gap-[16px]">
+          <nav className="flex flex-col gap-0.5">
             {menuItems.map((item, index) => {
+              if (typeof item.path !== "string") {
+                return (
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-0.5">
+                      {
+                        item.children.map((child, index) => {
+                          const isActive = location.pathname.startsWith(child.path);
+                          return (
+                            <Link
+                              key={index}
+                              to={child.path}
+                              target={child.isExternal ? "_blank" : undefined}
+                              className={clsx(
+                                "w-full h-11 px-2 rounded-lg text-base text-[#444C59] font-['SpaceGrotesk'] flex justify-between items-center gap-2 font-normal hover:bg-[#F5F7FD] duration-150 cursor-pointer",
+                                isActive ? "bg-[#F5F7FD]" : "bg-white",
+                              )}
+                              onClick={onClose}
+                            >
+                              {child.label}
+                              {
+                                child.isExternal && (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">
+                                    <path d="M3.83333 0.5H2.5C1.39543 0.5 0.5 1.39543 0.5 2.5V8.5C0.5 9.60457 1.39543 10.5 2.5 10.5H8.5C9.60457 10.5 10.5 9.60457 10.5 8.5V7M4.5 6.81579L10.5 0.5M10.5 0.5H6.5M10.5 0.5V4.5" stroke="#9FA7BA" stroke-linecap="round" stroke-linejoin="round" />
+                                  </svg>
+                                )
+                              }
+                            </Link>
+                          );
+                        })
+                      }
+                    </div>
+                    <div className="border-t border-[#F2F2F2] mt-0.5 pt-3.5 px-2">
+                      <div className="">
+                        Social
+                      </div>
+                      <Social className="gap-2.5! mt-3" />
+                    </div>
+                  </div>
+                )
+              }
+
               const isActive = item.path === "/"
                 ? location.pathname === "/"
                 : location.pathname.startsWith(item.path);
@@ -370,7 +405,10 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={onClose}
-                    className="text-[16px] font-[500] text-[#2B3337]/70 hover:text-[#2B3337] transition-colors duration-200 py-[8px]"
+                    className={clsx(
+                      "text-base font-normal text-[#444C59] hover:text-black transition-colors duration-200 h-11 flex items-center px-2",
+                      isActive ? "bg-[#F5F7FD]" : "bg-white",
+                    )}
                   >
                     {item.label}
                   </a>
@@ -383,17 +421,12 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                   to={item.path}
                   onClick={onClose}
                   className={clsx(
-                    "text-[16px] font-[500] transition-colors duration-200 py-[8px] relative",
-                    isActive
-                      ? "text-[#2B3337]"
-                      : "text-[#2B3337]/70 hover:text-[#2B3337]"
+                    "text-base font-normal text-[#444C59] hover:text-black transition-colors duration-200 h-11 relative flex items-center px-2",
+                    isActive ? "bg-[#F5F7FD]" : "bg-white",
                   )}
                 >
                   <span className="flex items-center gap-[8px]">
                     {item.label}
-                    {isActive && (
-                      <div className="w-[6px] h-[6px] rounded-full bg-[#0E3616]" />
-                    )}
                   </span>
                 </Link>
               );

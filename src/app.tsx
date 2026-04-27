@@ -18,6 +18,7 @@ const Privacy = lazy(() => import("./views/policy/privacy"));
 const TermsOfService = lazy(() => import("./views/policy/terms-of-service"));
 const Developer = lazy(() => import("./views/developer"));
 const DeveloperMD = lazy(() => import("./views/developer/md"));
+const Ecosystem = lazy(() => import("./views/ecosystem"));
 
 const TronEnergyModal = lazy(() => import("./views/bridge/components/tron-energy/modal"));
 const TrackRoot = lazy(() => import("./components/track-root"));
@@ -63,7 +64,11 @@ const router = createBrowserRouter([
       {
         path: "terms-of-service",
         element: <TermsOfService />
-      }
+      },
+      {
+        path: "ecosystem",
+        element: <Ecosystem />
+      },
     ]
   },
   {

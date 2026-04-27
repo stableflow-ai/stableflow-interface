@@ -9,6 +9,7 @@ import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
 import { BridgeFee, checkIsBridgeFee } from "@/services/oneclick";
 import { ServiceLogoMap } from "@/services";
+import { routeHybridPath } from "../../utils";
 
 const ResultUsdt0OneClick = (props: any) => {
   const { service } = props;
@@ -129,43 +130,7 @@ const ResultUsdt0OneClick = (props: any) => {
   }, [_quoteData]);
 
   const routePathMap = useMemo(() => {
-    if (!_quoteData) return [];
-
-    const p = _quoteData.quoteParam;
-
-    const buildPath = (
-      steps: Array<{ from: any; to: any; svc: Service; skip?: boolean }>
-    ) =>
-      steps
-        .filter((s) => !s.skip)
-        .map(({ from, to, svc }) => ({ fromToken: from, toToken: to, service: svc }));
-
-    switch (service) {
-      case Service.OneClickUsdt0:
-        return buildPath([
-          { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick },
-          { from: p?.middleToken, to: p?.toToken, svc: Service.Usdt0 },
-        ]);
-      case Service.Usdt0OneClick:
-        return buildPath([
-          { from: p?.fromToken, to: p?.middleToken, svc: Service.Usdt0 },
-          { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick },
-        ]);
-      case Service.OneClickFraxZero:
-        return buildPath([
-          { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick, skip: p?.isFromEthereumUSDC },
-          { from: p?.middleToken, to: p?.middleToken2, svc: Service.FraxZero },
-          { from: p?.middleToken2, to: p?.toToken, svc: Service.FraxZero, skip: p?.isToEthereumFrxUSD },
-        ]);
-      case Service.FraxZeroOneClick:
-        return buildPath([
-          { from: p?.fromToken, to: p?.middleToken2, svc: Service.FraxZero, skip: p?.isFromEthereumFrxUSD },
-          { from: p?.middleToken2, to: p?.middleToken, svc: Service.FraxZero },
-          { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick, skip: p?.isToEthereumUSDC },
-        ]);
-      default:
-        return [];
-    }
+    return routeHybridPath(_quoteData, service);
   }, [_quoteData, service]);
 
   return (
@@ -174,7 +139,7 @@ const ResultUsdt0OneClick = (props: any) => {
         bridgeStore.showFee && (
           <motion.div
             key="fee-detail"
-            className="w-full flex flex-col items-stretch gap-[8px] px-[10px] overflow-hidden"
+            className="w-full flex flex-col items-stretch gap-2 overflow-hidden"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}

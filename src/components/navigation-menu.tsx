@@ -2,74 +2,171 @@ import { Link, useLocation } from "react-router-dom";
 import clsx from "clsx";
 import { useTrack } from "@/hooks/use-track";
 import { getStableflowLogo } from "@/utils/format/logo";
+import Popover from "./popover";
+import { useRef } from "react";
+import Social from "./social";
 
 export const menuItems = [
   {
     label: "Transfer",
     path: "/",
-    isExternal: false
+    isExternal: false,
   },
   {
-    label: "Developer",
-    path: "/developer",
-    isExternal: false
+    label: "Ecosystem",
+    path: "/ecosystem",
+    isExternal: false,
   },
   {
-    label: "About",
-    path: "/about",
-    isExternal: false
+    label: "More",
+    path: false,
+    isExternal: false,
+    children: [
+      {
+        label: "About",
+        path: "/about",
+        isExternal: false,
+      },
+      {
+        label: "Developer",
+        path: "/developer",
+        isExternal: false,
+      },
+      {
+        label: "Docs",
+        path: "https://docs.stableflow.ai/",
+        isExternal: true,
+      },
+      {
+        label: "Explorer",
+        path: "https://github.com/stableflow-ai/stableflow-interface",
+        isExternal: true,
+      },
+      {
+        label: "Bug Bounty",
+        path: "https://github.com/stableflow-ai/stableflow-interface/issues",
+        isExternal: true,
+      },
+    ],
   }
 ];
 
 export default function NavigationMenu() {
   const location = useLocation();
 
+  const popoverRef = useRef<any>(null);
+
   return (
-    <nav className="flex items-center gap-[24px] md:gap-[32px]">
+    <nav className="flex items-center gap-6 md:gap-7.5">
       <Link to="/" className="shrink-0 flex items-center">
         <img
-          src={getStableflowLogo("logo-stableflow.svg")}
+          src={getStableflowLogo("logo-stableflow-full.svg")}
           alt="StableFlow"
-          className="h-[20px] md:h-[24px] w-auto"
+          className="w-33.5 h-8 md:h-8"
         />
       </Link>
-      {menuItems.map((item, index) => {
-        const isActive = item.path === "/"
-          ? location.pathname === "/"
-          : location.pathname.startsWith(item.path);
+      <div className="hidden md:flex items-center gap-6 md:gap-8">
+        {menuItems.map((item, index) => {
+          if (typeof item.path !== "string") {
+            return (
+              <Popover
+                ref={popoverRef}
+                placement="Bottom"
+                trigger="Hover"
+                offset={14}
+                content={(
+                  <div className="w-53 bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-2xl pt-1.5 pb-5.5 font-normal text-base text-[#444C59] font-['SpaceGrotesk']">
+                    <div className="px-1.5">
+                      {item.children.map((child, index) => {
+                        const isActive = location.pathname.startsWith(child.path);
+                        return (
+                          <Link
+                            key={index}
+                            to={child.path}
+                            className={clsx(
+                              "w-full h-11 rounded-lg flex justify-between items-center gap-2 px-3.5 hover:bg-[#F5F7FD] duration-150 cursor-pointer",
+                              isActive ? "bg-[#F5F7FD]" : "bg-white",
+                            )}
+                            target={child.isExternal ? "_blank" : undefined}
+                            onClick={() => popoverRef.current?.close()}
+                          >
+                            {child.label}
+                            {
+                              child.isExternal && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">
+                                  <path d="M3.83333 0.5H2.5C1.39543 0.5 0.5 1.39543 0.5 2.5V8.5C0.5 9.60457 1.39543 10.5 2.5 10.5H8.5C9.60457 10.5 10.5 9.60457 10.5 8.5V7M4.5 6.81579L10.5 0.5M10.5 0.5H6.5M10.5 0.5V4.5" stroke="#9FA7BA" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                              )
+                            }
+                          </Link>
+                        );
+                      })}
+                    </div>
+                    <div className="border-t border-[#F2F2F2] mt-0.5 pt-3.5 px-5">
+                      <div className="">
+                        Social
+                      </div>
+                      <Social className="gap-2.5! mt-3" />
+                    </div>
+                  </div>
+                )}
+                triggerContainerClassName="flex justify-center items-center gap-1.5 group cursor-pointer"
+              >
+                <div className="text-[#444C59] text-sm font-normal font-['SpaceGrotesk'] group-hover:text-black group-hover:font-medium duration-150">
+                  More
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="11"
+                  height="5"
+                  viewBox="0 0 11 5"
+                  fill="none"
+                  className="rotate-180 group-hover:rotate-0 duration-150"
+                >
+                  <path d="M0.5 4.5L5.67241 0.5L10.5 4.5" stroke="#444C59" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </Popover>
+            );
+          }
 
-        if (item.isExternal) {
+          const isActive = item.path === "/"
+            ? location.pathname === "/"
+            : location.pathname.startsWith(item.path);
+
+          if (item.isExternal) {
+            return (
+              <a
+                key={index}
+                href={item.path}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={clsx(
+                  "text-sm md:text-[15px] font-normal hover:text-black transition-colors duration-150",
+                  isActive ? "text-black" : "text-[#444C59]",
+                )}
+              >
+                {item.label}
+              </a>
+            );
+          }
+
           return (
-            <a
+            <Link
               key={index}
-              href={item.path}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[14px] md:text-[15px] font-[500] text-[#2B3337]/70 hover:text-[#2B3337] transition-colors duration-200 pb-[4px]"
+              to={item.path}
+              className={clsx(
+                "text-[14px] md:text-[15px] hover:text-black font-normal transition-colors duration-150 relative",
+                isActive ? "text-black" : "text-[#444C59]",
+              )}
             >
               {item.label}
-            </a>
+              {isActive && (
+                <div className="w-7.5 mx-auto absolute -bottom-1 left-0 right-0 h-[2px] bg-[#0E3616] rounded-full" />
+              )}
+            </Link>
           );
-        }
-
-        return (
-          <Link
-            key={index}
-            to={item.path}
-            className={clsx(
-              "text-[14px] md:text-[15px] font-[500] transition-colors duration-200 relative pb-[4px]",
-              isActive
-                ? "text-[#2B3337]"
-                : "text-[#2B3337]/70 hover:text-[#2B3337]"
-            )}
-          >
-            {item.label}
-            {isActive && (
-              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0E3616] rounded-full" />
-            )}
-          </Link>
-        );
-      })}
+        })}
+      </div>
       <HyperliquidDeposit />
     </nav>
   );
@@ -85,7 +182,7 @@ export const HyperliquidDeposit = (props: any) => {
       href="https://deposit.stableflow.ai/"
       target="_blank"
       className={clsx(
-        "flex items-center gap-1 h-9 rounded-[20px] px-2.5 text-[#444C59] hover:text-black duration-150 font-[SpaceGrotesk] text-xs font-normal leading-[100%] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] hover:shadow-[0_0_15px_0_rgba(0,0,0,0.20)] bg-[linear-gradient(90deg,_rgba(65,207,172,0.00)_0%,_rgba(65,207,172,0.50)_100%)]",
+        "hidden md:flex items-center gap-1 h-9 rounded-[20px] px-2.5 text-[#444C59] hover:text-black duration-150 font-[SpaceGrotesk] text-xs font-normal leading-[100%] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] hover:shadow-[0_0_15px_0_rgba(0,0,0,0.20)] bg-[linear-gradient(90deg,_rgba(65,207,172,0.00)_0%,_rgba(65,207,172,0.50)_100%)]",
         className
       )}
       onClick={() => addExternalLinkClick({ link: "https://deposit.stableflow.ai/" })}

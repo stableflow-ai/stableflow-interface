@@ -72,71 +72,7 @@ export default function Result() {
   }, [isFromTron, quoteData]);
 
   return (
-    <>
-      <div className="w-full flex justify-between items-center p-[10px] cursor-pointer">
-        <div
-          className="flex items-center gap-[6px] shrink-0"
-          onClick={() => {
-            bridgeStore.set({ showFee: !bridgeStore.showFee });
-          }}
-        >
-          <div className="text-[12px] text-[#70788A] leading-[100%] font-[400]">
-            View Details
-          </div>
-          <motion.img
-            src={getStableflowIcon("icon-arrow-down.svg")}
-            className="w-[10px] h-[10px] shrink-0 object-center object-contain"
-            alt=""
-            animate={{
-              rotate: bridgeStore.showFee ? 180 : 0,
-            }}
-          />
-        </div>
-        <div
-          className="flex justify-end items-center gap-[6px] shrink-0"
-          onClick={() => {
-            bridgeStore.set({ showRoutes: !bridgeStore.showRoutes });
-          }}
-        >
-          <div className="text-[12px] text-[#70788A] leading-[100%] font-[400]">
-            View All Routes <span className="">{quoteDataList?.length}</span>
-          </div>
-          <motion.img
-            src={getStableflowIcon("icon-arrow-down.svg")}
-            className="w-[10px] h-[10px] shrink-0 object-center object-contain"
-            alt=""
-            animate={{
-              rotate: bridgeStore.showRoutes ? -180 : -90,
-            }}
-          />
-        </div>
-        {/* <div className="flex items-center justify-end flex-1">
-          <div className="flex items-center justify-center w-[69px] h-[20px] rounded-[6px] bg-[#EDF0F7] mr-[14px]">
-            <img src={ServiceLogoMap[bridgeStore.quoteDataService || Service.OneClick]} className="w-[62px] h-[16px]" />
-          </div>
-          <div className="px-[14px] items-center flex gap-[6px] border-l border-[#EBF0F8]">
-            <img
-              src={getStableflowIcon("icon-time.svg")}
-              alt=""
-              className="w-[14px] h-[14px] object-center object-contain shrink-0"
-            />
-            <div className="text-[12px] text-[#444C59]">~{duration}</div>
-          </div>
-          <div className="px-[14px] items-center flex gap-[6px] border-l border-[#EBF0F8]">
-            <div className="text-[12px] text-[#444C59]">Fee:</div>
-            <div className="text-[12px] text-[#4DCF5E]">
-              {_quoteData?.totalFeesUsd
-                ? `~${formatNumber(
-                  _quoteData.totalFeesUsd,
-                  2,
-                  true,
-                  { prefix: "$", isZeroPrecision: true }
-                )}`
-                : "-"}
-            </div>
-          </div>
-        </div> */}
-      </div>
+    <div className="pt-3 pl-5 pr-5.5">
       <Suspense fallback={null}>
         {
           bridgeStore.quoteDataService === Service.OneClick && (
@@ -174,7 +110,7 @@ export default function Result() {
           isOneClickService && Big(bridgeStore.amount || 0).gte(100000) && (
             <motion.div
               key="duration"
-              className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
+              className={clsx("w-full text-[#70788A] text-xs font-normal leading-[120%]", bridgeStore.showFee && "mt-2")}
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -185,8 +121,8 @@ export default function Result() {
         }
         {
           isLargePriceImpact && (
-            <div className="w-full flex justify-between items-center px-[10px] text-[12px] text-[#FF6A19]">
-              <div className="flex items-center gap-[10px]">
+            <div className="w-full flex justify-between items-center text-xs font-normal text-[#FF6A19]">
+              <div className="flex items-center gap-2.5">
                 <Checkbox
                   checked={bridgeStore.acceptPriceImpact}
                   checkedColor="#FF6A19"
@@ -207,7 +143,7 @@ export default function Result() {
           isFromTron && (
             <motion.div
               key="energy"
-              className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
+              className={clsx("w-full text-[#70788A] text-xs font-normal leading-[120%]", bridgeStore.showFee && "mt-2")}
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -228,7 +164,7 @@ export default function Result() {
           quoteData?.quoteParam?.needsBandwidth && (
             <motion.div
               key="bandwidth"
-              className={clsx("w-full px-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", bridgeStore.showFee && "mt-[8px]")}
+              className={clsx("w-full text-[#70788A] text-xs font-normal leading-[120%]", bridgeStore.showFee && "mt-2")}
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -246,7 +182,7 @@ export default function Result() {
         }
         {
           isExactOutput && quoteData && (
-            <div className="w-full px-[10px] text-[12px] text-[#70788A]">
+            <div className="w-full text-xs font-normal text-[#70788A]">
               <img
                 src={getStableflowIcon("icon-info.svg")}
                 alt=""
@@ -257,6 +193,6 @@ export default function Result() {
           )
         }
       </div>
-    </>
+    </div>
   );
 }
