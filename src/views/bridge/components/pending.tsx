@@ -322,8 +322,8 @@ const PendingItem = (props: any) => {
               }}
             >
               <svg className="w-[12px] h-[11px] shrink-0" width="12" height="11" viewBox="0 0 12 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <line x1="10.2324" y1="1.41421" x2="1.9498" y2="9.69684" stroke="#A1A699" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                <path d="M5.6867 5.15155L1.99707 1.46191M7.80788 7.27273L10.5351 9.99996" stroke="#A1A699" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="10.2324" y1="1.41421" x2="1.9498" y2="9.69684" stroke="#A1A699" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M5.6867 5.15155L1.99707 1.46191M7.80788 7.27273L10.5351 9.99996" stroke="#A1A699" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
           )
@@ -361,7 +361,7 @@ const PendingItem = (props: any) => {
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <path d="M1.5 4L5.82143 8.49986L12.5 1" stroke="#2EA97C" stroke-width="1.5" />
+                <path d="M1.5 4L5.82143 8.49986L12.5 1" stroke="#2EA97C" strokeWidth="1.5" />
               </svg>
             )
           }
@@ -458,7 +458,7 @@ const BridgeRoute = (props: any) => {
         {formatAddress(address, 5, 4)}
       </div>
       <svg className="w-[5px] h-[8px] shrink-0" width="5" height="8" viewBox="0 0 5 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1 1L4 4.10345L1 7" stroke="#9FA7BA" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1 1L4 4.10345L1 7" stroke="#9FA7BA" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       {
         !!to_tx_hash && (

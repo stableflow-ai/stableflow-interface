@@ -132,8 +132,8 @@ export default function Networks({ addressValidation }: any) {
                   }}
                 >
                   <svg width="20" height="9" viewBox="0 0 20 9" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M0.800049 4.50018H18.8" stroke={isProgress ? "#6284F5" : "#9FA7BA"} stroke-width="1.6" stroke-linecap="round" />
-                    <circle cx="9.80005" cy="4.5" r="3.7" fill="white" stroke={isProgress ? "#6284F5" : "#9FA7BA"} stroke-width="1.6" />
+                    <path d="M0.800049 4.50018H18.8" stroke={isProgress ? "#6284F5" : "#9FA7BA"} strokeWidth="1.6" strokeLinecap="round" />
+                    <circle cx="9.80005" cy="4.5" r="3.7" fill="white" stroke={isProgress ? "#6284F5" : "#9FA7BA"} strokeWidth="1.6" />
                   </svg>
                 </button>
                 <button
