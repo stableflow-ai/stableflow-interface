@@ -1,7 +1,7 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import useBridge from "./hooks/use-bridge";
 import MainTitle from "@/components/main-title";
-import PendingTransfer from "./components/pending";
+import { useTrack } from "@/hooks/use-track";
 
 // Dynamic import components
 const Networks = lazy(() => import("./components/networks"));
@@ -11,12 +11,18 @@ const SupportedNetworks = lazy(() => import("./components/supported-networks"));
 const HistoryDrawer = lazy(() => import("../history/drawer"));
 const Trusted = lazy(() => import("./components/trusted"));
 const QuoteRoutes = lazy(() => import("./components/routes"));
+const PendingTransfer = lazy(() => import("./components/pending"));
 
 // Loading component
 const LoadingSpinner = () => null;
 
 export default function Bridge() {
   const { quote, transfer, addressValidation, errorChain } = useBridge();
+  const { addOpen } = useTrack();
+
+  useEffect(() => {
+    addOpen();
+  }, []);
 
   return (
     <div className="relative w-full min-h-dvh pb-[100px] flex flex-col items-center overflow-y-auto overflow-x-hidden">
@@ -25,7 +31,9 @@ export default function Bridge() {
       </div>
       <div className="flex items-stretch gap-[10px] justify-center mt-[20px] md:min-h-[490px]">
         <div className="md:w-[488px] w-full mx-auto shrink-0">
-          <PendingTransfer className="block" />
+          <Suspense fallback={<LoadingSpinner />}>
+            <PendingTransfer className="block" />
+          </Suspense>
           <Suspense fallback={<LoadingSpinner />}>
             <Networks addressValidation={addressValidation} />
           </Suspense>

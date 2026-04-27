@@ -51,7 +51,8 @@ export function validateAddress(
 
 /**
  * Validates a NEAR address
- * NEAR addresses are typically 2-64 characters long and contain alphanumeric characters and dots
+ * Supports named accounts (alice.near, burrow.sputnik-dao.near) and
+ * implicit accounts (64-char hex public key hash).
  */
 function validateNearAddress(address: string): AddressValidationResult {
   // Length check
@@ -77,18 +78,13 @@ function validateNearAddress(address: string): AddressValidationResult {
     };
   }
 
-  // Check if address contains only numbers (not allowed for NEAR)
-  if (/^\d+$/.test(address)) {
-    return {
-      isValid: false,
-      error: "NEAR address cannot be purely numeric"
-    };
+  // NEAR implicit accounts: 64-char hex string
+  if (/^[0-9a-f]{64}$/i.test(address)) {
+    return { isValid: true };
   }
 
-  // NEAR address pattern: 2-64 characters, alphanumeric and dots, must contain at least one letter
-  const nearPattern = /^[a-zA-Z0-9.]+$/;
-  const hasLetterPattern = /[a-zA-Z]/;
-
+  // Named account: letters, numbers and separators ., -, _
+  const nearPattern = /^[a-zA-Z0-9._-]+$/;
   if (!nearPattern.test(address)) {
     return {
       isValid: false,
@@ -96,6 +92,25 @@ function validateNearAddress(address: string): AddressValidationResult {
     };
   }
 
+  // Every account label should start/end with alphanumeric.
+  const labelPattern = /^[a-zA-Z0-9](?:[a-zA-Z0-9_-]*[a-zA-Z0-9])?$/;
+  const labels = address.split(".");
+  if (!labels.every(label => labelPattern.test(label))) {
+    return {
+      isValid: false,
+      error: "NEAR address labels must start/end with letters or numbers"
+    };
+  }
+
+  // Named NEAR account cannot be purely numeric.
+  if (/^\d+$/.test(address)) {
+    return {
+      isValid: false,
+      error: "NEAR address cannot be purely numeric"
+    };
+  }
+
+  const hasLetterPattern = /[a-zA-Z]/;
   if (!hasLetterPattern.test(address)) {
     return {
       isValid: false,
@@ -204,7 +219,7 @@ function validateTronAddress(address: string): AddressValidationResult {
 export function getAddressPlaceholder(blockchain: string): string {
   switch (blockchain) {
     case "near":
-      return "Enter NEAR wallet address (e.g., alice.near)";
+      return "Enter NEAR wallet address (e.g., alice.near or 64-char hex)";
     case "sol":
       return "Enter Solana wallet address (e.g., 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM)";
     case "arb":

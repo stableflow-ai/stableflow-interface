@@ -1,4 +1,6 @@
+import { getStableflowIcon } from "@/utils/format/logo";
 import { csl } from "@/utils/log";
+import clsx from "clsx";
 import { useEffect, useState } from "react";
 
 /**
@@ -12,7 +14,9 @@ import { useEffect, useState } from "react";
  * 
  * Note: Must use VITE_ prefix (Vite requirement)
  */
-export default function ZendeskWidget() {
+export default function ZendeskWidget(props: any) {
+  const { className } = props;
+
   const [mounted, setMounted] = useState(false);
   const [opened, setOpened] = useState(false);
 
@@ -110,13 +114,13 @@ export default function ZendeskWidget() {
   return mounted && !opened && (
     <button
       type="button"
-      className="button fixed z-[11] bottom-12 md:bottom-2.5 right-3.5 text-md font-[SpaceGrotesk] font-normal leading-[100%] flex justify-center items-center gap-2 bg-black text-white h-9 pl-3 pr-4.5 rounded-3xl"
+      className={clsx("button text-md font-[SpaceGrotesk] font-normal leading-[100%] flex justify-center items-center gap-2 bg-black text-white h-9 pl-3 pr-4.5 rounded-3xl", className)}
       onClick={() => {
         window.zE("webWidget", "open");
       }}
     >
       <img
-        src="/icon-help.svg"
+        src={getStableflowIcon("icon-help.svg")}
         alt=""
         className="w-4 h-4 object-center object-contain shrink-0"
       />

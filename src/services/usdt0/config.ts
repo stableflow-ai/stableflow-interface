@@ -10,6 +10,8 @@ interface Usdt0Config extends LayerZeroChainConfig {
   lzReceiveOptionGas: number;
   lzReceiveOptionGasLegacy: number;
   composeOptionGas?: number;
+  oftApprovalRequired?: boolean;
+  oftLegacyApprovalRequired?: boolean;
 }
 
 // LayerZero chain configuration
@@ -27,6 +29,8 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     confirmations: 15, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
+    oftApprovalRequired: true,
+    oftLegacyApprovalRequired: true,
   },
   Arbitrum: {
     contractAddress: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
@@ -37,6 +41,8 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     confirmations: 60, // Default confirmations from layerzeroscan.com
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
+    oftApprovalRequired: false,
+    oftLegacyApprovalRequired: true,
   },
   Polygon: {
     contractAddress: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
@@ -46,6 +52,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   Optimism: {
     contractAddress: "0x01bFF41798a0BcF287b996046Ca68b395DbC1071",
@@ -55,6 +62,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   Berachain: {
     contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
@@ -65,6 +73,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   Solana: {
     contractAddress: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
@@ -74,6 +83,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 200000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 500000,
+    oftLegacyApprovalRequired: false,
   },
   Tron: {
     contractAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
@@ -83,6 +93,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 300000,
     lzReceiveOptionGasLegacy: 300000,
     composeOptionGas: 500000,
+    oftLegacyApprovalRequired: true,
   },
   "X Layer": {
     contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
@@ -92,6 +103,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   "Ton": {
     contractAddress: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
@@ -103,6 +115,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftLegacyApprovalRequired: false,
   },
   "Plasma": {
     contractAddress: "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb",
@@ -112,6 +125,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   "Mantle": {
     contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
@@ -121,6 +135,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   "MegaETH": {
     contractAddress: "0xb8ce59fc3717ada4c02eadf9682a9e934f625ebb",
@@ -130,6 +145,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   "Ink": {
     contractAddress: "0x0200C29006150606B650577BBE7B6248F58470c1",
@@ -139,6 +155,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   "Stable": {
     contractAddress: "0x779Ded0c9e1022225f8E0630b35a9b54bE713736",
@@ -148,6 +165,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   "Celo": {
     contractAddress: "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e",
@@ -157,6 +175,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftLegacyApprovalRequired: true,
   },
   "Sei": {
     contractAddress: "0x9151434b16b9763660705744891fA906F660EcC5",
@@ -166,6 +185,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
   "Flare": {
     contractAddress: "0xe7cd86e13AC4309349F30B3435a9d337750fC82D",
@@ -175,6 +195,7 @@ export const USDT0_CONFIG: Record<string, Usdt0Config> = {
     lzReceiveOptionGas: 80000,
     lzReceiveOptionGasLegacy: 200000,
     composeOptionGas: 600000,
+    oftApprovalRequired: false,
   },
 };
 

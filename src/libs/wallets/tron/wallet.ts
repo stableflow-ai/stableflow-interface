@@ -14,6 +14,7 @@ import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 import { csl } from "@/utils/log";
 import { NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
+import { ExecTime } from "@/utils/exec-time";
 
 const DefaultTronWalletAddress = BridgeDefaultWallets["tron"];
 const customTronWeb = new TronWeb({
@@ -447,9 +448,17 @@ export default class TronWallet {
       spender,
       amountWei,
       isApproveMax = false,
+      isDetails = false,
+      isWaitTxReceipt = true,
     } = params;
 
     await this.waitForTronWeb();
+
+    const detailResult: any = {
+      success: false,
+      data: {},
+      message: null,
+    };
 
     try {
       // Determine approval amount
@@ -473,24 +482,38 @@ export default class TronWallet {
       );
 
       // Sign and send transaction
-      return this.sendTransaction({ tx });
-    } catch (error) {
+      const txHash = await this.sendTransaction({ tx });
+
+      if (isWaitTxReceipt) {
+        const pollingResult = await this.pollingTransactionStatus(txHash, {
+          maxPolls: 120,
+          pollInterval: 2000,
+        });
+        if (!pollingResult) {
+          csl("TronWallet approve", "red-500", "Failed polling approve transaction status");
+          if (isDetails) {
+            detailResult.message = "Failed to get approve result";
+            return detailResult;
+          }
+          return false;
+        }
+      }
+
+      if (isDetails) {
+        detailResult.success = true;
+        detailResult.data = { txHash: txHash };
+        return detailResult;
+      }
+
+      return txHash;
+    } catch (error: any) {
       csl("TronWallet approve", "red-500", "Error approve: %o", error);
+      if (isDetails) {
+        detailResult.message = error.message;
+        return detailResult;
+      }
       return false;
     }
-  }
-
-  async getEnergyPrice() {
-    await this.waitForTronWeb();
-    let energyFee: any = 100; // Default 280 Sun/Energy
-    // try {
-    //   const params = await this.tronWeb.trx.getChainParameters();
-    //   energyFee = params.find((p: any) => p.key === "getEnergyFee")?.value || 280;
-    //   csl("TronWallet getEnergyPrice", "teal-400", "Energy Fee: %d Sun/Energy", energyFee);
-    // } catch (err) {
-    //   console.error("Error getting energy price:", err);
-    // }
-    return energyFee;
   }
 
   toBytes32(addr: string): string {
@@ -534,46 +557,34 @@ export default class TronWallet {
       fees: {},
       totalFeesUsd: void 0,
       estimateSourceGas: void 0,
+      totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: void 0,
       estimateTime: 0, // seconds - dynamically calculated using LayerZero formula
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
 
+    const execTime = new ExecTime({ type: "USDT0 Tron", logStyle: "indigo-300" });
     await this.waitForTronWeb();
+    execTime.log("waitForTronWeb");
 
+    execTime.breakpoint();
     const oftContract = await this.tronWeb.contract(abi, originLayerzeroAddress);
+    execTime.log("tronWeb.contract originLayerzeroAddress");
 
-    // 1. check if need approve
-    const approvalRequired = await oftContract.approvalRequired().call();
-    // check approve status
-    // csl("TronWallet quoteOFT", "teal-400", "ApprovalRequired: %o", result.needApprove);
-
-    // If approval is required, check actual allowance
-    if (approvalRequired) {
-      try {
-        // Get user address (use refundTo if provided, otherwise use default address)
-        const userAddress = refundTo || this.tronWeb.defaultAddress.base58;
-
-        // Check allowance
-        const allowanceResult = await this.allowance({
-          contractAddress: fromToken.contractAddress,
-          spender: originLayerzeroAddress,
-          address: userAddress,
-          amountWei,
-        });
-        result.needApprove = allowanceResult.needApprove;
-      } catch (error) {
-        csl("TronWallet quoteOFT", "red-500", "Error checking allowance: %o", error);
-      }
-    }
+    execTime.breakpoint();
+    const userAddress = refundTo || this.tronWeb.defaultAddress.base58;
+    const approvalRequired = isOriginLegacy ? originLayerzero.oftLegacyApprovalRequired : originLayerzero.oftApprovalRequired;
+    execTime.log("approvalRequired");
 
     const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
     let lzReceiveOptionValue = 0;
 
+    execTime.breakpoint();
     const destATA = await getDestinationAssociatedTokenAddress({
       recipient,
       toToken,
     });
+    execTime.log("getDestinationAssociatedTokenAddress");
     if (destATA.needCreateTokenAccount) {
       lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
     }
@@ -608,7 +619,9 @@ export default class TronWallet {
       sendParam[1] = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer); // to
     }
 
+    execTime.breakpoint();
     const oftData = await oftContract.quoteOFT(sendParam).call();
+    execTime.log("quoteOFT");
     const [, , oftReceipt] = oftData;
     sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
 
@@ -627,10 +640,12 @@ export default class TronWallet {
         composeMsg: "0x",
         oftCmd: "0x",
       };
+      execTime.breakpoint();
       const hopMsgFee = await getHopMsgFee({
         sendParam: composeMsgSendParam,
         toToken,
       });
+      execTime.log("getHopMsgFee");
 
       sendParam[4] = Options.newOptions()
         .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
@@ -642,14 +657,33 @@ export default class TronWallet {
       );
     }
 
-    const msgFee = await oftContract.quoteSend(sendParam, payInLzToken).call();
+    execTime.breakpoint();
+    const mergedCalls = [
+      oftContract.quoteSend(sendParam, payInLzToken).call(),
+    ];
+    if (approvalRequired) {
+      mergedCalls.push(
+        this.allowance({
+          contractAddress: fromToken.contractAddress,
+          spender: originLayerzeroAddress,
+          address: userAddress,
+          amountWei,
+        })
+      );
+    }
+    const [msgFee, allowanceResult] = await Promise.all(mergedCalls);
+    if (approvalRequired) {
+      result.needApprove = allowanceResult.needApprove;
+    }
+    execTime.log("quoteSend & allowance", "allowanceResult: %o", allowanceResult);
+
     let nativeMsgFee: BigInt = msgFee[0]["nativeFee"];
     csl("Tron quoteOFT", "red-600", "nativeFee: %o", nativeMsgFee);
     if (nativeMsgFee) {
       nativeMsgFee = BigInt(Big(nativeMsgFee.toString()).times(Number(NATIVE_MSG_FEE_BUFFER) / 100).toFixed(0));
     }
     csl("Tron quoteOFT", "red-600", "nativeFee after buffer: %o", nativeMsgFee);
-    result.estimateSourceGas = nativeMsgFee;
+    result.totalEstimateSourceGas = nativeMsgFee;
 
     csl("TronWallet quoteOFT", "teal-400", "MsgFee: %o", msgFee);
 
@@ -704,11 +738,13 @@ export default class TronWallet {
       ],
       this.tronWeb.defaultAddress.base58 || refundTo
     ];
-    const energyPrice = await this.getEnergyPrice();
 
+    execTime.breakpoint();
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
+    execTime.log("transactionBuilder.triggerSmartContract");
     result.sendParam.tx = tx;
 
+    execTime.breakpoint();
     const ett = await this.estimateTransaction({
       dry,
       transactionParams,
@@ -717,13 +753,14 @@ export default class TronWallet {
       defaultEnergyUsed: 300000,
       defaultRawDataHexLength: 1000,
     });
+    execTime.log("estimateTransaction");
     result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
-    // result.estimateSourceGas = ett.estimateSourceGas;
-    // result.totalEstimateSourceGas += ett.estimateSourceGas;
-    result.estimateSourceGas += ett.estimateSourceGas;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas += ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
     if (result.needApprove) {
+      execTime.breakpoint();
       const estApproveGas = await this.estimateApprove({
         dry,
         amountWei,
@@ -732,6 +769,7 @@ export default class TronWallet {
         prices,
       });
       result.estimateApproveGas = estApproveGas.estimateSourceGas;
+      execTime.log("estimateApprove");
     }
 
     // calculate total fees
@@ -744,6 +782,8 @@ export default class TronWallet {
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
 
     result.sendParam.transactionParams = transactionParams;
+
+    execTime.log("quoteOFT");
 
     return result;
   }
@@ -851,9 +891,12 @@ export default class TronWallet {
 
     const result: any = { fees: {} };
 
+    const execTime = new ExecTime({ type: "Oneclick Tron", logStyle: "indigo-400" });
     await this.waitForTronWeb();
+    execTime.log("waitForTronWeb");
     const userAddress = refundTo || this.tronWeb.defaultAddress.base58;
 
+    execTime.breakpoint();
     try {
       const allowance = await this.allowance({
         contractAddress: fromToken.contractAddress,
@@ -866,6 +909,7 @@ export default class TronWallet {
     } catch (error) {
       csl("TronWallet quoteOneClickProxy", "red-500", "oneclick check allowance failed: %o", error);
     }
+    execTime.log("allowance");
 
     const proxyParam: any = [
       // tokenAddress
@@ -899,12 +943,13 @@ export default class TronWallet {
       ],
       this.tronWeb.defaultAddress.base58 || refundTo
     ];
-    // Get current energy price from Tron
-    const energyPrice = await this.getEnergyPrice();
 
+    execTime.breakpoint();
     const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
+    execTime.log("transactionBuilder.triggerSmartContract");
     result.sendParam.tx = tx;
 
+    execTime.breakpoint();
     const ett = await this.estimateTransaction({
       dry,
       transactionParams,
@@ -913,12 +958,14 @@ export default class TronWallet {
       defaultEnergyUsed: 200000,
       defaultRawDataHexLength: 500,
     });
+    execTime.log("estimateTransaction");
     result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
     result.totalEstimateSourceGas = ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
     if (result.needApprove) {
+      execTime.breakpoint();
       const estApproveGas = await this.estimateApprove({
         dry,
         amountWei,
@@ -927,9 +974,12 @@ export default class TronWallet {
         prices,
       });
       result.estimateApproveGas = estApproveGas.estimateSourceGas;
+      execTime.log("estimateApprove");
     }
 
     result.sendParam.transactionParams = transactionParams;
+
+    execTime.logTotal("quoteOneClickPorxy");
 
     return result;
   }

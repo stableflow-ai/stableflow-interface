@@ -11,6 +11,7 @@ import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import Loading from "@/components/loading/icon";
 import Big from "big.js";
 import { formatNumber, numberRemoveEndZero } from "@/utils/format/number";
+import { getStableflowLogo } from "@/utils/format/logo";
 
 export default function Bottom({ token }: { token: any }) {
   const [progress, setProgress] = useState(0);
@@ -59,19 +60,19 @@ export default function Bottom({ token }: { token: any }) {
       return "text-[10px]";
     }
     if (_amountStringLength >= 8 + offset) {
-      return "text-[12px]";
+      return "text-[11px] md:text-[12px]";
     }
     if (_amountStringLength >= 7 + offset) {
-      return "text-[14px]";
+      return "text-[12px] md:text-[14px]";
     }
-    return "text-[16px]";
+    return "text-[14px] md:text-[16px]";
   };
 
   return (
-    <div className="h-[70px] px-[20px] pt-[24px] border-t border-[#EBF0F8] flex justify-between relative">
+    <div className="h-17.5 px-2 md:px-5 pt-5 md:pt-6 border-t border-[#EBF0F8] flex justify-between relative">
       <div
         className={clsx(
-          "shrink-0 w-[100px] whitespace-nowrap overflow-hidden text-ellipsis pr-[18px]",
+          "shrink-0 w-20 md:w-25 whitespace-nowrap overflow-hidden text-ellipsis pr-2 md:pr-4.5",
           getAmountNumberFontSize(
             formatNumber(bridgeStore.amount, 2, true, { isShort: false }),
             0
@@ -95,7 +96,7 @@ export default function Bottom({ token }: { token: any }) {
         setIsDragging={setIsDragging}
         progressBarRef={progressBarRef}
       />
-      <div className="shrink-0 w-[100px] flex justify-end">
+      <div className="shrink-0 w-20 md:w-25 flex justify-end">
         {bridgeStore.getQuoting(bridgeStore.quoteDataService) ? (
           <Loading size={12} />
         ) : _quoteData?.outputAmount ? (
@@ -337,7 +338,7 @@ const Pointer = ({
       )} */}
 
       <img
-        src="/logo.svg"
+        src={getStableflowLogo("logo-stableflow.svg")}
         className={clsx(
           "w-[26px] h-[26px] relative z-10 object-center object-contain shrink-0",
           disabled ? "grayscale" : "cursor-pointer",

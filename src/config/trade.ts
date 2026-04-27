@@ -1,4 +1,5 @@
 import { Service } from "@/services/constants";
+import { getStableflowRouteLogo } from "@/utils/format/logo";
 
 export const TradeStatus = {
   Pending: 0,
@@ -35,13 +36,13 @@ export const TradeProject = {
 export type TradeProject = (typeof TradeProject)[keyof typeof TradeProject];
 
 export const TradeProjectMap: Record<TradeProject, { logo: string; name: string; service: Service }> = {
-  [TradeProject.OneClick]: { logo: "/bridge/logo-near-intents.svg", name: "OneClick", service: Service.OneClick },
-  [TradeProject.Usdt0]: { logo: "/bridge/logo-usdt0.svg", name: "USDT0", service: Service.Usdt0 },
-  [TradeProject.CCTP]: { logo: "/bridge/logo-circle.avif", name: "CCTP", service: Service.CCTP },
-  [TradeProject.FraxZero]: { logo: "/bridge/logo-fraxzero.svg", name: "FraxZero", service: Service.FraxZero },
-  [TradeProject.FraxZeroOneClick]: { logo: "/bridge/logo-fraxzero-near-intents.svg", name: "FraxZeroOneClick", service: Service.FraxZeroOneClick },
-  [TradeProject.OneClickFraxZero]: { logo: "/bridge/logo-near-intents-fraxzero.svg", name: "OneClickFraxZero", service: Service.OneClickFraxZero },
-  [TradeProject.Usdt0OneClick]: { logo: "/bridge/logo-usdt0-near-intents.svg", name: "USDT0OneClick", service: Service.Usdt0OneClick },
-  [TradeProject.OneClickUsdt0]: { logo: "/bridge/logo-near-intents-usdt0.svg", name: "OneClickUSDT0", service: Service.OneClickUsdt0 },
-  [TradeProject.Native]: { logo: "/bridge/logo-native.svg", name: "Native", service: Service.Native },
+  [TradeProject.OneClick]: { logo: getStableflowRouteLogo("logo-near-intents.svg"), name: "OneClick", service: Service.OneClick },
+  [TradeProject.Usdt0]: { logo: getStableflowRouteLogo("logo-usdt0.svg"), name: "USDT0", service: Service.Usdt0 },
+  [TradeProject.CCTP]: { logo: getStableflowRouteLogo("logo-circle.avif"), name: "CCTP", service: Service.CCTP },
+  [TradeProject.FraxZero]: { logo: getStableflowRouteLogo("logo-fraxzero.svg"), name: "FraxZero", service: Service.FraxZero },
+  [TradeProject.FraxZeroOneClick]: { logo: getStableflowRouteLogo("logo-fraxzero-near-intents.svg"), name: "FraxZeroOneClick", service: Service.FraxZeroOneClick },
+  [TradeProject.OneClickFraxZero]: { logo: getStableflowRouteLogo("logo-near-intents-fraxzero.svg"), name: "OneClickFraxZero", service: Service.OneClickFraxZero },
+  [TradeProject.Usdt0OneClick]: { logo: getStableflowRouteLogo("logo-usdt0-near-intents.svg"), name: "USDT0OneClick", service: Service.Usdt0OneClick },
+  [TradeProject.OneClickUsdt0]: { logo: getStableflowRouteLogo("logo-near-intents-usdt0.svg"), name: "OneClickUSDT0", service: Service.OneClickUsdt0 },
+  [TradeProject.Native]: { logo: getStableflowRouteLogo("logo-native.svg"), name: "Native", service: Service.Native },
 };

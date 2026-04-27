@@ -19,6 +19,7 @@ import useWalletsStore from "@/stores/use-wallets";
 import "@near-wallet-selector/modal-ui/styles.css";
 import NearWallet from "./wallet";
 import useBalancesStore from "@/stores/use-balances";
+import { getStableflowLogo } from "@/utils/format/logo";
 
 interface NEARContextType {
   selector: WalletSelector | null;
@@ -50,6 +51,7 @@ export default function NEARProvider({
   };
   const walletsStore = useWalletsStore();
   const setBalancesStore = useBalancesStore((state) => state.set);
+
   useEffect(() => {
     const init = async () => {
       try {
@@ -68,7 +70,7 @@ export default function NEARProvider({
                 name: "StableFlow.ai",
                 description: "Move stablecoins anywhere.",
                 url: "https://app.stableflow.ai",
-                icons: ["/logo.svg"]
+                icons: [getStableflowLogo("logo-stableflow.svg")]
               },
               chainId: "near:mainnet"
             }),
@@ -118,6 +120,7 @@ export default function NEARProvider({
               near: {
                 ...params,
                 walletIcon: wallet?.metadata.iconUrl,
+                walletName: wallet?.metadata.name,
                 account:
                   state.accounts.find((account) => account.active)?.accountId ||
                   null

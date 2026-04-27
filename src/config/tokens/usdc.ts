@@ -1,10 +1,11 @@
 import chains, { type TokenChain } from "@/config/chains";
 import { Service } from "@/services/constants";
+import { getStableflowTokenLogo } from "@/utils/format/logo";
 
 export const usdc = {
   symbol: "USDC",
   decimals: 6,
-  icon: "/usdc.png"
+  icon: getStableflowTokenLogo("usdc"),
 };
 
 export const usdcChains: Record<string, TokenChain> = {

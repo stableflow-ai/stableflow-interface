@@ -15,7 +15,6 @@ export default function Networks({ addressValidation }: any) {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
   const { switchChain } = useSwitchChain();
-  const { addEnterAmount } = useTrack();
   const timer = useRef<any>(null);
   const [toggleLoading, setToggleLoading] = useState(false);
 
@@ -52,7 +51,7 @@ export default function Networks({ addressValidation }: any) {
         <Setting />
       </div>
       <div className="mt-[12px] bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)]">
-        <div className="h-[36px] px-[20px] flex items-center bg-[#FAFBFF] rounded-t-[12px] border-b border-[#EBF0F8]">
+        <div className="h-9 px-2 md:px-5 flex items-center bg-[#FAFBFF] rounded-t-[12px] border-b border-[#EBF0F8]">
           <div className="w-1/2 border-r border-[#EBF0F8] flex items-center h-full">
             <Address token={walletStore.fromToken} isTo={false} />
           </div>
@@ -68,11 +67,10 @@ export default function Networks({ addressValidation }: any) {
           <div className="p-[6px] pt-0 flex items-center relative">
             <Chain key="from" token={walletStore.fromToken} isTo={false} />
             <InputNumber
-              className="md:min-w-[100px] relative z-[2] grow text-[32px] font-[500] border-none outline-none text-center w-full text-black"
+              className="md:min-w-25 relative z-2 grow text-[22px] md:text-[32px] font-medium border-none outline-none text-center w-full text-black"
               value={bridgeStore.amount}
               onNumberChange={(value) => {
                 bridgeStore.set({ amount: value });
-                addEnterAmount({ amount: value });
               }}
               decimals={walletStore.fromToken?.decimals || 6}
               placeholder="0"

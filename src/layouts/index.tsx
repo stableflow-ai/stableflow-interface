@@ -1,16 +1,23 @@
 import { Outlet } from "react-router-dom";
-import Wallet from "@/sections/wallet";
+import { lazy, Suspense, useRef } from "react";
 import UserActions from "./user-actions";
+import { getLogo } from "@/utils/format/logo";
+
 // import useUpdateTxns from "@/hooks/use-update-txns";
-import ZendeskWidget from "@/components/zendesk-widget";
-import { lazy, Suspense } from "react";
 // import SupportButton from "@/components/support-button";
 // import { AuroraBackground } from "./bg";
 
 const MaintenanceBanner = lazy(() => import("@/components/maintenance-banner"));
+const Footer = lazy(() => import("./footer"));
+const Wallet = lazy(() => import("@/sections/wallet"));
+
+const LoadingSpinner = () => null;
 
 export default function Layout() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // useUpdateTxns();
+
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* Video Background */}
@@ -23,25 +30,30 @@ export default function Layout() {
           playsInline
           preload="none"
         >
-          <source src="/bg.mp4" type="video/mp4" />
+          <source src={getLogo("/stableflow/bg.mp4")} type="video/mp4" />
         </video>
       </div>
       {/* <AuroraBackground /> */}
 
       {/* Maintenance Banner */}
-      <Suspense fallback={null}>
+      <Suspense fallback={<LoadingSpinner />}>
         <MaintenanceBanner />
       </Suspense>
 
       {/* Content Layer */}
-      <div className="relative z-10 w-full h-full overflow-y-auto">
-        <UserActions />
+      <div ref={containerRef} className="relative z-10 w-full h-full overflow-y-auto">
+        <Suspense fallback={<LoadingSpinner />}>
+          <UserActions />
+        </Suspense>
         <Outlet />
-        <Wallet />
-      </div>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Wallet />
+        </Suspense>
 
-      {/* Zendesk Customer Support Widget */}
-      <ZendeskWidget />
+        <Suspense fallback={<LoadingSpinner />}>
+          <Footer containerRef={containerRef} />
+        </Suspense>
+      </div>
     </div>
   );
 }

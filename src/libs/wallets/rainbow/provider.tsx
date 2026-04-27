@@ -48,6 +48,7 @@ import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet,
 import { createClient, fallback } from "viem";
 import { getChainRpcUrl } from "@/config/chains";
 import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
+import { getStableflowLogo } from "@/utils/format/logo";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 export const metadata = {
@@ -55,7 +56,7 @@ export const metadata = {
   description: "Move stablecoins anywhere.",
   // origin must match your domain & subdomain
   url: "https://app.stableflow.ai",
-  icons: ["/logo.svg"]
+  icons: [getStableflowLogo("logo-stableflow.svg")]
 };
 
 const RpcUrls: any = {
@@ -224,6 +225,7 @@ function Content() {
           chainId: account.chainId,
           wallet: wallet,
           walletIcon: evmWalletInfo.icon,
+          walletName: evmWalletInfo.name,
           connect: () => {
             openConnectModal?.();
           },

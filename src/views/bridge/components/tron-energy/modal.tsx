@@ -27,7 +27,7 @@ const TronEnergyModal = (props: any) => {
           onClick={handleClose}
         >
           <img
-            src="/icon-x.svg"
+            src={getStableflowIcon("icon-x.svg")}
             className="w-3 h-3 shrink-0"
           />
         </button> */}

@@ -10,6 +10,7 @@ import Checkbox from "@/components/checkbox";
 import clsx from "clsx";
 import { FRAXZERO_MIDDLE_TOKEN_USDC } from "@/services/fraxzero/config";
 import { getQuoteModes } from "@/services/utils";
+import { getStableflowIcon } from "@/utils/format/logo";
 
 const ResultOneClick = lazy(() => import("./oneclick"));
 const ResultUsdt0 = lazy(() => import("./usdt0"));
@@ -66,8 +67,8 @@ export default function Result() {
     if (!isFromTron) {
       return "0";
     }
-    const energySourceGasFee = Big(quoteData?.transferSourceGasFee || 0).div(10 ** 6);
-    return Big(energySourceGasFee).minus(quoteData?.quoteParam?.needsEnergyAmount || 0).toFixed(0);
+    const energySourceGasFee = Big(quoteData?.transferSourceGasFee?.toString() || 0).div(10 ** 6);
+    return Math.max(0, Number(Big(energySourceGasFee).minus(quoteData?.quoteParam?.needsEnergyAmount || 0).toFixed(0)));
   }, [isFromTron, quoteData]);
 
   return (
@@ -83,7 +84,7 @@ export default function Result() {
             View Details
           </div>
           <motion.img
-            src="/icon-arrow-down.svg"
+            src={getStableflowIcon("icon-arrow-down.svg")}
             className="w-[10px] h-[10px] shrink-0 object-center object-contain"
             alt=""
             animate={{
@@ -101,7 +102,7 @@ export default function Result() {
             View All Routes <span className="">{quoteDataList?.length}</span>
           </div>
           <motion.img
-            src="/icon-arrow-down.svg"
+            src={getStableflowIcon("icon-arrow-down.svg")}
             className="w-[10px] h-[10px] shrink-0 object-center object-contain"
             alt=""
             animate={{
@@ -115,7 +116,7 @@ export default function Result() {
           </div>
           <div className="px-[14px] items-center flex gap-[6px] border-l border-[#EBF0F8]">
             <img
-              src="/icon-time.svg"
+              src={getStableflowIcon("icon-time.svg")}
               alt=""
               className="w-[14px] h-[14px] object-center object-contain shrink-0"
             />
@@ -233,7 +234,7 @@ export default function Result() {
               exit={{ height: 0, opacity: 0 }}
             >
               <img
-                src="/icon-gas.svg"
+                src={getStableflowIcon("icon-gas.svg")}
                 alt=""
                 className="inline-block -translate-y-0.5 w-[14px] h-[14px] object-center object-contain shrink-0"
               />
@@ -247,7 +248,7 @@ export default function Result() {
           isExactOutput && quoteData && (
             <div className="w-full px-[10px] text-[12px] text-[#70788A]">
               <img
-                src="/icon-info.svg"
+                src={getStableflowIcon("icon-info.svg")}
                 alt=""
                 className="w-[14px] h-[14px] object-center object-contain shirnk-0 -translate-y-[1px] mr-0.5 inline-block"
               />
