@@ -1,3 +1,4 @@
+import { getStableflowLogo } from "@/utils/format/logo";
 import { csl } from "@/utils/log";
 import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 import { useDebounceFn } from "ahooks";
@@ -15,7 +16,7 @@ const OKXConnectProvider = (props: any) => {
     const _okxUniversalProvider = await OKXUniversalProvider.init({
       dappMetaData: {
         name: "StableFlow.ai",
-        icon: "https://demo.stableflow.ai/logo.svg"
+        icon: getStableflowLogo("logo-stableflow.svg")
       },
     });
     setOKXUniversalProvider(_okxUniversalProvider);

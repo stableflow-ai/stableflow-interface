@@ -4,6 +4,7 @@ import { ServiceLogoMap } from "@/services";
 import { Service } from "@/services/constants";
 import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";
+import { getStableflowIcon } from "@/utils/format/logo";
 import { formatNumber } from "@/utils/format/number";
 import { formatDuration } from "@/utils/format/time";
 import Big from "big.js";
@@ -66,7 +67,7 @@ const QuoteRoute = (props: any) => {
         <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
         <div className="flex items-center gap-[4px] border-r border-[#EBF0F8]">
           <img
-            src="/icon-gas.svg"
+            src={getStableflowIcon("icon-gas.svg")}
             alt=""
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />
@@ -84,7 +85,7 @@ const QuoteRoute = (props: any) => {
         <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0"></div>
         <div className="flex items-center gap-[4px] border-r border-[#EBF0F8]">
           <img
-            src="/icon-time.svg"
+            src={getStableflowIcon("icon-time.svg")}
             alt=""
             className="w-[14px] h-[14px] object-center object-contain shrink-0"
           />

@@ -1,3 +1,4 @@
+import { getStableflowIcon } from "@/utils/format/logo";
 import clsx from "clsx";
 import { useEffect, useState } from "react";
 
@@ -23,7 +24,7 @@ const InputRadio = (props: any) => {
     >
       {_checked && (
         <img
-          src="/icon-check.svg"
+          src={getStableflowIcon("icon-check.svg")}
           className="w-[9px] h-[7px] object-center object-contain shrink-0"
         />
       )}

@@ -6,6 +6,7 @@ import Popover from "@/components/popover";
 import clsx from "clsx";
 import { Service } from "@/services/constants";
 import { useDebounceFn } from "ahooks";
+import { getStableflowIcon } from "@/utils/format/logo";
 
 export default function Address({ token, isTo, addressValidation }: any) {
   if (!token?.chainType)
@@ -162,7 +163,7 @@ const EditButton = ({ onClick, recipientAddress, token }: any) => {
       content={
         <div className="w-[160px] p-2 bg-white shadow-[0_0_4px_0_rgba(0,0,0,0.15)] rounded-[8px] text-[12px]">
           <img
-            src="/icon-info.svg"
+            src={getStableflowIcon("icon-info.svg")}
             alt=""
             className="inline-block mr-[4px] translate-y-[-1px]"
           />
