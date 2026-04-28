@@ -18,7 +18,7 @@ export default function Layout() {
   const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  const isFooter2 = [/^\/ecosystem$/].some((reg) => reg.test(location.pathname));
+  const isFooter2 = [/^\/ecosystem$/, /^\/about$/].some((reg) => reg.test(location.pathname));
   const isHomePage = location.pathname === "/";
 
   // useUpdateTxns();
