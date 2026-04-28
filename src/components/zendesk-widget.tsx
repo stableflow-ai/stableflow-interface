@@ -84,7 +84,7 @@ export default function ZendeskWidget(props: any) {
           setOpened(true);
         });
 
-        // 2. 监听表单关闭事件
+        // 2. Listen for widget close
         window.zE("webWidget:on", "close", () => {
           setOpened(false);
         });
