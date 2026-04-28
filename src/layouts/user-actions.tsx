@@ -9,7 +9,7 @@ import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
 import { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
 import { useTrack } from "@/hooks/use-track";
-import { getStableflowIcon } from "@/utils/format/logo";
+import { getStableflowIcon, getStableflowLogo } from "@/utils/format/logo";
 
 const Social = lazy(() => import("@/components/social"));
 const NavigationMenu = lazy(() => import("@/components/navigation-menu"));
@@ -27,6 +27,8 @@ export default function UserActions() {
   const isHistory = useMemo(() => {
     return pathname.pathname === "/history";
   }, [pathname]);
+  const isHomePage = useMemo(() => pathname.pathname === "/", [pathname]);
+  const useMobileSubPageHeader = isMobile && !isHomePage;
 
   const hideActions = useMemo(() => {
     const regs = [
@@ -39,55 +41,87 @@ export default function UserActions() {
   return (
     <>
       <div className="w-full absolute z-9 pl-1.5 md:pl-5 pr-2.5 top-4 flex justify-between items-center gap-2.5">
-        <Suspense fallback={null}>
-          <NavigationMenu />
-        </Suspense>
-        <div className="shrink-0 flex items-center gap-2">
-          {!hideActions ? (
+        {
+          useMobileSubPageHeader ? (
             <>
-              {!walletsStore.evm.account &&
-                !walletsStore.sol.account &&
-                !walletsStore.near.account &&
-                !walletsStore.tron.account ? (
-                <button
-                  onClick={() => {
-                    walletStore.set({ showWallet: true });
-                  }}
-                  className="button px-3.5 md:px-5 py-1.5 md:py-2 bg-[#6284F5] rounded-4.5 text-base text-white"
-                >
-                  Connect
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  {!isHistory && (
-                    <HistoryButton
-                      onClick={() => {
-                        addHistory({ type: "click" });
-                        if (isMobile) {
-                          historyStore.setOpenDrawer(!historyStore.openDrawer);
-                          return;
-                        }
-                        navigate("/history");
-                      }}
-                    />
-                  )}
-                  <ChainsButton
-                    onClick={() => {
-                      walletStore.set({ showWallet: true });
-                    }}
+              <div className="flex items-center gap-2">
+                <Link to="/" className="shrink-0 h-10 w-[41px] flex items-center justify-center">
+                  <img
+                    src={getStableflowLogo("logo-stableflow.svg")}
+                    alt="StableFlow"
+                    className="h-10 w-[41px] object-contain"
                   />
-                </div>
-              )}
+                </Link>
+                <MobileMenuButton
+                  isOpen={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  isSimple
+                />
+              </div>
+              <Link
+                to="/"
+                className="shrink-0 h-9 px-4 rounded-[26px] bg-black text-white text-[16px] font-normal leading-none flex items-center gap-2"
+              >
+                Launch App
+                <span className="text-[14px]" aria-hidden>
+                  →
+                </span>
+              </Link>
             </>
           ) : (
-            <div className="h-9.5"></div>
-          )}
-          {/* Mobile menu button */}
-          <MobileMenuButton
-            isOpen={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          />
-        </div>
+            <>
+              <Suspense fallback={null}>
+                <NavigationMenu />
+              </Suspense>
+              <div className="shrink-0 flex items-center gap-2">
+                {!hideActions ? (
+                  <>
+                    {!walletsStore.evm.account &&
+                      !walletsStore.sol.account &&
+                      !walletsStore.near.account &&
+                      !walletsStore.tron.account ? (
+                      <button
+                        onClick={() => {
+                          walletStore.set({ showWallet: true });
+                        }}
+                        className="button px-3.5 md:px-5 py-1.5 md:py-2 bg-[#6284F5] rounded-4.5 text-base text-white"
+                      >
+                        Connect
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {!isHistory && (
+                          <HistoryButton
+                            onClick={() => {
+                              addHistory({ type: "click" });
+                              if (isMobile) {
+                                historyStore.setOpenDrawer(!historyStore.openDrawer);
+                                return;
+                              }
+                              navigate("/history");
+                            }}
+                          />
+                        )}
+                        <ChainsButton
+                          onClick={() => {
+                            walletStore.set({ showWallet: true });
+                          }}
+                        />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="h-9.5"></div>
+                )}
+                {/* Mobile menu button */}
+                <MobileMenuButton
+                  isOpen={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                />
+              </div>
+            </>
+          )
+        }
       </div>
       {/* Mobile menu drawer */}
       <MobileMenuDrawer
@@ -212,7 +246,7 @@ const ChainsButton = ({
   );
 };
 
-const MobileMenuButton = ({ isOpen, onClick }: { isOpen: boolean; onClick: () => void }) => {
+const MobileMenuButton = ({ isOpen, onClick, isSimple = false }: { isOpen: boolean; onClick: () => void; isSimple?: boolean; }) => {
   // Hide when menu is open since close button is inside the drawer
   if (isOpen) {
     return null;
@@ -221,9 +255,11 @@ const MobileMenuButton = ({ isOpen, onClick }: { isOpen: boolean; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className="flex md:hidden w-[38px] h-[38px] justify-center items-center button rounded-[19px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      className={clsx(
+        "flex md:hidden w-[38px] h-[38px] justify-center items-center button rounded-[19px]",
+        isSimple ? "" : "bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]",
+      )}
     >
-      {/* Menu icon (hamburger) */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="16"

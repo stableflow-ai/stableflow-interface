@@ -3,7 +3,7 @@ import { getStableflowTrustAvatar } from "@/utils/format/logo";
 import clsx from "clsx";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Swiper as SwiperType } from "swiper";
-import { Pagination, Autoplay } from "swiper/modules";
+import { Autoplay } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
 const CardList = [
@@ -128,18 +128,18 @@ const Trusted = () => {
       <div className="text-[16px] md:text-[24px] font-[500] text-center text-[#9FA7BA] md:text-[#444C59]">
         Trusted by
       </div>
-      <div className="mt-[34px]">
-        <div className="mx-auto w-full md:max-w-[712px] lg:max-w-[1074px]">
+      <div className="mt-[34px] w-full">
+        <div className="relative mx-auto w-full md:max-w-[712px] lg:max-w-[1074px]">
           <Swiper
             className="trusted-swiper w-full"
-            modules={isMobile ? [] : [Pagination, Autoplay]}
+            modules={isMobile ? [] : [Autoplay]}
             loop
             autoplay={isMobile ? false : {
               delay: 3000,
               pauseOnMouseEnter: true,
             }}
             spaceBetween={SLIDE_GAP}
-            slidesPerView={isMobile ? 1 : 1.15}
+            slidesPerView={1}
             breakpoints={{
               768: {
                 slidesPerView: 2,
@@ -174,27 +174,21 @@ const Trusted = () => {
               </SwiperSlide>
             ))}
           </Swiper>
+          <>
+            <CarouselNavButton
+              direction="prev"
+              disabled={false}
+              onPress={() => swiperRef.current?.slidePrev()}
+              className="absolute -left-12 top-1/2 -translate-y-1/2 z-1 hidden md:flex"
+            />
+            <CarouselNavButton
+              direction="next"
+              disabled={false}
+              onPress={() => swiperRef.current?.slideNext()}
+              className="absolute -right-12 top-1/2 -translate-y-1/2 z-1 hidden md:flex"
+            />
+          </>
         </div>
-        {
-          !isMobile && (
-            <div className="mt-6 flex items-center justify-center gap-3 md:gap-5">
-              <CarouselNavButton
-                direction="prev"
-                disabled={false}
-                onPress={() => swiperRef.current?.slidePrev()}
-              />
-              <div
-                id={`trusted-swiper-pg-${rawPaginationId}`}
-                className="trusted-swiper-pagination-host flex min-h-[24px] min-w-0 flex-1 max-w-[min(280px,100%)] items-center justify-center"
-              />
-              <CarouselNavButton
-                direction="next"
-                disabled={false}
-                onPress={() => swiperRef.current?.slideNext()}
-              />
-            </div>
-          )
-        }
       </div>
     </div>
   );
@@ -205,9 +199,10 @@ export default Trusted;
 function CarouselNavButton(props: {
   direction: "prev" | "next";
   disabled: boolean;
+  className?: string;
   onPress: () => void;
 }) {
-  const { direction, disabled, onPress } = props;
+  const { direction, disabled, onPress, className } = props;
   const isPrev = direction === "prev";
 
   return (
@@ -219,6 +214,7 @@ function CarouselNavButton(props: {
         "cursor-pointer flex size-10 shrink-0 items-center justify-center rounded-full border border-[#E8EAF0] bg-white text-[#444C59] shadow-[0_0_10px_0_rgba(0,0,0,0.06)] transition-colors",
         "hover:border-[#6284F5] hover:bg-[#6284F5] hover:text-white",
         "disabled:pointer-events-none disabled:opacity-40 disabled:hover:border-[#E8EAF0] disabled:hover:bg-white disabled:hover:text-[#444C59]",
+        className,
       )}
       onClick={onPress}
     >
