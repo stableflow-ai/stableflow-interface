@@ -11,7 +11,6 @@ import { lazy, useEffect, Suspense } from "react";
 import { useEvmGasFees } from "./hooks/use-evm-gas-fees";
 import ErrorPage from "./views/error";
 import { usePrices } from "./hooks/use-prices";
-import { sdk } from "@farcaster/miniapp-sdk";
 
 const History = lazy(() => import("./views/history"));
 const LearnMore = lazy(() => import("./views/learn-more"));
@@ -83,9 +82,6 @@ const router = createBrowserRouter([
 function App() {
   usePrices();
   useEvmGasFees();
-  useEffect(() => {
-    sdk.actions.ready();
-  }, []);
 
   return (
     <WalletsProvider>
