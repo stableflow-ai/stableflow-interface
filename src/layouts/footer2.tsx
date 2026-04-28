@@ -74,7 +74,7 @@ const Footer2 = () => {
                         href={item.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[14px] leading-normal font-light text-[#444C59] hover:text-[#6284F5] transition-colors"
+                        className="text-[14px] leading-normal font-light text-[#444C59] hover:text-[#000000] transition-colors"
                       >
                         {item.label}
                       </a>
@@ -82,7 +82,7 @@ const Footer2 = () => {
                       <Link
                         key={item.label}
                         to={item.href}
-                        className="text-[14px] leading-normal font-light text-[#444C59] hover:text-[#6284F5] transition-colors"
+                        className="text-[14px] leading-normal font-light text-[#444C59] hover:text-[#000000] transition-colors"
                       >
                         {item.label}
                       </Link>

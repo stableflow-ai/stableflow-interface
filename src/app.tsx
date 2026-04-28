@@ -13,7 +13,7 @@ import ErrorPage from "./views/error";
 import { usePrices } from "./hooks/use-prices";
 
 const History = lazy(() => import("./views/history"));
-const LearnMore = lazy(() => import("./views/learn-more"));
+const About = lazy(() => import("./views/about"));
 const Apply = lazy(() => import("./views/apply"));
 const Privacy = lazy(() => import("./views/policy/privacy"));
 const TermsOfService = lazy(() => import("./views/policy/terms-of-service"));
@@ -44,7 +44,7 @@ const router = createBrowserRouter([
       },
       {
         path: "about",
-        element: <LearnMore />
+        element: <About />
       },
       {
         path: "developer",

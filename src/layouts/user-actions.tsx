@@ -40,7 +40,10 @@ export default function UserActions() {
 
   return (
     <>
-      <div className="w-full absolute z-9 pl-1.5 md:pl-5 pr-2.5 top-4 flex justify-between items-center gap-2.5">
+      <div className={clsx(
+        "w-full fixed z-9 pl-1.5 md:pl-5 pr-2.5 top-0 py-4 flex justify-between items-center gap-2.5",
+        isHomePage ? "" : "bg-[rgba(246,248,252,0.30)] backdrop-blur-[10px]",
+      )}>
         {
           useMobileSubPageHeader ? (
             <>
