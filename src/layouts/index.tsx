@@ -19,9 +19,9 @@ export default function Layout() {
   // useUpdateTxns();
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div className="relative w-full h-screen overflow-hidden bg-[#F6F8FC]">
       {/* Video Background */}
-      <div className="absolute inset-0 w-full h-full z-0 bg-white">
+      <div className="absolute inset-0 w-full h-full z-0">
         <Suspense fallback={<LoadingSpinner />}>
           <PixelBlast />
         </Suspense>

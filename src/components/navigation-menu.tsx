@@ -186,7 +186,7 @@ export const HyperliquidDeposit = (props: any) => {
       href="https://deposit.stableflow.ai/"
       target="_blank"
       className={clsx(
-        "hidden md:flex items-center gap-1 h-9 rounded-[20px] px-2.5 text-[#444C59] hover:text-black duration-150 font-[SpaceGrotesk] text-xs font-normal leading-[100%] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] hover:shadow-[0_0_15px_0_rgba(0,0,0,0.20)] bg-[linear-gradient(90deg,_rgba(65,207,172,0.00)_0%,_rgba(65,207,172,0.50)_100%)]",
+        "hidden md:flex items-center gap-1 h-9 bg-white rounded-[20px] px-2.5 text-[#444C59] hover:text-black duration-150 font-[SpaceGrotesk] text-xs font-normal leading-[100%] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] hover:shadow-[0_0_15px_0_rgba(0,0,0,0.20)] bg-[linear-gradient(90deg,_rgba(65,207,172,0.00)_0%,_rgba(65,207,172,0.50)_100%)]",
         className
       )}
       onClick={() => addExternalLinkClick({ link: "https://deposit.stableflow.ai/" })}
