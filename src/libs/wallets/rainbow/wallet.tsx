@@ -771,7 +771,7 @@ export default class RainbowWallet {
       prices,
       evmGasFees,
     });
-    result.fees.estimateDepositGasUsd = ett.estimateSourceGasUsd;
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
     result.totalEstimateSourceGas = ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
@@ -783,22 +783,6 @@ export default class RainbowWallet {
       contract: proxyContract,
       param: depositParam,
     };
-
-    // get approve gas cost
-    if (result.needApprove) {
-      execTime.breakpoint();
-      const etapprove = await this.estimateTransaction({
-        dry,
-        contract: allowance.contract,
-        method: "approve",
-        param: [proxyAddress, amountWei],
-        fromToken,
-        prices,
-        evmGasFees,
-      });
-      result.fees.estimateApproveGasUsd = etapprove.estimateSourceGasUsd;
-      execTime.log("approve.estimateTransaction");
-    }
 
     // 5. calculate total fees
     for (const feeKey in result.fees) {
@@ -866,7 +850,7 @@ export default class RainbowWallet {
     const [allowance, ett]: any = await Promise.all(mergedCalls);
     result.needApprove = allowance.needApprove;
     result.approveSpender = proxyAddress;
-    result.fees.estimateDepositGasUsd = ett.estimateSourceGasUsd;
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
     result.totalEstimateSourceGas = ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
@@ -935,7 +919,7 @@ export default class RainbowWallet {
 
         result.outputAmount = quoteResponse.buyerTokenAmount + "";
         result.fees = {
-          sourceGasFeeUsd: ett.estimateSourceGasUsd,
+          estimateGasUsd: ett.estimateSourceGasUsd,
           widgetFeeUsd: quoteResponse.widgetFeeUsd,
           liquidityProviderFeeUsd: quoteResponse.liquidityProviderFeeUsd,
         };
@@ -965,7 +949,7 @@ export default class RainbowWallet {
 
         result.outputAmount = Big(quoteResponse.amountOut || 0).div(10 ** (toToken.decimals || 6)).toFixed(toToken.decimals || 6, 0);
         result.fees = {
-          sourceGasFeeUsd: usd,
+          estimateGasUsd: usd,
           // maybe 100 = 1%
           widgetFeeUsd: numberRemoveEndZero(Big(amountWei || 0).div(10 ** (fromToken.decimals || 6)).times(quoteResponse.widgetFee.feeRate || 0).toFixed(20, 0)),
           // not return by api

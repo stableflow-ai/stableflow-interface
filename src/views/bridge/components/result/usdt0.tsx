@@ -32,7 +32,6 @@ const ResultUsdt0 = (props: any) => {
         messagingFeeAmount: 0,
         messagingFeeUnit: "",
         legacyMeshFee: 0,
-        estimatedSourceGas: 0,
         slippage,
       });
       return;
@@ -44,7 +43,6 @@ const ResultUsdt0 = (props: any) => {
       messagingFeeAmount: _quoteData?.fees?.nativeFee,
       messagingFeeUnit: _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
       legacyMeshFee: _quoteData?.fees?.legacyMeshFeeUsd,
-      estimatedSourceGas: _quoteData?.fees?.estimateGasUsd,
       slippage,
     });
   }, { wait: 500 });

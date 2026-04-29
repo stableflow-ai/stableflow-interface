@@ -437,7 +437,7 @@ export default class NearWallet {
       });
       execTime.log("estimateTransaction");
 
-      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
       result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
@@ -458,7 +458,7 @@ export default class NearWallet {
         prices,
       });
 
-      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
       result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;

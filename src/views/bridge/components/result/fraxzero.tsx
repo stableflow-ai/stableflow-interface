@@ -31,7 +31,6 @@ const ResultFraxZero = (props: any) => {
         messagingFee: 0,
         messagingFeeAmount: 0,
         messagingFeeUnit: "",
-        estimatedSourceGas: 0,
         slippage,
       });
       return;
@@ -42,7 +41,6 @@ const ResultFraxZero = (props: any) => {
       messagingFee: _quoteData?.fees?.nativeFeeUsd,
       messagingFeeAmount: _quoteData?.fees?.nativeFee,
       messagingFeeUnit: _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
-      estimatedSourceGas: _quoteData?.fees?.estimateGasUsd,
       slippage,
     });
   }, { wait: 500 });

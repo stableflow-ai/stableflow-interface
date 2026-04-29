@@ -506,7 +506,7 @@ export default class AptosWallet {
       });
       execTime.log("estimateTransaction");
 
-      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
       result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
@@ -529,7 +529,7 @@ export default class AptosWallet {
         .div(10 ** fromToken.nativeToken.decimals)
         .times(getPrice(prices, fromToken.nativeToken.symbol));
 
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
+      result.fees.estimateGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
       result.estimateSourceGas = defaultEstimateGas;
       result.totalEstimateSourceGas = defaultEstimateGas;
       result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));

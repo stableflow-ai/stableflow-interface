@@ -665,12 +665,12 @@ export default class TonWallet {
     });
     execTime.log("estimateTransaction");
 
-    result.fees.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
     result.totalEstimateSourceGas = nativeFee + ett.estimateSourceGas;
 
-    result.fees.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+    result.fees.estimateGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
     result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
     result.estimateSourceGas = estimatedGas;
     result.totalEstimateSourceGas = nativeFee + estimatedGas;
@@ -834,7 +834,7 @@ export default class TonWallet {
       body: body,
     };
 
-    result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
     result.totalEstimateSourceGas = ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
