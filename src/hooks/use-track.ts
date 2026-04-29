@@ -234,10 +234,11 @@ export function useTrack(props?: { isRoot?: boolean; }) {
       quoteData?: any;
       service: Service;
       errMsg?: string;
+      sourceErrMsg?: string;
       txHash?: string;
     }
   ) => {
-    const { type, quoteData, service, errMsg, txHash } = params;
+    const { type, quoteData, service, errMsg, sourceErrMsg, txHash } = params;
 
     const reportContent: any = {
       type,
@@ -247,6 +248,9 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     };
     if (errMsg) {
       reportContent.error_message = errMsg;
+    }
+    if (sourceErrMsg) {
+      reportContent.source_error_message = sourceErrMsg;
     }
 
     return add({

@@ -1,6 +1,40 @@
 import { Service } from "@/services/constants";
 import Big from "big.js";
 
+const RPC_REQUEST_LIMIT_ERROR_MESSAGE = "Request limit reached. Please try again later.";
+const INVALID_RPC_CONFIGURATION_ERROR_MESSAGE =
+  "Invalid RPC configuration. Please check RPC settings or switch to another RPC.";
+
+const RPC_REQUEST_LIMIT_ERROR_PATTERNS = [
+  "rate limited",
+  "request is being rate limited",
+  "request exceeds defined limit",
+  "request limit",
+];
+
+const INVALID_RPC_CONFIGURATION_ERROR_PATTERNS = [
+  "could not coalesce error",
+  "missing or invalid parameters",
+  "load failed",
+  "json-rpc protocol is not supported",
+  "unauthorized",
+  "unknown rpc error",
+];
+
+export const formatBridgeRpcErrorMessage = (errorMessage: string) => {
+  const normalizedMessage = errorMessage.toLowerCase();
+
+  if (RPC_REQUEST_LIMIT_ERROR_PATTERNS.some((pattern) => normalizedMessage.includes(pattern))) {
+    return RPC_REQUEST_LIMIT_ERROR_MESSAGE;
+  }
+
+  if (INVALID_RPC_CONFIGURATION_ERROR_PATTERNS.some((pattern) => normalizedMessage.includes(pattern))) {
+    return INVALID_RPC_CONFIGURATION_ERROR_MESSAGE;
+  }
+
+  return errorMessage;
+};
+
 export const sortQuoteData = (quoteDataMap: Map<string, any>) => {
   const validQuoteList = Array.from(quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
 
