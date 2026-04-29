@@ -1,6 +1,6 @@
 import InputRadio from "@/components/input-radio";
 import { stablecoinLogoMap } from "@/config/tokens";
-import { ServiceLogoMap } from "@/services";
+import { ServiceLogoMap } from "@/services/constants";
 import { Service } from "@/services/constants";
 import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";

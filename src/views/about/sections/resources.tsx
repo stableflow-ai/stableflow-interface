@@ -1,14 +1,21 @@
 import clsx from "clsx";
 import SectionTitle from "../components/section-title";
 import { ABOUT_LINKS, RESOURCE_CARDS } from "../config";
-import { EXTERNAL_LINK_PROPS, getAboutAsset } from "../utils";
+import { EXTERNAL_LINK_PROPS } from "../utils";
+
+const mobileOrderClassName = {
+  x: "order-1",
+  telegram: "order-2",
+  docs: "order-3",
+  paragraph: "order-4",
+} as const;
 
 const Resources = () => {
   return (
     <section className="w-full px-4">
-      <div className="mx-auto mt-24 w-full max-w-[1030px] md:mt-30">
-        <SectionTitle align="left">Resources And Updates</SectionTitle>
-        <div className="mt-10 grid gap-5 md:grid-cols-[385px_220px_385px]">
+      <div className="mx-auto mt-20 w-full max-w-[1030px] md:mt-30">
+        <SectionTitle className="text-[26px] md:text-left md:text-[42px]">Resources and updates</SectionTitle>
+        <div className="mt-5 grid gap-2.5 md:mt-10 md:gap-5 md:grid-cols-[385px_220px_385px]">
           {RESOURCE_CARDS.map((card, index) => {
             const isDark = card.theme === "dark";
 
@@ -18,8 +25,10 @@ const Resources = () => {
                 href={card.href}
                 {...EXTERNAL_LINK_PROPS}
                 className={clsx(
-                  "group relative flex min-h-[145px] flex-col justify-between rounded-xl border border-[#F2F2F2] p-7 transition-transform duration-300 hover:scale-105",
+                  "group relative flex h-[128px] flex-col justify-between rounded-xl border border-[#F2F2F2] p-4 transition-transform duration-300 hover:scale-105 md:h-auto md:min-h-[145px] md:p-7",
                   isDark ? "bg-black text-white" : "bg-white text-black",
+                  mobileOrderClassName[card.key as keyof typeof mobileOrderClassName],
+                  "md:order-none",
                   index === 0 && "md:col-span-2",
                   index === 1 && "md:col-start-3",
                   index === 2 && "md:col-start-1 md:row-start-2",
@@ -33,16 +42,25 @@ const Resources = () => {
                 <p className={clsx("text-base font-light leading-[150%]", isDark ? "text-white/80" : "text-[#444C59]")}>
                   {card.description}
                 </p>
-                <img
-                  src={getAboutAsset(isDark ? "icons/icon-right-white.png" : "icons/icon-right-black.png")}
-                  alt=""
-                  className="absolute right-7 top-7 size-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1"
-                />
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 17 17"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="absolute right-4 top-5 size-4 md:right-7 md:top-7"
+                >
+                  <path
+                    d="M0.5 16.5L16.5 0.5M16.5 0.5H3.54762M16.5 0.5V13.4524"
+                    stroke={isDark ? "#FFFFFF" : "#444C59"}
+                    stroke-linecap="round"
+                  />
+                </svg>
               </a>
             );
           })}
         </div>
-        <p className="mt-8 text-center text-sm font-light leading-[150%] text-[#444C59]">
+        <p className="mt-6 text-center text-sm font-light leading-[150%] text-[#444C59] md:mt-8">
           For chain or stablecoin integration proposals, reach out via{" "}
           <a href={ABOUT_LINKS.support} {...EXTERNAL_LINK_PROPS} className="font-medium text-[#6284F5] hover:underline">
             Support →

@@ -18,12 +18,21 @@ import useTokenBalance from "@/hooks/use-token-balance";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
 import Destination from "./destination";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay } from "swiper/modules";
+import CostEfficientModal from "../cost-efficient-modal";
 
 const Setting = lazy(() => import("@/sections/setting"));
 const Result = lazy(() => import("../result"));
 const QuoteRoutes = lazy(() => import("../routes"));
 
-export default function Networks({ addressValidation }: any) {
+type NetworksProps = {
+  addressValidation?: {
+    isValid?: boolean;
+  } | null;
+};
+
+export default function Networks({ addressValidation }: NetworksProps) {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
   const { switchChainAsync } = useSwitchChain();
@@ -31,35 +40,42 @@ export default function Networks({ addressValidation }: any) {
   const balancesStore = useBalancesStore();
   const { loading: balanceLoading } = useTokenBalance(walletStore.fromToken, true);
 
-  const timer = useRef<any>(null);
+  const timer = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [toggleLoading, setToggleLoading] = useState(false);
   const [isProgress, setIsProgress] = useState(false);
   const [isRoutes, setIsRoutes] = useState(false);
+  const [isCostModalOpen, setIsCostModalOpen] = useState(false);
 
-  const toggleChain = () => {
+  const toggleChain = async () => {
     if (toggleLoading || (!walletStore.fromToken && !walletStore.toToken)) return;
     setToggleLoading(true);
-    return new Promise(async (resolve) => {
-      const fromToken = walletStore.fromToken;
-      const toToken = walletStore.toToken;
-      if (toToken?.chainType === "evm") {
-        await switchChainAsync({
-          chainId: toToken.chainId,
-          addEthereumChainParameter: {
-            chainName: toToken.chainName,
-            nativeCurrency: {
-              name: toToken.nativeToken.symbol,
-              symbol: toToken.nativeToken.symbol,
-              decimals: toToken.nativeToken.decimals,
-            },
-            rpcUrls: toToken.rpcUrls,
-            blockExplorerUrls: toToken.blockExplorerUrls,
+
+    const fromToken = walletStore.fromToken;
+    const toToken = walletStore.toToken;
+
+    if (toToken?.chainType === "evm") {
+      await switchChainAsync({
+        chainId: toToken.chainId,
+        addEthereumChainParameter: {
+          chainName: toToken.chainName,
+          nativeCurrency: {
+            name: toToken.nativeToken.symbol,
+            symbol: toToken.nativeToken.symbol,
+            decimals: toToken.nativeToken.decimals,
           },
-        });
-      }
+          rpcUrls: toToken.rpcUrls,
+          blockExplorerUrls: toToken.blockExplorerUrls,
+        },
+      });
+    }
+
+    return new Promise((resolve) => {
       timer.current = setTimeout(() => {
         walletStore.set({ fromToken: toToken, toToken: fromToken });
-        clearTimeout(timer.current);
+        if (timer.current) {
+          clearTimeout(timer.current);
+        }
+        timer.current = null;
         resolve(true);
         setToggleLoading(false);
       }, 150);
@@ -87,18 +103,64 @@ export default function Networks({ addressValidation }: any) {
 
   useEffect(() => {
     return () => {
-      clearTimeout(timer.current);
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
     };
   }, []);
 
   return (
     <div className="w-full px-[10px] md:px-0">
       <div className="w-full flex justify-between items-center">
-        <div className="text-[#444C59] text-sm md:text-base w-full block">
-          <span className="text-[#6284F5]">Best Price</span> for stablecoin bridging
+        <div className="text-[#444C59] text-sm md:text-base w-full flex items-center gap-1">
+          <div className="">
+            Best price compared with
+          </div>
+          <div className="w-17.5 h-5 overflow-hidden">
+            <Swiper
+              className="w-full h-full"
+              slidesPerView={1}
+              loop={true}
+              modules={[Autoplay]}
+              autoplay={{
+                delay: 3000,
+                pauseOnMouseEnter: false,
+              }}
+            >
+              <SwiperSlide>
+                <img
+                  src="/about/icons/icon-usdt0-gray.png"
+                  alt=""
+                  className="w-17.5 h-5 object-center object-contain"
+                />
+              </SwiperSlide>
+              <SwiperSlide>
+                <img
+                  src="/about/icons/icon-circle-gray.png"
+                  alt=""
+                  className="w-17.5 h-5 object-center object-contain"
+                />
+              </SwiperSlide>
+            </Swiper>
+          </div>
+          <button
+            type="button"
+            className="w-3.5 h-3.5 shrink-0 flex justify-center items-center cursor-pointer"
+            onClick={() => setIsCostModalOpen(true)}
+          >
+            <img
+              src="/about/icons/icon-tip.png"
+              alt=""
+              className="w-full h-full object-center object-contain"
+            />
+          </button>
         </div>
         <Setting />
       </div>
+      <CostEfficientModal
+        open={isCostModalOpen}
+        onClose={() => setIsCostModalOpen(false)}
+      />
 
       <div className="relative w-full">
         <NetworkCard

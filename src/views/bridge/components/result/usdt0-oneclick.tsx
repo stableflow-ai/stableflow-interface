@@ -8,7 +8,7 @@ import ResultFeeItem from "./fee-item";
 import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
 import { BridgeFee, checkIsBridgeFee } from "@/services/oneclick";
-import { ServiceLogoMap } from "@/services";
+import { ServiceLogoMap } from "@/services/constants";
 import { routeHybridPath } from "../../utils";
 
 const ResultUsdt0OneClick = (props: any) => {

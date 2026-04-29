@@ -1,6 +1,6 @@
 import chains from "@/config/chains";
 import PixelBlast from "@/components/pixel-blast";
-import { ServiceLogoMap } from "@/services";
+import { ServiceLogoMap } from "@/services/constants";
 import Trusted from "@/views/bridge/components/trusted";
 import { getStableflowTokenLogo } from "@/utils/format/logo";
 import { ECOSYSTEM_NETWORK_ORDER, ECOSYSTEM_RAILS, ECOSYSTEM_STABLECOINS } from "./config";

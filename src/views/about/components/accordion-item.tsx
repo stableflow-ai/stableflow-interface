@@ -13,7 +13,7 @@ const AccordionItem = ({ question, answer, open, onToggle }: AccordionItemProps)
     <div className="border-b border-[#D7E1F1]">
       <button
         type="button"
-        className="cursor-pointer flex w-full items-center justify-between gap-6 py-5 text-left text-xl font-light leading-[150%] text-black md:py-6"
+        className="cursor-pointer flex w-full items-center justify-between gap-6 py-5 text-left text-lg font-light leading-[150%] text-black md:py-6 md:text-xl"
         onClick={onToggle}
         aria-expanded={open}
       >
@@ -41,7 +41,7 @@ const AccordionItem = ({ question, answer, open, onToggle }: AccordionItemProps)
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="overflow-hidden"
           >
-            <div className="pb-5 text-xl font-light leading-[150%] text-[#6A749A]">
+            <div className="pb-5 text-lg font-light leading-[150%] text-[#6A749A] md:text-xl">
               {answer}
             </div>
           </motion.div>

@@ -67,7 +67,7 @@ export const SMART_ROUTING_CARDS = [
     key: "circle",
     title: "Circle",
     description: "USDC: Native mint-and-burn. Zero slippage, 1:1 peg, cross-chain.",
-    logo: getStableflowRouteLogo("logo-circle.avif"),
+    logo: getStableflowRouteLogo("logo-circle.svg"),
   },
   {
     key: "usdt0",
@@ -79,7 +79,7 @@ export const SMART_ROUTING_CARDS = [
     key: "fraxzero",
     title: "FraxZero",
     description: "frxUSD: Native crosschain. Direct mint/burn, lock/release across chains.",
-    logo: getStableflowRouteLogo("logo-fraxzero.svg"),
+    logo: getStableflowRouteLogo("logo-fraxzero-2.svg"),
   },
 ] as const;
 
@@ -117,6 +117,7 @@ export const COMPETITIVE_CARDS = [
     title: "Chains",
     description: "20+ including Ethereum, Solana, NEAR, Tron, and Aptos",
     icon: getAboutAsset("icons/icon-chains.png"),
+    mobileIcon: getAboutAsset("mobile/chains.png"),
     theme: "light",
     featured: true,
   },
@@ -170,7 +171,7 @@ export const RESOURCE_CARDS = [
     title: "X",
     description: "Follow @0xStableFlow on X for product announcements.",
     href: ABOUT_LINKS.x,
-    icon: getStableflowLogo("logo-x.svg"),
+    icon: getAboutAsset("icons/icon-x.png"),
     theme: "light",
   },
   {
@@ -178,7 +179,7 @@ export const RESOURCE_CARDS = [
     title: "Telegram",
     description: "Get in touch with community.",
     href: ABOUT_LINKS.telegram,
-    icon: getStableflowLogo("logo-telegram.svg"),
+    icon: getAboutAsset("icons/icon-telegram.png"),
     theme: "dark",
   },
   {
@@ -186,7 +187,7 @@ export const RESOURCE_CARDS = [
     title: "Paragraph",
     description: "Subscribe to updates for StableFlow.",
     href: ABOUT_LINKS.paragraph,
-    icon: getStableflowLogo("logo-paragraph.svg"),
+    icon: getAboutAsset("icons/icon-paragraph.png"),
     theme: "dark",
   },
   {
@@ -194,7 +195,7 @@ export const RESOURCE_CARDS = [
     title: "Docs",
     description: "Explore product guides and key resources for StableFlow.",
     href: ABOUT_LINKS.docs,
-    icon: getStableflowLogo("logo-gitbook.svg"),
+    icon: getAboutAsset("icons/icon-gitbook.png"),
     theme: "light",
   },
 ] as const;
