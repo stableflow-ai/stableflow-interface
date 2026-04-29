@@ -44,7 +44,7 @@ const QuoteRoute = (props: any) => {
   return (
     <motion.div
       className={clsx(
-        "button w-full h-8.5 shrink-0 rounded-[8px] bg-[#FFFFFF] border flex justify-between items-center gap-1 md:gap-2.5 pl-2 md:pl-3 pr-2 md:pr-3",
+        "button w-full h-8.5 shrink-0 rounded-[8px] bg-[#FFFFFF] border border-[#F2F2F2] flex justify-between items-center gap-1 md:gap-2.5 pl-2 md:pl-3 pr-2 md:pr-3",
         selected ? "" : "",
       )}
       onClick={onSelect}
