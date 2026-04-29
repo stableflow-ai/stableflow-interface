@@ -128,7 +128,7 @@ export default function Result() {
                   formatNumber(quoteData?.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
                   formatNumber(quoteData?.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
               ) :
-                formatNumber(quoteData?.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+                formatNumber(quoteData?.estimateSourceGasUsd, 6, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
             }
           </ResultFeeItem>
           <ResultFeeItem

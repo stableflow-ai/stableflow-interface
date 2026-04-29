@@ -87,10 +87,10 @@ const QuoteRoute = (props: any) => {
             {
               ([Service.OneClick, Service.OneClickUsdt0].includes(service) && isFromTron) ? (
                 bridgeStore.acceptTronEnergy ?
-                  formatNumber(Big(data.energySourceGasFeeUsd || 0).plus(data.totalFeesUsd || 0), 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
-                  formatNumber(Big(data.transferSourceGasFeeUsd || 0).plus(data.totalFeesUsd || 0), 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+                  formatNumber(Big(data.energySourceGasFeeUsd || 0).plus(data.totalFeesUsd || 0), 6, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
+                  formatNumber(Big(data.transferSourceGasFeeUsd || 0).plus(data.totalFeesUsd || 0), 6, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
               ) :
-                formatNumber(Big(data.estimateSourceGasUsd || 0).plus(data.totalFeesUsd || 0), 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+                formatNumber(Big(data.estimateSourceGasUsd || 0).plus(data.totalFeesUsd || 0), 6, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
             }
           </div>
         </div>
