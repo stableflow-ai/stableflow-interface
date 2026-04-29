@@ -10,6 +10,7 @@ import axios from "axios";
 import Big from "big.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import useIsMobile from "./use-is-mobile";
 
 export const TrackAction = {
   Connect: "connect_wallet",
@@ -44,6 +45,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
   const { sessionId, initSessionId } = useTrackStore();
   const wallets = useWalletsStore();
   const walletStore = useWalletStore();
+  const isMobile = useIsMobile();
 
   const [accounts, _accountAddresses, accountAddressesStr] = useMemo(() => {
     const _connectedWallets = Object.entries(wallets)
@@ -211,6 +213,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
 
     const reportContent: any = {
       route: ServiceBackend[service as Service],
+      is_mobile: isMobile,
       ...formatQuoteData(quoteData),
     };
 
@@ -244,6 +247,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
       type,
       tx_hash: txHash,
       route: ServiceBackend[service as Service],
+      is_mobile: isMobile,
       ...formatQuoteData(quoteData),
     };
     if (errMsg) {
