@@ -210,9 +210,9 @@ export default function Result() {
             <motion.div
               key="duration"
               className={clsx("w-full text-[#70788A] text-xs font-normal leading-[120%]", bridgeStore.showFee && "mt-2")}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
               {LargeTransactionTip}
             </motion.div>
@@ -243,9 +243,9 @@ export default function Result() {
             <motion.div
               key="energy"
               className={clsx("w-full text-[#70788A] text-xs font-normal leading-[120%]", bridgeStore.showFee && "mt-2")}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
               <Checkbox
                 checked={bridgeStore.acceptTronEnergy}
@@ -264,9 +264,9 @@ export default function Result() {
             <motion.div
               key="bandwidth"
               className={clsx("w-full text-[#70788A] text-xs font-normal leading-[120%]", bridgeStore.showFee && "mt-2")}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
               <img
                 src={getStableflowIcon("icon-gas.svg")}

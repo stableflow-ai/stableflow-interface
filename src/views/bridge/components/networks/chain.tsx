@@ -34,9 +34,9 @@ export default function Chain({ token, isTo }: any) {
       <ChainCard
         onClick={openWallet}
       >
-        <div className="w-10.5 h-10.5 rounded-full bg-[#EDF0F7] overflow-hidden flex justify-center items-center">
+        <div className="w-10.5 h-10.5 rounded-full bg-[#dde1e9] overflow-hidden flex justify-center items-center">
           <LazyImage
-            src={getStableflowIcon("select-token.gif")}
+            src={getStableflowIcon("select-token-2.gif")}
             containerClassName="w-full h-full scale-120 origin-center pointer-events-none"
             fallbackSrc={null}
           />
