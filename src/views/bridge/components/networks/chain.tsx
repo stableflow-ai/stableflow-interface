@@ -34,7 +34,13 @@ export default function Chain({ token, isTo }: any) {
       <ChainCard
         onClick={openWallet}
       >
-        <div className="w-10.5 h-10.5 rounded-full bg-[#EDF0F7]"></div>
+        <div className="w-10.5 h-10.5 rounded-full bg-[#dde1e9] overflow-hidden flex justify-center items-center">
+          <LazyImage
+            src={getStableflowIcon("select-token-2.gif")}
+            containerClassName="w-full h-full scale-120 origin-center pointer-events-none"
+            fallbackSrc={null}
+          />
+        </div>
         <div className="w-12 h-4 rounded-md bg-[#EDF0F7] mr-2"></div>
       </ChainCard>
     );
@@ -123,7 +129,7 @@ const ChainCard = (props: any) => {
 
   return (
     <div
-      className="cursor-pointer shrink-0 border border-[#F2F2F2] bg-[#F5F7FD] flex items-center justify-center gap-4 rounded-[13px] py-3 pl-2.5 pr-3"
+      className="cursor-pointer shrink-0 border hover:border-[#B1C2FB] duration-150 border-[#F2F2F2] bg-[#F5F7FD] flex items-center justify-center gap-4 rounded-[13px] py-3 pl-2.5 pr-3"
       onClick={onClick}
     >
       <div className="flex items-center gap-2.5">

@@ -32,7 +32,6 @@ const ResultUsdt0 = (props: any) => {
         messagingFeeAmount: 0,
         messagingFeeUnit: "",
         legacyMeshFee: 0,
-        estimatedSourceGas: 0,
         slippage,
       });
       return;
@@ -44,7 +43,6 @@ const ResultUsdt0 = (props: any) => {
       messagingFeeAmount: _quoteData?.fees?.nativeFee,
       messagingFeeUnit: _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
       legacyMeshFee: _quoteData?.fees?.legacyMeshFeeUsd,
-      estimatedSourceGas: _quoteData?.fees?.estimateGasUsd,
       slippage,
     });
   }, { wait: 500 });
@@ -60,9 +58,9 @@ const ResultUsdt0 = (props: any) => {
           <motion.div
             key="fee-detail"
             className="w-full flex flex-col items-stretch gap-2 overflow-hidden"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
             {
               !!fees?.legacyMeshFee && Big(fees?.legacyMeshFee).gt(0) && (

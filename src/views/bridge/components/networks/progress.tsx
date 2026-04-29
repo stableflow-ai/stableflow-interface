@@ -151,7 +151,7 @@ const FromAmountProgress = ({
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   return (
-    <div className="flex items-center gap-5 mt-2.5">
+    <div className="flex items-center gap-5 mt-2.5 pl-5 pr-2.5">
       <div className="flex-1">
         <div
           ref={progressBarRef}
@@ -204,7 +204,7 @@ const FromAmountProgress = ({
           ))}
         </div>
       </div>
-      <div className="border border-[#F2F2F2] rounded-lg bg-white h-9.5 w-18 shrink-0 text-[#0E3616] text-sm flex justify-center items-center">
+      <div className="border border-[#F2F2F2] cursor-default rounded-lg bg-white h-9.5 w-18 shrink-0 text-[#0E3616] text-sm flex justify-center items-center">
         {formatNumber(progress, 2, true, { round: Big.roundUp })}%
       </div>
     </div>

@@ -9,21 +9,30 @@ import FromAmountProgress from "./progress";
 import NetworkCard from "./card";
 import usePricesStore from "@/stores/use-prices";
 import LazyImage from "@/components/lazy-image";
-import { routeFullPath } from "../../utils";
+import { routeHybridPath } from "../../utils";
 import { getStableflowIcon } from "@/utils/format/logo";
-import { Service } from "@/services/constants";
+import { Service, ServiceLogoSimpleMap } from "@/services/constants";
 import { formatDuration } from "@/utils/format/time";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import useTokenBalance from "@/hooks/use-token-balance";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
 import Destination from "./destination";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay } from "swiper/modules";
+import CostEfficientModal from "../cost-efficient-modal";
 
 const Setting = lazy(() => import("@/sections/setting"));
 const Result = lazy(() => import("../result"));
 const QuoteRoutes = lazy(() => import("../routes"));
 
-export default function Networks({ addressValidation }: any) {
+type NetworksProps = {
+  addressValidation?: {
+    isValid?: boolean;
+  } | null;
+};
+
+export default function Networks({ addressValidation }: NetworksProps) {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
   const { switchChainAsync } = useSwitchChain();
@@ -31,35 +40,42 @@ export default function Networks({ addressValidation }: any) {
   const balancesStore = useBalancesStore();
   const { loading: balanceLoading } = useTokenBalance(walletStore.fromToken, true);
 
-  const timer = useRef<any>(null);
+  const timer = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [toggleLoading, setToggleLoading] = useState(false);
   const [isProgress, setIsProgress] = useState(false);
   const [isRoutes, setIsRoutes] = useState(false);
+  const [isCostModalOpen, setIsCostModalOpen] = useState(false);
 
-  const toggleChain = () => {
+  const toggleChain = async () => {
     if (toggleLoading || (!walletStore.fromToken && !walletStore.toToken)) return;
     setToggleLoading(true);
-    return new Promise(async (resolve) => {
-      const fromToken = walletStore.fromToken;
-      const toToken = walletStore.toToken;
-      if (toToken?.chainType === "evm") {
-        await switchChainAsync({
-          chainId: toToken.chainId,
-          addEthereumChainParameter: {
-            chainName: toToken.chainName,
-            nativeCurrency: {
-              name: toToken.nativeToken.symbol,
-              symbol: toToken.nativeToken.symbol,
-              decimals: toToken.nativeToken.decimals,
-            },
-            rpcUrls: toToken.rpcUrls,
-            blockExplorerUrls: toToken.blockExplorerUrls,
+
+    const fromToken = walletStore.fromToken;
+    const toToken = walletStore.toToken;
+
+    if (toToken?.chainType === "evm") {
+      await switchChainAsync({
+        chainId: toToken.chainId,
+        addEthereumChainParameter: {
+          chainName: toToken.chainName,
+          nativeCurrency: {
+            name: toToken.nativeToken.symbol,
+            symbol: toToken.nativeToken.symbol,
+            decimals: toToken.nativeToken.decimals,
           },
-        });
-      }
+          rpcUrls: toToken.rpcUrls,
+          blockExplorerUrls: toToken.blockExplorerUrls,
+        },
+      });
+    }
+
+    return new Promise((resolve) => {
       timer.current = setTimeout(() => {
         walletStore.set({ fromToken: toToken, toToken: fromToken });
-        clearTimeout(timer.current);
+        if (timer.current) {
+          clearTimeout(timer.current);
+        }
+        timer.current = null;
         resolve(true);
         setToggleLoading(false);
       }, 150);
@@ -70,7 +86,7 @@ export default function Networks({ addressValidation }: any) {
     return bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
   }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
 
-  const simplePath = routeFullPath(quoteData, bridgeStore.quoteDataService);
+  const hybridPath = routeHybridPath(quoteData, bridgeStore.quoteDataService);
   const isFromTron = quoteData?.quoteParam?.fromToken?.chainType === "tron";
   const isQuoting = bridgeStore.getQuoting(bridgeStore.quoteDataService);
   const isFromDisabled = !walletStore.fromToken || balanceLoading;
@@ -87,18 +103,64 @@ export default function Networks({ addressValidation }: any) {
 
   useEffect(() => {
     return () => {
-      clearTimeout(timer.current);
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
     };
   }, []);
 
   return (
     <div className="w-full px-[10px] md:px-0">
       <div className="w-full flex justify-between items-center">
-        <div className="text-[#444C59] text-sm md:text-base w-full block">
-          <span className="text-[#6284F5]">Best Price</span> for stablecoin bridging
+        <div className="text-[#444C59] text-sm md:text-base w-full flex items-center gap-1">
+          <div className="">
+            Best price compared with
+          </div>
+          <div className="w-17.5 h-5 overflow-hidden">
+            <Swiper
+              className="w-full h-full"
+              slidesPerView={1}
+              loop={true}
+              modules={[Autoplay]}
+              autoplay={{
+                delay: 3000,
+                pauseOnMouseEnter: false,
+              }}
+            >
+              <SwiperSlide>
+                <img
+                  src="/about/icons/icon-usdt0-gray.png"
+                  alt=""
+                  className="w-17.5 h-5 object-center object-contain"
+                />
+              </SwiperSlide>
+              <SwiperSlide>
+                <img
+                  src="/about/icons/icon-circle-gray.png"
+                  alt=""
+                  className="w-17.5 h-5 object-center object-contain"
+                />
+              </SwiperSlide>
+            </Swiper>
+          </div>
+          <button
+            type="button"
+            className="w-3.5 h-3.5 shrink-0 flex justify-center items-center cursor-pointer"
+            onClick={() => setIsCostModalOpen(true)}
+          >
+            <img
+              src={getStableflowIcon("icon-info.svg")}
+              alt=""
+              className="w-full h-full object-center object-contain"
+            />
+          </button>
         </div>
         <Setting />
       </div>
+      <CostEfficientModal
+        open={isCostModalOpen}
+        onClose={() => setIsCostModalOpen(false)}
+      />
 
       <div className="relative w-full">
         <NetworkCard
@@ -217,19 +279,19 @@ export default function Networks({ addressValidation }: any) {
           disabled={isToDisabled}
           rightContent={(
             <div className="flex items-center justify-end gap-5 pr-3">
-              <div className="flex items-center gap-0">
+              <div className={clsx("flex items-center gap-0 duration-150", isRoutes ? "opacity-0" : "opacity-100")}>
                 {
                   isToDisabled ? (
-                    <div className="w-13.5 h-4.5 bg-[#EDF0F7] rounded-md"></div>
-                  ) : simplePath?.map((route, idx) => (
+                    null
+                  ) : hybridPath?.map((route, idx) => (
                     <>
                       <LazyImage
                         key={`simplePathImg${idx}`}
-                        src={route.token?.chainIcon}
+                        src={ServiceLogoSimpleMap[route.service]}
                         containerClassName="w-4 h-4 shrink-0"
                       />
                       {
-                        idx < simplePath.length - 1 && (
+                        idx < hybridPath.length - 1 && (
                           <LazyImage
                             key={`simplePathArrow${idx}`}
                             src={getStableflowIcon("icon-arrow-down.svg")}
@@ -242,7 +304,7 @@ export default function Networks({ addressValidation }: any) {
                 }
               </div>
               <div className="flex items-center gap-2 text-xs text-[#444C59] leading-[100%] font-normal font-['SpaceGrotesk']">
-                <div className="flex items-center gap-4">
+                <div className={clsx("flex items-center gap-4 duration-150", isRoutes ? "opacity-0" : "opacity-100")}>
                   <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
                     <LazyImage
                       src={getStableflowIcon("icon-fee.svg")}

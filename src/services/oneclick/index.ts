@@ -42,7 +42,7 @@ export const checkIsBridgeFee = (params?: any) => {
   return false;
 };
 
-export const excludeFees: string[] = ["sourceGasFeeUsd"];
+export const excludeFees: string[] = ["estimateGasUsd"];
 
 export class OneClickService {
   private api: AxiosInstance;
@@ -135,12 +135,16 @@ export class OneClickService {
         }
         let destinationGasFee = Big(netFee).minus(bridgeFeeValue);
         destinationGasFee = Big(destinationGasFee).lt(0) ? Big(0) : destinationGasFee;
+        if (fromTokenSymbol !== toTokenSymbol) {
+          destinationGasFee = Big(0);
+        }
         res.data.fees = {
           bridgeFeeUsd: numberRemoveEndZero(Big(bridgeFeeValue).toFixed(20)),
           destinationGasFeeUsd: numberRemoveEndZero(Big(destinationGasFee).toFixed(20)),
         };
 
         // calculate total fees
+        res.data.totalFeesUsd = "0";
         for (const feeKey in res.data.fees) {
           if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
             continue;
@@ -354,11 +358,11 @@ export class OneClickService {
       if (isFromTronEnergy) {
         sourceGasFee = result.energySourceGasFee;
       }
-      const sourceGasFeeUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
-      result.fees.sourceGasFeeUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+      const estimateGasUsd = Big(sourceGasFee.estimateGas || 0).div(10 ** nativeTokenDecimals).times(nativeTokenPrice);
+      result.fees.estimateGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
       result.estimateSourceGas = sourceGasFee.estimateGas;
       result.totalEstimateSourceGas = sourceGasFee.estimateGas;
-      result.estimateSourceGasUsd = numberRemoveEndZero(Big(sourceGasFeeUsd).toFixed(20));
+      result.estimateSourceGasUsd = numberRemoveEndZero(Big(estimateGasUsd).toFixed(20));
     }
 
     if (result.needApprove && wallet.estimateApprove) {
@@ -372,6 +376,7 @@ export class OneClickService {
       result.estimateApproveGas = estApptroveGas.estimateSourceGas;
     }
 
+    result.totalFeesUsd = "0";
     for (const feeKey in result.fees) {
       if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
         continue;

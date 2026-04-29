@@ -1,6 +1,6 @@
 import chains from "@/config/chains";
 import PixelBlast from "@/components/pixel-blast";
-import { ServiceLogoMap } from "@/services";
+import { ServiceLogoMap } from "@/services/constants";
 import Trusted from "@/views/bridge/components/trusted";
 import { getStableflowTokenLogo } from "@/utils/format/logo";
 import { ECOSYSTEM_NETWORK_ORDER, ECOSYSTEM_RAILS, ECOSYSTEM_STABLECOINS } from "./config";
@@ -10,8 +10,8 @@ const Ecosystem = () => {
     <div className="grid w-full min-h-full overflow-x-hidden">
       <div className="w-screen col-start-1 row-start-1 min-h-full">
         <PixelBlast
-          pixelSize={6}
-          patternScale={1.1}
+          pixelSize={3}
+          patternScale={1.5}
           patternDensity={0.2}
           color="#85ABFA"
           colorSaturation={1.1}

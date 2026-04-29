@@ -1,3 +1,5 @@
+import { getStableflowRouteLogo } from "@/utils/format/logo";
+
 export const Service = {
   OneClick: "oneclick",
   Usdt0: "usdt0",
@@ -95,4 +97,28 @@ export const getRouteStatus = (service: Service): { disabled: boolean; } => {
   }
 
   return result;
+};
+
+export const ServiceLogoMap: Record<Service, string> = {
+  [Service.OneClick]: getStableflowRouteLogo("logo-near-intents.svg"),
+  [Service.Usdt0]: getStableflowRouteLogo("logo-usdt0.svg"),
+  [Service.CCTP]: getStableflowRouteLogo("logo-circle.svg"),
+  [Service.FraxZero]: getStableflowRouteLogo("logo-fraxzero-2.svg"),
+  [Service.FraxZeroOneClick]: getStableflowRouteLogo("logo-fraxzero-near-intents-2.svg"),
+  [Service.OneClickFraxZero]: getStableflowRouteLogo("logo-near-intents-fraxzero-2.svg"),
+  [Service.Usdt0OneClick]: getStableflowRouteLogo("logo-usdt0-near-intents-2.svg"),
+  [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-2.svg"),
+  [Service.Native]: getStableflowRouteLogo("logo-native.svg"),
+};
+
+export const ServiceLogoSimpleMap: Record<Service, string> = {
+  [Service.OneClick]: getStableflowRouteLogo("logo-near-intents-simple.svg"),
+  [Service.Usdt0]: getStableflowRouteLogo("logo-usdt0-simple.svg"),
+  [Service.CCTP]: getStableflowRouteLogo("logo-circle-simple.svg"),
+  [Service.FraxZero]: getStableflowRouteLogo("logo-fraxzero-simple.svg"),
+  [Service.FraxZeroOneClick]: getStableflowRouteLogo("logo-fraxzero-near-intents-simple.svg"),
+  [Service.OneClickFraxZero]: getStableflowRouteLogo("logo-near-intents-fraxzero-simple.svg"),
+  [Service.Usdt0OneClick]: getStableflowRouteLogo("logo-usdt0-near-intents-simple.svg"),
+  [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-simple.svg"),
+  [Service.Native]: getStableflowRouteLogo("logo-native-simple.svg"),
 };

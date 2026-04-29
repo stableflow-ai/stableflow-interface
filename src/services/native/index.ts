@@ -4,7 +4,6 @@ import axios from "axios";
 import Big from "big.js";
 import { NativeChains, NativeV4Routes } from "./contract";
 import { getRouteStatus, Service } from "../constants";
-import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
 
 class NativeService {

@@ -53,9 +53,9 @@ const ResultCCTP = (props: any) => {
           <motion.div
             key="fee-detail"
             className="w-full flex flex-col items-stretch gap-2 overflow-hidden"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
             <ResultFeeItem
               label="Bridge fee"

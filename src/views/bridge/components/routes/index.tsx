@@ -49,8 +49,9 @@ const QuoteRoutes = (props: any) => {
     <div className="w-full pl-5 pr-5.5 mt-2.5 flex flex-col gap-1.5 overflow-hidden">
       {
         displayedList?.length > 0
-          ? displayedList.map((data) => (
+          ? displayedList.map((data, index) => (
             <QuoteRoute
+              isBest={index === 0}
               key={data.service}
               service={data.service}
               data={data}
