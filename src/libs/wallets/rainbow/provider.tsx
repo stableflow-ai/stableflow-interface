@@ -44,7 +44,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
-import { metaMaskWallet, coinbaseWallet, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
+import { metaMaskWallet, baseAccount, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
 import { createClient, fallback } from "viem";
 import { getChainRpcUrl } from "@/config/chains";
 import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
@@ -140,7 +140,7 @@ const connectors: any = connectorsForWallets(
       wallets: [
         okxWallet,
         metaMaskWallet,
-        coinbaseWallet,
+        baseAccount,
         bitgetWallet,
         binanceWallet,
         walletConnectWallet,

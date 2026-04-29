@@ -7,7 +7,7 @@ import { ethers } from "ethers";
 const POLL_MS = 30 * 60 * 1000;
 
 function getEvmChains(): (TokenChain & { chainId: number })[] {
-  return (Object.values(chains) as TokenChain[]).filter(
+  return (Object.values(chains) as unknown as TokenChain[]).filter(
     (c): c is TokenChain & { chainId: number } =>
       c.chainType === chainTypes.evm.value && typeof c.chainId === "number"
   );

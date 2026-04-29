@@ -28,7 +28,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { csl } from "@/utils/log";
-import { sortQuoteData } from "../utils";
+import { formatBridgeRpcErrorMessage, sortQuoteData } from "../utils";
 import { getQuoteModes } from "@/services/utils";
 import useEvmGasFeesStore from "@/stores/use-evm-gas-fees";
 import { ExecTime } from "@/utils/exec-time";
@@ -654,12 +654,16 @@ export default function useBridge(props?: any) {
             amountWei: approveAmountWei,
           });
           if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
-            await wallet.wallet.approve({
+            const resetAllowanceResult = await wallet.wallet.approve({
               contractAddress: walletStore.fromToken.contractAddress,
               spender: approveSpender,
               // revoked approval
               amountWei: "0",
+              isDetails: true,
             });
+            if (!resetAllowanceResult.success) {
+              throw new Error(resetAllowanceResult.message || "Approve failed");
+            }
           }
         }
 
@@ -922,6 +926,7 @@ export default function useBridge(props?: any) {
       bridgeStore.set({ transferring: false });
       bridgeStore.setTronTransferVisible(false);
       let _finalErrorMessage = error?.message || error?.toString?.() || "Transfer failed";
+      addTrackParams.sourceErrMsg = _finalErrorMessage;
       if (
         // evm
         _finalErrorMessage.includes("user rejected action") ||
@@ -933,6 +938,10 @@ export default function useBridge(props?: any) {
       ) {
         _finalErrorMessage = "User rejected transaction";
       }
+
+      // get rpc error message
+      _finalErrorMessage = formatBridgeRpcErrorMessage(_finalErrorMessage);
+
       toast.fail({
         title: _finalErrorMessage,
       });

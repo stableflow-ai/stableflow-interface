@@ -43,7 +43,19 @@ export default function Networks({ addressValidation }: any) {
       const fromToken = walletStore.fromToken;
       const toToken = walletStore.toToken;
       if (toToken?.chainType === "evm") {
-        await switchChainAsync({ chainId: toToken.chainId });
+        await switchChainAsync({
+          chainId: toToken.chainId,
+          addEthereumChainParameter: {
+            chainName: toToken.chainName,
+            nativeCurrency: {
+              name: toToken.nativeToken.symbol,
+              symbol: toToken.nativeToken.symbol,
+              decimals: toToken.nativeToken.decimals,
+            },
+            rpcUrls: toToken.rpcUrls,
+            blockExplorerUrls: toToken.blockExplorerUrls,
+          },
+        });
       }
       timer.current = setTimeout(() => {
         walletStore.set({ fromToken: toToken, toToken: fromToken });
