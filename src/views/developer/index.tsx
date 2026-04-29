@@ -12,7 +12,7 @@ const DeveloperPage = (props: any) => {
   return (
     <div className="min-h-screen relative font-[SpaceGrotesk] leading-[120%] md:leading-[100%] font-normal">
       <div className="relative">
-        <div className="max-w-5xl mx-auto px-6">
+        <div className="max-w-5xl mx-auto px-4 md:px-6">
           <main>
             <Hero />
             <Suspense fallback={null}>
