@@ -13,29 +13,24 @@ import { getStableflowIcon, getStableflowLogo } from "@/utils/format/logo";
 
 const Social = lazy(() => import("@/components/social"));
 const NavigationMenu = lazy(() => import("@/components/navigation-menu"));
+const Terms = lazy(() => import("@/components/terms"));
 
 export default function UserActions() {
-  const walletStore = useWalletStore();
-  const walletsStore = useWalletsStore();
-  const navigate = useNavigate();
-  const pathname = useLocation();
+  const { pathname } = useLocation();
   const isMobile = useIsMobile();
-  const historyStore = useHistoryStore();
-  const { addHistory } = useTrack();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isHistory = useMemo(() => {
-    return pathname.pathname === "/history";
-  }, [pathname]);
-  const isHomePage = useMemo(() => pathname.pathname === "/", [pathname]);
-  const useMobileSubPageHeader = isMobile && !isHomePage;
+  const isHomePage = useMemo(() => pathname === "/", [pathname]);
+  const isAppBar = useMemo(() => {
+    return isMobile && ["/", "/history"].includes(pathname);
+  }, [pathname, isMobile]);
 
   const hideActions = useMemo(() => {
     const regs = [
       /^\/developer/,
       /^\/learn-more/
     ];
-    return regs.some((reg) => reg.test(pathname.pathname));
+    return regs.some((reg) => reg.test(pathname));
   }, [pathname]);
 
   return (
@@ -45,7 +40,7 @@ export default function UserActions() {
         isHomePage ? "" : "bg-[rgba(246,248,252,0.30)] backdrop-blur-[10px]",
       )}>
         {
-          useMobileSubPageHeader ? (
+          isMobile ? (
             <>
               <div className="flex items-center gap-2">
                 <Link to="/" className="shrink-0 h-10 w-[41px] flex items-center justify-center">
@@ -61,15 +56,23 @@ export default function UserActions() {
                   isSimple
                 />
               </div>
-              <Link
-                to="/"
-                className="shrink-0 h-9 px-4 rounded-[26px] bg-black text-white text-[16px] font-normal leading-none flex items-center gap-2"
-              >
-                Launch App
-                <span className="text-[14px]" aria-hidden>
-                  →
-                </span>
-              </Link>
+              {
+                isAppBar
+                  ? (
+                    <AccountButton />
+                  )
+                  : (
+                    <Link
+                      to="/"
+                      className="shrink-0 h-9 px-4 rounded-[26px] bg-black text-white text-[16px] font-normal leading-none flex items-center gap-2"
+                    >
+                      Launch App
+                      <span className="text-[14px]" aria-hidden>
+                        →
+                      </span>
+                    </Link>
+                  )
+              }
             </>
           ) : (
             <>
@@ -78,41 +81,7 @@ export default function UserActions() {
               </Suspense>
               <div className="shrink-0 flex items-center gap-2">
                 {!hideActions ? (
-                  <>
-                    {!walletsStore.evm.account &&
-                      !walletsStore.sol.account &&
-                      !walletsStore.near.account &&
-                      !walletsStore.tron.account ? (
-                      <button
-                        onClick={() => {
-                          walletStore.set({ showWallet: true });
-                        }}
-                        className="button px-3.5 md:px-5 py-1.5 md:py-2 bg-[#6284F5] rounded-4.5 text-base text-white"
-                      >
-                        Connect
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        {!isHistory && (
-                          <HistoryButton
-                            onClick={() => {
-                              addHistory({ type: "click" });
-                              if (isMobile) {
-                                historyStore.setOpenDrawer(!historyStore.openDrawer);
-                                return;
-                              }
-                              navigate("/history");
-                            }}
-                          />
-                        )}
-                        <ChainsButton
-                          onClick={() => {
-                            walletStore.set({ showWallet: true });
-                          }}
-                        />
-                      </div>
-                    )}
-                  </>
+                  <AccountButton />
                 ) : (
                   <div className="h-9.5"></div>
                 )}
@@ -189,28 +158,30 @@ const ChainsButton = ({
   const chainsToDisplay = useMemo(() => {
     const allChains = Object.entries(stablecoinWithChains);
 
-    if (!isMobile) {
-      // Desktop: show all chains
-      return allChains;
-    }
+    return allChains;
 
-    // Mobile: prioritize EVM, if EVM is not connected, show other connected wallet
-    if (walletsStore.evm?.account) {
-      // EVM is connected, show EVM
-      return allChains.filter(([chain]) => chain === 'evm');
-    }
+    // if (!isMobile) {
+    //   // Desktop: show all chains
+    //   return allChains;
+    // }
 
-    // EVM is not connected, find other connected wallet
-    const connectedChain = allChains.find(([chain]) =>
-      walletsStore?.[chain as WalletType]?.account
-    );
+    // // Mobile: prioritize EVM, if EVM is not connected, show other connected wallet
+    // if (walletsStore.evm?.account) {
+    //   // EVM is connected, show EVM
+    //   return allChains.filter(([chain]) => chain === 'evm');
+    // }
 
-    if (connectedChain) {
-      return [connectedChain];
-    }
+    // // EVM is not connected, find other connected wallet
+    // const connectedChain = allChains.find(([chain]) =>
+    //   walletsStore?.[chain as WalletType]?.account
+    // );
 
-    // None connected, default to first one (EVM)
-    return allChains.slice(0, 1);
+    // if (connectedChain) {
+    //   return [connectedChain];
+    // }
+
+    // // None connected, default to first one (EVM)
+    // return allChains.slice(0, 1);
   }, [isMobile, walletsStore.evm?.account, walletsStore.sol?.account, walletsStore.near?.account, walletsStore.tron?.account]);
 
   return (
@@ -291,7 +262,7 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       {/* Backdrop */}
       <div
         className={clsx(
-          "fixed inset-0 bg-black/30 z-[99] md:hidden transition-opacity duration-300",
+          "fixed inset-0 bg-black/30 z-99 md:hidden transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
@@ -299,21 +270,21 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       {/* Drawer */}
       <div
         className={clsx(
-          "fixed top-0 left-0 right-0 bg-white z-[100] md:hidden transition-transform duration-300 ease-out shadow-[0_4px_12px_0_rgba(0,0,0,0.15)]",
+          "fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-[10px] z-100 md:hidden transition-transform duration-300 ease-out max-h-[80dvh] overflow-y-auto",
           isOpen ? "translate-y-0" : "-translate-y-full"
         )}
       >
-        <div className="flex justify-between items-center px-4 pt-5">
-          <HyperliquidDeposit className="" />
+        <div className="relative flex justify-center items-center pt-[15px]">
           {/* Close button inside drawer */}
           <button
             onClick={onClose}
-            className="w-[38px] h-[38px] flex justify-center items-center button rounded-[19px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+            className="absolute left-2 top-3.5 w-9 h-9 flex justify-center items-center button rounded-full text-[#444C59]"
+            aria-label="Close menu"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -326,15 +297,15 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
+          <HyperliquidDeposit className="flex! md:flex! w-[287px] justify-center" />
         </div>
 
-        <div className="pt-4 pb-5 px-5">
-          <nav className="flex flex-col gap-0.5">
+        <div className="pt-3.5 pb-8 px-3.5">
+          <nav className="flex flex-col gap-1">
             {menuItems.map((item, index) => {
               if (typeof item.path !== "string") {
                 return (
-                  <div className="flex flex-col gap-0.5" key={index}>
-                    <div className="flex flex-col gap-0.5">
+                  <div className="contents" key={index}>
                       {
                         item.children.map((child, idx) => {
                           const isActive = location.pathname.startsWith(child.path);
@@ -344,8 +315,8 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                               to={child.path}
                               target={child.isExternal ? "_blank" : undefined}
                               className={clsx(
-                                "w-full h-11 px-2 rounded-lg text-base text-[#444C59] font-['SpaceGrotesk'] flex justify-between items-center gap-2 font-normal hover:bg-[#F5F7FD] duration-150 cursor-pointer",
-                                isActive ? "bg-[#F5F7FD]" : "bg-white",
+                                "w-full h-[60px] px-4 rounded-lg text-lg text-black text-center font-['SpaceGrotesk'] flex justify-center items-center gap-2 font-normal hover:bg-[#F5F7FD] duration-150 cursor-pointer",
+                                isActive ? "bg-[#F5F7FD]" : "bg-transparent",
                               )}
                               onClick={onClose}
                             >
@@ -361,15 +332,6 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                           );
                         })
                       }
-                    </div>
-                    <div className="border-t border-[#F2F2F2] mt-0.5 pt-3.5 px-2">
-                      <div className="">
-                        Social
-                      </div>
-                      <Suspense fallback={null}>
-                        <Social className="gap-2.5! mt-3" />
-                      </Suspense>
-                    </div>
                   </div>
                 )
               }
@@ -387,8 +349,8 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                     rel="noopener noreferrer"
                     onClick={onClose}
                     className={clsx(
-                      "text-base font-normal text-[#444C59] hover:text-black transition-colors duration-200 h-11 flex items-center px-2",
-                      isActive ? "bg-[#F5F7FD]" : "bg-white",
+                      "w-full h-[60px] px-4 rounded-lg text-lg text-black text-center font-['SpaceGrotesk'] font-normal hover:bg-[#F5F7FD] transition-colors duration-150 flex justify-center items-center",
+                      isActive ? "bg-[#F5F7FD]" : "bg-transparent",
                     )}
                   >
                     {item.label}
@@ -402,8 +364,8 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                   to={item.path}
                   onClick={onClose}
                   className={clsx(
-                    "text-base font-normal text-[#444C59] hover:text-black transition-colors duration-200 h-11 relative flex items-center px-2",
-                    isActive ? "bg-[#F5F7FD]" : "bg-white",
+                    "w-full h-[60px] px-4 rounded-lg text-lg text-black text-center font-['SpaceGrotesk'] font-normal hover:bg-[#F5F7FD] transition-colors duration-150 relative flex justify-center items-center",
+                    isActive ? "bg-[#F5F7FD]" : "bg-transparent",
                   )}
                 >
                   <span className="flex items-center gap-[8px]">
@@ -413,8 +375,70 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               );
             })}
           </nav>
+          <div className="mt-6 flex justify-center">
+            <Suspense fallback={null}>
+              <Social className="gap-4! justify-center [&_a]:w-9! [&_a]:h-9! [&_a]:bg-size-[16px_16px]!" />
+            </Suspense>
+          </div>
+          <div onClick={onClose} className="mt-7 flex justify-center">
+            <Suspense fallback={null}>
+              <Terms className="w-auto! justify-center gap-11" />
+            </Suspense>
+          </div>
         </div>
       </div>
     </>
+  );
+};
+
+const AccountButton = () => {
+  const walletsStore = useWalletsStore();
+  const walletStore = useWalletStore();
+  const { addHistory } = useTrack();
+  const navigate = useNavigate();
+  const historyStore = useHistoryStore();
+  const isMobile = useIsMobile();
+  const { pathname } = useLocation();
+
+  const isHistory = useMemo(() => {
+    return pathname === "/history";
+  }, [pathname]);
+
+  const isConnected = useMemo(() => {
+    const accounts = Object.values(walletsStore).map((wallet) => wallet.account);
+    return accounts.some((account) => !!account);
+  }, [walletsStore]);
+
+  return (
+    !isConnected ? (
+      <button
+        onClick={() => {
+          walletStore.set({ showWallet: true });
+        }}
+        className="button px-3.5 md:px-5 py-1.5 md:py-2 bg-[#6284F5] rounded-4.5 text-base text-white"
+      >
+        Connect
+      </button>
+    ) : (
+      <div className="flex items-center gap-2">
+        {!isHistory && !isMobile && (
+          <HistoryButton
+            onClick={() => {
+              addHistory({ type: "click" });
+              if (isMobile) {
+                historyStore.setOpenDrawer(!historyStore.openDrawer);
+                return;
+              }
+              navigate("/history");
+            }}
+          />
+        )}
+        <ChainsButton
+          onClick={() => {
+            walletStore.set({ showWallet: true });
+          }}
+        />
+      </div>
+    )
   );
 };

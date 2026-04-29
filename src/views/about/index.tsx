@@ -36,7 +36,7 @@ const LazySection = ({ Component }: LazySectionProps) => {
 
 const About = () => {
   return (
-    <div className="w-full min-h-screen overflow-x-hidden pt-22 pb-10 font-[SpaceGrotesk]">
+    <div className="w-full min-h-screen overflow-x-hidden pt-18 md:pt-22 pb-10 font-[SpaceGrotesk]">
       <HeroBanner />
       <SolverFlow />
       <LazySection Component={SmartRouting} />

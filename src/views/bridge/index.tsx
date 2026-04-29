@@ -20,7 +20,7 @@ export default function Bridge() {
   }, []);
 
   return (
-    <div className="relative w-full min-h-dvh pt-[20dvh] pb-25 flex flex-col items-center overflow-y-auto overflow-x-hidden">
+    <div className="relative w-full min-h-dvh pt-[10dvh] md:pt-[20dvh] pb-25 flex flex-col items-center overflow-y-auto overflow-x-hidden">
       <div className="flex items-stretch gap-[10px] justify-center mt-[20px] md:min-h-[490px]">
         <div className="md:w-150 w-full mx-auto shrink-0">
           <Suspense fallback={<LoadingSpinner />}>

@@ -38,16 +38,16 @@ export const menuItems = [
         path: "https://docs.stableflow.ai/",
         isExternal: true,
       },
-      {
-        label: "Explorer",
-        path: "https://github.com/stableflow-ai/stableflow-interface",
-        isExternal: true,
-      },
-      {
-        label: "Bug Bounty",
-        path: "https://github.com/stableflow-ai/stableflow-interface/issues",
-        isExternal: true,
-      },
+      // {
+      //   label: "Explorer",
+      //   path: "https://github.com/stableflow-ai/stableflow-interface",
+      //   isExternal: true,
+      // },
+      // {
+      //   label: "Bug Bounty",
+      //   path: "https://github.com/stableflow-ai/stableflow-interface/issues",
+      //   isExternal: true,
+      // },
     ],
   }
 ];
