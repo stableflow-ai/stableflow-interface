@@ -9,9 +9,9 @@ import FromAmountProgress from "./progress";
 import NetworkCard from "./card";
 import usePricesStore from "@/stores/use-prices";
 import LazyImage from "@/components/lazy-image";
-import { routeFullPath } from "../../utils";
+import { routeHybridPath } from "../../utils";
 import { getStableflowIcon } from "@/utils/format/logo";
-import { Service } from "@/services/constants";
+import { Service, ServiceLogoSimpleMap } from "@/services/constants";
 import { formatDuration } from "@/utils/format/time";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import useTokenBalance from "@/hooks/use-token-balance";
@@ -86,7 +86,7 @@ export default function Networks({ addressValidation }: NetworksProps) {
     return bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
   }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
 
-  const simplePath = routeFullPath(quoteData, bridgeStore.quoteDataService);
+  const hybridPath = routeHybridPath(quoteData, bridgeStore.quoteDataService);
   const isFromTron = quoteData?.quoteParam?.fromToken?.chainType === "tron";
   const isQuoting = bridgeStore.getQuoting(bridgeStore.quoteDataService);
   const isFromDisabled = !walletStore.fromToken || balanceLoading;
@@ -149,7 +149,7 @@ export default function Networks({ addressValidation }: NetworksProps) {
             onClick={() => setIsCostModalOpen(true)}
           >
             <img
-              src="/about/icons/icon-tip.png"
+              src={getStableflowIcon("icon-info.svg")}
               alt=""
               className="w-full h-full object-center object-contain"
             />
@@ -279,19 +279,19 @@ export default function Networks({ addressValidation }: NetworksProps) {
           disabled={isToDisabled}
           rightContent={(
             <div className="flex items-center justify-end gap-5 pr-3">
-              <div className="flex items-center gap-0">
+              <div className={clsx("flex items-center gap-0 duration-150", isRoutes ? "opacity-0" : "opacity-100")}>
                 {
                   isToDisabled ? (
-                    <div className="w-13.5 h-4.5 bg-[#EDF0F7] rounded-md"></div>
-                  ) : simplePath?.map((route, idx) => (
+                    null
+                  ) : hybridPath?.map((route, idx) => (
                     <>
                       <LazyImage
                         key={`simplePathImg${idx}`}
-                        src={route.token?.chainIcon}
+                        src={ServiceLogoSimpleMap[route.service]}
                         containerClassName="w-4 h-4 shrink-0"
                       />
                       {
-                        idx < simplePath.length - 1 && (
+                        idx < hybridPath.length - 1 && (
                           <LazyImage
                             key={`simplePathArrow${idx}`}
                             src={getStableflowIcon("icon-arrow-down.svg")}
@@ -304,7 +304,7 @@ export default function Networks({ addressValidation }: NetworksProps) {
                 }
               </div>
               <div className="flex items-center gap-2 text-xs text-[#444C59] leading-[100%] font-normal font-['SpaceGrotesk']">
-                <div className="flex items-center gap-4">
+                <div className={clsx("flex items-center gap-4 duration-150", isRoutes ? "opacity-0" : "opacity-100")}>
                   <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
                     <LazyImage
                       src={getStableflowIcon("icon-fee.svg")}

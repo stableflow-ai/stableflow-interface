@@ -120,25 +120,3 @@ export const routeHybridPath = (quoteData: any, service: Service) => {
       return [];
   }
 };
-
-export const routeFullPath = (quoteData: any, service: Service) => {
-  if (!quoteData) return [];
-
-  const p = quoteData.quoteParam;
-
-  const hybridPath = routeHybridPath(quoteData, service);
-
-  // not hybrid path
-  if (!hybridPath.length) {
-    return [
-      { token: p?.fromToken },
-      { token: p?.toToken },
-    ];
-  }
-
-  return [
-    { token: hybridPath[0].fromToken },
-    { token: hybridPath[0].toToken },
-    ...hybridPath.slice(1).map((item) => ({ token: item.toToken })),
-  ];
-};

@@ -9,7 +9,6 @@ import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
 import { BridgeFee, checkIsBridgeFee } from "@/services/oneclick";
 import { ServiceLogoMap } from "@/services/constants";
-import { routeHybridPath } from "../../utils";
 
 const ResultUsdt0OneClick = (props: any) => {
   const { service } = props;
@@ -129,10 +128,6 @@ const ResultUsdt0OneClick = (props: any) => {
     ];
   }, [_quoteData]);
 
-  const routePathMap = useMemo(() => {
-    return routeHybridPath(_quoteData, service);
-  }, [_quoteData, service]);
-
   return (
     <AnimatePresence>
       {
@@ -203,31 +198,6 @@ const ResultUsdt0OneClick = (props: any) => {
                 </>
               )
             }
-            {
-              routePathMap && routePathMap.length > 1 && (
-                <ResultFeeItem
-                  label="Routes"
-                  className="items-start"
-                  labelClassName="pt-0"
-                  loading={false}
-                  isDelete={false}
-                  isFormat={false}
-                >
-                  <div className="space-y-2">
-                    {
-                      routePathMap.map((item: any, index: number) => (
-                        <RoutePath
-                          key={index}
-                          fromToken={item.fromToken}
-                          toToken={item.toToken}
-                          service={item.service}
-                        />
-                      ))
-                    }
-                  </div>
-                </ResultFeeItem>
-              )
-            }
           </motion.div>
         )
       }
@@ -236,37 +206,3 @@ const ResultUsdt0OneClick = (props: any) => {
 };
 
 export default ResultUsdt0OneClick;
-
-const RoutePath = (props: any) => {
-  const { fromToken, toToken, service } = props;
-
-  return (
-    <div className="flex items-center gap-1 min-w-[280px]">
-      <div className="shrink-0 flex items-center gap-1">
-        <div className="">{fromToken?.chainName}</div>
-        <img
-          src={fromToken?.icon}
-          alt=""
-          className="shrink-0 w-4 h-4 object-center object-contain rounded-full"
-        />
-      </div>
-      <div className="relative flex items-center flex-1 w-0 gap-1">
-        <div className="flex-1 border-t border-dashed border-[#D6D6D6]"></div>
-        <img
-          src={ServiceLogoMap[service as Service]}
-          alt=""
-          className="shrink-0 w-14 h-4 object-center object-contain"
-        />
-        <div className="flex-1 border-t border-dashed border-[#D6D6D6]"></div>
-      </div>
-      <div className="shrink-0 flex items-center gap-1">
-        <div className="">{toToken?.chainName}</div>
-        <img
-          src={toToken?.icon}
-          alt=""
-          className="shrink-0 w-4 h-4 object-center object-contain rounded-full"
-        />
-      </div>
-    </div>
-  );
-};
