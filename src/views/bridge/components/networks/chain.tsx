@@ -37,7 +37,7 @@ export default function Chain({ token, isTo }: any) {
         onClick={openWallet}
       >
         <LazyImage
-          src={getStableflowIcon("select-token.gif")}
+          src={getStableflowIcon("select-token-2.gif")}
           alt=""
           containerClassName="w-11 md:w-12.5 h-11 md:h-12.5 rounded-full shrink-0 overflow-hidden"
           className="object-center scale-120"
