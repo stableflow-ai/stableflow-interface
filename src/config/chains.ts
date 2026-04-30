@@ -1,48 +1,69 @@
 import type { Service } from "@/services/constants";
 import { getStableflowChainLogo } from "@/utils/format/logo";
 
-export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; }> = {
+export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; bgColor: string; icon: string; iconGray: string; }> = {
   near: {
     value: "near",
     name: "Near",
     color: "#56DEAD",
+    bgColor: "#01ED97",
     bg: "linear-gradient(90deg, rgba(1, 237, 151, 0.20) 0%, rgba(1, 237, 151, 0.00) 50%)",
+    icon: getStableflowChainLogo("type-near", "svg"),
+    iconGray: getStableflowChainLogo("type-near-gray", "svg"),
   },
   sol: {
     value: "sol",
     name: "Solana",
     color: "#987FF3",
+    bgColor: "#282C34",
     bg: "linear-gradient(90deg, rgba(248, 108, 255, 0.20) 0%, rgba(248, 108, 255, 0.00) 50%)",
+    icon: getStableflowChainLogo("type-solana", "svg"),
+    iconGray: getStableflowChainLogo("type-solana-gray", "svg"),
   },
   evm: {
     value: "evm",
     name: "EVM",
     color: "#C4CAE1",
+    bgColor: "#6284F5",
     bg: "linear-gradient(90deg, rgba(185, 215, 255, 0.20) 0%, rgba(185, 215, 255, 0.00) 50%)",
+    icon: getStableflowChainLogo("type-evm", "svg"),
+    iconGray: getStableflowChainLogo("type-evm-gray", "svg"),
   },
   tron: {
     value: "tron",
     name: "Tron",
     color: "#F66273",
+    bgColor: "#D21F10",
     bg: "linear-gradient(90deg, rgba(210, 31, 16, 0.20) 0%, rgba(210, 31, 16, 0.00) 50%)",
+    icon: getStableflowChainLogo("type-tron", "svg"),
+    iconGray: getStableflowChainLogo("type-tron-gray", "svg"),
   },
   aptos: {
     value: "aptos",
     name: "Aptos",
     color: "#000000",
+    bgColor: "#000000",
     bg: "linear-gradient(90deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.00) 50%)",
+    icon: getStableflowChainLogo("type-aptos", "svg"),
+    iconGray: getStableflowChainLogo("type-aptos-gray", "svg"),
   },
   ton: {
     value: "ton",
     name: "Ton",
     color: "#0098EA",
+    bgColor: "#298DFF",
     bg: "linear-gradient(90deg, rgba(0, 152, 234, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
+    icon: getStableflowChainLogo("type-ton", "svg"),
+    iconGray: getStableflowChainLogo("type-ton-gray", "svg"),
   },
   sui: {
     value: "sui",
     name: "Sui",
     color: "#298DFF",
+    bgColor: "#298DFF",
     bg: "linear-gradient(90deg, rgba(41, 141, 255, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
+    icon: getStableflowChainLogo("type-sui", "svg"),
+    iconGray: getStableflowChainLogo("type-sui-gray", "svg"),
   },
 };
 
