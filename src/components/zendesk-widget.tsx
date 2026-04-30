@@ -1,7 +1,25 @@
-import { getStableflowIcon } from "@/utils/format/logo";
 import { csl } from "@/utils/log";
-import clsx from "clsx";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+
+type ZendeskContextType = {
+  mounted: boolean;
+  setMounted: (mounted: boolean) => void;
+  opened: boolean;
+  setOpened: (opened: boolean) => void;
+  onOpen: () => void;
+}
+
+const ZendeskContext = createContext<ZendeskContextType>({
+  mounted: false,
+  setMounted: () => { },
+  opened: false,
+  setOpened: () => { },
+  onOpen: () => { },
+});
+
+export const useZendeskContext = () => {
+  return useContext(ZendeskContext);
+};
 
 /**
  * Zendesk Customer Support Widget
@@ -14,8 +32,8 @@ import { useEffect, useState } from "react";
  * 
  * Note: Must use VITE_ prefix (Vite requirement)
  */
-export default function ZendeskWidget(props: any) {
-  const { className } = props;
+export default function ZendeskPrivider(props: any) {
+  const { children } = props;
 
   const [mounted, setMounted] = useState(false);
   const [opened, setOpened] = useState(false);
@@ -110,24 +128,20 @@ export default function ZendeskWidget(props: any) {
     };
   }, []);
 
-  // This component does not render anything, only loads Zendesk script
-  return mounted && !opened && (
-    <button
-      type="button"
-      className={clsx("button text-md font-[SpaceGrotesk] font-normal leading-[100%] flex justify-center items-center gap-2 bg-black text-white h-9 pl-3 pr-4.5 rounded-3xl", className)}
-      onClick={() => {
-        window.zE("webWidget", "open");
+  return (
+    <ZendeskContext.Provider
+      value={{
+        mounted,
+        setMounted,
+        opened,
+        setOpened,
+        onOpen: () => {
+          window.zE("webWidget", "open");
+        },
       }}
     >
-      <img
-        src={getStableflowIcon("icon-help.svg")}
-        alt=""
-        className="w-4 h-4 object-center object-contain shrink-0"
-      />
-      <div>
-        Help
-      </div>
-    </button>
+      {children}
+    </ZendeskContext.Provider>
   );
 }
 
