@@ -4,6 +4,7 @@ import { ServiceLogoMap } from "@/services/constants";
 import Trusted from "@/views/bridge/components/trusted";
 import { getStableflowTokenLogo } from "@/utils/format/logo";
 import { ECOSYSTEM_NETWORK_ORDER, ECOSYSTEM_RAILS, ECOSYSTEM_STABLECOINS } from "./config";
+import SupportLink from "@/components/support-link";
 
 const Ecosystem = () => {
   return (
@@ -33,7 +34,7 @@ const Ecosystem = () => {
 
           <section className="mt-[58px]">
             <h2 className="text-[26px] leading-none font-normal text-black">
-              Stablecoins
+              <span className="hidden md:inline">Supported </span>Stablecoins
             </h2>
             <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {ECOSYSTEM_STABLECOINS.map((token) => (
@@ -99,6 +100,7 @@ const Ecosystem = () => {
 
           <section className="mt-15 md:mt-30 pb-[76px] w-full overflow-hidden">
             <Trusted />
+            <SupportLink />
           </section>
         </main>
       </div>
