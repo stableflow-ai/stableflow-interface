@@ -2,6 +2,7 @@ import clsx from "clsx";
 import SectionTitle from "../components/section-title";
 import { ABOUT_LINKS, RESOURCE_CARDS } from "../config";
 import { EXTERNAL_LINK_PROPS } from "../utils";
+import SupportLink from "@/components/support-link";
 
 const mobileOrderClassName = {
   x: "order-1",
@@ -60,12 +61,7 @@ const Resources = () => {
             );
           })}
         </div>
-        <p className="mt-6 text-center text-sm font-light leading-[150%] text-[#444C59] md:mt-8">
-          For chain or stablecoin integration proposals, reach out via{" "}
-          <a href={ABOUT_LINKS.support} {...EXTERNAL_LINK_PROPS} className="font-medium text-[#6284F5] hover:underline">
-            Support →
-          </a>
-        </p>
+        <SupportLink />
       </div>
     </section>
   );
