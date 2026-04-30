@@ -428,7 +428,7 @@ export default class SolanaWallet {
 
       const programId = new PublicKey(originLayerzeroAddress);
       const tokenMint = new PublicKey(fromToken.contractAddress);
-      const quotePayer = new PublicKey("66YZZejVBupBnMwSEqTaCkAMwPacpPzP41GSEst55Kgz");
+      const quotePayer = new PublicKey("9JXR51yBLBgfesHF8SJgKWkNnx4FxtJCxCc3AV31TBsn");
       const lookupTable = new PublicKey("6zcTrmdkiQp6dZHYUxVr6A2XVDSYi44X1rcPtvwNcrXi");
       const tokenEscrow = new PublicKey("F1YkdxaiLA1eJt12y3uMAQef48Td3zdJfYhzjphma8hG");
       const sender = this.publicKey!;
