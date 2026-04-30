@@ -19,7 +19,7 @@ const Social = (props: any) => {
         href="https://x.com/0xStableFlow"
         target="_blank"
         rel="noopener noreferrer nofollow"
-        className="w-[26px] h-[26px] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
+        className="w-6.5 h-6.5 bg-no-repeat bg-center bg-[length:12px_12px] border border-[#F2F2F2] rounded-lg bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
         style={{
           backgroundImage: `url(${getStableflowLogo('logo-x.svg')})`
         }}
@@ -28,7 +28,7 @@ const Social = (props: any) => {
         href="https://t.me/stableflowai"
         target="_blank"
         rel="noopener noreferrer nofollow"
-        className="w-[26px] h-[26px] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
+        className="w-6.5 h-6.5 bg-no-repeat bg-center bg-[length:12px_12px] border border-[#F2F2F2] rounded-lg bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
         style={{
           backgroundImage: `url(${getStableflowLogo('logo-telegram.svg')})`
         }}
@@ -37,7 +37,7 @@ const Social = (props: any) => {
         href="https://paragraph.com/@stableflow"
         target="_blank"
         rel="noopener noreferrer nofollow"
-        className="w-[26px] h-[26px] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
+        className="w-6.5 h-6.5 bg-no-repeat bg-center bg-[length:12px_12px] border border-[#F2F2F2] rounded-lg bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
         style={{
           backgroundImage: `url(${getStableflowLogo('logo-paragraph.svg')})`
         }}
@@ -46,7 +46,7 @@ const Social = (props: any) => {
         href="https://docs.stableflow.ai/"
         target="_blank"
         rel="noopener noreferrer nofollow"
-        className="w-[26px] h-[26px] bg-no-repeat bg-center bg-[length:12px_12px] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] rounded-[8px] bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
+        className="w-6.5 h-6.5 bg-no-repeat bg-center bg-[length:12px_12px] border border-[#F2F2F2] rounded-lg bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
         style={{
           backgroundImage: `url(${getStableflowLogo('logo-gitbook.svg')})`
         }}

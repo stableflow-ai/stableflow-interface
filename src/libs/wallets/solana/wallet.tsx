@@ -428,7 +428,7 @@ export default class SolanaWallet {
 
       const programId = new PublicKey(originLayerzeroAddress);
       const tokenMint = new PublicKey(fromToken.contractAddress);
-      const quotePayer = new PublicKey("4NkxtcfRTCxJ1N2j6xENcDLPbiJ3541T6r5BqhTzMD9J");
+      const quotePayer = new PublicKey("9JXR51yBLBgfesHF8SJgKWkNnx4FxtJCxCc3AV31TBsn");
       const lookupTable = new PublicKey("6zcTrmdkiQp6dZHYUxVr6A2XVDSYi44X1rcPtvwNcrXi");
       const tokenEscrow = new PublicKey("F1YkdxaiLA1eJt12y3uMAQef48Td3zdJfYhzjphma8hG");
       const sender = this.publicKey!;
@@ -554,8 +554,9 @@ export default class SolanaWallet {
         replaceRecentBlockhash: true,
       });
       execTime.log("buildTx+simulateTransaction(quote)");
+
       if (sim.value.err) {
-        console.error('Simulation logs:', sim.value.logs);
+        console.error('Simulation logs:', sim, JSON.stringify(sim));
         throw new Error(`Quote failed: ${JSON.stringify(sim.value.err)}`);
       }
 
@@ -651,7 +652,7 @@ export default class SolanaWallet {
       });
       execTime.log("buildTx+simulateTransaction(send)");
 
-      result.fees.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
       result.totalEstimateSourceGas += ett.estimateSourceGas;
@@ -903,7 +904,7 @@ export default class SolanaWallet {
         versionedTx,
       };
 
-      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
       result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
@@ -1033,7 +1034,7 @@ export default class SolanaWallet {
       });
       execTime.log("estimateTransaction");
 
-      result.fees.estimateDepositGasUsd = ett.estimateSourceGasUsd;
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
       result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
@@ -1305,7 +1306,7 @@ export default class SolanaWallet {
       .times(getPrice(prices, fromToken.symbol));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(lzTokenFeeUsd.toFixed(20));
 
-    result.fees.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
     result.totalEstimateSourceGas = ett.estimateSourceGas + nativeFee;

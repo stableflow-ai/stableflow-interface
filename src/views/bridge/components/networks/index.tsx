@@ -1,89 +1,398 @@
-import Address from "./address";
 import useWalletStore from "@/stores/use-wallet";
-import Chain from "./chain";
-import Bottom from "./bottom";
 import { useSwitchChain } from "wagmi";
-import { lazy, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Loading from "@/components/loading/icon";
-import InputNumber from "@/components/input-number";
 import useBridgeStore from "@/stores/use-bridge";
-import { useTrack } from "@/hooks/use-track";
+import { formatNumber, numberRemoveEndZero } from "@/utils/format/number";
+import Big from "big.js";
+import FromAmountProgress from "./progress";
+import NetworkCard from "./card";
+import usePricesStore from "@/stores/use-prices";
+import LazyImage from "@/components/lazy-image";
+import { routeHybridPath } from "../../utils";
+import { getStableflowIcon } from "@/utils/format/logo";
+import { Service, ServiceLogoSimpleMap } from "@/services/constants";
+import { formatDuration } from "@/utils/format/time";
+import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
+import useTokenBalance from "@/hooks/use-token-balance";
+import clsx from "clsx";
+import { AnimatePresence, motion } from "framer-motion";
+import Destination from "./destination";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay } from "swiper/modules";
+import CostEfficientModal from "../cost-efficient-modal";
 
 const Setting = lazy(() => import("@/sections/setting"));
+const Result = lazy(() => import("../result"));
+const QuoteRoutes = lazy(() => import("../routes"));
 
-export default function Networks({ addressValidation }: any) {
+type NetworksProps = {
+  addressValidation?: {
+    isValid?: boolean;
+  } | null;
+};
+
+export default function Networks({ addressValidation }: NetworksProps) {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
-  const { switchChain } = useSwitchChain();
-  const timer = useRef<any>(null);
-  const [toggleLoading, setToggleLoading] = useState(false);
+  const { switchChainAsync } = useSwitchChain();
+  const { prices } = usePricesStore();
+  const balancesStore = useBalancesStore();
+  const { loading: balanceLoading } = useTokenBalance(walletStore.fromToken, true);
 
-  const toggleChain = () => {
-    if (toggleLoading) return;
+  const timer = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const [toggleLoading, setToggleLoading] = useState(false);
+  const [isProgress, setIsProgress] = useState(false);
+  const [isRoutes, setIsRoutes] = useState(false);
+  const [isCostModalOpen, setIsCostModalOpen] = useState(false);
+
+  const toggleChain = async () => {
+    if (toggleLoading || (!walletStore.fromToken && !walletStore.toToken)) return;
     setToggleLoading(true);
-    return new Promise(async (resolve) => {
-      const fromToken = walletStore.fromToken;
-      const toToken = walletStore.toToken;
-      if (toToken?.chainType === "evm") {
-        await switchChain({ chainId: toToken.chainId });
-      }
+
+    const fromToken = walletStore.fromToken;
+    const toToken = walletStore.toToken;
+
+    if (toToken?.chainType === "evm") {
+      await switchChainAsync({
+        chainId: toToken.chainId,
+        addEthereumChainParameter: {
+          chainName: toToken.chainName,
+          nativeCurrency: {
+            name: toToken.nativeToken.symbol,
+            symbol: toToken.nativeToken.symbol,
+            decimals: toToken.nativeToken.decimals,
+          },
+          rpcUrls: toToken.rpcUrls,
+          blockExplorerUrls: toToken.blockExplorerUrls,
+        },
+      });
+    }
+
+    return new Promise((resolve) => {
       timer.current = setTimeout(() => {
         walletStore.set({ fromToken: toToken, toToken: fromToken });
-        clearTimeout(timer.current);
+        if (timer.current) {
+          clearTimeout(timer.current);
+        }
+        timer.current = null;
         resolve(true);
         setToggleLoading(false);
-      }, 1000);
+      }, 150);
     });
   };
 
+  const quoteData = useMemo(() => {
+    return bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
+  }, [bridgeStore.quoteDataMap, bridgeStore.quoteDataService]);
+
+  const hybridPath = routeHybridPath(quoteData, bridgeStore.quoteDataService);
+  const isFromTron = quoteData?.quoteParam?.fromToken?.chainType === "tron";
+  const isQuoting = bridgeStore.getQuoting(bridgeStore.quoteDataService);
+  const isFromDisabled = !walletStore.fromToken || balanceLoading;
+  const isToDisabled = isQuoting || !quoteData;
+
+  const balance = useMemo(() => {
+    if (!walletStore.fromToken) {
+      return "0.00";
+    }
+    const key = `${walletStore.fromToken.chainType}Balances` as keyof BalancesState;
+    const _balance = balancesStore[key]?.[walletStore.fromToken.chainId || walletStore.fromToken.blockchain]?.[walletStore.fromToken.contractAddress];
+    return _balance ? _balance : "0.00";
+  }, [walletStore.fromToken, balancesStore]);
+
   useEffect(() => {
     return () => {
-      clearTimeout(timer.current);
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
     };
   }, []);
 
   return (
     <div className="w-full px-[10px] md:px-0">
       <div className="w-full flex justify-between items-center">
-        <div className="text-[#444C59] text-[14px] md:text-[16px] w-full block">
-          Move stablecoins anywhere.
+        <div className="text-[#444C59] text-sm md:text-base w-full flex items-center gap-1">
+          <div className="">
+            Best price compared with
+          </div>
+          <div className="w-17.5 h-5 overflow-hidden">
+            <Swiper
+              className="w-full h-full"
+              slidesPerView={1}
+              loop={true}
+              modules={[Autoplay]}
+              autoplay={{
+                delay: 3000,
+                pauseOnMouseEnter: false,
+              }}
+            >
+              <SwiperSlide>
+                <img
+                  src="/about/icons/icon-usdt0-gray.png"
+                  alt=""
+                  className="w-17.5 h-5 object-center object-contain"
+                />
+              </SwiperSlide>
+              <SwiperSlide>
+                <img
+                  src="/about/icons/icon-circle-gray.png"
+                  alt=""
+                  className="w-17.5 h-5 object-center object-contain"
+                />
+              </SwiperSlide>
+            </Swiper>
+          </div>
+          <button
+            type="button"
+            className="w-3.5 h-3.5 shrink-0 flex justify-center items-center cursor-pointer"
+            onClick={() => setIsCostModalOpen(true)}
+          >
+            <img
+              src={getStableflowIcon("icon-info.svg")}
+              alt=""
+              className="w-full h-full object-center object-contain"
+            />
+          </button>
         </div>
         <Setting />
       </div>
-      <div className="mt-[12px] bg-white rounded-[12px] border border-[#F2F2F2] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)]">
-        <div className="h-9 px-2 md:px-5 flex items-center bg-[#FAFBFF] rounded-t-[12px] border-b border-[#EBF0F8]">
-          <div className="w-1/2 border-r border-[#EBF0F8] flex items-center h-full">
-            <Address token={walletStore.fromToken} isTo={false} />
-          </div>
-          <div className="w-1/2 flex items-center justify-end h-full pl-[10px]">
-            <Address
-              token={walletStore.toToken}
-              isTo={true}
-              addressValidation={addressValidation}
-            />
-          </div>
-        </div>
-        <div className="w-full mt-[6px]">
-          <div className="p-[6px] pt-0 flex items-center relative">
-            <Chain key="from" token={walletStore.fromToken} isTo={false} />
-            <InputNumber
-              className="md:min-w-25 relative z-2 grow text-[22px] md:text-[32px] font-medium border-none outline-none text-center w-full text-black"
-              value={bridgeStore.amount}
-              onNumberChange={(value) => {
-                bridgeStore.set({ amount: value });
-              }}
-              decimals={walletStore.fromToken?.decimals || 6}
-              placeholder="0"
-            />
-            <Chain key="to" token={walletStore.toToken} isTo={true} />
-            <ExchangeButton
-              onClick={toggleChain}
-              loading={toggleLoading}
-            />
-          </div>
+      <CostEfficientModal
+        open={isCostModalOpen}
+        onClose={() => setIsCostModalOpen(false)}
+      />
 
-          <Bottom token={walletStore.fromToken} />
+      <div className="relative w-full">
+        <NetworkCard
+          key="from"
+          direction="from"
+          className="mt-2"
+          titleContent="From"
+          amount={bridgeStore.amount}
+          onAmountChange={(value: string) => {
+            bridgeStore.set({ amount: value });
+          }}
+          token={walletStore.fromToken}
+          prices={prices}
+          disabled={!walletStore.fromToken}
+          rightContent={(
+            <div className="flex items-center justify-end gap-3.5">
+              {
+                !!walletStore.fromToken && (
+                  <div className="flex items-center gap-1 text-xs text-[#9FA7BA] leading-[100%] font-['SpaceGrotesk] font-normal">
+                    <div className="">
+                      Balance:
+                    </div>
+                    <div className="text-[#0E3616]">
+                      {
+                        balanceLoading ? (
+                          <Loading size={12} className="text-[#B3BBCE]" />
+                        ) : formatNumber(balance, 2, true, { round: Big.roundDown })
+                      }
+                    </div>
+                  </div>
+                )
+              }
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={isFromDisabled}
+                  className={clsx(
+                    "cursor-pointer hover:bg-[#FAFBFF] duration-150 disabled:cursor-not-allowed disabled:opacity-30 flex justify-center items-center shrink-0 border bg-white h-6 w-10 rounded-xl text-[#9FA7BA] text-xs font-normal leading-[100%] font-['SpaceGrotesk']",
+                    isProgress ? "border-[#6284F5]" : "border-[#F2F2F2]",
+                  )}
+                  onClick={() => {
+                    setIsProgress((prev) => !prev);
+                  }}
+                >
+                  <svg width="20" height="9" viewBox="0 0 20 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0.800049 4.50018H18.8" stroke={isProgress ? "#6284F5" : "#9FA7BA"} strokeWidth="1.6" strokeLinecap="round" />
+                    <circle cx="9.80005" cy="4.5" r="3.7" fill="white" stroke={isProgress ? "#6284F5" : "#9FA7BA"} strokeWidth="1.6" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  disabled={isFromDisabled}
+                  className="cursor-pointer hover:bg-[#FAFBFF] duration-150 disabled:cursor-not-allowed disabled:opacity-30 flex justify-center items-center shrink-0 border border-[#F2F2F2] bg-white h-6 w-10 rounded-xl text-[#9FA7BA] text-xs font-normal leading-[100%] font-['SpaceGrotesk']"
+                  onClick={() => {
+                    bridgeStore.set({ amount: numberRemoveEndZero(balance) });
+                  }}
+                >
+                  Max
+                </button>
+              </div>
+            </div>
+          )}
+        >
+          <AnimatePresence>
+            {
+              isProgress && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{
+                    duration: 0.15,
+                    ease: "linear"
+                  }}
+                  className="overflow-hidden"
+                >
+                  <FromAmountProgress
+                    amount={bridgeStore.amount}
+                    balance={balance}
+                    token={walletStore.fromToken}
+                    onAmountChange={(value: string) => {
+                      bridgeStore.set({ amount: value });
+                    }}
+                    balanceLoading={balanceLoading}
+                  />
+                </motion.div>
+              )
+            }
+          </AnimatePresence>
+        </NetworkCard>
+
+        <div className="w-full h-1.5 relative">
+          <ExchangeButton
+            onClick={toggleChain}
+            loading={toggleLoading}
+          />
         </div>
+
+        <NetworkCard
+          key="to"
+          direction="to"
+          className=""
+          titleContent={(
+            <div className="flex items-center justify-start gap-2 h-4">
+              <div className="">To</div>
+              <Destination
+                token={walletStore.toToken}
+                isTo={true}
+                addressValidation={addressValidation}
+              />
+            </div>
+          )}
+          amount={quoteData?.outputAmount}
+          token={walletStore.toToken}
+          prices={prices}
+          disabled={isToDisabled}
+          rightContent={(
+            <div className="flex items-center justify-end gap-5 pr-3">
+              <div className={clsx("flex items-center gap-0 duration-150", isRoutes ? "opacity-0" : "opacity-100")}>
+                {
+                  isToDisabled ? (
+                    null
+                  ) : hybridPath?.map((route, idx) => (
+                    <>
+                      <LazyImage
+                        key={`simplePathImg${idx}`}
+                        src={ServiceLogoSimpleMap[route.service]}
+                        containerClassName="w-4 h-4 shrink-0"
+                      />
+                      {
+                        idx < hybridPath.length - 1 && (
+                          <LazyImage
+                            key={`simplePathArrow${idx}`}
+                            src={getStableflowIcon("icon-arrow-down.svg")}
+                            containerClassName="w-4 h-1.5 -rotate-90"
+                          />
+                        )
+                      }
+                    </>
+                  ))
+                }
+              </div>
+              <div className="flex items-center gap-2 text-xs text-[#444C59] leading-[100%] font-normal font-['SpaceGrotesk']">
+                <AnimatePresence>
+                  {
+                    !isRoutes && (
+                      <motion.div
+                        className={clsx("flex items-center gap-4")}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
+                          <LazyImage
+                            src={getStableflowIcon("icon-fee.svg")}
+                            containerClassName="w-3 h-3.5 shrink-0"
+                          />
+                          {
+                            isToDisabled ? (
+                              <div className="">
+                                $-
+                              </div>
+                            ) : (
+                              <div className="">
+                                {
+                                  (([Service.OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService) && isFromTron) ? (
+                                    bridgeStore.acceptTronEnergy ?
+                                      formatNumber(quoteData?.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
+                                      formatNumber(quoteData?.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+                                  ) :
+                                    formatNumber(quoteData?.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+                                }
+                              </div>
+                            )
+                          }
+                        </div>
+                        <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
+                          <LazyImage
+                            src={getStableflowIcon("icon-time.svg")}
+                            containerClassName="w-3.5 h-3.5 shrink-0"
+                          />
+                          <div className="">
+                            {isToDisabled ? "-" : `~${formatDuration(quoteData?.estimateTime, { compound: true })}`}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )
+                  }
+                </AnimatePresence>
+                <button
+                  type="button"
+                  className="cursor-pointer pl-2 py-1.5 hover:opacity-80 duration-150"
+                  onClick={() => {
+                    setIsRoutes((prev) => !prev);
+                  }}
+                >
+                  <LazyImage
+                    src={getStableflowIcon("icon-arrow-down.svg")}
+                    containerClassName={clsx(
+                      "w-[15px] h-[7px] shrink-0 duration-150",
+                      isRoutes ? "rotate-180" : "",
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
+          )}
+        >
+          <AnimatePresence>
+            {
+              isRoutes && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{
+                    duration: 0.15,
+                    ease: "linear"
+                  }}
+                  className="overflow-hidden border-t border-[#EBF0F8] mt-4"
+                >
+                  <Suspense fallback={null}>
+                    <Result />
+                  </Suspense>
+                  <Suspense fallback={null}>
+                    <QuoteRoutes />
+                  </Suspense>
+                </motion.div>
+              )
+            }
+          </AnimatePresence>
+        </NetworkCard>
       </div>
     </div>
   );
@@ -92,17 +401,21 @@ export default function Networks({ addressValidation }: any) {
 const ExchangeButton = ({ onClick, loading }: { onClick: () => void; loading: boolean; }) => {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="absolute z-[1] bottom-[-12px] left-[50%] -translate-x-1/2 flex items-center justify-center button w-[22px] h-[22px] rounded-[6px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      className="absolute z-1 top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 flex items-center justify-center button w-8 h-8 rounded-lg bg-white border border-[#F2F2F2] shadow-[0_0_6px_0_rgba(0,0,0,0.10)] duration-150 hover:shadow-[0_0_3px_0_rgba(0,0,0,0.06)]"
     >
       {
-        loading ? <Loading size={12} className="text-[#B3BBCE]" /> : (
+        loading ? (
+          <Loading size={12} className="text-[#B3BBCE]" />
+        ) : (
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="12"
             height="12"
             viewBox="0 0 12 12"
             fill="none"
+            className="shrink-0 rotate-90"
           >
             <path
               d="M1 3.8913H10.913L7.6087 1"

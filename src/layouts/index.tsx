@@ -1,7 +1,6 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { lazy, Suspense, useRef } from "react";
 import UserActions from "./user-actions";
-import { getLogo } from "@/utils/format/logo";
 
 // import useUpdateTxns from "@/hooks/use-update-txns";
 // import SupportButton from "@/components/support-button";
@@ -9,30 +8,34 @@ import { getLogo } from "@/utils/format/logo";
 
 const MaintenanceBanner = lazy(() => import("@/components/maintenance-banner"));
 const Footer = lazy(() => import("./footer"));
+const Footer2 = lazy(() => import("./footer2"));
 const Wallet = lazy(() => import("@/sections/wallet"));
+const PixelBlast = lazy(() => import("@/components/pixel-blast"));
 
 const LoadingSpinner = () => null;
 
 export default function Layout() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+
+  const isHomePage = location.pathname === "/";
+  const ishistoryPage = location.pathname === "/history";
+  const isFooter2 = !isHomePage && !ishistoryPage;
 
   // useUpdateTxns();
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div className="relative w-full h-screen overflow-hidden bg-[#F6F8FC]">
       {/* Video Background */}
-      <div className="absolute inset-0 w-full h-full z-0 bg-white">
-        <video
-          className="w-full h-full object-cover opacity-40"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="none"
-        >
-          <source src={getLogo("/stableflow/bg.mp4")} type="video/mp4" />
-        </video>
-      </div>
+      {
+        isHomePage && (
+          <div className="absolute inset-0 w-full h-full z-0">
+            <Suspense fallback={<LoadingSpinner />}>
+              <PixelBlast />
+            </Suspense>
+          </div>
+        )
+      }
       {/* <AuroraBackground /> */}
 
       {/* Maintenance Banner */}
@@ -50,9 +53,17 @@ export default function Layout() {
           <Wallet />
         </Suspense>
 
-        <Suspense fallback={<LoadingSpinner />}>
-          <Footer containerRef={containerRef} />
-        </Suspense>
+        {
+          isFooter2 ? (
+            <Suspense fallback={<LoadingSpinner />}>
+              <Footer2 />
+            </Suspense>
+          ) : (
+            <Suspense fallback={<LoadingSpinner />}>
+              <Footer containerRef={containerRef} />
+            </Suspense>
+          )
+        }
       </div>
     </div>
   );

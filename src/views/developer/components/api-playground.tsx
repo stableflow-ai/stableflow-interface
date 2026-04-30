@@ -319,7 +319,7 @@ const ApiPlayground = () => {
         </p>
       </div>
 
-      <div className="mt-4 rounded-2xl bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] py-6 px-8 grid lg:grid-cols-[190px_1fr] gap-6 lg:gap-12">
+      <div className="mt-4 rounded-2xl bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] py-6 px-2 md:px-8 grid lg:grid-cols-[190px_1fr] gap-6 lg:gap-12">
         {/* Left side - Tabs */}
         <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
           {apiExamples.map((example) => (

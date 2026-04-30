@@ -3,106 +3,97 @@ import ChainIcon from "./chain-icon";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useHistoryStore } from "@/stores/use-history";
-import { useMemo, useState } from "react";
-import MainTitle from "@/components/main-title";
+import { lazy, Suspense, useMemo, useState } from "react";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
-import NavigationMenu, { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
+import { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
 import { useTrack } from "@/hooks/use-track";
-import { getStableflowIcon } from "@/utils/format/logo";
+import { getStableflowIcon, getStableflowLogo } from "@/utils/format/logo";
+
+const Social = lazy(() => import("@/components/social"));
+const NavigationMenu = lazy(() => import("@/components/navigation-menu"));
+const Terms = lazy(() => import("@/components/terms"));
 
 export default function UserActions() {
-  const walletStore = useWalletStore();
-  const walletsStore = useWalletsStore();
-  const navigate = useNavigate();
-  const pathname = useLocation();
+  const { pathname } = useLocation();
   const isMobile = useIsMobile();
-  const historyStore = useHistoryStore();
-  const { addHistory } = useTrack();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isHistory = useMemo(() => {
-    return pathname.pathname === "/history";
-  }, [pathname]);
-
-  const isOverview = useMemo(() => {
-    return pathname.pathname === "/overview";
-  }, [pathname]);
+  const isHomePage = useMemo(() => pathname === "/", [pathname]);
+  const isAppBar = useMemo(() => {
+    return isMobile && ["/", "/history"].includes(pathname);
+  }, [pathname, isMobile]);
 
   const hideActions = useMemo(() => {
     const regs = [
       /^\/developer/,
       /^\/learn-more/
     ];
-    return regs.some((reg) => reg.test(pathname.pathname));
+    return regs.some((reg) => reg.test(pathname));
   }, [pathname]);
 
   return (
     <>
-      <div className="w-full absolute z-[9] pl-[6px] md:pl-0 pr-[10px] top-[14px] flex justify-between items-center gap-[10px]">
-        <div className="flex items-center gap-[32px] md:gap-[48px]">
-          <div className="shrink-0">
-            <MainTitle className="!flex md:!hidden !w-[unset]" />
-          </div>
-          <div className="hidden md:flex">
-            <NavigationMenu />
-          </div>
-        </div>
-        <div className="shrink-0 flex items-center gap-[7px]">
-          {!hideActions ? (
+      <div className={clsx(
+        "w-full fixed z-9 pl-1.5 md:pl-5 pr-2.5 top-0 py-4 flex justify-between items-center gap-2.5",
+        isHomePage ? "" : "bg-[rgba(246,248,252,0.30)] backdrop-blur-[10px]",
+      )}>
+        {
+          isMobile ? (
             <>
-              {!walletsStore.evm.account &&
-                !walletsStore.sol.account &&
-                !walletsStore.near.account &&
-                !walletsStore.tron.account ? (
-                <button
-                  onClick={() => {
-                    walletStore.set({ showWallet: true });
-                  }}
-                  className="button px-[15px] md:px-[20px] py-[6px] md:py-[8px] bg-[#6284F5] rounded-[18px] text-[16px] text-white"
-                >
-                  Connect
-                </button>
-              ) : (
-                <div className="flex items-center gap-[7px]">
-                  {!isHistory && !isOverview && (
-                    <HistoryButton
-                      onClick={() => {
-                        addHistory({ type: "click" });
-                        if (isMobile) {
-                          historyStore.setOpenDrawer(!historyStore.openDrawer);
-                          return;
-                        }
-                        navigate("/history");
-                      }}
-                    />
-                  )}
-                  {!isHistory && !isOverview && (
-                    <OverviewButton
-                      onClick={() => {
-                        navigate("/overview");
-                      }}
-                      hidden={true}
-                    />
-                  )}
-                  <ChainsButton
-                    onClick={() => {
-                      walletStore.set({ showWallet: true });
-                    }}
+              <div className="flex items-center gap-2">
+                <Link to="/" className="shrink-0 h-10 w-[41px] flex items-center justify-center">
+                  <img
+                    src={getStableflowLogo("logo-stableflow.svg")}
+                    alt="StableFlow"
+                    className="h-10 w-[41px] object-contain"
                   />
-                </div>
-              )}
+                </Link>
+                <MobileMenuButton
+                  isOpen={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  isSimple
+                />
+              </div>
+              {
+                isAppBar
+                  ? (
+                    <AccountButton />
+                  )
+                  : (
+                    <Link
+                      to="/"
+                      className="shrink-0 h-9 px-4 rounded-[26px] bg-black text-white text-[16px] font-normal leading-none flex items-center gap-2"
+                    >
+                      Launch App
+                      <span className="text-[14px]" aria-hidden>
+                        →
+                      </span>
+                    </Link>
+                  )
+              }
             </>
           ) : (
-            <div className="h-[38px]"></div>
-          )}
-          {/* Mobile menu button */}
-          <MobileMenuButton
-            isOpen={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          />
-        </div>
+            <>
+              <Suspense fallback={null}>
+                <NavigationMenu />
+              </Suspense>
+              <div className="shrink-0 flex items-center gap-2">
+                {!hideActions ? (
+                  <AccountButton />
+                ) : (
+                  <div className="h-9.5"></div>
+                )}
+                {/* Mobile menu button */}
+                <MobileMenuButton
+                  isOpen={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                />
+              </div>
+            </>
+          )
+        }
       </div>
       {/* Mobile menu drawer */}
       <MobileMenuDrawer
@@ -119,7 +110,7 @@ const HistoryButton = ({ onClick }: any) => {
     <>
       <button
         onClick={onClick}
-        className="flex md:hidden relative button px-[12px] md:px-[18px] h-[38px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[19px] md:rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+        className="flex md:hidden relative button px-3 md:px-4.5 h-9.5 md:h-9 justify-center items-center text-[14px] gap-2 rounded-[19px] md:rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
       >
         <img
           src={getStableflowIcon("icon-records.svg")}
@@ -156,57 +147,6 @@ const HistoryButton = ({ onClick }: any) => {
   );
 };
 
-const OverviewButton = ({ onClick, hidden }: any) => {
-  if (hidden) {
-    return null;
-  }
-  return (
-    <>
-      <button
-        onClick={onClick}
-        className="flex md:hidden button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-[#444C59]"
-        >
-          <path d="M3 3v18h18" />
-          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
-        </svg>
-      </button>
-      <button
-        onClick={onClick}
-        className="hidden md:flex button px-[10px] md:px-[18px] h-[32px] md:h-[36px] justify-center items-center text-[14px] gap-[8px] rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-[#444C59]"
-        >
-          <path d="M3 3v18h18" />
-          <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
-        </svg>
-        <span className="text-[#444C59]">Overview</span>
-      </button>
-    </>
-  );
-};
-
 const ChainsButton = ({
   onClick,
 }: any) => {
@@ -218,28 +158,30 @@ const ChainsButton = ({
   const chainsToDisplay = useMemo(() => {
     const allChains = Object.entries(stablecoinWithChains);
 
-    if (!isMobile) {
-      // Desktop: show all chains
-      return allChains;
-    }
+    return allChains;
 
-    // Mobile: prioritize EVM, if EVM is not connected, show other connected wallet
-    if (walletsStore.evm?.account) {
-      // EVM is connected, show EVM
-      return allChains.filter(([chain]) => chain === 'evm');
-    }
+    // if (!isMobile) {
+    //   // Desktop: show all chains
+    //   return allChains;
+    // }
 
-    // EVM is not connected, find other connected wallet
-    const connectedChain = allChains.find(([chain]) =>
-      walletsStore?.[chain as WalletType]?.account
-    );
+    // // Mobile: prioritize EVM, if EVM is not connected, show other connected wallet
+    // if (walletsStore.evm?.account) {
+    //   // EVM is connected, show EVM
+    //   return allChains.filter(([chain]) => chain === 'evm');
+    // }
 
-    if (connectedChain) {
-      return [connectedChain];
-    }
+    // // EVM is not connected, find other connected wallet
+    // const connectedChain = allChains.find(([chain]) =>
+    //   walletsStore?.[chain as WalletType]?.account
+    // );
 
-    // None connected, default to first one (EVM)
-    return allChains.slice(0, 1);
+    // if (connectedChain) {
+    //   return [connectedChain];
+    // }
+
+    // // None connected, default to first one (EVM)
+    // return allChains.slice(0, 1);
   }, [isMobile, walletsStore.evm?.account, walletsStore.sol?.account, walletsStore.near?.account, walletsStore.tron?.account]);
 
   return (
@@ -254,7 +196,10 @@ const ChainsButton = ({
               key={index}
               chain={chain}
               connected={!!walletsStore?.[chain as WalletType]?.account}
-              className={clsx(index > 0 && "ml-[-8px]")}
+              className={clsx("relative", index > 0 && "ml-[-8px]")}
+              style={{
+                zIndex: index,
+              }}
             />
           );
         })
@@ -278,7 +223,7 @@ const ChainsButton = ({
   );
 };
 
-const MobileMenuButton = ({ isOpen, onClick }: { isOpen: boolean; onClick: () => void }) => {
+const MobileMenuButton = ({ isOpen, onClick, isSimple = false }: { isOpen: boolean; onClick: () => void; isSimple?: boolean; }) => {
   // Hide when menu is open since close button is inside the drawer
   if (isOpen) {
     return null;
@@ -287,9 +232,11 @@ const MobileMenuButton = ({ isOpen, onClick }: { isOpen: boolean; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className="flex md:hidden w-[38px] h-[38px] justify-center items-center button rounded-[19px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+      className={clsx(
+        "flex md:hidden w-[38px] h-[38px] justify-center items-center button rounded-[19px]",
+        isSimple ? "" : "bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]",
+      )}
     >
-      {/* Menu icon (hamburger) */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="16"
@@ -318,7 +265,7 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       {/* Backdrop */}
       <div
         className={clsx(
-          "fixed inset-0 bg-black/30 z-[99] md:hidden transition-opacity duration-300",
+          "fixed inset-0 bg-black/30 z-99 md:hidden transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
@@ -326,21 +273,21 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
       {/* Drawer */}
       <div
         className={clsx(
-          "fixed top-0 left-0 right-0 bg-white z-[100] md:hidden transition-transform duration-300 ease-out shadow-[0_4px_12px_0_rgba(0,0,0,0.15)]",
+          "fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-[10px] z-100 md:hidden transition-transform duration-300 ease-out max-h-[80dvh] overflow-y-auto",
           isOpen ? "translate-y-0" : "-translate-y-full"
         )}
       >
-        <div className="flex justify-between items-center px-4 pt-5">
-          <HyperliquidDeposit className="" />
+        <div className="relative flex justify-center items-center pt-[15px]">
           {/* Close button inside drawer */}
           <button
             onClick={onClose}
-            className="w-[38px] h-[38px] flex justify-center items-center button rounded-[19px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
+            className="absolute left-2 top-3.5 w-9 h-9 flex justify-center items-center button rounded-full text-[#444C59]"
+            aria-label="Close menu"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
+              width="14"
+              height="14"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -353,11 +300,45 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
+          <HyperliquidDeposit className="flex! md:flex! w-[287px] justify-center" />
         </div>
 
-        <div className="pt-4 pb-5 px-5">
-          <nav className="flex flex-col gap-[16px]">
+        <div className="pt-3.5 pb-8 px-3.5">
+          <nav className="flex flex-col gap-1">
             {menuItems.map((item, index) => {
+              if (typeof item.path !== "string") {
+                return (
+                  <div className="contents" key={index}>
+                    {
+                      item.children.map((child, idx) => {
+                        const isActive = location.pathname.startsWith(child.path);
+                        return (
+                          <Link
+                            key={`${index}-${idx}`}
+                            to={child.path}
+                            target={child.isExternal ? "_blank" : undefined}
+                            className={clsx(
+                              "w-full h-[60px] px-4 rounded-lg text-lg text-black text-center font-['SpaceGrotesk'] flex justify-center items-center gap-2 font-normal hover:bg-[#F5F7FD] duration-150 cursor-pointer",
+                              isActive ? "bg-[#F5F7FD]" : "bg-transparent",
+                            )}
+                            onClick={onClose}
+                          >
+                            {child.label}
+                            {
+                              child.isExternal && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">
+                                  <path d="M3.83333 0.5H2.5C1.39543 0.5 0.5 1.39543 0.5 2.5V8.5C0.5 9.60457 1.39543 10.5 2.5 10.5H8.5C9.60457 10.5 10.5 9.60457 10.5 8.5V7M4.5 6.81579L10.5 0.5M10.5 0.5H6.5M10.5 0.5V4.5" stroke="#9FA7BA" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )
+                            }
+                          </Link>
+                        );
+                      })
+                    }
+                  </div>
+                )
+              }
+
               const isActive = item.path === "/"
                 ? location.pathname === "/"
                 : location.pathname.startsWith(item.path);
@@ -370,7 +351,10 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={onClose}
-                    className="text-[16px] font-[500] text-[#2B3337]/70 hover:text-[#2B3337] transition-colors duration-200 py-[8px]"
+                    className={clsx(
+                      "w-full h-[60px] px-4 rounded-lg text-lg text-black text-center font-['SpaceGrotesk'] font-normal hover:bg-[#F5F7FD] transition-colors duration-150 flex justify-center items-center",
+                      isActive ? "bg-[#F5F7FD]" : "bg-transparent",
+                    )}
                   >
                     {item.label}
                   </a>
@@ -383,24 +367,81 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                   to={item.path}
                   onClick={onClose}
                   className={clsx(
-                    "text-[16px] font-[500] transition-colors duration-200 py-[8px] relative",
-                    isActive
-                      ? "text-[#2B3337]"
-                      : "text-[#2B3337]/70 hover:text-[#2B3337]"
+                    "w-full h-[60px] px-4 rounded-lg text-lg text-black text-center font-['SpaceGrotesk'] font-normal hover:bg-[#F5F7FD] transition-colors duration-150 relative flex justify-center items-center",
+                    isActive ? "bg-[#F5F7FD]" : "bg-transparent",
                   )}
                 >
                   <span className="flex items-center gap-[8px]">
                     {item.label}
-                    {isActive && (
-                      <div className="w-[6px] h-[6px] rounded-full bg-[#0E3616]" />
-                    )}
                   </span>
                 </Link>
               );
             })}
           </nav>
+          <div className="mt-6 flex justify-center">
+            <Suspense fallback={null}>
+              <Social className="gap-4! justify-center [&_a]:w-9! [&_a]:h-9! [&_a]:bg-size-[16px_16px]!" />
+            </Suspense>
+          </div>
+          <div onClick={onClose} className="mt-7 flex justify-center">
+            <Suspense fallback={null}>
+              <Terms className="w-auto! justify-center gap-11" />
+            </Suspense>
+          </div>
         </div>
       </div>
     </>
+  );
+};
+
+const AccountButton = () => {
+  const walletsStore = useWalletsStore();
+  const walletStore = useWalletStore();
+  const { addHistory } = useTrack();
+  const navigate = useNavigate();
+  const historyStore = useHistoryStore();
+  const isMobile = useIsMobile();
+  const { pathname } = useLocation();
+
+  const isHistory = useMemo(() => {
+    return pathname === "/history";
+  }, [pathname]);
+
+  const isConnected = useMemo(() => {
+    const accounts = Object.values(walletsStore).map((wallet) => wallet.account);
+    return accounts.some((account) => !!account);
+  }, [walletsStore]);
+
+  return (
+    !isConnected ? (
+      <button
+        onClick={() => {
+          walletStore.set({ showWallet: true });
+        }}
+        className="button px-3.5 md:px-5 py-1.5 md:py-2 bg-[#6284F5] rounded-4.5 text-base text-white"
+      >
+        Connect
+      </button>
+    ) : (
+      <div className="flex items-center gap-2">
+        {!isHistory && !isMobile && (
+          <HistoryButton
+            onClick={() => {
+              addHistory({ type: "click" });
+              if (isMobile) {
+                historyStore.setOpenDrawer(!historyStore.openDrawer);
+                return;
+              }
+              navigate("/history");
+            }}
+          />
+        )}
+        <ChainsButton
+          onClick={() => {
+            walletStore.set({ showWallet: true });
+          }}
+        />
+      </div>
+    )
   );
 };

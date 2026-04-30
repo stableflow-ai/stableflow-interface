@@ -80,7 +80,22 @@ export default function Token({
                       };
 
                       if (!walletStore.isTo) {
-                        await switchChainAsync({ chainId: chain.chainId });
+                        await switchChainAsync({
+                          chainId: chain.chainId,
+                          addEthereumChainParameter: {
+                            chainName: chain.chainName,
+                            nativeCurrency: {
+                              name: chain.nativeToken.symbol,
+                              symbol: chain.nativeToken.symbol,
+                              decimals: chain.nativeToken.decimals,
+                            },
+                            rpcUrls: chain.rpcUrls,
+                            blockExplorerUrls: chain.blockExplorerUrls,
+                          },
+                        }, {
+                          onSuccess: (data) => { },
+                          onError: (error) => { },
+                        });
                       }
 
                       if (walletStore.isTo) {

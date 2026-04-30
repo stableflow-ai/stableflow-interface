@@ -1,58 +1,37 @@
 import clsx from "clsx";
-import ethSmallIcon from "@/assets/eth-small.png";
-import solSmallIcon from "@/assets/sol-small.png";
-import nearSmallIcon from "@/assets/near-small.png";
-import tronSmallIcon from "@/assets/tron-small.png";
-import aptosSmallIcon from "@/assets/aptos-small.png";
-import tonSmallIcon from "@/assets/ton-small.png";
-
-const CHAINS = {
-  evm: {
-    color: "#6284F5",
-    icon: <img src={ethSmallIcon} alt="eth" />
-  },
-  sol: {
-    color: "#282C34",
-    icon: <img src={solSmallIcon} alt="sol" />
-  },
-  near: {
-    color: "#01ED97",
-    icon: <img src={nearSmallIcon} alt="near" />
-  },
-  tron: {
-    color: "#D21F10",
-    icon: <img src={tronSmallIcon} alt="tron" />
-  },
-  aptos: {
-    color: "#000000",
-    icon: <img src={aptosSmallIcon} alt="aptos" className="w-[16px] h-[16px] object-center object-contain" />
-  },
-  ton: {
-    color: "#0098EA",
-    icon: <img src={tonSmallIcon} alt="ton" className="w-[16px] h-[16px] object-center object-contain" />
-  }
-};
+import { chainTypes } from "@/config/chains";
+import LazyImage from "@/components/lazy-image";
 
 export default function ChainIcon({
   chain,
   connected,
-  className
+  className,
+  style,
 }: {
   chain: string;
   connected: boolean;
   className?: string;
+  style?: React.CSSProperties;
 }) {
-  const chainInfo = CHAINS[chain as keyof typeof CHAINS];
+  const chainInfo = chainTypes[chain];
   return (
     <div
       className={clsx(
-        "w-[26px] h-[26px] rounded-full flex justify-center items-center border",
+        "w-6.5 h-6.5 rounded-full flex justify-center items-center border",
         className,
-        connected ? "border-transparent" : "border-[#A1A699] border-dashed"
+        connected ? "border-transparent" : "border-[#9FA7BA] border-dashed"
       )}
-      style={{ backgroundColor: connected ? chainInfo.color : "#DFE7ED" }}
+      style={{
+        backgroundColor: connected ? chainInfo.bgColor : "#DFE7ED",
+        ...style,
+      }}
     >
-      <div className={clsx(!connected && "opacity-30")}>{chainInfo.icon}</div>
+      <LazyImage
+        src={connected ? chainInfo.icon : chainInfo.iconGray}
+        alt=""
+        containerClassName="w-full h-full"
+        className="object-center object-contain"
+      />
     </div>
   );
 }
