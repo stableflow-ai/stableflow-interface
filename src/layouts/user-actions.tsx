@@ -196,7 +196,10 @@ const ChainsButton = ({
               key={index}
               chain={chain}
               connected={!!walletsStore?.[chain as WalletType]?.account}
-              className={clsx(index > 0 && "ml-[-8px]")}
+              className={clsx("relative", index > 0 && "ml-[-8px]")}
+              style={{
+                zIndex: index,
+              }}
             />
           );
         })
@@ -306,32 +309,32 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               if (typeof item.path !== "string") {
                 return (
                   <div className="contents" key={index}>
-                      {
-                        item.children.map((child, idx) => {
-                          const isActive = location.pathname.startsWith(child.path);
-                          return (
-                            <Link
-                              key={`${index}-${idx}`}
-                              to={child.path}
-                              target={child.isExternal ? "_blank" : undefined}
-                              className={clsx(
-                                "w-full h-[60px] px-4 rounded-lg text-lg text-black text-center font-['SpaceGrotesk'] flex justify-center items-center gap-2 font-normal hover:bg-[#F5F7FD] duration-150 cursor-pointer",
-                                isActive ? "bg-[#F5F7FD]" : "bg-transparent",
-                              )}
-                              onClick={onClose}
-                            >
-                              {child.label}
-                              {
-                                child.isExternal && (
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">
-                                    <path d="M3.83333 0.5H2.5C1.39543 0.5 0.5 1.39543 0.5 2.5V8.5C0.5 9.60457 1.39543 10.5 2.5 10.5H8.5C9.60457 10.5 10.5 9.60457 10.5 8.5V7M4.5 6.81579L10.5 0.5M10.5 0.5H6.5M10.5 0.5V4.5" stroke="#9FA7BA" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
-                                )
-                              }
-                            </Link>
-                          );
-                        })
-                      }
+                    {
+                      item.children.map((child, idx) => {
+                        const isActive = location.pathname.startsWith(child.path);
+                        return (
+                          <Link
+                            key={`${index}-${idx}`}
+                            to={child.path}
+                            target={child.isExternal ? "_blank" : undefined}
+                            className={clsx(
+                              "w-full h-[60px] px-4 rounded-lg text-lg text-black text-center font-['SpaceGrotesk'] flex justify-center items-center gap-2 font-normal hover:bg-[#F5F7FD] duration-150 cursor-pointer",
+                              isActive ? "bg-[#F5F7FD]" : "bg-transparent",
+                            )}
+                            onClick={onClose}
+                          >
+                            {child.label}
+                            {
+                              child.isExternal && (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">
+                                  <path d="M3.83333 0.5H2.5C1.39543 0.5 0.5 1.39543 0.5 2.5V8.5C0.5 9.60457 1.39543 10.5 2.5 10.5H8.5C9.60457 10.5 10.5 9.60457 10.5 8.5V7M4.5 6.81579L10.5 0.5M10.5 0.5H6.5M10.5 0.5V4.5" stroke="#9FA7BA" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )
+                            }
+                          </Link>
+                        );
+                      })
+                    }
                   </div>
                 )
               }
