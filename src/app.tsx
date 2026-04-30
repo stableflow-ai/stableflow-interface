@@ -11,6 +11,7 @@ import { lazy, useEffect, Suspense } from "react";
 import { useEvmGasFees } from "./hooks/use-evm-gas-fees";
 import ErrorPage from "./views/error";
 import { usePrices } from "./hooks/use-prices";
+import ZendeskPrivider from "./components/zendesk-widget";
 
 const History = lazy(() => import("./views/history"));
 const About = lazy(() => import("./views/about"));
@@ -85,28 +86,30 @@ function App() {
 
   return (
     <WalletsProvider>
-      <RouterProvider router={router} />
+      <ZendeskPrivider>
+        <RouterProvider router={router} />
 
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={true}
-        theme="light"
-        toastStyle={{ backgroundColor: "transparent", boxShadow: "none" }}
-        newestOnTop
-        rtl={false}
-        pauseOnFocusLoss
-        closeButton={false}
-      />
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={true}
+          theme="light"
+          toastStyle={{ backgroundColor: "transparent", boxShadow: "none" }}
+          newestOnTop
+          rtl={false}
+          pauseOnFocusLoss
+          closeButton={false}
+        />
 
-      <Suspense fallback={null}>
-        <TronEnergyModal />
-      </Suspense>
+        <Suspense fallback={null}>
+          <TronEnergyModal />
+        </Suspense>
 
-      <Suspense fallback={null}>
-        <TrackRoot />
-      </Suspense>
+        <Suspense fallback={null}>
+          <TrackRoot />
+        </Suspense>
 
+      </ZendeskPrivider>
     </WalletsProvider>
   );
 }
