@@ -1,11 +1,18 @@
-import { formatNumber, numberRemoveEndZero } from "@/utils/format/number";
+import InputNumber from "@/components/input-number";
+import { numberRemoveEndZero } from "@/utils/format/number";
 import Big from "big.js";
 import clsx from "clsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const CURSOR_SIZE = 16;
+const MAX_PROGRESS = 100;
+const PROGRESS_DECIMALS = 2;
 
 type TokenLike = { decimals?: number } | null | undefined;
+
+const formatProgressValue = (value: number) => {
+  return numberRemoveEndZero(Big(value || 0).round(PROGRESS_DECIMALS, Big.roundUp).toFixed(PROGRESS_DECIMALS)) || "0";
+};
 
 export type FromAmountProgressProps = {
   amount: string;
@@ -29,6 +36,8 @@ const FromAmountProgress = ({
   }, [balance]);
 
   const [progress, setProgress] = useState(0);
+  const [progressInputValue, setProgressInputValue] = useState("0");
+  const [isEditingProgress, setIsEditingProgress] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
@@ -41,23 +50,50 @@ const FromAmountProgress = ({
       setProgress(0);
       return;
     }
-    const p = Math.min(100, (Number(amount) / Number(balance)) * 100);
+    const p = Math.min(MAX_PROGRESS, (Number(amount) / Number(balance)) * MAX_PROGRESS);
     setProgress(Math.max(0, p));
   }, [amount, balance, invalidBalance]);
+
+  useEffect(() => {
+    if (isEditingProgress) return;
+    setProgressInputValue(formatProgressValue(progress));
+  }, [progress, isEditingProgress]);
 
   const handleProgressChange = useCallback(
     (newProgress: number) => {
       if (balanceLoading) {
         return;
       }
-      const clamped = Math.max(0, Math.min(100, newProgress));
+      const clamped = Math.max(0, Math.min(MAX_PROGRESS, newProgress));
       setProgress(clamped);
       const _amount = Big(balance)
         .mul(clamped / 100)
         .toFixed(token?.decimals ?? 6);
       onAmountChange(numberRemoveEndZero(_amount));
     },
-    [balance, token?.decimals, onAmountChange]
+    [balance, token?.decimals, onAmountChange, balanceLoading]
+  );
+
+  const handleProgressInputChange = useCallback(
+    (value: string) => {
+      if (balanceLoading) {
+        return;
+      }
+      if (!value) {
+        setProgressInputValue("");
+        setProgress(0);
+        onAmountChange("");
+        return;
+      }
+      const nextProgress = Math.min(MAX_PROGRESS, Number(value));
+      if (!Number.isFinite(nextProgress)) {
+        return;
+      }
+      const nextValue = nextProgress === MAX_PROGRESS ? String(MAX_PROGRESS) : value;
+      setProgressInputValue(nextValue);
+      handleProgressChange(nextProgress);
+    },
+    [balanceLoading, handleProgressChange, onAmountChange]
   );
 
   const setProgressFromClientX = useCallback(
@@ -204,8 +240,22 @@ const FromAmountProgress = ({
           ))}
         </div>
       </div>
-      <div className="border border-[#F2F2F2] cursor-default rounded-lg bg-white h-9.5 w-18 shrink-0 text-[#0E3616] text-sm flex justify-center items-center">
-        {formatNumber(progress, 2, true, { round: Big.roundUp })}%
+      <div className="border border-[#F2F2F2] rounded-lg bg-white h-9.5 w-18 shrink-0 text-[#0E3616] text-sm flex justify-center items-center gap-0.5">
+        <InputNumber
+          className="w-11 bg-transparent text-[#0E3616] text-sm text-right outline-none font-['SpaceGrotesk'] disabled:cursor-not-allowed"
+          value={progressInputValue}
+          decimals={PROGRESS_DECIMALS}
+          disabled={balanceLoading}
+          onFocus={() => {
+            setIsEditingProgress(true);
+          }}
+          onBlur={() => {
+            setIsEditingProgress(false);
+            setProgressInputValue(formatProgressValue(progress));
+          }}
+          onNumberChange={handleProgressInputChange}
+        />
+        <span>%</span>
       </div>
     </div>
   );
