@@ -1,5 +1,5 @@
 export const formatAddress = (
-  address: string,
+  address?: string | null,
   prefixLength = 4,
   suffixLength = 4
 ) => {

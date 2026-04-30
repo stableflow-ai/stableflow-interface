@@ -6,6 +6,14 @@ import { SendType } from "../types";
 import { Service } from "@/services/constants";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
+import { actionCreators } from "@near-wallet-selector/core";
+
+const createFunctionCallAction = (
+  methodName: string,
+  args: Record<string, any>,
+  gas: string,
+  deposit: string
+) => actionCreators.functionCall(methodName, args, BigInt(gas), BigInt(deposit));
 
 export default class NearWallet {
   private selector: any;
@@ -61,37 +69,31 @@ export default class NearWallet {
       transactions.push({
         receiverId: data.originAsset,
         actions: [
-          {
-            type: "FunctionCall",
-            params: {
-              methodName: "storage_deposit",
-              args: {
-                account_id: data.depositAddress,
-                registration_only: true
-              },
-              gas: "15000000000000",
-              deposit: "1250000000000000000000"
-            }
-          }
+          createFunctionCallAction(
+            "storage_deposit",
+            {
+              account_id: data.depositAddress,
+              registration_only: true
+            },
+            "15000000000000",
+            "1250000000000000000000"
+          )
         ]
       });
     }
     transactions.push({
       receiverId: data.originAsset,
       actions: [
-        {
-          type: "FunctionCall" as const,
-          params: {
-            methodName: "ft_transfer",
-            args: {
-              receiver_id: data.depositAddress,
-              amount: data.amount,
-              memo: null
-            },
-            gas: "30000000000000",
-            deposit: "1"
-          }
-        }
+        createFunctionCallAction(
+          "ft_transfer",
+          {
+            receiver_id: data.depositAddress,
+            amount: data.amount,
+            memo: null
+          },
+          "30000000000000",
+          "1"
+        )
       ]
     });
 
@@ -372,18 +374,15 @@ export default class NearWallet {
         transactions.push({
           receiverId: tokenContract,
           actions: [
-            {
-              type: "FunctionCall",
-              params: {
-                methodName: "storage_deposit",
-                args: {
-                  account_id: depositAddress,
-                  registration_only: true
-                },
-                gas: "15000000000000",
-                deposit: "1250000000000000000000"
-              }
-            }
+            createFunctionCallAction(
+              "storage_deposit",
+              {
+                account_id: depositAddress,
+                registration_only: true
+              },
+              "15000000000000",
+              "1250000000000000000000"
+            )
           ]
         });
       }
@@ -392,18 +391,15 @@ export default class NearWallet {
         transactions.push({
           receiverId: tokenContract,
           actions: [
-            {
-              type: "FunctionCall",
-              params: {
-                methodName: "storage_deposit",
-                args: {
-                  account_id: STABLEFLOW_CONTRACT,
-                  registration_only: true
-                },
-                gas: "15000000000000",
-                deposit: "1250000000000000000000"
-              }
-            }
+            createFunctionCallAction(
+              "storage_deposit",
+              {
+                account_id: STABLEFLOW_CONTRACT,
+                registration_only: true
+              },
+              "15000000000000",
+              "1250000000000000000000"
+            )
           ]
         });
       }
@@ -412,19 +408,16 @@ export default class NearWallet {
       transactions.push({
         receiverId: tokenContract,
         actions: [
-          {
-            type: "FunctionCall" as const,
-            params: {
-              methodName: "ft_transfer_call",
-              args: {
-                receiver_id: STABLEFLOW_CONTRACT,
-                amount: amountWei,
-                msg: depositAddress
-              },
-              gas: "50000000000000", // ft_transfer_call requires more gas
-              deposit: "1"
-            }
-          }
+          createFunctionCallAction(
+            "ft_transfer_call",
+            {
+              receiver_id: STABLEFLOW_CONTRACT,
+              amount: amountWei,
+              msg: depositAddress
+            },
+            "50000000000000", // ft_transfer_call requires more gas
+            "1"
+          )
         ]
       });
 
@@ -437,7 +430,7 @@ export default class NearWallet {
       });
       execTime.log("estimateTransaction");
 
-      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
       result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
@@ -458,7 +451,7 @@ export default class NearWallet {
         prices,
       });
 
-      result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
       result.totalEstimateSourceGas = ett.estimateSourceGas;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;

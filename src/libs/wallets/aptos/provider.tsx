@@ -29,7 +29,6 @@ export default function AptosProvider({
         "OKX Wallet",
         "Petra",
         "Nightly",
-        "Pontem Wallet",
         "Backpack",
         "MSafe",
         "Bitget Wallet",

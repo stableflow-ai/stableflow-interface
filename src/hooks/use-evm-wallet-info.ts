@@ -1,6 +1,6 @@
 import { useAccount as useWagmiAccount, useConnectors } from 'wagmi';
 import { useMemo } from 'react';
-import metamaskIcon from "@/assets/metamask.png";
+import { getLogo } from '@/utils/format/logo';
 
 export function useEVMWalletInfo() {
   const { connector } = useWagmiAccount();
@@ -19,7 +19,7 @@ export function useEVMWalletInfo() {
     if (!walletIcon && currentConnector) {
       walletIcon = currentConnector.icon || '';
     }
-    return { name: walletName, icon: walletIcon || metamaskIcon };
+    return { name: walletName, icon: walletIcon || getLogo("/stableflow/wallets/logo-metamask.png") };
   }, [connectors, connector]);
 
   return { ...info };

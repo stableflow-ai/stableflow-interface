@@ -1,9 +1,9 @@
 import useIsMobile from "@/hooks/use-is-mobile";
 import { getStableflowTrustAvatar } from "@/utils/format/logo";
 import clsx from "clsx";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import type { Swiper as SwiperType } from "swiper";
-import { Pagination, Autoplay } from "swiper/modules";
+import { Autoplay, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
 const CardList = [
@@ -98,18 +98,17 @@ const CardList = [
 
 const SLIDE_GAP = 25;
 
-const Trusted = () => {
+type TrustedProps = {
+  variant?: "default" | "about";
+};
+
+const Trusted = ({ variant = "default" }: TrustedProps) => {
   const rawPaginationId = useId().replace(/:/g, "");
   const paginationElSelector = `#trusted-swiper-pg-${rawPaginationId}`;
   const swiperRef = useRef<SwiperType | null>(null);
 
   const isMobile = useIsMobile();
-
-  const [edge, setEdge] = useState({ beginning: true, end: false });
-
-  const updateEdge = useCallback((s: SwiperType) => {
-    setEdge({ beginning: s.isBeginning, end: s.isEnd });
-  }, []);
+  const isAbout = variant === "about";
 
   useEffect(() => {
     const swiper = swiperRef.current;
@@ -124,22 +123,25 @@ const Trusted = () => {
   }, [isMobile]);
 
   return (
-    <div className="w-full md:max-w-[1440px] mx-auto mt-[50px] px-[10px] md:px-0">
-      <div className="text-[16px] md:text-[24px] font-[500] text-center text-[#9FA7BA] md:text-[#444C59]">
+    <div className={clsx("w-full md:max-w-[1440px] mx-auto px-[10px] md:px-0", isAbout ? "mt-0" : "mt-[50px]")}>
+      <div className={clsx(
+        "text-center",
+        isAbout ? "text-[26px] font-light leading-[120%] text-black md:text-[24px] md:font-medium md:text-[#444C59]" : "text-[16px] md:text-[24px] font-medium text-[#9FA7BA] md:text-[#444C59]",
+      )}>
         Trusted by
       </div>
-      <div className="mt-[34px]">
-        <div className="mx-auto w-full md:max-w-[712px] lg:max-w-[1074px]">
+      <div className={clsx("w-full", isAbout ? "mt-[30px] md:mt-[34px]" : "mt-[34px]")}>
+        <div className="relative mx-auto w-full md:max-w-[712px] lg:max-w-[1074px]">
           <Swiper
             className="trusted-swiper w-full"
-            modules={isMobile ? [] : [Pagination, Autoplay]}
+            modules={isMobile ? [Pagination] : [Autoplay, Pagination]}
             loop
             autoplay={isMobile ? false : {
               delay: 3000,
               pauseOnMouseEnter: true,
             }}
             spaceBetween={SLIDE_GAP}
-            slidesPerView={isMobile ? 1 : 1.15}
+            slidesPerView={1}
             breakpoints={{
               768: {
                 slidesPerView: 2,
@@ -156,17 +158,14 @@ const Trusted = () => {
             }}
             onSwiper={(s) => {
               swiperRef.current = s;
-              updateEdge(s);
             }}
-            onSlideChange={updateEdge}
-            onBreakpoint={updateEdge}
           >
             {CardList.map(item => (
-              <SwiperSlide key={item.name} className="!flex !h-auto">
+              <SwiperSlide key={item.name} className="flex! h-auto!">
                 <div className="flex w-full justify-center">
                   <Card
                     {...item}
-                    className="w-full max-w-[350px]"
+                    className={clsx("w-full max-w-[350px]", isAbout && "h-[200px] rounded-xl border border-[#F2F2F2] shadow-none md:h-[192px]")}
                   >
                     {item.description}
                   </Card>
@@ -174,27 +173,25 @@ const Trusted = () => {
               </SwiperSlide>
             ))}
           </Swiper>
+          <>
+            <CarouselNavButton
+              direction="prev"
+              disabled={false}
+              onPress={() => swiperRef.current?.slidePrev()}
+              className="absolute -left-12 top-1/2 -translate-y-1/2 z-1 hidden md:flex"
+            />
+            <CarouselNavButton
+              direction="next"
+              disabled={false}
+              onPress={() => swiperRef.current?.slideNext()}
+              className="absolute -right-12 top-1/2 -translate-y-1/2 z-1 hidden md:flex"
+            />
+          </>
+          <div
+            id={`trusted-swiper-pg-${rawPaginationId}`}
+            className="trusted-swiper-pagination-host mt-5 flex justify-center gap-1.5 md:hidden"
+          />
         </div>
-        {
-          !isMobile && (
-            <div className="mt-6 flex items-center justify-center gap-3 md:gap-5">
-              <CarouselNavButton
-                direction="prev"
-                disabled={false}
-                onPress={() => swiperRef.current?.slidePrev()}
-              />
-              <div
-                id={`trusted-swiper-pg-${rawPaginationId}`}
-                className="trusted-swiper-pagination-host flex min-h-[24px] min-w-0 flex-1 max-w-[min(280px,100%)] items-center justify-center"
-              />
-              <CarouselNavButton
-                direction="next"
-                disabled={false}
-                onPress={() => swiperRef.current?.slideNext()}
-              />
-            </div>
-          )
-        }
       </div>
     </div>
   );
@@ -205,9 +202,10 @@ export default Trusted;
 function CarouselNavButton(props: {
   direction: "prev" | "next";
   disabled: boolean;
+  className?: string;
   onPress: () => void;
 }) {
-  const { direction, disabled, onPress } = props;
+  const { direction, disabled, onPress, className } = props;
   const isPrev = direction === "prev";
 
   return (
@@ -219,6 +217,7 @@ function CarouselNavButton(props: {
         "cursor-pointer flex size-10 shrink-0 items-center justify-center rounded-full border border-[#E8EAF0] bg-white text-[#444C59] shadow-[0_0_10px_0_rgba(0,0,0,0.06)] transition-colors",
         "hover:border-[#6284F5] hover:bg-[#6284F5] hover:text-white",
         "disabled:pointer-events-none disabled:opacity-40 disabled:hover:border-[#E8EAF0] disabled:hover:bg-white disabled:hover:text-[#444C59]",
+        className,
       )}
       onClick={onPress}
     >
@@ -241,13 +240,22 @@ function CarouselNavButton(props: {
   );
 }
 
-const Card = (props: any) => {
+type CardProps = {
+  children: ReactNode;
+  img: string;
+  name: string;
+  title?: string;
+  link: string;
+  className?: string;
+};
+
+const Card = (props: CardProps) => {
   const { children, img, name, title, link, className } = props;
 
   return (
     <div
       className={clsx(
-        "cursor-pointer relative w-[350px] shrink-0 h-[192px] p-[25px_12px_20px_18px] flex flex-col justify-between rounded-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] font-[SpaceGrotesk] text-[16px] font-[400] leading-[120%] text-black",
+        "cursor-pointer relative w-[350px] shrink-0 h-[192px] p-[25px_12px_20px_18px] flex flex-col justify-between rounded-[16px] bg-white shadow-[0_0_10px_0_rgba(0,0,0,0.10)] font-[SpaceGrotesk] text-[16px] font-normal leading-[120%] text-black",
         className,
       )}
       onClick={() => {
@@ -257,17 +265,17 @@ const Card = (props: any) => {
       <div className="absolute z-0 left-[11px] top-[10px] text-[90px] text-[#D7E1F1] leading-[100%]">
         “
       </div>
-      <div className="relative z-[1]">
+      <div className="relative z-1">
         {children}
       </div>
-      <div className="flex items-center gap-[10px] relative z-[1]">
+      <div className="flex items-center gap-[10px] relative z-1">
         <img
           src={img}
           alt=""
           className="w-[50px] h-[50px] rounded-full origin-center object-contain shrink-0"
         />
         <div className="leading-[100%]">
-          <div className="text-[18px] font-[600]">
+          <div className="text-[18px] font-semibold">
             {name}
           </div>
           {

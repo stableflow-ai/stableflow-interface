@@ -1,4 +1,5 @@
 import Button from "@/components/button";
+import chains from "@/config/chains";
 import { Service } from "@/services/constants";
 import useBridgeStore from "@/stores/use-bridge";
 import useWalletStore from "@/stores/use-wallet";
@@ -89,7 +90,7 @@ export default function BridgeButton({
       <Button
         disabled={buttonDisabled}
         loading={loading}
-        className="w-full h-[50px] mt-[10px] rounded-[25px] bg-[#6284F5] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-white text-[16px]"
+        className="w-full h-14 mt-4.5 rounded-xl bg-[#6284F5] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-white text-lg! font-medium!"
         onClick={() => {
           if (errorConnect) {
             wallet?.connect?.();
@@ -103,7 +104,24 @@ export default function BridgeButton({
           if (!!bridgeStore.errorTips) return;
 
           if (errorChain) {
-            switchChainAsync({ chainId: errorChain }, {
+            const targetChain = Object.values(chains).find((chain) => chain.chainId === errorChain);
+            let addEthereumChainParameter;
+            if (targetChain) {
+              addEthereumChainParameter = {
+                chainName: targetChain.chainName,
+                nativeCurrency: {
+                  name: targetChain.nativeToken.symbol,
+                  symbol: targetChain.nativeToken.symbol,
+                  decimals: targetChain.nativeToken.decimals,
+                },
+                rpcUrls: targetChain.rpcUrls,
+                blockExplorerUrls: targetChain.blockExplorerUrls,
+              };
+            }
+            switchChainAsync({
+              chainId: errorChain,
+              addEthereumChainParameter,
+            }, {
               onSuccess: () => {
                 onQuoteDebounce({ dry: true });
               },

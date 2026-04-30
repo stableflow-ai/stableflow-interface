@@ -11,6 +11,7 @@ import { getStableflowIcon } from "@/utils/format/logo";
 
 export default function Chain({ token, isTo }: any) {
   const walletStore = useWalletStore();
+
   const openWallet = () => {
     // Determine which token is currently selected for this side
     const currentToken = isTo ? walletStore.toToken : walletStore.fromToken;
@@ -27,36 +28,54 @@ export default function Chain({ token, isTo }: any) {
 
     walletStore.set(params);
   };
+
   if (!token?.chainType) {
     return (
-      <div
-        className={clsx(
-          "button w-28 md:w-32.5 h-25 shrink-0 flex flex-col justify-start rounded-xl px-1 md:px-3.5 pt-1.5 hover:bg-[#FAFBFF] button duration-300",
-          isTo ? "items-end" : "items-start"
-        )}
+      <ChainCard
         onClick={openWallet}
       >
-        <LazyImage
-          src={getStableflowIcon("select-token.gif")}
-          alt=""
-          containerClassName="w-11 md:w-12.5 h-11 md:h-12.5 rounded-full shrink-0 overflow-hidden"
-          className="object-center scale-120"
-          fallbackSrc={(
-            <div className="w-full h-full rounded-full bg-[#EDF0F7]" />
-          )}
-        />
-        <div
-          className={clsx(
-            "text-[14px] text-[#9FA7BA] mt-[6px] w-full",
-            isTo ? "text-right pr-3 md:pr-4" : "text-left pl-1.5 md:pl-2"
-          )}
-        >
-          {isTo ? "To" : "From"}
+        <div className="w-10.5 h-10.5 rounded-full bg-[#dde1e9] overflow-hidden flex justify-center items-center">
+          <LazyImage
+            src={getStableflowIcon("select-token-2.gif")}
+            containerClassName="w-full h-full scale-120 origin-center pointer-events-none"
+            fallbackSrc={null}
+          />
         </div>
-      </div>
+        <div className="w-12 h-4 rounded-md bg-[#EDF0F7] mr-2"></div>
+      </ChainCard>
     );
   }
-  return <WithChain token={token} isTo={isTo} openWallet={openWallet} />;
+
+  return (
+    <ChainCard
+      onClick={openWallet}
+    >
+      <div className="w-10 h-10 relative">
+        <LazyImage
+          src={token?.icon}
+          containerClassName="w-full h-full rounded-full overflow-hidden"
+          fallbackSrc={(
+            <div className="w-full h-full rounded-full bg-[#EDF0F7]"></div>
+          )}
+        />
+        <LazyImage
+          src={token?.chainIcon}
+          containerClassName="w-4.5 h-4.5 rounded-sm border border-white absolute! -right-1 -bottom-1 overflow-hidden"
+          fallbackSrc={(
+            <div className="w-full h-full rounded-sm bg-[#EDF0F7]"></div>
+          )}
+        />
+      </div>
+      <div className="text-[#444C59] text-base font-medium leading-[100%] space-y-1">
+        <div className="">
+          {token?.symbol}
+        </div>
+        <div className="text-xs text-[#0E3616] font-normal">
+          {token?.chainName}
+        </div>
+      </div>
+    </ChainCard>
+  );
 }
 
 const WithChain = ({ token, isTo, openWallet }: any) => {
@@ -101,6 +120,26 @@ const WithChain = ({ token, isTo, openWallet }: any) => {
       <div className="text-[#9FA7BA] text-[12px]">
         {loading ? <Loading size={12} /> : balance}
       </div>
+    </div>
+  );
+};
+
+const ChainCard = (props: any) => {
+  const { children, onClick } = props;
+
+  return (
+    <div
+      className="cursor-pointer shrink-0 border hover:border-[#B1C2FB] duration-150 border-[#F2F2F2] bg-[#F5F7FD] flex items-center justify-center gap-4 rounded-[13px] py-3 pl-2.5 pr-3"
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-2.5">
+        {children}
+      </div>
+      <img
+        src={getStableflowIcon("icon-arrow-down.svg")}
+        className="w-[15px] h-[7px] shrink-0 object-center object-contain"
+        alt=""
+      />
     </div>
   );
 };
