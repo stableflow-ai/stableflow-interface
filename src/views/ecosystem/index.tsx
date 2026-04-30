@@ -34,7 +34,7 @@ const Ecosystem = () => {
 
           <section className="mt-[58px]">
             <h2 className="text-[26px] leading-none font-normal text-black">
-              <span className="hidden md:inline">Supported </span>Stablecoins
+              <span className="">Supported </span>Stablecoins
             </h2>
             <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {ECOSYSTEM_STABLECOINS.map((token) => (
