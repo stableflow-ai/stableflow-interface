@@ -1,5 +1,155 @@
 import { Service } from "@/services/constants";
+import type { WalletType } from "@/stores/use-wallets";
+import { csl } from "@/utils/log";
 import Big from "big.js";
+import { ethers } from "ethers";
+
+const RPC_REQUEST_LIMIT_ERROR_MESSAGE = "Request limit reached. Please try again later.";
+const INVALID_RPC_CONFIGURATION_ERROR_MESSAGE =
+  "Invalid RPC configuration. Please check RPC settings or switch to another RPC.";
+const POST_APPROVE_ALLOWANCE_MAX_RETRIES = 3;
+const POST_APPROVE_ALLOWANCE_RETRY_DELAY = 1500;
+
+const RPC_REQUEST_LIMIT_ERROR_PATTERNS = [
+  "rate limited",
+  "request is being rate limited",
+  "request exceeds defined limit",
+  "request limit",
+];
+
+const INVALID_RPC_CONFIGURATION_ERROR_PATTERNS = [
+  "could not coalesce error",
+  "missing or invalid parameters",
+  "load failed",
+  "json-rpc protocol is not supported",
+  "unauthorized",
+  "unknown rpc error",
+];
+
+const wait = (duration: number) => new Promise((resolve) => setTimeout(resolve, duration));
+
+type PostApproveAllowanceResult = {
+  allowance: string;
+  needApprove: boolean;
+};
+
+type PostApproveWallet = {
+  allowance: (params: Record<string, unknown>) => Promise<PostApproveAllowanceResult>;
+};
+
+type ApproveDetailsResult = {
+  data?: Record<string, unknown>;
+};
+
+type EvmAllowanceToken = {
+  rpcUrls?: string[];
+  chainId?: number;
+};
+
+const getErrorMessage = (error: unknown) => {
+  return error instanceof Error ? error.message : "";
+};
+
+export const createEvmAllowanceProvider = (fromToken?: EvmAllowanceToken) => {
+  if (!fromToken?.rpcUrls?.length) return void 0;
+
+  const providers = fromToken.rpcUrls.map((rpc) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
+  return new ethers.FallbackProvider(providers);
+};
+
+export const verifyPostApproveAllowance = async (params: {
+  wallet: PostApproveWallet;
+  chainType: WalletType;
+  fromToken?: EvmAllowanceToken;
+  contractAddress: string;
+  spender: string;
+  address: string;
+  amountWei: string;
+  approveResult?: ApproveDetailsResult;
+}) => {
+  const {
+    wallet,
+    chainType,
+    fromToken,
+    contractAddress,
+    spender,
+    address,
+    amountWei,
+    approveResult,
+  } = params;
+  const approveData = approveResult?.data || {};
+  const approveBlockNumber = typeof approveData.blockNumber === "number" ? approveData.blockNumber : void 0;
+  const isEvm = chainType === "evm";
+  const evmProvider = isEvm ? createEvmAllowanceProvider(fromToken) : void 0;
+
+  for (let retryIndex = 0; retryIndex < POST_APPROVE_ALLOWANCE_MAX_RETRIES; retryIndex++) {
+    try {
+      const latestAllowance = await wallet.allowance({
+        contractAddress,
+        spender,
+        address,
+        amountWei,
+        strict: true,
+        provider: evmProvider,
+        blockTag: isEvm ? approveBlockNumber : void 0,
+      });
+
+      csl("transfer", "blue-600", "latest allowance after approve: %o", {
+        chainType,
+        token: contractAddress,
+        owner: address,
+        spender,
+        requiredAmount: amountWei,
+        allowance: latestAllowance.allowance,
+        txHash: approveData.txHash,
+        blockNumber: approveData.blockNumber,
+        blockTimeStamp: approveData.blockTimeStamp,
+        receiptResult: approveData.receiptResult,
+        retryIndex,
+      });
+
+      if (!latestAllowance.needApprove) {
+        return latestAllowance;
+      }
+
+      if (retryIndex === POST_APPROVE_ALLOWANCE_MAX_RETRIES - 1) {
+        throw new Error("Insufficient approval amount");
+      }
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      if (errorMessage === "Insufficient approval amount") {
+        throw error;
+      }
+      if (retryIndex === POST_APPROVE_ALLOWANCE_MAX_RETRIES - 1) {
+        throw new Error(errorMessage ? `Failed to verify approval allowance: ${errorMessage}` : "Failed to verify approval allowance");
+      }
+      csl("transfer", "yellow-600", "retry verify approval allowance: %o", {
+        chainType,
+        txHash: approveData.txHash,
+        retryIndex,
+        error,
+      });
+    }
+
+    await wait(POST_APPROVE_ALLOWANCE_RETRY_DELAY);
+  }
+
+  throw new Error("Failed to verify approval allowance");
+};
+
+export const formatBridgeRpcErrorMessage = (errorMessage: string) => {
+  const normalizedMessage = errorMessage.toLowerCase();
+
+  if (RPC_REQUEST_LIMIT_ERROR_PATTERNS.some((pattern) => normalizedMessage.includes(pattern))) {
+    return RPC_REQUEST_LIMIT_ERROR_MESSAGE;
+  }
+
+  if (INVALID_RPC_CONFIGURATION_ERROR_PATTERNS.some((pattern) => normalizedMessage.includes(pattern))) {
+    return INVALID_RPC_CONFIGURATION_ERROR_MESSAGE;
+  }
+
+  return errorMessage;
+};
 
 export const sortQuoteData = (quoteDataMap: Map<string, any>) => {
   const validQuoteList = Array.from(quoteDataMap.entries()).filter(([_, data]) => !data.errMsg);
@@ -45,4 +195,44 @@ export const sortQuoteData = (quoteDataMap: Map<string, any>) => {
   });
 
   return sortedQuoteData;
+};
+
+export const routeHybridPath = (quoteData: any, service: Service) => {
+  if (!quoteData) return [];
+
+  const p = quoteData.quoteParam;
+
+  const buildPath = (
+    steps: Array<{ from: any; to: any; svc: Service; skip?: boolean }>
+  ) =>
+    steps
+      .filter((s) => !s.skip)
+      .map(({ from, to, svc }) => ({ fromToken: from, toToken: to, service: svc }));
+
+  switch (service) {
+    case Service.OneClickUsdt0:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick },
+        { from: p?.middleToken, to: p?.toToken, svc: Service.Usdt0 },
+      ]);
+    case Service.Usdt0OneClick:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken, svc: Service.Usdt0 },
+        { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick },
+      ]);
+    case Service.OneClickFraxZero:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick, skip: p?.isFromEthereumUSDC },
+        { from: p?.middleToken, to: p?.middleToken2, svc: Service.FraxZero },
+        { from: p?.middleToken2, to: p?.toToken, svc: Service.FraxZero, skip: p?.isToEthereumFrxUSD },
+      ]);
+    case Service.FraxZeroOneClick:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken2, svc: Service.FraxZero, skip: p?.isFromEthereumFrxUSD },
+        { from: p?.middleToken2, to: p?.middleToken, svc: Service.FraxZero },
+        { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick, skip: p?.isToEthereumUSDC },
+      ]);
+    default:
+      return [];
+  }
 };
