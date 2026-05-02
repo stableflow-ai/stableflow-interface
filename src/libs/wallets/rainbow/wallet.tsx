@@ -152,6 +152,8 @@ export default class RainbowWallet {
       address,
       amountWei,
       provider,
+      blockTag,
+      strict = false,
     } = params;
 
     const runner = provider || this.provider;
@@ -160,10 +162,15 @@ export default class RainbowWallet {
     // get allowance
     let allowance = "0";
     try {
-      allowance = await contract.allowance(address, spender);
+      allowance = blockTag
+        ? await contract.allowance(address, spender, { blockTag })
+        : await contract.allowance(address, spender);
       allowance = allowance.toString();
     } catch (error) {
       csl("EVM allowance", "red-500", "Error getting allowance: %o", error);
+      if (strict) {
+        throw error;
+      }
     }
 
     return {
@@ -201,8 +208,15 @@ export default class RainbowWallet {
       const txReceipt = await tx.wait();
       if (txReceipt.status === 1) {
         if (isDetails) {
+          const confirmations = typeof txReceipt.confirmations === "function"
+            ? await txReceipt.confirmations()
+            : txReceipt.confirmations;
           detailResult.success = true;
-          detailResult.data = { txHash: txReceipt.hash };
+          detailResult.data = {
+            txHash: txReceipt.hash,
+            blockNumber: txReceipt.blockNumber,
+            confirmations,
+          };
           return detailResult;
         }
         return true;
