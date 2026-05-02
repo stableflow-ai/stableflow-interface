@@ -28,7 +28,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { csl } from "@/utils/log";
-import { sortQuoteData } from "../utils";
+import { createEvmAllowanceProvider, formatBridgeRpcErrorMessage, sortQuoteData, verifyPostApproveAllowance } from "../utils";
 import { getQuoteModes } from "@/services/utils";
 import useEvmGasFeesStore from "@/stores/use-evm-gas-fees";
 import { ExecTime } from "@/utils/exec-time";
@@ -647,11 +647,14 @@ export default function useBridge(props?: any) {
         // If it's Ethereum, if there was a previous approval, it needs to be revoked first
         // Then approve the new amount
         if (isFromEthereum) {
+          const evmAllowanceProvider = createEvmAllowanceProvider(walletStore.fromToken);
           const allowance = await wallet.wallet.allowance({
             contractAddress: walletStore.fromToken.contractAddress,
             spender: approveSpender,
             address: fromWalletAddress,
             amountWei: approveAmountWei,
+            strict: true,
+            provider: evmAllowanceProvider,
           });
           if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
             await wallet.wallet.approve({
@@ -674,19 +677,18 @@ export default function useBridge(props?: any) {
           throw new Error(approveResult.message || "Approve failed");
         }
 
-        const latestAllowance = await wallet.wallet.allowance({
+        const latestAllowance = await verifyPostApproveAllowance({
+          wallet: wallet.wallet,
+          chainType: walletStore.fromToken.chainType,
+          fromToken: walletStore.fromToken,
           contractAddress: walletStore.fromToken.contractAddress,
           spender: approveSpender,
-          address: fromWalletAddress,
+          address: fromWalletAddress || "",
           amountWei: approveAmountWei,
+          approveResult,
         });
 
-        csl("transfer", "blue-600", "latest allowance: %o", latestAllowance);
-
-        // Insufficient approval amount, aborting transaction
-        if (latestAllowance.needApprove) {
-          throw new Error("Insufficient approval amount");
-        }
+        csl("transfer", "blue-600", "verified allowance after approve: %o", latestAllowance);
 
         toast.success({
           title: "Approve success"

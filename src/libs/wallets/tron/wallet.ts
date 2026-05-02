@@ -409,6 +409,7 @@ export default class TronWallet {
       spender,
       address,
       amountWei,
+      strict = false,
     } = params;
 
     await this.waitForTronWeb();
@@ -424,6 +425,9 @@ export default class TronWallet {
         allowance = allowanceResult.toString();
       } catch (error) {
         csl("TronWallet allowance", "red-500", "Error getting allowance: %o", error);
+        if (strict) {
+          throw error;
+        }
       }
 
       return {
@@ -433,6 +437,9 @@ export default class TronWallet {
       };
     } catch (error) {
       csl("TronWallet allowance", "red-500", "Error in allowance: %o", error);
+      if (strict) {
+        throw error;
+      }
       // Return default values on error
       return {
         contract: null,
@@ -483,6 +490,7 @@ export default class TronWallet {
 
       // Sign and send transaction
       const txHash = await this.sendTransaction({ tx });
+      let txInfo: Record<string, unknown> | null = null;
 
       if (isWaitTxReceipt) {
         const pollingResult = await this.pollingTransactionStatus(txHash, {
@@ -497,11 +505,19 @@ export default class TronWallet {
           }
           return false;
         }
+        txInfo = await this.getTransactionResult(txHash);
       }
 
       if (isDetails) {
+        const txReceipt = txInfo?.receipt as { result?: string } | undefined;
         detailResult.success = true;
-        detailResult.data = { txHash: txHash };
+        detailResult.data = {
+          txHash,
+          txInfo,
+          receiptResult: txReceipt?.result,
+          blockNumber: txInfo?.blockNumber,
+          blockTimeStamp: txInfo?.blockTimeStamp,
+        };
         return detailResult;
       }
 
