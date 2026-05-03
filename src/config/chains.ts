@@ -61,31 +61,117 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
 const HeliusRpcApiKey = import.meta.env.VITE_HELIUS_RPC_API_KEY;
 const AlchemyRpcApiKey = import.meta.env.VITE_ALCHEMY_RPC_API_KEY;
 
+const ProxyRpcHost = "https://rpc.stableflow.jimmygu.com/rpc";
+
 export const chainsRpcUrls: Record<string, string[]> = {
-  "Ethereum": ["https://0xrpc.io/eth", "https://ethereum-rpc.publicnode.com"],
-  "Arbitrum": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"],
-  "BNB Chain": ["https://56.rpc.thirdweb.com", "https://bsc-rpc.publicnode.com"],
-  "Avalanche": ["https://api.avax.network/ext/bc/C/rpc", "https://avalanche-c-chain-rpc.publicnode.com"],
-  "Base": ["https://mainnet.base.org", "https://base-rpc.publicnode.com"],
-  "Polygon": ["https://polygon.drpc.org", "https://polygon-bor-rpc.publicnode.com"],
-  "Gnosis": ["https://rpc.gnosischain.com", "https://gnosis-rpc.publicnode.com"],
-  "Optimism": ["https://mainnet.optimism.io", "https://optimism-rpc.publicnode.com"],
-  "Berachain": ["https://rpc.berachain.com", "https://berachain-rpc.publicnode.com"],
-  "Tron": ["https://tron-rpc.publicnode.com"],
-  "Aptos": ["https://api.mainnet.aptoslabs.com/v1"],
-  "Solana": [`https://mainnet.helius-rpc.com/?api-key=${HeliusRpcApiKey}`, `https://solana-mainnet.g.alchemy.com/v2/${AlchemyRpcApiKey}`, "https://solana-rpc.publicnode.com"],
-  "Near": ["https://nearinner.deltarpc.com"],
-  "X Layer": ["https://rpc.xlayer.tech", "https://xlayer.drpc.org"],
-  "Plasma": ["https://rpc.plasma.to", "https://plasma.drpc.org"],
-  "Mantle": ["https://rpc.mantle.xyz", "https://mantle-rpc.publicnode.com"],
-  "MegaETH": ["https://mainnet.megaeth.com/rpc"],
-  "Ink": ["https://rpc-gel.inkonchain.com", "https://rpc-qnd.inkonchain.com"],
-  "Stable": ["https://rpc.stable.xyz"],
-  "Celo": ["https://forno.celo.org", "https://celo-rpc.publicnode.com"],
-  "Sei": ["https://sei-evm-rpc.publicnode.com"],
-  "Flare": ["https://flare-api.flare.network/ext/C/rpc"],
-  "Fraxtal": ["https://rpc.frax.com"],
-  "Ton": ["https://toncenter.com/api/v2/jsonRPC"],
+  "Ethereum": [
+    `${ProxyRpcHost}/ethereum`,
+    "https://0xrpc.io/eth",
+    "https://ethereum-rpc.publicnode.com",
+  ],
+  "Arbitrum": [
+    `${ProxyRpcHost}/arbitrum`,
+    "https://arb1.arbitrum.io/rpc",
+    "https://arbitrum-one-rpc.publicnode.com",
+  ],
+  "BNB Chain": [
+    `${ProxyRpcHost}/bsc`,
+    "https://56.rpc.thirdweb.com",
+    "https://bsc-rpc.publicnode.com",
+  ],
+  "Avalanche": [
+    `${ProxyRpcHost}/avalanche`,
+    "https://api.avax.network/ext/bc/C/rpc",
+    "https://avalanche-c-chain-rpc.publicnode.com",
+  ],
+  "Base": [
+    `${ProxyRpcHost}/base`,
+    "https://mainnet.base.org",
+    "https://base-rpc.publicnode.com",
+  ],
+  "Polygon": [
+    `${ProxyRpcHost}/polygon`,
+    "https://polygon.drpc.org",
+    "https://polygon-bor-rpc.publicnode.com",
+  ],
+  "Gnosis": [
+    `${ProxyRpcHost}/gnosis`,
+    "https://rpc.gnosischain.com",
+    "https://gnosis-rpc.publicnode.com",
+  ],
+  "Optimism": [
+    `${ProxyRpcHost}/optimism`,
+    "https://mainnet.optimism.io",
+    "https://optimism-rpc.publicnode.com",
+  ],
+  "Berachain": [
+    `${ProxyRpcHost}/berachain`,
+    "https://rpc.berachain.com",
+    "https://berachain-rpc.publicnode.com",
+  ],
+  "Tron": [
+    `${ProxyRpcHost}/tron`,
+    "https://tron-rpc.publicnode.com",
+  ],
+  "Aptos": [
+    "https://api.mainnet.aptoslabs.com/v1",
+  ],
+  "Solana": [
+    `${ProxyRpcHost}/solana`,
+    `https://mainnet.helius-rpc.com/?api-key=${HeliusRpcApiKey}`,
+    `https://solana-mainnet.g.alchemy.com/v2/${AlchemyRpcApiKey}`,
+    "https://solana-rpc.publicnode.com",
+  ],
+  "Near": [
+    "https://nearinner.deltarpc.com",
+  ],
+  "X Layer": [
+    `${ProxyRpcHost}/xlayer`,
+    "https://rpc.xlayer.tech",
+    "https://xlayer.drpc.org",
+  ],
+  "Plasma": [
+    `${ProxyRpcHost}/plasma`,
+    "https://rpc.plasma.to",
+    "https://plasma.drpc.org",
+  ],
+  "Mantle": [
+    `${ProxyRpcHost}/mantle`,
+    "https://rpc.mantle.xyz",
+    "https://mantle-rpc.publicnode.com",
+  ],
+  "MegaETH": [
+    `${ProxyRpcHost}/megaeth`,
+    "https://mainnet.megaeth.com/rpc",
+  ],
+  "Ink": [
+    `${ProxyRpcHost}/ink`,
+    "https://rpc-gel.inkonchain.com",
+    "https://rpc-qnd.inkonchain.com",
+  ],
+  "Stable": [
+    `${ProxyRpcHost}/stable`,
+    "https://rpc.stable.xyz",
+  ],
+  "Celo": [
+    `${ProxyRpcHost}/celo`,
+    "https://forno.celo.org",
+    "https://celo-rpc.publicnode.com",
+  ],
+  "Sei": [
+    `${ProxyRpcHost}/sei`,
+    "https://sei-evm-rpc.publicnode.com",
+  ],
+  "Flare": [
+    "https://flare-api.flare.network/ext/C/rpc",
+  ],
+  "Fraxtal": [
+    `${ProxyRpcHost}/fraxtal`,
+    "https://rpc.frax.com",
+  ],
+  "Ton": [
+    "https://toncenter.com/api/v2/jsonRPC",
+  ],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {

@@ -17,6 +17,7 @@ import { OFT_ABI } from "@/services/usdt0/contract";
 import { csl } from "@/utils/log";
 import { createMulticall3, type Call } from "@/utils/multicall3";
 import { ExecTime } from "@/utils/exec-time";
+import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -57,8 +58,7 @@ export default class RainbowWallet {
     try {
       let provider = this.provider;
       if (token.rpcUrls) {
-        const providers = token.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, token.chainId));
-        provider = new ethers.FallbackProvider(providers);
+        provider = evmRpcFallbackProvider(token);
       }
 
       if (token.symbol === "eth" || token.symbol === "ETH" || token.symbol === "native") {
@@ -100,8 +100,7 @@ export default class RainbowWallet {
   }> {
     const { fromToken, depositAddress, amount, account } = data;
     const originAsset = fromToken.contractAddress;
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     let gasLimit: bigint;
 
@@ -273,8 +272,7 @@ export default class RainbowWallet {
       defaultGasLimit = DEFAULT_GAS_LIMIT,
     } = params;
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
 
     const result = {
@@ -367,8 +365,7 @@ export default class RainbowWallet {
 
     const execTime = new ExecTime({ type: `Usdt0 EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-100" });
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     const oftContract = new ethers.Contract(originLayerzeroAddress, abi, this.signer);
     const oftContractRead = new ethers.Contract(originLayerzeroAddress, abi, provider);
@@ -686,8 +683,7 @@ export default class RainbowWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
     };
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     const execTime = new ExecTime({ type: `CCTP EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-200" });
 
@@ -829,8 +825,7 @@ export default class RainbowWallet {
 
     const result: any = { fees: {} };
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     const proxyContract = new ethers.Contract(proxyAddress, abi, this.signer);
     const proxyParam: any = [
@@ -919,8 +914,7 @@ export default class RainbowWallet {
 
     const execTime = new ExecTime({ type: `Native EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-400" });
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     const estimateNativeGas = async () => {
       if (dry) {
@@ -1039,8 +1033,7 @@ export default class RainbowWallet {
       outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     const execTime = new ExecTime({ type: `FraxZero EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-500" });
 
@@ -1144,8 +1137,7 @@ export default class RainbowWallet {
 
     const execTime = new ExecTime({ type: `FraxZero EVM preivewRedeemFrxUSD ${fromToken.chainName}`, logStyle: "stone-600" });
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     // Get maxSharesRedeemable (index 3) from mdwrComboView for both custodians
     const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
@@ -1239,8 +1231,7 @@ export default class RainbowWallet {
 
     const execTime = new ExecTime({ type: `FraxZero EVM previewMintFrxUSD ${fromToken.chainName}`, logStyle: "stone-700" });
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     // Get maxAssetsDepositable (index 0) from mdwrComboView for both custodians
     const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
@@ -1312,8 +1303,7 @@ export default class RainbowWallet {
       outputAmount: "0",
     };
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     const execTime = new ExecTime({ type: `FraxZero EVM redeemFrxUSD ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-800" });
 
@@ -1435,8 +1425,7 @@ export default class RainbowWallet {
 
     const execTime = new ExecTime({ type: `FraxZero EVM mintFrxUSD ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-900" });
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     execTime.breakpoint();
     // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
@@ -1553,8 +1542,7 @@ export default class RainbowWallet {
 
     const execTime = new ExecTime({ type: `FraxZero EVM mintAndSendFrxUSD ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-950" });
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     execTime.breakpoint();
     // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
@@ -1780,8 +1768,7 @@ export default class RainbowWallet {
 
     csl("EVM signTypedData", "blue-900", "params: %o", params);
 
-    const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(fromToken);
 
     const value = amountWei;
     const tokenAddress = fromToken.contractAddress;

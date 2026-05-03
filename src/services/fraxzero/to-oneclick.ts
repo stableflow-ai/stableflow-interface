@@ -11,6 +11,7 @@ import { FRAXZERO_REDEEM_MINT_ABI } from "./contract";
 import { getPrice } from "@/utils/format/price";
 import { ExecTime } from "@/utils/exec-time";
 import { getRouteStatus, Service } from "../constants";
+import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 
 export class FraxZero2OneClickService extends FraxZeroService {
   public override async quote(params: any) {
@@ -39,8 +40,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
 
     const routeStatus = getRouteStatus(Service.FraxZeroOneClick);
 
-    const providers = FRAXZERO_MIDDLE_TOKEN_FRXUSD.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, FRAXZERO_MIDDLE_TOKEN_FRXUSD.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(FRAXZERO_MIDDLE_TOKEN_FRXUSD);
 
     let middleChainWallet = wallets?.evm?.wallet;
     let middleChainRecipientAddress = wallets?.evm?.account;

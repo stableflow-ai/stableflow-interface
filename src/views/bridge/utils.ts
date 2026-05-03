@@ -1,5 +1,6 @@
 import { Service } from "@/services/constants";
 import type { WalletType } from "@/stores/use-wallets";
+import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { csl } from "@/utils/log";
 import Big from "big.js";
 import { ethers } from "ethers";
@@ -53,8 +54,7 @@ const getErrorMessage = (error: unknown) => {
 export const createEvmAllowanceProvider = (fromToken?: EvmAllowanceToken) => {
   if (!fromToken?.rpcUrls?.length) return void 0;
 
-  const providers = fromToken.rpcUrls.map((rpc) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-  return new ethers.FallbackProvider(providers);
+  return evmRpcFallbackProvider(fromToken);
 };
 
 export const verifyPostApproveAllowance = async (params: {
