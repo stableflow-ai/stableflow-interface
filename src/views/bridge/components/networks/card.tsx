@@ -44,7 +44,7 @@ const NetworkCard = (props: any) => {
           <InputNumber
             className="w-full text-[#444C59] text-[26px] font-['SpaceGrotesk'] font-medium leading-[100%]"
             name={`${direction}Amount`}
-            value={amount}
+            value={amount || ""}
             onNumberChange={onAmountChange}
             decimals={token?.decimals || 6}
             placeholder="0"

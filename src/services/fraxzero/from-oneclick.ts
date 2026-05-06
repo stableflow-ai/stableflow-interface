@@ -178,6 +178,10 @@ export class OneClick2FraxZeroService extends FraxZeroService {
 
       execTime.logTotal("OneClick2FraxZeroService.quote is NOT FromEthereumUSDC");
 
+      const notFromEthUSDCFinalOutputAmount = isToEthereumFrxUSD
+        ? numberRemoveEndZero(Big(estimateEthereumFrxUSDAmountWei.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, Big.roundDown))
+        : secondStepResult.outputAmount;
+
       return {
         ...firstStepResult,
         routeDisabled: routeStatus.disabled,
@@ -189,7 +193,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         fees,
         totalFeesUsd: numberRemoveEndZero(Big(totalFeesUsd).toFixed(20)),
         estimateTime: (isToEthereumFrxUSD ? 0 : secondStepResult.estimateTime) + firstStepResult.estimateTime,
-        outputAmount: isToEthereumFrxUSD ? Big(estimateEthereumFrxUSDAmountWei.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, Big.roundDown) : secondStepResult.outputAmount,
+        outputAmount: notFromEthUSDCFinalOutputAmount,
         quoteParam: {
           ...firstStepResult.quoteParam,
           toToken: params.toToken,

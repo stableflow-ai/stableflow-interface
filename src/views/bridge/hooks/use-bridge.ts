@@ -916,13 +916,17 @@ export default function useBridge(props?: any) {
         addTransferTrack(addTrackParams);
       }
 
-      bridgeStore.set({ transferring: false });
+      bridgeStore.set({
+        transferring: false,
+        amount: "",
+      });
+      bridgeStore.clearQuoteData();
       getBalance();
       toast.success({
         title: "Transfer submitted"
       });
       // reload quotes
-      debouncedQuote({ dry: true });
+      // debouncedQuote({ dry: true });
 
     } catch (error: any) {
       console.error(error);
