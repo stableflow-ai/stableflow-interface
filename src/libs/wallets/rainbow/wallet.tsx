@@ -146,6 +146,7 @@ export default class RainbowWallet {
 
   async allowance(params: any) {
     const {
+      dry,
       contractAddress,
       spender,
       address,
@@ -157,6 +158,16 @@ export default class RainbowWallet {
 
     const runner = provider || this.provider;
     const contract = new ethers.Contract(contractAddress, erc20Abi, runner);
+
+    // If querying for a quote
+    // Directly return the default value
+    if (dry) {
+      return {
+        contract,
+        allowance: "0",
+        needApprove: false,
+      };
+    }
 
     // get allowance
     let allowance = "0";
@@ -459,6 +470,7 @@ export default class RainbowWallet {
     if (approvalRequired) {
       mergedCall.push(
         this.allowance({
+          dry,
           contractAddress: fromToken.contractAddress,
           spender: originLayerzeroAddress,
           address: refundTo,
@@ -708,6 +720,7 @@ export default class RainbowWallet {
       }),
       getUsrNonce(),
       this.allowance({
+        dry,
         contractAddress: fromToken.contractAddress,
         address: refundTo,
         spender: proxyAddress,
@@ -840,6 +853,7 @@ export default class RainbowWallet {
     execTime.breakpoint();
     const mergedCalls = [
       this.allowance({
+        dry,
         contractAddress: fromToken.contractAddress,
         address: refundTo,
         spender: proxyAddress,
@@ -973,6 +987,7 @@ export default class RainbowWallet {
     execTime.breakpoint();
     const mergedCalls = [
       this.allowance({
+        dry,
         contractAddress: fromToken.contractAddress,
         spender: bridgeRouterAddress,
         address: refundTo,
@@ -1055,6 +1070,7 @@ export default class RainbowWallet {
     execTime.breakpoint();
     const mergedCalls = [
       this.allowance({
+        dry,
         contractAddress: fromToken.contractAddress,
         spender: remoteHop,
         address: refundTo,
@@ -1335,17 +1351,15 @@ export default class RainbowWallet {
 
     execTime.breakpoint();
     // check allowance of fromToken for redeemAndMintContractAddress
-    try {
-      const allowanceResult = await this.allowance({
-        contractAddress: fromToken.contractAddress,
-        spender: redeemAndMintContractAddress,
-        address: refundTo,
-        amountWei,
-        provider,
-      });
-      result.needApprove = allowanceResult.needApprove;
-    } catch {
-    }
+    const allowanceResult = await this.allowance({
+      dry,
+      contractAddress: fromToken.contractAddress,
+      spender: redeemAndMintContractAddress,
+      address: refundTo,
+      amountWei,
+      provider,
+    });
+    result.needApprove = allowanceResult.needApprove;
     execTime.log("allowance");
 
     result.sendParam = {
@@ -1429,18 +1443,15 @@ export default class RainbowWallet {
 
     execTime.breakpoint();
     // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
-    try {
-      const allowanceResult = await this.allowance({
-        contractAddress: fromToken.contractAddress,
-        spender: usdcCustodianAddress,
-        address: refundTo,
-        amountWei,
-        provider,
-      });
-      result.needApprove = allowanceResult.needApprove;
-    } catch (error) {
-      csl("EVM mintFrxUSD", "red-500", "Error checking allowance: %o", error);
-    }
+    const allowanceResult = await this.allowance({
+      dry,
+      contractAddress: fromToken.contractAddress,
+      spender: usdcCustodianAddress,
+      address: refundTo,
+      amountWei,
+      provider,
+    });
+    result.needApprove = allowanceResult.needApprove;
     execTime.log("allowance");
 
     const usdcCustodian = new ethers.Contract(usdcCustodianAddress, abi, provider);
@@ -1546,18 +1557,15 @@ export default class RainbowWallet {
 
     execTime.breakpoint();
     // Check allowance of fromToken for usdcCustodianAddress (USDC must be approved to custodian)
-    try {
-      const allowanceResult = await this.allowance({
-        contractAddress: fromToken.contractAddress,
-        spender: redeemAndMintContractAddress,
-        address: refundTo,
-        amountWei,
-        provider,
-      });
-      result.needApprove = allowanceResult.needApprove;
-    } catch (error) {
-      csl("EVM mintAndSendFrxUSD", "red-500", "Error checking allowance: %o", error);
-    }
+    const allowanceResult = await this.allowance({
+      dry,
+      contractAddress: fromToken.contractAddress,
+      spender: redeemAndMintContractAddress,
+      address: refundTo,
+      amountWei,
+      provider,
+    });
+    result.needApprove = allowanceResult.needApprove;
     execTime.log("allowance");
 
     const redeemAndMintContractWithSigner = new ethers.Contract(redeemAndMintContractAddress, abi, this.signer);

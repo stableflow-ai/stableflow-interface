@@ -405,6 +405,7 @@ export default class TronWallet {
 
   async allowance(params: any) {
     const {
+      dry,
       contractAddress,
       spender,
       address,
@@ -412,12 +413,20 @@ export default class TronWallet {
       strict = false,
     } = params;
 
+    // Get contract instance
+    const contract = await this.tronWeb.contract().at(contractAddress);
+
+    if (dry) {
+      return {
+        contract,
+        allowance: "0",
+        needApprove: false,
+      };
+    }
+
     await this.waitForTronWeb();
 
     try {
-      // Get contract instance
-      const contract = await this.tronWeb.contract().at(contractAddress);
-
       // Get allowance
       let allowance = "0";
       try {
@@ -680,6 +689,7 @@ export default class TronWallet {
     if (approvalRequired) {
       mergedCalls.push(
         this.allowance({
+          dry,
           contractAddress: fromToken.contractAddress,
           spender: originLayerzeroAddress,
           address: userAddress,
@@ -913,18 +923,15 @@ export default class TronWallet {
     const userAddress = refundTo || this.tronWeb.defaultAddress.base58;
 
     execTime.breakpoint();
-    try {
-      const allowance = await this.allowance({
-        contractAddress: fromToken.contractAddress,
-        address: userAddress,
-        spender: proxyAddress,
-        amountWei: amountWei,
-      });
-      result.needApprove = allowance.needApprove;
-      result.approveSpender = proxyAddress;
-    } catch (error) {
-      csl("TronWallet quoteOneClickProxy", "red-500", "oneclick check allowance failed: %o", error);
-    }
+    const allowance = await this.allowance({
+      dry,
+      contractAddress: fromToken.contractAddress,
+      address: userAddress,
+      spender: proxyAddress,
+      amountWei: amountWei,
+    });
+    result.needApprove = allowance.needApprove;
+    result.approveSpender = proxyAddress;
     execTime.log("allowance");
 
     const proxyParam: any = [
