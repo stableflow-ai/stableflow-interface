@@ -281,26 +281,37 @@ export default function Networks({ addressValidation }: NetworksProps) {
             <div className="flex items-center justify-end gap-5 pr-3">
               <div className={clsx("flex items-center gap-0 duration-150", isRoutes ? "opacity-0" : "opacity-100")}>
                 {
-                  isToDisabled ? (
-                    null
-                  ) : hybridPath?.map((route, idx) => (
-                    <>
-                      <LazyImage
-                        key={`simplePathImg${idx}`}
-                        src={ServiceLogoSimpleMap[route.service]}
-                        containerClassName="w-4 h-4 shrink-0"
-                      />
-                      {
-                        idx < hybridPath.length - 1 && (
+                  isToDisabled
+                    ? (
+                      null
+                    )
+                    : (
+                      hybridPath?.length > 0
+                        ? hybridPath.map((route, idx) => (
+                          <>
+                            <LazyImage
+                              key={`simplePathImg${idx}`}
+                              src={ServiceLogoSimpleMap[route.service]}
+                              containerClassName="w-4 h-4 shrink-0"
+                            />
+                            {
+                              idx < hybridPath.length - 1 && (
+                                <LazyImage
+                                  key={`simplePathArrow${idx}`}
+                                  src={getStableflowIcon("icon-arrow-down.svg")}
+                                  containerClassName="w-4 h-1.5 -rotate-90"
+                                />
+                              )
+                            }
+                          </>
+                        ))
+                        : (
                           <LazyImage
-                            key={`simplePathArrow${idx}`}
-                            src={getStableflowIcon("icon-arrow-down.svg")}
-                            containerClassName="w-4 h-1.5 -rotate-90"
+                            src={ServiceLogoSimpleMap[bridgeStore.quoteDataService]}
+                            containerClassName="w-4 h-4 shrink-0"
                           />
                         )
-                      }
-                    </>
-                  ))
+                    )
                 }
               </div>
               <div className="flex items-center gap-2 text-xs text-[#444C59] leading-[100%] font-normal font-['SpaceGrotesk']">
