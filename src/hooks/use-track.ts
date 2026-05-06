@@ -175,6 +175,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
         dry,
         app_fees: appFees,
         wallet_name: originWalletName,
+        correlation_id: quoteData?.correlationId,
       };
     } catch {
       return {};
