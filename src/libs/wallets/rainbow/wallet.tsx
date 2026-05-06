@@ -1155,16 +1155,16 @@ export default class RainbowWallet {
 
     // csl("EVM preivewRedeemFrxUSD", "blue-700", "params: %o", params);
 
-    // if (dry) {
-    //   return {
-    //     maxUsdc: 0n,
-    //     maxRwa: 0n,
-    //     amountWeiBigInt: 0n,
-    //     // The token obtained from redeem is Ethereum USDC
-    //     totalAssetsOut: BigInt(Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0)),
-    //     isInsufficientLiquidity: false,
-    //   };
-    // }
+    if (dry) {
+      return {
+        maxUsdc: 0n,
+        maxRwa: 0n,
+        amountWeiBigInt: 0n,
+        // The token obtained from redeem is Ethereum USDC
+        totalAssetsOut: BigInt(Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0)),
+        isInsufficientLiquidity: false,
+      };
+    }
 
     const execTime = new ExecTime({ type: `FraxZero EVM preivewRedeemFrxUSD ${fromToken.chainName}`, logStyle: "stone-600" });
 
@@ -1261,15 +1261,15 @@ export default class RainbowWallet {
 
     csl("EVM previewMintFrxUSD", "blue-700", "params: %o", params);
 
-    // if (dry) {
-    //   return {
-    //     maxUsdc: 0n,
-    //     amountWeiBigInt: 0n,
-    //     totalMax: 0n,
-    //     // Minting means converting Ethereum USDC into Ethereum frxUSD
-    //     totalAssetsOut: BigInt(Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_FRXUSD.decimals).toFixed(0, 0)),
-    //   };
-    // }
+    if (dry) {
+      return {
+        maxUsdc: 0n,
+        amountWeiBigInt: 0n,
+        totalMax: 0n,
+        // Minting means converting Ethereum USDC into Ethereum frxUSD
+        totalAssetsOut: BigInt(Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_FRXUSD.decimals).toFixed(0, 0)),
+      };
+    }
 
     const execTime = new ExecTime({ type: `FraxZero EVM previewMintFrxUSD ${fromToken.chainName}`, logStyle: "stone-700" });
 
