@@ -64,35 +64,44 @@ export class FraxZero2OneClickService extends FraxZeroService {
       execTime.log("FraxZero.quote");
     }
     csl("FraxZero2OneClickService quote", "yellow-600", "firstStepResult: %o", firstStepResult);
-    const ethereumFrxUSDAmountWei = isFromEthereumFrxUSD ? amountWei : Big(firstStepResult.outputAmount || 0).times(10 ** FRAXZERO_MIDDLE_TOKEN_FRXUSD.decimals).toFixed(0, Big.roundDown);
+    const ethereumFrxUSDAmountWei = isFromEthereumFrxUSD
+      ? amountWei
+      : Big(firstStepResult.outputAmount || 0).times(10 ** FRAXZERO_MIDDLE_TOKEN_FRXUSD.decimals).toFixed(0, Big.roundDown);
+    const ethereumFrxUSDAmount = isFromEthereumFrxUSD
+      ? Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, Big.roundDown)
+      : firstStepResult.outputAmount;
 
     // oneclick quote result
     let thirdStepResult: any;
     let preivewRedeemResult: any;
     if (!isToEthereumUSDC) {
       let oneClickFeeRatio = "0";
-      if (!isFromEthereumFrxUSD) {
-        execTime.breakpoint();
-        const { usd, wei, amount } = await middleChainWallet.getEstimateGas({
-          gasLimit: FRAXZERO_GAS_USED.REDEEM * 120n / 100n,
-          price: getPrice(prices, FRAXZERO_MIDDLE_TOKEN_FRXUSD.nativeToken.symbol),
-          nativeToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD.nativeToken,
-          provider,
-          gasPrice: dry ? evmGasFees[FRAXZERO_MIDDLE_TOKEN_FRXUSD.chainId as number].gasPrice : void 0,
-        });
-        execTime.log("middleChainWallet.getEstimateGas");
-        const secondStepGasToAmount = Big(usd).div(getPrice(prices, FRAXZERO_MIDDLE_TOKEN_USDC.symbol) || 1).toFixed(FRAXZERO_MIDDLE_TOKEN_USDC.decimals);
-        oneClickFeeRatio = Big(secondStepGasToAmount)
-          .div(Big(secondStepGasToAmount).plus(Big(ethereumFrxUSDAmountWei).div(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(FRAXZERO_MIDDLE_TOKEN_USDC.decimals)))
-          .times(10000)
-          .toFixed(0, Big.roundUp);
-      }
+      // These fees are currently all 0
+      // No need to request for now
+      // if (!isFromEthereumFrxUSD) {
+      //   execTime.breakpoint();
+      //   const { usd, wei, amount } = await middleChainWallet.getEstimateGas({
+      //     gasLimit: FRAXZERO_GAS_USED.REDEEM * 120n / 100n,
+      //     price: getPrice(prices, FRAXZERO_MIDDLE_TOKEN_FRXUSD.nativeToken.symbol),
+      //     nativeToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD.nativeToken,
+      //     provider,
+      //     gasPrice: dry ? evmGasFees[FRAXZERO_MIDDLE_TOKEN_FRXUSD.chainId as number].gasPrice : void 0,
+      //   });
+      //   execTime.log("middleChainWallet.getEstimateGas");
+      //   const secondStepGasToAmount = Big(usd).div(getPrice(prices, FRAXZERO_MIDDLE_TOKEN_USDC.symbol) || 1).toFixed(FRAXZERO_MIDDLE_TOKEN_USDC.decimals);
+      //   oneClickFeeRatio = Big(secondStepGasToAmount)
+      //     .div(Big(secondStepGasToAmount).plus(Big(ethereumFrxUSDAmountWei).div(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(FRAXZERO_MIDDLE_TOKEN_USDC.decimals)))
+      //     .times(10000)
+      //     .toFixed(0, Big.roundUp);
+      // }
 
       // estimate redeem amount
-      let ethereumUSDCAmountWei = ethereumFrxUSDAmountWei;
+      // If it's a quote, use a 1:1 exchange rate
+      let ethereumUSDCAmountWei = Big(ethereumFrxUSDAmount || 0).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, Big.roundDown);
       try {
         execTime.breakpoint();
         preivewRedeemResult = await middleChainWallet.preivewRedeemFrxUSD({
+          dry,
           amountWei: ethereumFrxUSDAmountWei,
           fromToken: FRAXZERO_MIDDLE_TOKEN_FRXUSD,
           abi: FRAXZERO_REDEEM_MINT_ABI,

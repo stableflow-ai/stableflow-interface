@@ -18,6 +18,7 @@ import { csl } from "@/utils/log";
 import { createMulticall3, type Call } from "@/utils/multicall3";
 import { ExecTime } from "@/utils/exec-time";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
+import { FRAXZERO_MIDDLE_TOKEN_USDC } from "@/services/fraxzero/config";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -1143,6 +1144,7 @@ export default class RainbowWallet {
 
   async preivewRedeemFrxUSD(params: any) {
     const {
+      dry,
       amountWei,
       fromToken,
       abi,
@@ -1152,6 +1154,17 @@ export default class RainbowWallet {
     } = params;
 
     // csl("EVM preivewRedeemFrxUSD", "blue-700", "params: %o", params);
+
+    if (dry) {
+      return {
+        maxUsdc: 0n,
+        maxRwa: 0n,
+        amountWeiBigInt: 0n,
+        // The token obtained from redeem is Ethereum USDC
+        totalAssetsOut: BigInt(Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0)),
+        isInsufficientLiquidity: false,
+      };
+    }
 
     const execTime = new ExecTime({ type: `FraxZero EVM preivewRedeemFrxUSD ${fromToken.chainName}`, logStyle: "stone-600" });
 
@@ -1334,9 +1347,6 @@ export default class RainbowWallet {
       finalPreivewRedeemResult = await this.preivewRedeemFrxUSD(params);
     }
     const {
-      maxUsdc,
-      maxRwa,
-      amountWeiBigInt,
       isInsufficientLiquidity,
       totalAssetsOut,
     } = finalPreivewRedeemResult;
