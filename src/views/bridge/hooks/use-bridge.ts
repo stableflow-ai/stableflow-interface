@@ -252,6 +252,7 @@ export default function useBridge(props?: any) {
         type: service,
         quoteId: requestId,
         quoteParam: quoteParams,
+        correlationId: error?.response?.data?.correlationId,
         errMsg: _finalErrorMessage,
       };
       bridgeStore.setQuoteData(service, _quoteData);

@@ -46,7 +46,7 @@ export const excludeFees: string[] = ["estimateGasUsd"];
 
 export class OneClickService {
   private api: AxiosInstance;
-  private offsetTime = 1000 * 60 * 30;
+  private offsetTime = 1000 * 60 * 60;
   constructor() {
     this.api = axios.create({
       baseURL: "https://1click.chaindefuser.com/v0",
