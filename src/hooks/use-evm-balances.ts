@@ -19,6 +19,7 @@ import { erc20Abi } from "viem";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { csl } from "@/utils/log";
 import useWalletStore from "@/stores/use-wallet";
+import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 
 export default function useEvmBalances(auto = false) {
   const wallets = useWalletsStore();
@@ -148,8 +149,7 @@ export default function useEvmBalances(auto = false) {
         const currentChain: any = Object.values(chains).find((chain: any) => chain.chainId === _token.chain_id);
         if (!currentChain) continue;
 
-        const providers = currentChain.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, currentChain.chainId));
-        const provider = new ethers.FallbackProvider(providers);
+        const provider = evmRpcFallbackProvider(currentChain);
 
         for (const address of _token.tokens) {
           const promise = (async () => {

@@ -10,6 +10,7 @@ import { getPrice } from "@/utils/format/price";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
 import { getRouteStatus, Service } from "../constants";
+import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 
 export class OneClickUsdt0Service {
   public async quote(params: any) {
@@ -24,8 +25,7 @@ export class OneClickUsdt0Service {
     let middleChainWallet = wallets?.evm?.wallet;
     let destinationRecipientAddress = wallets?.evm?.account;
     if (!middleChainWallet) {
-      const providers = fromToken.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc));
-      const provider = new ethers.FallbackProvider(providers);
+      const provider = evmRpcFallbackProvider(fromToken);
       middleChainWallet = new RainbowWallet(provider, {});
     }
     if (!destinationRecipientAddress) {

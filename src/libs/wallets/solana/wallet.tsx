@@ -592,57 +592,61 @@ export default class SolanaWallet {
       }
       result.fees.lzTokenFee = lzTokenFee.toString();
 
-      // send
-      const sendSendHelper = new SendHelper();
-      execTime.breakpoint();
-      const sendRemainingAccounts = await sendSendHelper.getSendAccounts(
-        this.connection as any,
-        userPubkey,
-        pdas.oftStore,
-        _dstEid,
-        peerAddress,
-      );
-      execTime.log("getSendAccounts");
+      let sendTx: any;
+      if (!dry) {
+        // send
+        const sendSendHelper = new SendHelper();
+        execTime.breakpoint();
+        const sendRemainingAccounts = await sendSendHelper.getSendAccounts(
+          this.connection as any,
+          userPubkey,
+          pdas.oftStore,
+          _dstEid,
+          peerAddress,
+        );
+        execTime.log("getSendAccounts");
 
-      const sendIx = new TransactionInstruction({
-        programId,
-        keys: [
-          { pubkey: userPubkey, isSigner: true, isWritable: true },
-          { pubkey: pdas.peer, isSigner: false, isWritable: false },
-          { pubkey: pdas.oftStore, isSigner: false, isWritable: true },
-          { pubkey: pdas.credits, isSigner: false, isWritable: true },
-          { pubkey: tokenSource, isSigner: false, isWritable: true },
-          { pubkey: tokenEscrow, isSigner: false, isWritable: true },
-          { pubkey: tokenMint, isSigner: false, isWritable: false },
-          { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-          { pubkey: pdas.eventAuthority, isSigner: false, isWritable: false },
-          { pubkey: programId, isSigner: false, isWritable: false },
-          ...sendRemainingAccounts,
-        ],
-        data: Buffer.from(
-          encodeSend({
-            dstEid: _dstEid,
-            to,
-            amountLd,
-            minAmountLd,
-            extraOptions,
-            composeMsg,
-            nativeFee,
-            lzTokenFee: 0n,
-          }),
-        ),
-      });
+        const sendIx = new TransactionInstruction({
+          programId,
+          keys: [
+            { pubkey: userPubkey, isSigner: true, isWritable: true },
+            { pubkey: pdas.peer, isSigner: false, isWritable: false },
+            { pubkey: pdas.oftStore, isSigner: false, isWritable: true },
+            { pubkey: pdas.credits, isSigner: false, isWritable: true },
+            { pubkey: tokenSource, isSigner: false, isWritable: true },
+            { pubkey: tokenEscrow, isSigner: false, isWritable: true },
+            { pubkey: tokenMint, isSigner: false, isWritable: false },
+            { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+            { pubkey: pdas.eventAuthority, isSigner: false, isWritable: false },
+            { pubkey: programId, isSigner: false, isWritable: false },
+            ...sendRemainingAccounts,
+          ],
+          data: Buffer.from(
+            encodeSend({
+              dstEid: _dstEid,
+              to,
+              amountLd,
+              minAmountLd,
+              extraOptions,
+              composeMsg,
+              nativeFee,
+              lzTokenFee: 0n,
+            }),
+          ),
+        });
 
-      execTime.breakpoint();
-      const computeSendIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
-      const sendTx: any = await buildVersionedTransaction(
-        this.connection as any,
-        userPubkey,
-        [computeSendIx, sendIx],
-        undefined,
-        undefined,
-        lookupTable,
-      );
+        execTime.breakpoint();
+        const computeSendIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
+        sendTx = await buildVersionedTransaction(
+          this.connection as any,
+          userPubkey,
+          [computeSendIx, sendIx],
+          undefined,
+          undefined,
+          lookupTable,
+        );
+        execTime.log("buildTx+simulateTransaction(send)");
+      }
 
       const ett = await this.estimateTransaction({
         dry,
@@ -650,7 +654,6 @@ export default class SolanaWallet {
         fromToken,
         prices,
       });
-      execTime.log("buildTx+simulateTransaction(send)");
 
       result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;

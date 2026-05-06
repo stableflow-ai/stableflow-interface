@@ -4,6 +4,7 @@ import { USDT0_CONFIG } from "./config";
 import { OFT_ABI } from "./contract";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
+import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 
 export const getHopMsgFee = async (params: any) => {
   const {
@@ -24,8 +25,7 @@ export const getHopMsgFee = async (params: any) => {
   }
 
   execTime.breakpoint();
-  const providers = getChainRpcUrl("Arbitrum").rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, 42161));
-  const provider = new ethers.FallbackProvider(providers);
+  const provider = evmRpcFallbackProvider({ chainId: 42161, rpcUrls: getChainRpcUrl("Arbitrum").rpcUrls });
   const oftContractRead = new ethers.Contract(arbitrumOft!, OFT_ABI, provider);
   execTime.log("provider init");
 

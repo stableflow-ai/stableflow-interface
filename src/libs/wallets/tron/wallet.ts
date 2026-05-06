@@ -405,6 +405,7 @@ export default class TronWallet {
 
   async allowance(params: any) {
     const {
+      dry,
       contractAddress,
       spender,
       address,
@@ -412,12 +413,20 @@ export default class TronWallet {
       strict = false,
     } = params;
 
+    // Get contract instance
+    const contract = await this.tronWeb.contract().at(contractAddress);
+
+    if (dry) {
+      return {
+        contract,
+        allowance: "0",
+        needApprove: false,
+      };
+    }
+
     await this.waitForTronWeb();
 
     try {
-      // Get contract instance
-      const contract = await this.tronWeb.contract().at(contractAddress);
-
       // Get allowance
       let allowance = "0";
       try {
@@ -635,11 +644,13 @@ export default class TronWallet {
       sendParam[1] = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer); // to
     }
 
-    execTime.breakpoint();
-    const oftData = await oftContract.quoteOFT(sendParam).call();
-    execTime.log("quoteOFT");
-    const [, , oftReceipt] = oftData;
-    sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
+    if (!dry) {
+      execTime.breakpoint();
+      const oftData = await oftContract.quoteOFT(sendParam).call();
+      execTime.log("quoteOFT");
+      const [, , oftReceipt] = oftData;
+      sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
+    }
 
     if (isMultiHopComposer) {
       let multiHopExtraOptions = Options.newOptions().toHex();
@@ -680,6 +691,7 @@ export default class TronWallet {
     if (approvalRequired) {
       mergedCalls.push(
         this.allowance({
+          dry,
           contractAddress: fromToken.contractAddress,
           spender: originLayerzeroAddress,
           address: userAddress,
@@ -755,10 +767,12 @@ export default class TronWallet {
       this.tronWeb.defaultAddress.base58 || refundTo
     ];
 
-    execTime.breakpoint();
-    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
-    execTime.log("transactionBuilder.triggerSmartContract");
-    result.sendParam.tx = tx;
+    if (!dry) {
+      execTime.breakpoint();
+      const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
+      execTime.log("transactionBuilder.triggerSmartContract");
+      result.sendParam.tx = tx;
+    }
 
     execTime.breakpoint();
     const ett = await this.estimateTransaction({
@@ -913,18 +927,15 @@ export default class TronWallet {
     const userAddress = refundTo || this.tronWeb.defaultAddress.base58;
 
     execTime.breakpoint();
-    try {
-      const allowance = await this.allowance({
-        contractAddress: fromToken.contractAddress,
-        address: userAddress,
-        spender: proxyAddress,
-        amountWei: amountWei,
-      });
-      result.needApprove = allowance.needApprove;
-      result.approveSpender = proxyAddress;
-    } catch (error) {
-      csl("TronWallet quoteOneClickProxy", "red-500", "oneclick check allowance failed: %o", error);
-    }
+    const allowance = await this.allowance({
+      dry,
+      contractAddress: fromToken.contractAddress,
+      address: userAddress,
+      spender: proxyAddress,
+      amountWei: amountWei,
+    });
+    result.needApprove = allowance.needApprove;
+    result.approveSpender = proxyAddress;
     execTime.log("allowance");
 
     const proxyParam: any = [
