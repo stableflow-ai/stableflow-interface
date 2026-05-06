@@ -32,10 +32,9 @@ export class Usdt0OneClickService {
       ...params,
       toToken: MIDDLE_TOKEN_CHAIN,
       destinationChain: MIDDLE_TOKEN_CHAIN.chainName,
+      recipient: MIDDLE_CHAIN_REFOUND_ADDRESS,
     };
-
-    execTime.breakpoint();
-    const oneClickResult = await oneClickService.quote({
+    const oneClickParams = {
       ...params,
       fromToken: MIDDLE_TOKEN_CHAIN,
       originAsset: MIDDLE_TOKEN_CHAIN.assetId,
@@ -43,22 +42,39 @@ export class Usdt0OneClickService {
       isProxy: false,
       refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
       wallet: middleChainWallet,
-    });
-    execTime.log("oneClickService.quote");
+    };
 
-    if (oneClickResult.errMsg) {
-      return oneClickResult;
+    let oneClickResult: any;
+    let usdt0Result: any;
+    if (dry) {
+      execTime.breakpoint();
+      const mergedQuotes = [
+        oneClickService.quote(oneClickParams),
+        usdt0Service.quote(usdt0Params)
+      ];
+      const merdedRes = await Promise.all(mergedQuotes);
+      oneClickResult = merdedRes[0];
+      usdt0Result = merdedRes[1];
+      execTime.log("oneClickService.quote & usdt0Service.quote");
     }
+    // not dry
+    else {
+      execTime.breakpoint();
+      oneClickResult = await oneClickService.quote(oneClickParams);
+      execTime.log("oneClickService.quote");
 
-    if (!dry) {
-      usdt0Params.recipient = oneClickResult.quote.depositAddress;
-    } else {
-      usdt0Params.recipient = MIDDLE_CHAIN_REFOUND_ADDRESS;
+      if (oneClickResult.errMsg) {
+        return oneClickResult;
+      }
+
+      if (!dry) {
+        usdt0Params.recipient = oneClickResult.quote.depositAddress;
+      }
+
+      execTime.breakpoint();
+      usdt0Result = await usdt0Service.quote(usdt0Params);
+      execTime.log("usdt0Service.quote");
     }
-
-    execTime.breakpoint();
-    const usdt0Result = await usdt0Service.quote(usdt0Params);
-    execTime.log("usdt0Service.quote");
 
     csl("Usdt0OneClickService quote", "rose-600", "oneClickResult: %o", oneClickResult);
     csl("Usdt0OneClickService quote", "rose-600", "usdt0Result: %o", usdt0Result);

@@ -456,12 +456,14 @@ export default class RainbowWallet {
     }
 
     // csl("EVM quoteOFT", "blue-900", "sendParam: %o", sendParam);
-    execTime.breakpoint();
-    const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
-    const [, , oftReceipt] = oftData;
-    sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
-    // csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
-    execTime.log("quoteOFT.staticCall");
+    if (!dry) {
+      execTime.breakpoint();
+      const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
+      const [, , oftReceipt] = oftData;
+      sendParam.minAmountLD = oftReceipt[1] * (1000000n - BigInt(slippageTolerance * 10000)) / 1000000n;
+      // csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
+      execTime.log("quoteOFT.staticCall");
+    }
 
     execTime.breakpoint();
     const mergedCall = [

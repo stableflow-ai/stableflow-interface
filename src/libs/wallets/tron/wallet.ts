@@ -644,11 +644,13 @@ export default class TronWallet {
       sendParam[1] = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer); // to
     }
 
-    execTime.breakpoint();
-    const oftData = await oftContract.quoteOFT(sendParam).call();
-    execTime.log("quoteOFT");
-    const [, , oftReceipt] = oftData;
-    sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
+    if (!dry) {
+      execTime.breakpoint();
+      const oftData = await oftContract.quoteOFT(sendParam).call();
+      execTime.log("quoteOFT");
+      const [, , oftReceipt] = oftData;
+      sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
+    }
 
     if (isMultiHopComposer) {
       let multiHopExtraOptions = Options.newOptions().toHex();
@@ -765,10 +767,12 @@ export default class TronWallet {
       this.tronWeb.defaultAddress.base58 || refundTo
     ];
 
-    execTime.breakpoint();
-    const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
-    execTime.log("transactionBuilder.triggerSmartContract");
-    result.sendParam.tx = tx;
+    if (!dry) {
+      execTime.breakpoint();
+      const tx = await this.tronWeb.transactionBuilder.triggerSmartContract(...transactionParams);
+      execTime.log("transactionBuilder.triggerSmartContract");
+      result.sendParam.tx = tx;
+    }
 
     execTime.breakpoint();
     const ett = await this.estimateTransaction({
