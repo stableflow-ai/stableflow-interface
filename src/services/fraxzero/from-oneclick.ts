@@ -74,6 +74,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
       // The ratio can be obtained from the contract.
       execTime.breakpoint();
       previewMintResult = await middleChainWallet.previewMintFrxUSD({
+        dry,
         amountWei: Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0),
         fromToken: FRAXZERO_MIDDLE_TOKEN_USDC,
         abi: FRAXZERO_REDEEM_MINT_ABI,

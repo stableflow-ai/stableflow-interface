@@ -18,7 +18,7 @@ import { csl } from "@/utils/log";
 import { createMulticall3, type Call } from "@/utils/multicall3";
 import { ExecTime } from "@/utils/exec-time";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
-import { FRAXZERO_MIDDLE_TOKEN_USDC } from "@/services/fraxzero/config";
+import { FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_MIDDLE_TOKEN_USDC } from "@/services/fraxzero/config";
 
 const DEFAULT_GAS_LIMIT = 100000n;
 
@@ -1155,16 +1155,16 @@ export default class RainbowWallet {
 
     // csl("EVM preivewRedeemFrxUSD", "blue-700", "params: %o", params);
 
-    if (dry) {
-      return {
-        maxUsdc: 0n,
-        maxRwa: 0n,
-        amountWeiBigInt: 0n,
-        // The token obtained from redeem is Ethereum USDC
-        totalAssetsOut: BigInt(Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0)),
-        isInsufficientLiquidity: false,
-      };
-    }
+    // if (dry) {
+    //   return {
+    //     maxUsdc: 0n,
+    //     maxRwa: 0n,
+    //     amountWeiBigInt: 0n,
+    //     // The token obtained from redeem is Ethereum USDC
+    //     totalAssetsOut: BigInt(Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0)),
+    //     isInsufficientLiquidity: false,
+    //   };
+    // }
 
     const execTime = new ExecTime({ type: `FraxZero EVM preivewRedeemFrxUSD ${fromToken.chainName}`, logStyle: "stone-600" });
 
@@ -1252,6 +1252,7 @@ export default class RainbowWallet {
 
   async previewMintFrxUSD(params: any) {
     const {
+      dry,
       amountWei,
       fromToken,
       abi,
@@ -1259,6 +1260,16 @@ export default class RainbowWallet {
     } = params;
 
     csl("EVM previewMintFrxUSD", "blue-700", "params: %o", params);
+
+    // if (dry) {
+    //   return {
+    //     maxUsdc: 0n,
+    //     amountWeiBigInt: 0n,
+    //     totalMax: 0n,
+    //     // Minting means converting Ethereum USDC into Ethereum frxUSD
+    //     totalAssetsOut: BigInt(Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_FRXUSD.decimals).toFixed(0, 0)),
+    //   };
+    // }
 
     const execTime = new ExecTime({ type: `FraxZero EVM previewMintFrxUSD ${fromToken.chainName}`, logStyle: "stone-700" });
 
@@ -1588,9 +1599,6 @@ export default class RainbowWallet {
       finalPreviewMintResult = await this.previewMintFrxUSD(params);
     }
     const {
-      maxUsdc,
-      amountWeiBigInt,
-      totalMax,
       totalAssetsOut,
     } = finalPreviewMintResult;
     execTime.log("previewMintFrxUSD");

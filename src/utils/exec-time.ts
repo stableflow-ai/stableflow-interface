@@ -13,7 +13,7 @@ export class ExecTime {
     const { type, logStyle, isPerformance } = options;
     this.type = type;
     this.logStyle = logStyle ?? "stone-500";
-    this.isPerformance = isPerformance ?? true;
+    this.isPerformance = isPerformance ?? false;
 
     if (IS_PRODUCTION) return;
 
