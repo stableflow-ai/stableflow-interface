@@ -1,37 +1,17 @@
 import React, { Suspense, lazy } from "react";
-import OKXConnectProvider from "./okxconnect";
 
-// Dynamic import wallet providers with error handling
-const RainbowProvider = lazy(() =>
-  import("./rainbow/provider").catch(() => ({
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-  }))
-);
-const SolanaProvider = lazy(() =>
-  import("./solana/provider").catch(() => ({
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-  }))
-);
-const NEARProvider = lazy(() =>
-  import("./near/provider").catch(() => ({
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-  }))
-);
-const TronProvider = lazy(() =>
-  import("./tron/provider").catch(() => ({
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-  }))
-);
-const AptosProvider = lazy(() =>
-  import("./aptos/provider").catch(() => ({
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-  }))
-);
-const TonProvider = lazy(() =>
-  import("./ton/provider").catch(() => ({
-    default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-  }))
-);
+const fallbackProvider = (children: React.ReactNode) => <>{children}</>;
+const makeLazy = (importFn: () => Promise<any>) =>
+  lazy(() => importFn().catch(() => ({ default: ({ children }: { children: React.ReactNode }) => fallbackProvider(children) })));
+
+// @okxconnect/core + @okxconnect/universal-provider moved out of main bundle
+const OKXConnectProvider = makeLazy(() => import("./okxconnect"));
+const RainbowProvider = makeLazy(() => import("./rainbow/provider"));
+const SolanaProvider = makeLazy(() => import("./solana/provider"));
+const NEARProvider = makeLazy(() => import("./near/provider"));
+const TronProvider = makeLazy(() => import("./tron/provider"));
+const AptosProvider = makeLazy(() => import("./aptos/provider"));
+const TonProvider = makeLazy(() => import("./ton/provider"));
 
 const LoadingSpinner = () => {
   return (
@@ -45,35 +25,28 @@ const LoadingSpinner = () => {
   );
 };
 
-// Loading component with individual Suspense boundaries
-const WalletProviderLoader = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={<LoadingSpinner />}>
-    <RainbowProvider>
-      <SolanaProvider>
-        <NEARProvider>
-          <TronProvider>
-            <AptosProvider>
-              <TonProvider>
-                {children}
-              </TonProvider>
-            </AptosProvider>
-          </TronProvider>
-        </NEARProvider>
-      </SolanaProvider>
-    </RainbowProvider>
-  </Suspense>
-);
-
 export default function WalletsProvider({
   children
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <OKXConnectProvider>
-      <WalletProviderLoader>
-        {children}
-      </WalletProviderLoader>
-    </OKXConnectProvider>
+    <Suspense fallback={<LoadingSpinner />}>
+      <OKXConnectProvider>
+        <RainbowProvider>
+          <SolanaProvider>
+            <NEARProvider>
+              <TronProvider>
+                <AptosProvider>
+                  <TonProvider>
+                    {children}
+                  </TonProvider>
+                </AptosProvider>
+              </TronProvider>
+            </NEARProvider>
+          </SolanaProvider>
+        </RainbowProvider>
+      </OKXConnectProvider>
+    </Suspense>
   );
 }

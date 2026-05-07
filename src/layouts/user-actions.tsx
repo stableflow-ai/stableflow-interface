@@ -7,12 +7,13 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
-import { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
+import { menuItems } from "@/components/navigation-menu/menu-items";
 import { useTrack } from "@/hooks/use-track";
 import { getStableflowIcon, getStableflowLogo } from "@/utils/format/logo";
 
 const Social = lazy(() => import("@/components/social"));
 const NavigationMenu = lazy(() => import("@/components/navigation-menu"));
+const HyperliquidDeposit = lazy(() => import("@/components/navigation-menu/hyper-liquid"));
 const Terms = lazy(() => import("@/components/terms"));
 
 export default function UserActions() {
@@ -300,7 +301,9 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <HyperliquidDeposit className="flex! md:flex! w-[287px] justify-center" />
+          <Suspense fallback={null}>
+            <HyperliquidDeposit className="flex! md:flex! w-[287px] justify-center" />
+          </Suspense>
         </div>
 
         <div className="pt-3.5 pb-8 px-3.5">

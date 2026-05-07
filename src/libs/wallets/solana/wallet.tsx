@@ -19,7 +19,6 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import { getChainRpcUrl } from "@/config/chains";
-import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
@@ -386,6 +385,7 @@ export default class SolanaWallet {
   }
 
   async quoteOFT(params: any) {
+    const { Options } = await import("@layerzerolabs/lz-v2-utilities");
     const {
       dry,
       originLayerzeroAddress,

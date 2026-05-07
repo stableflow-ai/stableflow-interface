@@ -1,56 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import clsx from "clsx";
-import { useTrack } from "@/hooks/use-track";
 import { getStableflowLogo } from "@/utils/format/logo";
-import Popover from "./popover";
+import Popover from "../popover";
 import { lazy, Suspense, useRef } from "react";
+import { menuItems } from "./menu-items";
 
 const Social = lazy(() => import("@/components/social"));
-
-export const menuItems = [
-  {
-    label: "Transfer",
-    path: "/",
-    isExternal: false,
-  },
-  {
-    label: "Ecosystem",
-    path: "/ecosystem",
-    isExternal: false,
-  },
-  {
-    label: "More",
-    path: false,
-    isExternal: false,
-    children: [
-      {
-        label: "About",
-        path: "/about",
-        isExternal: false,
-      },
-      {
-        label: "Developer",
-        path: "/developer",
-        isExternal: false,
-      },
-      {
-        label: "Docs",
-        path: "https://docs.stableflow.ai/",
-        isExternal: true,
-      },
-      // {
-      //   label: "Explorer",
-      //   path: "https://github.com/stableflow-ai/stableflow-interface",
-      //   isExternal: true,
-      // },
-      // {
-      //   label: "Bug Bounty",
-      //   path: "https://github.com/stableflow-ai/stableflow-interface/issues",
-      //   isExternal: true,
-      // },
-    ],
-  }
-];
+const HyperliquidDeposit = lazy(() => import("@/components/navigation-menu/hyper-liquid"));
 
 export default function NavigationMenu() {
   const location = useLocation();
@@ -171,39 +127,9 @@ export default function NavigationMenu() {
           );
         })}
       </div>
-      <HyperliquidDeposit />
+      <Suspense>
+        <HyperliquidDeposit />
+      </Suspense>
     </nav>
   );
 }
-
-export const HyperliquidDeposit = (props: any) => {
-  const { className } = props;
-
-  const { addExternalLinkClick } = useTrack();
-
-  return (
-    <a
-      href="https://deposit.stableflow.ai/"
-      target="_blank"
-      className={clsx(
-        "hidden md:flex items-center gap-1 h-9 bg-white rounded-[20px] px-2.5 text-[#444C59] hover:text-black duration-150 font-[SpaceGrotesk] text-xs font-normal leading-[100%] shadow-[0_0_10px_0_rgba(0,0,0,0.10)] hover:shadow-[0_0_15px_0_rgba(0,0,0,0.20)] bg-[linear-gradient(90deg,_rgba(65,207,172,0.00)_0%,_rgba(65,207,172,0.50)_100%)]",
-        className
-      )}
-      onClick={() => addExternalLinkClick({ link: "https://deposit.stableflow.ai/" })}
-    >
-      <span className="">
-        Cheapest way to deposit
-      </span>
-      <img
-        src={getStableflowLogo("/logo-hyperliquid.svg")}
-        alt=""
-        className="w-22 h-3 object-center object-contain shrink-0"
-      />
-      <span className="w-5 h-5 flex justify-center items-center bg-black rounded-full text-white">
-        <svg width="5" height="8" viewBox="0 0 5 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M1 1L4 4.10345L1 7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </span>
-    </a>
-  );
-};

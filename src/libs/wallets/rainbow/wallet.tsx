@@ -3,7 +3,6 @@ import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
 import Big from "big.js";
 import { ethers } from "ethers";
-import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { addressToBytes32 } from "@/utils/address-validation";
 import { LZ_RECEIVE_VALUE, USDT0_CONFIG, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { quoteSignature } from "../utils/cctp";
@@ -333,6 +332,7 @@ export default class RainbowWallet {
   }
 
   async quoteOFT(params: any) {
+    const { Options } = await import("@layerzerolabs/lz-v2-utilities");
     const {
       dry,
       abi,
@@ -1672,6 +1672,7 @@ export default class RainbowWallet {
   }
 
   async retryLayerzeroLzComponse(params: any) {
+    const { Options } = await import("@layerzerolabs/lz-v2-utilities");
     const {
       layerzeroData,
       history,
