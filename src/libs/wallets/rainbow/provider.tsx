@@ -51,8 +51,7 @@ import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 import { metadata } from "./metadata";
 export { metadata };
 
-// const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
-const projectId = "e42b2856b3a1f42fde1a13f3354be18c";
+const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 
 const RpcUrls: any = {
   [mainnet.id]: fallback(getChainRpcUrl("Ethereum").rpcUrls.map((rpc) => http(rpc))),
@@ -175,7 +174,7 @@ export default function RainbowProvider({
   const initialState = cookieToInitialState(config);
 
   return (
-    <WagmiProvider config={config} initialState={initialState}>
+    <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider modalSize="compact" locale="en-US">
           {children}
