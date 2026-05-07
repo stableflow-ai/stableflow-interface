@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { lazy, Suspense, useRef } from "react";
 import UserActions from "./user-actions";
+import LayoutContext from "./context";
 
 // import useUpdateTxns from "@/hooks/use-update-txns";
 // import SupportButton from "@/components/support-button";
@@ -25,46 +26,55 @@ export default function Layout() {
   // useUpdateTxns();
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#F6F8FC]">
-      {/* Video Background */}
-      {
-        isHomePage && (
-          <div className="absolute inset-0 w-full h-full z-0">
-            <Suspense fallback={<LoadingSpinner />}>
-              <PixelBlast />
-            </Suspense>
-          </div>
-        )
-      }
-      {/* <AuroraBackground /> */}
-
-      {/* Maintenance Banner */}
-      <Suspense fallback={<LoadingSpinner />}>
-        <MaintenanceBanner />
-      </Suspense>
-
-      {/* Content Layer */}
-      <div ref={containerRef} className="relative z-10 w-full h-full overflow-y-auto">
-        <Suspense fallback={<LoadingSpinner />}>
-          <UserActions />
-        </Suspense>
-        <Outlet />
-        <Suspense fallback={<LoadingSpinner />}>
-          <Wallet />
-        </Suspense>
-
+    <LayoutContext.Provider
+      value={{
+        containerRef,
+        isHomePage,
+        ishistoryPage,
+        isFooter2,
+      }}
+    >
+      <div className="relative w-full h-screen overflow-hidden bg-[#F6F8FC]">
+        {/* Video Background */}
         {
-          isFooter2 ? (
-            <Suspense fallback={<LoadingSpinner />}>
-              <Footer2 />
-            </Suspense>
-          ) : (
-            <Suspense fallback={<LoadingSpinner />}>
-              <Footer containerRef={containerRef} />
-            </Suspense>
+          isHomePage && (
+            <div className="absolute inset-0 w-full h-full z-0">
+              <Suspense fallback={<LoadingSpinner />}>
+                <PixelBlast />
+              </Suspense>
+            </div>
           )
         }
+        {/* <AuroraBackground /> */}
+
+        {/* Maintenance Banner */}
+        <Suspense fallback={<LoadingSpinner />}>
+          <MaintenanceBanner />
+        </Suspense>
+
+        {/* Content Layer */}
+        <div ref={containerRef} className="relative z-10 w-full h-full overflow-y-auto">
+          <Suspense fallback={<LoadingSpinner />}>
+            <UserActions />
+          </Suspense>
+          <Outlet />
+          <Suspense fallback={<LoadingSpinner />}>
+            <Wallet />
+          </Suspense>
+
+          {
+            isFooter2 ? (
+              <Suspense fallback={<LoadingSpinner />}>
+                <Footer2 />
+              </Suspense>
+            ) : (
+              <Suspense fallback={<LoadingSpinner />}>
+                <Footer containerRef={containerRef} />
+              </Suspense>
+            )
+          }
+        </div>
       </div>
-    </div>
+    </LayoutContext.Provider>
   );
 }
