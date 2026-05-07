@@ -51,7 +51,8 @@ import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 import { metadata } from "./metadata";
 export { metadata };
 
-const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
+// const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
+const projectId = "e42b2856b3a1f42fde1a13f3354be18c";
 
 const RpcUrls: any = {
   [mainnet.id]: fallback(getChainRpcUrl("Ethereum").rpcUrls.map((rpc) => http(rpc))),
