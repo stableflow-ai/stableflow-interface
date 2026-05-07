@@ -142,21 +142,22 @@ const connectors: any = connectorsForWallets(
     projectId,
   }
 );
+// @ts-ignore
 const wagmiConfig = createConfig({
   ...config,
   connectors,
-  client: ({ chain }) => {
-    if (RpcUrls[chain.id]) {
-      return createClient({
-        chain,
-        transport: RpcUrls[chain.id],
-      })
-    }
-    return createClient({
-      chain,
-      transport: http()
-    })
-  }
+  // client: ({ chain }) => {
+  //   if (RpcUrls[chain.id]) {
+  //     return createClient({
+  //       chain,
+  //       transport: RpcUrls[chain.id],
+  //     })
+  //   }
+  //   return createClient({
+  //     chain,
+  //     transport: http()
+  //   })
+  // }
 });
 
 const queryClient = new QueryClient();
@@ -166,10 +167,10 @@ export default function RainbowProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const initialState = cookieToInitialState(wagmiConfig);
+  const initialState = cookieToInitialState(config);
 
   return (
-    <WagmiProvider config={wagmiConfig} initialState={initialState}>
+    <WagmiProvider config={config} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider modalSize="compact" locale="en-US">
           {children}
@@ -197,7 +198,7 @@ function Content() {
       const provider = new ethers.BrowserProvider(publicClient);
 
       const signer = walletClient
-        ? await new ethers.BrowserProvider(walletClient).getSigner()
+        ? await new ethers.BrowserProvider(walletClient.transport).getSigner()
         : null;
 
       const wallet = new RainbowWallet(provider, signer);

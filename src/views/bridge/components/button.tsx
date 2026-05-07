@@ -79,7 +79,7 @@ export default function BridgeButton({
     if (errorConnect || errorConnectEvm) {
       return false;
     }
-    if (!!bridgeStore.errorTips || !bridgeStore.quoteDataService || bridgeStore.quoteDataMap.size < 1) {
+    if (!!bridgeStore.errorTips || !bridgeStore.quoteDataService || bridgeStore.quoteDataMap.size < 1 || bridgeStore.transferring) {
       return true;
     }
 
@@ -93,7 +93,7 @@ export default function BridgeButton({
       return true;
     }
     return false;
-  }, [errorConnect, errorConnectEvm, bridgeStore.errorTips, loading, bridgeStore.quoteDataService, bridgeStore.quoteDataMap]);
+  }, [errorConnect, errorConnectEvm, bridgeStore.errorTips, loading, bridgeStore.quoteDataService, bridgeStore.quoteDataMap, bridgeStore.transferring]);
 
   return (
     <>
