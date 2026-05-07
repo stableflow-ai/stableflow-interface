@@ -69,7 +69,7 @@ export default function NEARProvider({
               metadata: {
                 name: "StableFlow.ai",
                 description: "Move stablecoins anywhere.",
-                url: "https://app.stableflow.ai",
+                url: "https://test.stableflow.ai",
                 icons: [getStableflowLogo("logo-stableflow.svg")]
               },
               chainId: "near:mainnet"
