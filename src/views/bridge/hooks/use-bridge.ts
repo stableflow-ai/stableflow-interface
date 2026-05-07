@@ -1032,11 +1032,12 @@ export default function useBridge(props?: any) {
   };
 
   // Wrap quote function to generate a new request ID on each call
-  const quoteWithRequestId = async (params: { dry: boolean; }, isSync?: boolean) => {
+  const quoteWithRequestId = async (params: { dry: boolean; from?: string; }, isSync?: boolean) => {
+    csl("Trigger quote with request id", "purple-600", "from: %o", params.from)
     // Generate a new request ID
     requestIdRef.current += 1;
     const currentRequestId = requestIdRef.current;
-    return quote(params, isSync, currentRequestId);
+    return quote({ dry: params.dry }, isSync, currentRequestId);
   };
 
   const { run: debouncedQuote, cancel: cancelQuote } = useDebounceFn(quoteWithRequestId, {
@@ -1064,7 +1065,7 @@ export default function useBridge(props?: any) {
       return;
     }
     cancelQuote();
-    debouncedQuote({ dry: true });
+    debouncedQuote({ dry: true, from: "effect" });
   }, [
     walletStore.fromToken,
     walletStore.toToken,
@@ -1264,7 +1265,7 @@ export default function useBridge(props?: any) {
           walletStore.toToken?.symbol === "USDC"
         ) {
           csl("autoRequote", "gray-800", "Auto requoting after %s ms", CCTP_AUTO_REQUOTE_DURATION);
-          debouncedQuote({ dry: true });
+          debouncedQuote({ dry: true, from: "requote for CCTP from Solana USDC" });
         }
         // Clear timer ref after execution
         autoRequoteTimerRef.current = null;

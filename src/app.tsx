@@ -4,7 +4,6 @@ import {
   RouterProvider
 } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
-import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy, useEffect, Suspense } from "react";
@@ -13,6 +12,7 @@ import ErrorPage from "./views/error";
 import { usePrices } from "./hooks/use-prices";
 import ZendeskPrivider from "./components/zendesk-widget";
 
+const Bridge = lazy(() => import("./views/bridge"));
 const History = lazy(() => import("./views/history"));
 const About = lazy(() => import("./views/about"));
 const Apply = lazy(() => import("./views/apply"));

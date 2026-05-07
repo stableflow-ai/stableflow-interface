@@ -1,7 +1,6 @@
 import { addressToBytes32 } from "@/utils/address-validation";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { getPrice } from "@/utils/format/price";
-import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { ethers } from "ethers";
 import Big from "big.js";
 import { TronWeb } from "tronweb";
@@ -569,6 +568,8 @@ export default class TronWallet {
       originLayerzero,
       destinationLayerzero,
     } = params;
+
+    const { Options } = await import("@layerzerolabs/lz-v2-utilities");
 
     const result: any = {
       needApprove: false,
