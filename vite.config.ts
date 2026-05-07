@@ -45,23 +45,6 @@ export default defineConfig({
     // Force pre-bundling of problematic dependencies
     force: true
   },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id: string) {
-          if (!id.includes("node_modules")) return;
-
-          // WalletConnect & Reown appkit: Confirmed by visualizer to be duplicated across 4 chunks
-          // There are cross-dependencies between chain SDKs. Forcing chunks causes circular chunk errors, so only merge WalletConnect
-          if (id.includes("/@walletconnect/") || id.includes("/@reown/appkit")) {
-            return "vendor-walletconnect";
-          }
-          // Let Rollup automatically split the remaining chain-specific SDKs (solana/near/tron/aptos/ton/layerzero),
-          // to avoid circular chunk errors caused by cross-chain imports
-        }
-      }
-    }
-  },
   server: {
     host: "0.0.0.0",
     port: 5173
