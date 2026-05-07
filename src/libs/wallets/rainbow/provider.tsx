@@ -34,7 +34,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   RainbowKitProvider,
   connectorsForWallets,
-  getDefaultConfig,
   useConnectModal
 } from "@rainbow-me/rainbowkit";
 import { ethers } from "ethers";
@@ -44,11 +43,10 @@ import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
 import { metaMaskWallet, baseAccount, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
-import { createClient, fallback } from "viem";
+import { fallback } from "viem";
 import { getChainRpcUrl } from "@/config/chains";
 import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 import { metadata } from "./metadata";
-export { metadata };
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 
@@ -74,12 +72,31 @@ const RpcUrls: any = {
   [fraxtal.id]: fallback(getChainRpcUrl("Fraxtal").rpcUrls.map((rpc) => http(rpc))),
 };
 
-const config = getDefaultConfig({
-  appName: metadata.name,
-  appDescription: metadata.description,
-  appUrl: metadata.url,
-  appIcon: metadata.icons[0],
-  projectId,
+const connectors: any = connectorsForWallets(
+  [
+    {
+      groupName: "Recommended",
+      wallets: [
+        okxWallet,
+        metaMaskWallet,
+        baseAccount,
+        bitgetWallet,
+        binanceWallet,
+        walletConnectWallet,
+      ],
+    },
+  ],
+  {
+    appName: metadata.name,
+    appDescription: metadata.description,
+    appUrl: metadata.url,
+    appIcon: metadata.icons[0],
+    projectId,
+  }
+);
+
+const wagmiConfig = createConfig({
+  connectors,
   chains: [
     mainnet,
     polygon,
@@ -123,42 +140,6 @@ const config = getDefaultConfig({
     [fraxtal.id]: RpcUrls[fraxtal.id] || http(),
   },
 });
-const connectors: any = connectorsForWallets(
-  [
-    {
-      groupName: "Recommended",
-      wallets: [
-        okxWallet,
-        metaMaskWallet,
-        baseAccount,
-        bitgetWallet,
-        binanceWallet,
-        walletConnectWallet,
-      ],
-    },
-  ],
-  {
-    appName: metadata.name,
-    projectId,
-  }
-);
-// @ts-ignore
-const wagmiConfig = createConfig({
-  ...config,
-  connectors,
-  // client: ({ chain }) => {
-  //   if (RpcUrls[chain.id]) {
-  //     return createClient({
-  //       chain,
-  //       transport: RpcUrls[chain.id],
-  //     })
-  //   }
-  //   return createClient({
-  //     chain,
-  //     transport: http()
-  //   })
-  // }
-});
 
 const queryClient = new QueryClient();
 
@@ -167,10 +148,10 @@ export default function RainbowProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const initialState = cookieToInitialState(config);
+  const initialState = cookieToInitialState(wagmiConfig);
 
   return (
-    <WagmiProvider config={config} initialState={initialState}>
+    <WagmiProvider config={wagmiConfig} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider modalSize="compact" locale="en-US">
           {children}
