@@ -1,5 +1,6 @@
 import { Service } from "@/services/constants";
 import type { WalletType } from "@/stores/use-wallets";
+import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { csl } from "@/utils/log";
 import Big from "big.js";
 import { ethers } from "ethers";
@@ -61,8 +62,7 @@ const getErrorMessage = (error: unknown) => {
 export const createEvmAllowanceProvider = (fromToken?: EvmAllowanceToken) => {
   if (!fromToken?.rpcUrls?.length) return void 0;
 
-  const providers = fromToken.rpcUrls.map((rpc) => new ethers.JsonRpcProvider(rpc, fromToken.chainId));
-  return new ethers.FallbackProvider(providers);
+  return evmRpcFallbackProvider(fromToken);
 };
 
 export const verifyPostApproveAllowance = async (params: {
@@ -183,10 +183,10 @@ export const sortQuoteData = (quoteDataMap: Map<string, any>) => {
     let netB = Big(dataB.outputAmount || 0);
 
     // Usdt0 should minus message fee
-    if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceA)) {
+    if ([Service.Usdt0, Service.Usdt0OneClick, Service.OneClickUsdt0].includes(_serviceA)) {
       netA = netA.minus(dataA.fees?.nativeFeeUsd || 0);
     }
-    if ([Service.Usdt0, Service.Usdt0OneClick].includes(_serviceB)) {
+    if ([Service.Usdt0, Service.Usdt0OneClick, Service.OneClickUsdt0].includes(_serviceB)) {
       netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
     }
 

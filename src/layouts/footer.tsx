@@ -1,11 +1,12 @@
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useTrack } from "@/hooks/use-track";
+import { getStableflowIcon } from "@/utils/format/logo";
 import clsx from "clsx";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useZendeskContext } from "../components/zendesk-widget";
 
 const Terms = lazy(() => import("../components/terms"));
-const ZendeskWidget = lazy(() => import("../components/zendesk-widget"));
 
 const Footer = (props: any) => {
   const { className, containerRef } = props;
@@ -14,6 +15,11 @@ const Footer = (props: any) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { addHistory } = useTrack();
+  const {
+    opened: isZendeskOpened,
+    mounted: isZendeskMounted,
+    onOpen: onZendeskOpen,
+  } = useZendeskContext();
 
   const [isNearBottom, setIsNearBottom] = useState(false);
 
@@ -95,8 +101,30 @@ const Footer = (props: any) => {
                   <Terms />
                 </Suspense>
                 <Suspense fallback={null}>
-                  <ZendeskWidget className={clsx("fixed md:static z-12", isNearBottom ? "bottom-2" : "bottom-2")} />
                 </Suspense>
+                {
+                  isZendeskMounted && !isZendeskOpened && (
+                    <button
+                      type="button"
+                      className={clsx(
+                        "fixed md:static z-12 button text-md font-[SpaceGrotesk] font-normal leading-[100%] flex justify-center items-center gap-2 bg-black text-white h-9 pl-3 pr-4.5 rounded-3xl",
+                        isNearBottom ? "bottom-2" : "bottom-2",
+                      )}
+                      onClick={() => {
+                        onZendeskOpen();
+                      }}
+                    >
+                      <img
+                        src={getStableflowIcon("icon-help.svg")}
+                        alt=""
+                        className="w-4 h-4 object-center object-contain shrink-0"
+                      />
+                      <div>
+                        Help
+                      </div>
+                    </button>
+                  )
+                }
               </div>
             </>
           )

@@ -35,7 +35,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   RainbowKitProvider,
   connectorsForWallets,
-  getDefaultConfig,
   useConnectModal
 } from "@rainbow-me/rainbowkit";
 import { ethers } from "ethers";
@@ -45,7 +44,7 @@ import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
 import { metaMaskWallet, baseAccount, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
-import { createClient, fallback } from "viem";
+import { fallback } from "viem";
 import { getChainRpcUrl } from "@/config/chains";
 import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 import { metadata } from "./metadata";
@@ -184,7 +183,7 @@ function Content() {
       const provider = new ethers.BrowserProvider(publicClient);
 
       const signer = walletClient
-        ? await new ethers.BrowserProvider(walletClient).getSigner()
+        ? await new ethers.BrowserProvider(walletClient.transport).getSigner()
         : null;
 
       const wallet = new RainbowWallet(provider, signer);

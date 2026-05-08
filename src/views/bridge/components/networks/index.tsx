@@ -281,64 +281,86 @@ export default function Networks({ addressValidation }: NetworksProps) {
             <div className="flex items-center justify-end gap-5 pr-3">
               <div className={clsx("flex items-center gap-0 duration-150", isRoutes ? "opacity-0" : "opacity-100")}>
                 {
-                  isToDisabled ? (
-                    null
-                  ) : hybridPath?.map((route, idx) => (
-                    <>
-                      <LazyImage
-                        key={`simplePathImg${idx}`}
-                        src={ServiceLogoSimpleMap[route.service]}
-                        containerClassName="w-4 h-4 shrink-0"
-                      />
-                      {
-                        idx < hybridPath.length - 1 && (
+                  isToDisabled
+                    ? (
+                      null
+                    )
+                    : (
+                      hybridPath?.length > 0
+                        ? hybridPath.map((route, idx) => (
+                          <>
+                            <LazyImage
+                              key={`simplePathImg${idx}`}
+                              src={ServiceLogoSimpleMap[route.service]}
+                              containerClassName="w-4 h-4 shrink-0"
+                            />
+                            {
+                              idx < hybridPath.length - 1 && (
+                                <LazyImage
+                                  key={`simplePathArrow${idx}`}
+                                  src={getStableflowIcon("icon-arrow-down.svg")}
+                                  containerClassName="w-4 h-1.5 -rotate-90"
+                                />
+                              )
+                            }
+                          </>
+                        ))
+                        : (
                           <LazyImage
-                            key={`simplePathArrow${idx}`}
-                            src={getStableflowIcon("icon-arrow-down.svg")}
-                            containerClassName="w-4 h-1.5 -rotate-90"
+                            src={ServiceLogoSimpleMap[bridgeStore.quoteDataService]}
+                            containerClassName="w-4 h-4 shrink-0"
                           />
                         )
-                      }
-                    </>
-                  ))
+                    )
                 }
               </div>
               <div className="flex items-center gap-2 text-xs text-[#444C59] leading-[100%] font-normal font-['SpaceGrotesk']">
-                <div className={clsx("flex items-center gap-4 duration-150", isRoutes ? "opacity-0" : "opacity-100")}>
-                  <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
-                    <LazyImage
-                      src={getStableflowIcon("icon-fee.svg")}
-                      containerClassName="w-3 h-3.5 shrink-0"
-                    />
-                    {
-                      isToDisabled ? (
-                        <div className="">
-                          $-
-                        </div>
-                      ) : (
-                        <div className="">
+                <AnimatePresence>
+                  {
+                    !isRoutes && (
+                      <motion.div
+                        className={clsx("flex items-center gap-4")}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
+                          <LazyImage
+                            src={getStableflowIcon("icon-fee.svg")}
+                            containerClassName="w-3 h-3.5 shrink-0"
+                          />
                           {
-                            (([Service.OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService) && isFromTron) ? (
-                              bridgeStore.acceptTronEnergy ?
-                                formatNumber(quoteData?.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
-                                formatNumber(quoteData?.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
-                            ) :
-                              formatNumber(quoteData?.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+                            isToDisabled ? (
+                              <div className="">
+                                $-
+                              </div>
+                            ) : (
+                              <div className="">
+                                {
+                                  (([Service.OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService) && isFromTron) ? (
+                                    bridgeStore.acceptTronEnergy ?
+                                      formatNumber(quoteData?.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
+                                      formatNumber(quoteData?.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+                                  ) :
+                                    formatNumber(quoteData?.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
+                                }
+                              </div>
+                            )
                           }
                         </div>
-                      )
-                    }
-                  </div>
-                  <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
-                    <LazyImage
-                      src={getStableflowIcon("icon-time.svg")}
-                      containerClassName="w-3.5 h-3.5 shrink-0"
-                    />
-                    <div className="">
-                      {isToDisabled ? "-" : `~${formatDuration(quoteData?.estimateTime, { compound: true })}`}
-                    </div>
-                  </div>
-                </div>
+                        <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
+                          <LazyImage
+                            src={getStableflowIcon("icon-time.svg")}
+                            containerClassName="w-3.5 h-3.5 shrink-0"
+                          />
+                          <div className="">
+                            {isToDisabled ? "-" : `~${formatDuration(quoteData?.estimateTime, { compound: true })}`}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )
+                  }
+                </AnimatePresence>
                 <button
                   type="button"
                   className="cursor-pointer pl-2 py-1.5 hover:opacity-80 duration-150"

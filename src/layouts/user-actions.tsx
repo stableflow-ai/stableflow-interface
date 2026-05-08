@@ -3,22 +3,41 @@ import ChainIcon from "./chain-icon";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useHistoryStore } from "@/stores/use-history";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useLayoutContext } from "./context";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
 import clsx from "clsx";
-import { HyperliquidDeposit, menuItems } from "@/components/navigation-menu";
+import { menuItems } from "@/components/navigation-menu/menu-items";
 import { useTrack } from "@/hooks/use-track";
 import { getStableflowIcon, getStableflowLogo } from "@/utils/format/logo";
 
 const Social = lazy(() => import("@/components/social"));
 const NavigationMenu = lazy(() => import("@/components/navigation-menu"));
+const HyperliquidDeposit = lazy(() => import("@/components/navigation-menu/hyper-liquid"));
 const Terms = lazy(() => import("@/components/terms"));
+
+const HEADER_SCROLL_BLUR_PX = 35;
 
 export default function UserActions() {
   const { pathname } = useLocation();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { containerRef } = useLayoutContext();
+  const [showHeaderBg, setShowHeaderBg] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      setShowHeaderBg(el.scrollTop >= HEADER_SCROLL_BLUR_PX);
+    };
+
+    onScroll();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [containerRef]);
 
   const isHomePage = useMemo(() => pathname === "/", [pathname]);
   const isAppBar = useMemo(() => {
@@ -36,8 +55,8 @@ export default function UserActions() {
   return (
     <>
       <div className={clsx(
-        "w-full fixed z-9 pl-1.5 md:pl-5 pr-2.5 top-0 py-4 flex justify-between items-center gap-2.5",
-        isHomePage ? "" : "bg-[rgba(246,248,252,0.30)] backdrop-blur-[10px]",
+        "w-full fixed z-9 pl-1.5 md:pl-5 pr-2.5 top-0 py-4 flex justify-between items-center gap-2.5 duration-150",
+        showHeaderBg && "bg-[rgba(246,248,252,0.30)] backdrop-blur-[10px]",
       )}>
         {
           isMobile ? (
@@ -300,7 +319,9 @@ const MobileMenuDrawer = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <HyperliquidDeposit className="flex! md:flex! w-[287px] justify-center" />
+          <Suspense fallback={null}>
+            <HyperliquidDeposit className="flex! md:flex! w-[287px] justify-center" />
+          </Suspense>
         </div>
 
         <div className="pt-3.5 pb-8 px-3.5">

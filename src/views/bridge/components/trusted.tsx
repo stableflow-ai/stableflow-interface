@@ -126,7 +126,7 @@ const Trusted = ({ variant = "default" }: TrustedProps) => {
     <div className={clsx("w-full md:max-w-[1440px] mx-auto px-[10px] md:px-0", isAbout ? "mt-0" : "mt-[50px]")}>
       <div className={clsx(
         "text-center",
-        isAbout ? "text-[26px] font-light leading-[120%] text-black md:text-[24px] md:font-medium md:text-[#444C59]" : "text-[16px] md:text-[24px] font-medium text-[#9FA7BA] md:text-[#444C59]",
+        isAbout ? "text-[26px] font-light leading-[120%] text-black md:text-[24px] md:font-medium md:text-[#444C59]" : "text-[26px] md:text-[24px] font-light md:font-medium text-[#000000] md:text-[#000000]",
       )}>
         Trusted by
       </div>

@@ -1,5 +1,6 @@
 import chains, { chainTypes, type TokenChain } from "@/config/chains";
 import useEvmGasFeesStore, { type EvmChainGasFee } from "@/stores/use-evm-gas-fees";
+import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { csl } from "@/utils/log";
 import { useRequest } from "ahooks";
 import { ethers } from "ethers";
@@ -14,10 +15,7 @@ function getEvmChains(): (TokenChain & { chainId: number })[] {
 }
 
 async function fetchFeeForChain(chain: TokenChain & { chainId: number }) {
-  const providers = chain.rpcUrls.map(
-    (rpc) => new ethers.JsonRpcProvider(rpc, chain.chainId)
-  );
-  const provider = new ethers.FallbackProvider(providers);
+  const provider = evmRpcFallbackProvider(chain);
   const feeData = await provider.getFeeData();
   const maxFeePerGas = feeData.maxFeePerGas;
   const legacyGasPrice = feeData.gasPrice;
