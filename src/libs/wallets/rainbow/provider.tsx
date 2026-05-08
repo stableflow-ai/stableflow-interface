@@ -82,7 +82,7 @@ const connectors: any = connectorsForWallets(
       wallets: [
         okxWallet,
         metaMaskWallet,
-        coinbaseWallet,
+        baseAccount,
         bitgetWallet,
         binanceWallet,
         walletConnectWallet,
