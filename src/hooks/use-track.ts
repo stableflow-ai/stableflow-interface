@@ -1,6 +1,7 @@
 import { BridgeDefaultWallets } from "@/config";
 import { BASE_API_URL } from "@/config/api";
-import { ServiceBackend, type Service } from "@/services/constants";
+import { Service, ServiceBackend } from "@/services/constants";
+import { getQuoteModes } from "@/services/utils";
 import { useTrackStore } from "@/stores/use-track";
 import useWalletStore from "@/stores/use-wallet";
 import useWalletsStore, { type WalletType } from "@/stores/use-wallets";
@@ -8,7 +9,7 @@ import { csl } from "@/utils/log";
 import { useDebounceFn } from "ahooks";
 import axios from "axios";
 import Big from "big.js";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { v4 as uuidv4 } from "uuid";
 import useIsMobile from "./use-is-mobile";
 
@@ -130,7 +131,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     }
   }
 
-  const formatQuoteData = (quoteData: any) => {
+  const formatQuoteData = (quoteData: any, service: Service) => {
     try {
       const {
         fromToken,
@@ -146,7 +147,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
 
       const originWalletName = accounts.find((account) => account.chain_type === fromToken?.chainType)?.wallet_name;
 
-      return {
+      const quoteDataResult: any = {
         estimate_time: quoteData?.estimateTime ?? 0,
         output_amount: quoteData?.outputAmount ?? "0",
         input_amount: Big(amountWei || 0).div(10 ** (fromToken?.decimals || 6)).toFixed(fromToken?.decimals || 6, Big.roundDown),
@@ -178,6 +179,51 @@ export function useTrack(props?: { isRoot?: boolean; }) {
         app_fees: appFees,
         wallet_name: originWalletName,
       };
+
+      const { isOneClickService } = getQuoteModes({
+        quoteData,
+        bridgeStore: ({ quoteDataService: service } as any),
+      });
+
+      const getOneClickSwapType = () => {
+        let swap_type = "EXACT_INPUT";
+        switch (service) {
+          case Service.OneClick:
+            swap_type = "EXACT_INPUT";
+            break;
+          case Service.OneClickUsdt0:
+            swap_type = "EXACT_OUTPUT";
+            break;
+          case Service.Usdt0OneClick:
+            swap_type = "FLEX_INPUT";
+            break;
+          case Service.OneClickFraxZero:
+            swap_type = "EXACT_OUTPUT";
+            break;
+          case Service.FraxZeroOneClick:
+            swap_type = "FLEX_INPUT";
+            break;
+          default:
+            break;
+        }
+        return swap_type;
+      };
+
+      if (isOneClickService) {
+        quoteDataResult.correlation_id = quoteData?.correlationId;
+        quoteDataResult.deposit_mode = "SIMPLE";
+        quoteDataResult.deposit_type = "ORIGIN_CHAIN";
+        quoteDataResult.recipient_type = "DESTINATION_CHAIN";
+        quoteDataResult.quoteWaiting_time_ms = 3000;
+        quoteDataResult.referral = "stableflow";
+        quoteDataResult.swap_type = getOneClickSwapType();
+        quoteDataResult.quoteRequest = quoteData?.quoteRequest;
+        quoteDataResult.quote = quoteData?.quote;
+        quoteDataResult.signature = quoteData?.signature;
+        quoteDataResult.timestamp = quoteData?.timestamp;
+      }
+
+      return quoteDataResult;
     } catch {
       return {};
     }
@@ -214,7 +260,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     const reportContent: any = {
       route: ServiceBackend[service as Service],
       is_mobile: isMobile,
-      ...formatQuoteData(quoteData),
+      ...formatQuoteData(quoteData, service),
     };
 
     // quote failed
@@ -248,7 +294,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
       tx_hash: txHash,
       route: ServiceBackend[service as Service],
       is_mobile: isMobile,
-      ...formatQuoteData(quoteData),
+      ...formatQuoteData(quoteData, service),
     };
     if (errMsg) {
       reportContent.error_message = errMsg;
@@ -317,7 +363,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
 
     const reportContent: any = {
       route: ServiceBackend[service as Service],
-      ...formatQuoteData(quoteData),
+      ...formatQuoteData(quoteData, service),
     };
     if (errMsg) {
       reportContent.error_message = errMsg;

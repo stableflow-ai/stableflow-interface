@@ -48,16 +48,9 @@ import { metaMaskWallet, baseAccount, okxWallet, bitgetWallet, binanceWallet, wa
 import { createClient, fallback } from "viem";
 import { getChainRpcUrl } from "@/config/chains";
 import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
-import { getStableflowLogo } from "@/utils/format/logo";
+import { metadata } from "./metadata";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
-export const metadata = {
-  name: "StableFlow.ai",
-  description: "Move stablecoins anywhere.",
-  // origin must match your domain & subdomain
-  url: "https://app.stableflow.ai",
-  icons: [getStableflowLogo("logo-stableflow.svg")]
-};
 
 const RpcUrls: any = {
   [mainnet.id]: fallback(getChainRpcUrl("Ethereum").rpcUrls.map((rpc) => http(rpc))),
@@ -82,12 +75,31 @@ const RpcUrls: any = {
   [katana.id]: fallback(getChainRpcUrl("Katana").rpcUrls.map((rpc) => http(rpc))),
 };
 
-const config = getDefaultConfig({
-  appName: metadata.name,
-  appDescription: metadata.description,
-  appUrl: metadata.url,
-  appIcon: metadata.icons[0],
-  projectId,
+const connectors: any = connectorsForWallets(
+  [
+    {
+      groupName: "Recommended",
+      wallets: [
+        okxWallet,
+        metaMaskWallet,
+        coinbaseWallet,
+        bitgetWallet,
+        binanceWallet,
+        walletConnectWallet,
+      ],
+    },
+  ],
+  {
+    appName: metadata.name,
+    appDescription: metadata.description,
+    appUrl: metadata.url,
+    appIcon: metadata.icons[0],
+    projectId,
+  }
+);
+
+const wagmiConfig = createConfig({
+  connectors,
   chains: [
     mainnet,
     polygon,
@@ -132,41 +144,6 @@ const config = getDefaultConfig({
     [fraxtal.id]: RpcUrls[fraxtal.id] || http(),
     [katana.id]: RpcUrls[katana.id] || http(),
   },
-});
-const connectors: any = connectorsForWallets(
-  [
-    {
-      groupName: "Recommended",
-      wallets: [
-        okxWallet,
-        metaMaskWallet,
-        baseAccount,
-        bitgetWallet,
-        binanceWallet,
-        walletConnectWallet,
-      ],
-    },
-  ],
-  {
-    appName: metadata.name,
-    projectId,
-  }
-);
-const wagmiConfig = createConfig({
-  ...config,
-  connectors,
-  client: ({ chain }) => {
-    if (RpcUrls[chain.id]) {
-      return createClient({
-        chain,
-        transport: RpcUrls[chain.id],
-      })
-    }
-    return createClient({
-      chain,
-      transport: http()
-    })
-  }
 });
 
 const queryClient = new QueryClient();

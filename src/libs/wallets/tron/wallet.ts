@@ -117,24 +117,36 @@ export default class TronWallet {
     // return transaction;
   }
 
-  async getBalance(token: any, account: string) {
+  async getBalance(token: any, account: string, options?: { isCatchError?: boolean; }) {
     await this.waitForTronWeb();
 
     if (token.symbol === "TRX" || token.symbol === "trx" || token.symbol === "native") {
-      return await this.getTRXBalance(account);
+      return await this.getTRXBalance(account, options);
     }
 
-    return await this.getTokenBalance(token.contractAddress, account);
+    return await this.getTokenBalance(token.contractAddress, account, options);
   }
 
-  async getTRXBalance(account: string) {
+  async getTRXBalance(account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     await this.waitForTronWeb();
 
-    const balance = await this.tronWeb.trx.getBalance(account);
-    return balance.toString();
+    try {
+      const balance = await this.tronWeb.trx.getBalance(account);
+      return balance.toString();
+    } catch (error) {
+      csl("Tron getTRXBalance", "red-500", "Get TRX balance failed: %o", error);
+      if (isCatchError) {
+        throw error;
+      }
+      return "0";
+    }
   }
 
-  async getTokenBalance(contractAddress: string, account: string) {
+  async getTokenBalance(contractAddress: string, account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     await this.waitForTronWeb();
 
     try {
@@ -144,13 +156,16 @@ export default class TronWallet {
       // Convert from smallest unit to token unit (assuming 6 decimals)
       return balance.toString();
     } catch (error) {
-      console.error("Error getting token balance:", error);
+      csl("Tron getTokenBalance", "red-500", "Get token balance failed: %o", error);
+      if (isCatchError) {
+        throw error;
+      }
       return "0";
     }
   }
 
-  async balanceOf(token: any, account: string) {
-    return await this.getBalance(token, account);
+  async balanceOf(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    return await this.getBalance(token, account, options);
   }
 
   /**
@@ -409,6 +424,7 @@ export default class TronWallet {
       spender,
       address,
       amountWei,
+      strict = false,
     } = params;
 
     await this.waitForTronWeb();
@@ -424,6 +440,9 @@ export default class TronWallet {
         allowance = allowanceResult.toString();
       } catch (error) {
         csl("TronWallet allowance", "red-500", "Error getting allowance: %o", error);
+        if (strict) {
+          throw error;
+        }
       }
 
       return {
@@ -433,6 +452,9 @@ export default class TronWallet {
       };
     } catch (error) {
       csl("TronWallet allowance", "red-500", "Error in allowance: %o", error);
+      if (strict) {
+        throw error;
+      }
       // Return default values on error
       return {
         contract: null,
@@ -483,6 +505,7 @@ export default class TronWallet {
 
       // Sign and send transaction
       const txHash = await this.sendTransaction({ tx });
+      let txInfo: Record<string, unknown> | null = null;
 
       if (isWaitTxReceipt) {
         const pollingResult = await this.pollingTransactionStatus(txHash, {
@@ -497,11 +520,19 @@ export default class TronWallet {
           }
           return false;
         }
+        txInfo = await this.getTransactionResult(txHash);
       }
 
       if (isDetails) {
+        const txReceipt = txInfo?.receipt as { result?: string } | undefined;
         detailResult.success = true;
-        detailResult.data = { txHash: txHash };
+        detailResult.data = {
+          txHash,
+          txInfo,
+          receiptResult: txReceipt?.result,
+          blockNumber: txInfo?.blockNumber,
+          blockTimeStamp: txInfo?.blockTimeStamp,
+        };
         return detailResult;
       }
 

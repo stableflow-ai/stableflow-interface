@@ -37,8 +37,12 @@ export default function Chain({ token, isTo }: any) {
         <div className="w-10.5 h-10.5 rounded-full bg-[#dde1e9] overflow-hidden flex justify-center items-center">
           <LazyImage
             src={getStableflowIcon("select-token-2.gif")}
-            containerClassName="w-full h-full scale-120 origin-center pointer-events-none"
-            fallbackSrc={null}
+            alt=""
+            containerClassName="w-11 md:w-12.5 h-11 md:h-12.5 rounded-full shrink-0 overflow-hidden"
+            className="object-center scale-120"
+            fallbackSrc={(
+              <div className="w-full h-full rounded-full bg-[#EDF0F7]" />
+            )}
           />
         </div>
         <div className="w-12 h-4 rounded-md bg-[#EDF0F7] mr-2"></div>

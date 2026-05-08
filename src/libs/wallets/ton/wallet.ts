@@ -123,7 +123,9 @@ export default class TonWallet {
     }
   }
 
-  async getBalance(token: any, account: string) {
+  async getBalance(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     try {
       if (this.isNativeToken(token.symbol)) {
         const parsedAddress = Address.parse(account);
@@ -135,13 +137,16 @@ export default class TonWallet {
       const balance = response.stack.readBigNumber();
       return balance.toString();
     } catch (error) {
-      console.log('TON getBalance error:', error);
-      return '0';
+      csl("Ton getBalance", "red-500", "Get balance failed: %o", error);
+      if (isCatchError) {
+        throw error;
+      }
+      return "0";
     }
   }
 
-  async balanceOf(token: string, account: string) {
-    return await this.getBalance(token, account);
+  async balanceOf(token: string, account: string, options?: { isCatchError?: boolean; }) {
+    return await this.getBalance(token, account, options);
   }
 
   async estimateTransferGas(data: {

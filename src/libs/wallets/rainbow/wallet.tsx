@@ -53,7 +53,9 @@ export default class RainbowWallet {
     return result.hash;
   }
 
-  async getBalance(token: any, account: string) {
+  async getBalance(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     try {
       let provider = this.provider;
       if (token.rpcUrls) {
@@ -74,13 +76,16 @@ export default class RainbowWallet {
 
       return balance.toString();
     } catch (err) {
-      console.error("Error getting token balance: %o", err);
+      csl("EVM getBalance", "red-500", "Get balance failed: %o", err);
+      if (isCatchError) {
+        throw err;
+      }
       return "0";
     }
   }
 
-  async balanceOf(token: any, account: string) {
-    return await this.getBalance(token, account);
+  async balanceOf(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    return await this.getBalance(token, account, options);
   }
 
   /**
@@ -152,6 +157,8 @@ export default class RainbowWallet {
       address,
       amountWei,
       provider,
+      blockTag,
+      strict = false,
     } = params;
 
     const runner = provider || this.provider;
@@ -160,10 +167,15 @@ export default class RainbowWallet {
     // get allowance
     let allowance = "0";
     try {
-      allowance = await contract.allowance(address, spender);
+      allowance = blockTag
+        ? await contract.allowance(address, spender, { blockTag })
+        : await contract.allowance(address, spender);
       allowance = allowance.toString();
     } catch (error) {
       csl("EVM allowance", "red-500", "Error getting allowance: %o", error);
+      if (strict) {
+        throw error;
+      }
     }
 
     return {
@@ -201,8 +213,15 @@ export default class RainbowWallet {
       const txReceipt = await tx.wait();
       if (txReceipt.status === 1) {
         if (isDetails) {
+          const confirmations = typeof txReceipt.confirmations === "function"
+            ? await txReceipt.confirmations()
+            : txReceipt.confirmations;
           detailResult.success = true;
-          detailResult.data = { txHash: txReceipt.hash };
+          detailResult.data = {
+            txHash: txReceipt.hash,
+            blockNumber: txReceipt.blockNumber,
+            confirmations,
+          };
           return detailResult;
         }
         return true;
