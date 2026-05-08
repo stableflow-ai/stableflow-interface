@@ -43,6 +43,7 @@ const NetworkCard = (props: any) => {
           </div>
           <InputNumber
             className="w-full text-[#444C59] text-[26px] font-['SpaceGrotesk'] font-medium leading-[100%]"
+            autoComplete="off"
             name={`${direction}Amount`}
             value={amount || ""}
             onNumberChange={onAmountChange}
