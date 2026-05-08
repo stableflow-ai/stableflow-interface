@@ -109,7 +109,9 @@ export default class AptosWallet {
     return result;
   }
 
-  async getAPTBalance(account: string) {
+  async getAPTBalance(account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     try {
       const accountAPTAmount = await this.aptos.getAccountAPTAmount({
         accountAddress: account,
@@ -117,11 +119,16 @@ export default class AptosWallet {
       return accountAPTAmount.toString();
     } catch (error) {
       csl("Aptos getAPTBalance", "red-500", "Get APT balance failed: %o", error);
+      if (isCatchError) {
+        throw error;
+      }
       return "0";
     }
   }
 
-  async getTokenBalance(contractAddress: string, account: string) {
+  async getTokenBalance(contractAddress: string, account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     try {
       const balance = await this.aptos.getBalance({
         accountAddress: account,
@@ -130,19 +137,22 @@ export default class AptosWallet {
       return balance.toString();
     } catch (error) {
       csl("Aptos getTokenBalance", "red-500", "Get token balance failed: %o", error);
+      if (isCatchError) {
+        throw error;
+      }
       return "0";
     }
   }
 
-  async getBalance(token: any, account: string) {
+  async getBalance(token: any, account: string, options?: { isCatchError?: boolean; }) {
     if (token.symbol === "APT" || token.symbol === "apt" || token.symbol === "native") {
-      return await this.getAPTBalance(account);
+      return await this.getAPTBalance(account, options);
     }
-    return await this.getTokenBalance(token.contractAddress, account);
+    return await this.getTokenBalance(token.contractAddress, account, options);
   }
 
-  async balanceOf(token: any, account: string) {
-    return await this.getBalance(token, account);
+  async balanceOf(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    return await this.getBalance(token, account, options);
   }
 
   /**

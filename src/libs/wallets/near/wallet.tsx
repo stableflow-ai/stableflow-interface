@@ -109,18 +109,28 @@ export default class NearWallet {
     return "";
   }
 
-  async getBalance(token: any, _account: string) {
+  async getBalance(token: any, _account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     if (token.symbol === "near" || token.symbol === "NEAR" || token.symbol === "native") {
-      return this.getNearBalance(_account);
+      return this.getNearBalance(_account, options);
     }
-    const balance = await this.query(token.contractAddress, "ft_balance_of", {
-      account_id: _account
-    });
-    return balance || "0";
+    try {
+      const balance = await this.query(token.contractAddress, "ft_balance_of", {
+        account_id: _account
+      });
+      return balance || "0";
+    } catch (error) {
+      csl("Near getTokenBalance", "red-500", "Get token balance failed: %o", error);
+      if (isCatchError) {
+        throw error;
+      }
+      return "0";
+    }
   }
 
-  async balanceOf(token: any, account: string) {
-    return await this.getBalance(token, account);
+  async balanceOf(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    return await this.getBalance(token, account, options);
   }
 
   /**
@@ -128,7 +138,9 @@ export default class NearWallet {
    * @param account Account ID
    * @returns NEAR balance in yoctoNEAR (smallest unit)
    */
-  async getNearBalance(account: string): Promise<string> {
+  async getNearBalance(account: string, options?: { isCatchError?: boolean; }): Promise<string> {
+    const { isCatchError = false } = options || {};
+
     try {
       const response = await fetch(this.rpcUrl, {
         method: "POST",
@@ -150,6 +162,9 @@ export default class NearWallet {
       return result.result?.amount || "0";
     } catch (error) {
       console.error("Failed to get NEAR balance:", error);
+      if (isCatchError) {
+        throw error;
+      }
       return "0";
     }
   }

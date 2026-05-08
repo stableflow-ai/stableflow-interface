@@ -8,6 +8,7 @@ import { ethers } from "ethers";
 const RPC_REQUEST_LIMIT_ERROR_MESSAGE = "Request limit reached. Please try again later.";
 const INVALID_RPC_CONFIGURATION_ERROR_MESSAGE =
   "Invalid RPC configuration. Please check RPC settings or switch to another RPC.";
+const INVALID_NETWORK_ERROR_MESSAGE = "Network unstable. Please try again.";
 const POST_APPROVE_ALLOWANCE_MAX_RETRIES = 3;
 const POST_APPROVE_ALLOWANCE_RETRY_DELAY = 1500;
 
@@ -21,10 +22,17 @@ const RPC_REQUEST_LIMIT_ERROR_PATTERNS = [
 const INVALID_RPC_CONFIGURATION_ERROR_PATTERNS = [
   "could not coalesce error",
   "missing or invalid parameters",
+  "invalid value for value.index",
   "load failed",
   "json-rpc protocol is not supported",
   "unauthorized",
   "unknown rpc error",
+];
+
+const INVALID_NETWORK_ERROR_PATTERNS = [
+  "no runners?!",
+  "failed to fetch",
+  "network error",
 ];
 
 const wait = (duration: number) => new Promise((resolve) => setTimeout(resolve, duration));
@@ -140,12 +148,18 @@ export const verifyPostApproveAllowance = async (params: {
 export const formatBridgeRpcErrorMessage = (errorMessage: string) => {
   const normalizedMessage = errorMessage.toLowerCase();
 
+  console.log("normalizedMessage", normalizedMessage);
+
   if (RPC_REQUEST_LIMIT_ERROR_PATTERNS.some((pattern) => normalizedMessage.includes(pattern))) {
     return RPC_REQUEST_LIMIT_ERROR_MESSAGE;
   }
 
   if (INVALID_RPC_CONFIGURATION_ERROR_PATTERNS.some((pattern) => normalizedMessage.includes(pattern))) {
     return INVALID_RPC_CONFIGURATION_ERROR_MESSAGE;
+  }
+
+  if (INVALID_NETWORK_ERROR_PATTERNS.some((pattern) => normalizedMessage.includes(pattern))) {
+    return INVALID_NETWORK_ERROR_MESSAGE;
   }
 
   return errorMessage;
