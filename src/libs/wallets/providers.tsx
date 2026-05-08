@@ -23,7 +23,7 @@ const NEARProvider = makeLazy(WALLET_PROVIDER_IMPORTS[3]);
 const TronProvider = makeLazy(WALLET_PROVIDER_IMPORTS[4]);
 const AptosProvider = makeLazy(WALLET_PROVIDER_IMPORTS[5]);
 const TonProvider = makeLazy(WALLET_PROVIDER_IMPORTS[6]);
-const SuiProvider = makeLazy(WALLET_PROVIDER_IMPORTS[6]);
+const SuiProvider = makeLazy(WALLET_PROVIDER_IMPORTS[7]);
 
 const TOTAL_PROVIDERS = WALLET_PROVIDER_IMPORTS.length;
 const PROVIDER_WEIGHTS = [12, 12, 12, 12, 12, 12, 12, 12] as const;
