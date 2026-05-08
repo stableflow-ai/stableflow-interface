@@ -58,7 +58,7 @@
     "d3": "^7.9.0",
     "d3-sankey": "^0.12.3",
     "dayjs": "^1.11.18",
-    "ethers": "^6.15.0",
+    "ethers": "^6.16.0",
     "framer-motion": "^12.23.12",
     "highlight.js": "^11.11.1",
     "marked": "^16.4.1",
@@ -96,7 +96,9 @@
   "pnpm": {
     "overrides": {
       "@solana/web3.js": "~1.95.8",
-      "@ton/core": "0.60.0"
+      "@ton/core": "0.60.0",
+      "ethers": "^6.16.0",
+      "qr": "~0.5.5"
     }
   }
 }
