@@ -117,24 +117,36 @@ export default class TronWallet {
     // return transaction;
   }
 
-  async getBalance(token: any, account: string) {
+  async getBalance(token: any, account: string, options?: { isCatchError?: boolean; }) {
     await this.waitForTronWeb();
 
     if (token.symbol === "TRX" || token.symbol === "trx" || token.symbol === "native") {
-      return await this.getTRXBalance(account);
+      return await this.getTRXBalance(account, options);
     }
 
-    return await this.getTokenBalance(token.contractAddress, account);
+    return await this.getTokenBalance(token.contractAddress, account, options);
   }
 
-  async getTRXBalance(account: string) {
+  async getTRXBalance(account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     await this.waitForTronWeb();
 
-    const balance = await this.tronWeb.trx.getBalance(account);
-    return balance.toString();
+    try {
+      const balance = await this.tronWeb.trx.getBalance(account);
+      return balance.toString();
+    } catch (error) {
+      csl("Tron getTRXBalance", "red-500", "Get TRX balance failed: %o", error);
+      if (isCatchError) {
+        throw error;
+      }
+      return "0";
+    }
   }
 
-  async getTokenBalance(contractAddress: string, account: string) {
+  async getTokenBalance(contractAddress: string, account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     await this.waitForTronWeb();
 
     try {
@@ -144,13 +156,16 @@ export default class TronWallet {
       // Convert from smallest unit to token unit (assuming 6 decimals)
       return balance.toString();
     } catch (error) {
-      console.error("Error getting token balance:", error);
+      csl("Tron getTokenBalance", "red-500", "Get token balance failed: %o", error);
+      if (isCatchError) {
+        throw error;
+      }
       return "0";
     }
   }
 
-  async balanceOf(token: any, account: string) {
-    return await this.getBalance(token, account);
+  async balanceOf(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    return await this.getBalance(token, account, options);
   }
 
   /**
