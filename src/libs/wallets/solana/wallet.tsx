@@ -171,13 +171,25 @@ export default class SolanaWallet {
     return result;
   }
 
-  async getSOLBalance(account: string) {
-    const publicKey = new PublicKey(account);
-    const balance = await this.connection.getBalance(publicKey);
-    return balance;
+  async getSOLBalance(account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
+    try {
+      const publicKey = new PublicKey(account);
+      const balance = await this.connection.getBalance(publicKey);
+      return balance;
+    } catch (error) {
+      csl("Solana getSOLBalance", "red-500", "Get SOL balance failed: %o", error);
+      if (isCatchError) {
+        throw error;
+      }
+      return "0";
+    }
   }
 
-  async getTokenBalance(tokenMint: string, account: string) {
+  async getTokenBalance(tokenMint: string, account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     const mint = new PublicKey(tokenMint);
     const owner = new PublicKey(account);
 
@@ -189,25 +201,28 @@ export default class SolanaWallet {
       return accountInfo.amount;
     } catch (error: any) {
       if (error.message.includes("could not find account")) {
-        return 0;
+        return "0";
       }
-      throw error;
+      if (isCatchError) {
+        throw error;
+      }
+      return "0";
     }
   }
 
-  async getBalance(token: any, account: string) {
+  async getBalance(token: any, account: string, options?: { isCatchError?: boolean; }) {
     if (
       token.symbol === "SOL" ||
       token.symbol === "sol" ||
       token.symbol === "native"
     ) {
-      return await this.getSOLBalance(account);
+      return await this.getSOLBalance(account, options);
     }
-    return await this.getTokenBalance(token.contractAddress, account);
+    return await this.getTokenBalance(token.contractAddress, account, options);
   }
 
-  async balanceOf(token: any, account: string) {
-    return await this.getBalance(token, account);
+  async balanceOf(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    return await this.getBalance(token, account, options);
   }
 
   /**
@@ -748,23 +763,24 @@ export default class SolanaWallet {
 
     csl("Solana sendTransaction", "green-400", "Transaction sent with signature: %o", signature);
 
-    // Confirm the transaction
-    const confirmation = didRefreshBlockhash && latestBlockhash
-      ? await this.connection.confirmTransaction(
-        {
-          signature,
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-        },
-        "confirmed"
-      )
-      : await this.connection.confirmTransaction(signature, "confirmed");
+    // // Confirm the transaction
+    // // If adding confirmation, you need to catch errors because it may throw a TransactionExpiredBlockheightExceededError.
+    // const confirmation = didRefreshBlockhash && latestBlockhash
+    //   ? await this.connection.confirmTransaction(
+    //     {
+    //       signature,
+    //       blockhash: latestBlockhash.blockhash,
+    //       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+    //     },
+    //     "confirmed"
+    //   )
+    //   : await this.connection.confirmTransaction(signature, "confirmed");
 
-    if (confirmation.value.err) {
-      throw new Error(
-        `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
-      );
-    }
+    // if (confirmation.value.err) {
+    //   throw new Error(
+    //     `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
+    //   );
+    // }
 
     return signature;
   }

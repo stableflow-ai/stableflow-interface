@@ -53,7 +53,9 @@ export default class RainbowWallet {
     return result.hash;
   }
 
-  async getBalance(token: any, account: string) {
+  async getBalance(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    const { isCatchError = false } = options || {};
+
     try {
       let provider = this.provider;
       if (token.rpcUrls) {
@@ -74,13 +76,16 @@ export default class RainbowWallet {
 
       return balance.toString();
     } catch (err) {
-      console.error("Error getting token balance: %o", err);
+      csl("EVM getBalance", "red-500", "Get balance failed: %o", err);
+      if (isCatchError) {
+        throw err;
+      }
       return "0";
     }
   }
 
-  async balanceOf(token: any, account: string) {
-    return await this.getBalance(token, account);
+  async balanceOf(token: any, account: string, options?: { isCatchError?: boolean; }) {
+    return await this.getBalance(token, account, options);
   }
 
   /**

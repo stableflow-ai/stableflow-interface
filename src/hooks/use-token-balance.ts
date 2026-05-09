@@ -10,10 +10,11 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
   const balancesStore = useBalancesStore();
   const wallet = wallets[token?.chainType as WalletType];
 
-  const getBalance = async (): Promise<{ amount: string; wei: bigint; }> => {
+  const getBalance = async (): Promise<{ amount: string; wei: bigint; error?: string | null; }> => {
     const balanceResult = {
       amount: "0",
       wei: 0n,
+      error: null,
     };
 
     if (!token?.chainType) return balanceResult;
@@ -25,7 +26,8 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
 
       const balance = await wallet.wallet?.balanceOf(
         token,
-        wallet.account
+        wallet.account,
+        { isCatchError: true }
       );
 
       const _balance = balance
@@ -56,9 +58,10 @@ export default function useTokenBalance(token: any, isAuto: boolean = true) {
       balancesStore.set({
         [key]: nextBalances
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       setBalance("0");
+      balanceResult.error = error.message;
     } finally {
       setLoading(false);
     }

@@ -623,8 +623,11 @@ export default function useBridge(props?: any) {
       }
 
       // check latest balance
-      const { wei: latestBalanceWei } = await getBalance();
+      const { wei: latestBalanceWei, error: latestBalanceError } = await getBalance();
       csl("transfer", "teal-400", "latest balance: %s", latestBalanceWei.toString());
+      if (latestBalanceError) {
+        throw new Error(latestBalanceError);
+      }
       if (Big(latestBalanceWei.toString()).lt(_amount)) {
         throw new Error("Insufficient balance");
       }
@@ -936,6 +939,10 @@ export default function useBridge(props?: any) {
       ) {
         _finalErrorMessage = "User rejected transaction";
       }
+
+      // get rpc error message
+      _finalErrorMessage = formatBridgeRpcErrorMessage(_finalErrorMessage);
+
       toast.fail({
         title: _finalErrorMessage,
       });
