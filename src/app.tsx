@@ -10,6 +10,7 @@ import { lazy, useEffect, Suspense } from "react";
 import { useEvmGasFees } from "./hooks/use-evm-gas-fees";
 import ErrorPage from "./views/error";
 import { usePrices } from "./hooks/use-prices";
+import { useTradeReport } from "./hooks/use-trade-report";
 import ZendeskPrivider from "./components/zendesk-widget";
 
 const Bridge = lazy(() => import("./views/bridge"));
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
 function App() {
   usePrices();
   useEvmGasFees();
+  useTradeReport();
 
   return (
     <WalletsProvider>
