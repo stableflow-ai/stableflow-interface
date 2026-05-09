@@ -763,23 +763,24 @@ export default class SolanaWallet {
 
     csl("Solana sendTransaction", "green-400", "Transaction sent with signature: %o", signature);
 
-    // Confirm the transaction
-    const confirmation = didRefreshBlockhash && latestBlockhash
-      ? await this.connection.confirmTransaction(
-        {
-          signature,
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-        },
-        "confirmed"
-      )
-      : await this.connection.confirmTransaction(signature, "confirmed");
+    // // Confirm the transaction
+    // // If adding confirmation, you need to catch errors because it may throw a TransactionExpiredBlockheightExceededError.
+    // const confirmation = didRefreshBlockhash && latestBlockhash
+    //   ? await this.connection.confirmTransaction(
+    //     {
+    //       signature,
+    //       blockhash: latestBlockhash.blockhash,
+    //       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+    //     },
+    //     "confirmed"
+    //   )
+    //   : await this.connection.confirmTransaction(signature, "confirmed");
 
-    if (confirmation.value.err) {
-      throw new Error(
-        `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
-      );
-    }
+    // if (confirmation.value.err) {
+    //   throw new Error(
+    //     `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
+    //   );
+    // }
 
     return signature;
   }

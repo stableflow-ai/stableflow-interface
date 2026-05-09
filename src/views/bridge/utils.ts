@@ -148,8 +148,6 @@ export const verifyPostApproveAllowance = async (params: {
 export const formatBridgeRpcErrorMessage = (errorMessage: string) => {
   const normalizedMessage = errorMessage.toLowerCase();
 
-  console.log("normalizedMessage", normalizedMessage);
-
   if (RPC_REQUEST_LIMIT_ERROR_PATTERNS.some((pattern) => normalizedMessage.includes(pattern))) {
     return RPC_REQUEST_LIMIT_ERROR_MESSAGE;
   }
