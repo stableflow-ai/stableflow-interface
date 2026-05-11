@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 
-const PROXY_RPC_DOMAIN = "rpcs.stableflow.ai";
+const PROXY_RPC_DOMAIN = import.meta.env.VITE_PRC_PROXY_HOST || "rpcs.stableflow.ai";
 const providerCache = new Map<number, ethers.AbstractProvider>();
 
 class SequentialFallbackProvider extends ethers.AbstractProvider {
