@@ -31,6 +31,29 @@ class SequentialFallbackProvider extends ethers.AbstractProvider {
   }
 }
 
+// RPC_CHAINS="tron,solana,aptos,aptos,sui,ethereum,arbitrum,bsc,avalanche,base,polygon,gnosis,optimism,berachain,xlayer,plasma,mantle,megaeth,ink,stable,celo,sei,fraxtal,katana"
+const ChainNameMap: Record<string, string> = {
+  "eth": "ethereum",
+  "arb": "arbitrum",
+  "bsc": "bsc",
+  "avax": "avalanche",
+  "base": "base",
+  "pol": "polygon",
+  "gnosis": "gnosis",
+  "op": "optimism",
+  "bera": "berachain",
+  "xlayer": "xlayer",
+  "plasma": "plasma",
+  "mantle": "mantle",
+  "megaeth": "megaeth",
+  "ink": "ink",
+  "stable": "stable",
+  "celo": "celo",
+  "sei": "sei",
+  "frax": "fraxtal",
+  "katana": "katana",
+};
+
 export function evmRpcFallbackProvider(chain: TokenChain) {
   const { rpcUrls, chainId } = chain;
 
@@ -41,7 +64,7 @@ export function evmRpcFallbackProvider(chain: TokenChain) {
       (b.includes(PROXY_RPC_DOMAIN) ? 1 : 0) - (a.includes(PROXY_RPC_DOMAIN) ? 1 : 0)
   );
 
-  const rpcSignature = generateRpcSignature(chain.blockchain);
+  const rpcSignature = generateRpcSignature(ChainNameMap[chain.blockchain]);
 
   const providers = sortedUrls.map(
     (rpc: string) => {
