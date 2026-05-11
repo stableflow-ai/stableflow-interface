@@ -182,7 +182,7 @@ export const chainsRpcUrls: Record<string, string[]> = {
     "https://toncenter.com/api/v2/jsonRPC",
   ],
   "Sui": [
-    `${ProxyRpcHost}/sui`,
+    // `${ProxyRpcHost}/sui`,
     "https://fullnode.mainnet.sui.io:443",
   ],
   "Katana": [
