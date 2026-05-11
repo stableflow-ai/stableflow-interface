@@ -15,12 +15,10 @@ import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { BridgeDefaultWallets, PRICE_IMPACT_THRESHOLD } from "@/config";
-import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
 import { getRouteStatus, Service, ServiceBackend } from "@/services/constants";
 import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
-import { BASE_API_URL } from "@/config/api";
 import { BridgeFees, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
@@ -28,6 +26,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { csl } from "@/utils/log";
+import { addTradeReport } from "@/stores/use-trade-report";
 import { createEvmAllowanceProvider, formatBridgeRpcErrorMessage, sortQuoteData, verifyPostApproveAllowance } from "../utils";
 import { getQuoteModes } from "@/services/utils";
 import useEvmGasFeesStore from "@/stores/use-evm-gas-fees";
@@ -461,18 +460,6 @@ export default function useBridge(props?: any) {
     });
   };
 
-  const report = async (params: any) => {
-    try {
-      await axios.post(`${BASE_API_URL}/v1/trade/add`, {
-        type: 0,
-        ...params,
-      });
-      getPendingList();
-    } catch (error) {
-      csl("report", "red-500", "Report failed: %o", error);
-    }
-  };
-
   const estimateNativeTokenBalance = async (params?: { estimateGas?: number | string; }) => {
     const result = { isContinue: true };
 
@@ -661,12 +648,16 @@ export default function useBridge(props?: any) {
             provider: evmAllowanceProvider,
           });
           if (Big(allowance.allowance || 0).gt(0) && allowance.needApprove) {
-            await wallet.wallet.approve({
+            const resetAllowanceResult = await wallet.wallet.approve({
               contractAddress: walletStore.fromToken.contractAddress,
               spender: approveSpender,
               // revoked approval
               amountWei: "0",
+              isDetails: true,
             });
+            if (!resetAllowanceResult.success) {
+              throw new Error(resetAllowanceResult.message || "Approve failed");
+            }
           }
         }
 
@@ -818,10 +809,11 @@ export default function useBridge(props?: any) {
 
           historyStore.addHistory(localHistoryData);
           historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
-          report({
+          addTradeReport({
             ...reportData,
             status: 4, // continue
           });
+          getPendingList();
         }
 
         if (_quote?.data?.sendParam?.param) {
@@ -844,7 +836,8 @@ export default function useBridge(props?: any) {
         historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
 
         reportData.tx_hash = hash;
-        report(reportData);
+        addTradeReport(reportData);
+        getPendingList();
         addTrackParams.txHash = hash;
         addTransferTrack(addTrackParams);
 
@@ -910,24 +903,30 @@ export default function useBridge(props?: any) {
         historyStore.addHistory(localHistoryData);
         historyStore.updateStatus(hash, "PENDING_DEPOSIT");
 
-        report(reportData);
+        addTradeReport(reportData);
+        getPendingList();
         addTrackParams.txHash = hash;
         addTransferTrack(addTrackParams);
       }
 
-      bridgeStore.set({ transferring: false });
+      bridgeStore.set({
+        transferring: false,
+        amount: "",
+      });
+      bridgeStore.clearQuoteData();
       getBalance();
       toast.success({
         title: "Transfer submitted"
       });
       // reload quotes
-      debouncedQuote({ dry: true });
+      // debouncedQuote({ dry: true });
 
     } catch (error: any) {
       console.error(error);
       bridgeStore.set({ transferring: false });
       bridgeStore.setTronTransferVisible(false);
       let _finalErrorMessage = error?.message || error?.toString?.() || "Transfer failed";
+      addTrackParams.sourceErrMsg = _finalErrorMessage;
       if (
         // evm
         _finalErrorMessage.includes("user rejected action") ||
@@ -1026,11 +1025,12 @@ export default function useBridge(props?: any) {
   };
 
   // Wrap quote function to generate a new request ID on each call
-  const quoteWithRequestId = async (params: { dry: boolean; }, isSync?: boolean) => {
+  const quoteWithRequestId = async (params: { dry: boolean; from?: string; }, isSync?: boolean) => {
+    csl("Trigger quote with request id", "purple-600", "from: %o", params.from)
     // Generate a new request ID
     requestIdRef.current += 1;
     const currentRequestId = requestIdRef.current;
-    return quote(params, isSync, currentRequestId);
+    return quote({ dry: params.dry }, isSync, currentRequestId);
   };
 
   const { run: debouncedQuote, cancel: cancelQuote } = useDebounceFn(quoteWithRequestId, {
@@ -1058,7 +1058,7 @@ export default function useBridge(props?: any) {
       return;
     }
     cancelQuote();
-    debouncedQuote({ dry: true });
+    debouncedQuote({ dry: true, from: "effect" });
   }, [
     walletStore.fromToken,
     walletStore.toToken,
@@ -1258,7 +1258,7 @@ export default function useBridge(props?: any) {
           walletStore.toToken?.symbol === "USDC"
         ) {
           csl("autoRequote", "gray-800", "Auto requoting after %s ms", CCTP_AUTO_REQUOTE_DURATION);
-          debouncedQuote({ dry: true });
+          debouncedQuote({ dry: true, from: "requote for CCTP from Solana USDC" });
         }
         // Clear timer ref after execution
         autoRequoteTimerRef.current = null;

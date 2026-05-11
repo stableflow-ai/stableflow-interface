@@ -1,5 +1,4 @@
-import { Service } from "@/services/constants";
-import { getStableflowRouteLogo } from "@/utils/format/logo";
+import { Service, ServiceLogoMap, ServiceLogoSimpleMap } from "@/services/constants";
 
 export const TradeStatus = {
   Pending: 0,
@@ -35,14 +34,59 @@ export const TradeProject = {
 
 export type TradeProject = (typeof TradeProject)[keyof typeof TradeProject];
 
-export const TradeProjectMap: Record<TradeProject, { logo: string; name: string; service: Service }> = {
-  [TradeProject.OneClick]: { logo: getStableflowRouteLogo("logo-near-intents.svg"), name: "OneClick", service: Service.OneClick },
-  [TradeProject.Usdt0]: { logo: getStableflowRouteLogo("logo-usdt0.svg"), name: "USDT0", service: Service.Usdt0 },
-  [TradeProject.CCTP]: { logo: getStableflowRouteLogo("logo-circle.avif"), name: "CCTP", service: Service.CCTP },
-  [TradeProject.FraxZero]: { logo: getStableflowRouteLogo("logo-fraxzero.svg"), name: "FraxZero", service: Service.FraxZero },
-  [TradeProject.FraxZeroOneClick]: { logo: getStableflowRouteLogo("logo-fraxzero-near-intents.svg"), name: "FraxZeroOneClick", service: Service.FraxZeroOneClick },
-  [TradeProject.OneClickFraxZero]: { logo: getStableflowRouteLogo("logo-near-intents-fraxzero.svg"), name: "OneClickFraxZero", service: Service.OneClickFraxZero },
-  [TradeProject.Usdt0OneClick]: { logo: getStableflowRouteLogo("logo-usdt0-near-intents.svg"), name: "USDT0OneClick", service: Service.Usdt0OneClick },
-  [TradeProject.OneClickUsdt0]: { logo: getStableflowRouteLogo("logo-near-intents-usdt0.svg"), name: "OneClickUSDT0", service: Service.OneClickUsdt0 },
-  [TradeProject.Native]: { logo: getStableflowRouteLogo("logo-native.svg"), name: "Native", service: Service.Native },
+export const TradeProjectMap: Record<TradeProject, { logo: string; logoSimple: string; name: string; service: Service }> = {
+  [TradeProject.OneClick]: {
+    logo: ServiceLogoMap[Service.OneClick],
+    logoSimple: ServiceLogoSimpleMap[Service.OneClick],
+    name: "OneClick",
+    service: Service.OneClick,
+  },
+  [TradeProject.Usdt0]: {
+    logo: ServiceLogoMap[Service.Usdt0],
+    logoSimple: ServiceLogoSimpleMap[Service.Usdt0],
+    name: "USDT0",
+    service: Service.Usdt0,
+  },
+  [TradeProject.CCTP]: {
+    logo: ServiceLogoMap[Service.CCTP],
+    logoSimple: ServiceLogoSimpleMap[Service.CCTP],
+    name: "CCTP",
+    service: Service.CCTP,
+  },
+  [TradeProject.FraxZero]: {
+    logo: ServiceLogoMap[Service.FraxZero],
+    logoSimple: ServiceLogoSimpleMap[Service.FraxZero],
+    name: "FraxZero",
+    service: Service.FraxZero,
+  },
+  [TradeProject.FraxZeroOneClick]: {
+    logo: ServiceLogoMap[Service.FraxZeroOneClick],
+    logoSimple: ServiceLogoSimpleMap[Service.FraxZeroOneClick],
+    name: "FraxZeroOneClick",
+    service: Service.FraxZeroOneClick,
+  },
+  [TradeProject.OneClickFraxZero]: {
+    logo: ServiceLogoMap[Service.OneClickFraxZero],
+    logoSimple: ServiceLogoSimpleMap[Service.OneClickFraxZero],
+    name: "OneClickFraxZero",
+    service: Service.OneClickFraxZero,
+  },
+  [TradeProject.Usdt0OneClick]: {
+    logo: ServiceLogoMap[Service.Usdt0OneClick],
+    logoSimple: ServiceLogoSimpleMap[Service.Usdt0OneClick],
+    name: "USDT0OneClick",
+    service: Service.Usdt0OneClick,
+  },
+  [TradeProject.OneClickUsdt0]: {
+    logo: ServiceLogoMap[Service.OneClickUsdt0],
+    logoSimple: ServiceLogoSimpleMap[Service.OneClickUsdt0],
+    name: "OneClickUSDT0",
+    service: Service.OneClickUsdt0,
+  },
+  [TradeProject.Native]: {
+    logo: ServiceLogoMap[Service.Native],
+    logoSimple: ServiceLogoSimpleMap[Service.Native],
+    name: "Native",
+    service: Service.Native,
+  },
 };

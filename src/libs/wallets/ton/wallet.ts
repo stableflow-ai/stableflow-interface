@@ -4,16 +4,10 @@ import { Address, beginCell, Cell, internal, toNano, TonClient } from '@ton/ton'
 import type { TupleItem } from '@ton/ton';
 import { TonConnectUI } from '@tonconnect/ui-react';
 import { SendType } from '../types';
-import {
-  addressToBigInt,
-  buildClass,
-  decodeClass,
-  parseTonAddress,
-} from '@layerzerolabs/lz-ton-sdk-v2';
 import { bigIntToAddress, buildJettonWalletTransferBody, buildTonTransferCell, buildUlnConnnection, computeTonChannelAddress, computeTonEndpointAddress, computeTonUlnAddress, computeTonUlnConnectionAddress, objectBuild, objectDecode, pollTransactionByBoc, tonObjects, ulnConfigs } from '../utils/ton';
+import { addressToBigInt, buildClass, decodeClass, parseTonAddress } from '@layerzerolabs/lz-ton-sdk-v2';
 import { numberRemoveEndZero } from '@/utils/format/number';
 import Big from 'big.js';
-import { Options } from '@layerzerolabs/lz-v2-utilities';
 import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from '@/services/usdt0/config';
 import { addressToBytes32 } from '@/utils/address-validation';
 import { getHopMsgFee } from '@/services/usdt0/hop-composer';
@@ -288,6 +282,7 @@ export default class TonWallet {
   }
 
   async quoteOFT(params: any) {
+    const { Options } = await import("@layerzerolabs/lz-v2-utilities");
     const {
       dry,
       originLayerzeroAddress,
@@ -670,12 +665,12 @@ export default class TonWallet {
     });
     execTime.log("estimateTransaction");
 
-    result.fees.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
     result.totalEstimateSourceGas = nativeFee + ett.estimateSourceGas;
 
-    result.fees.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
+    result.fees.estimateGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
     result.estimateSourceGasUsd = numberRemoveEndZero(estimateGasUsd.toFixed(20));
     result.estimateSourceGas = estimatedGas;
     result.totalEstimateSourceGas = nativeFee + estimatedGas;
@@ -839,7 +834,7 @@ export default class TonWallet {
       body: body,
     };
 
-    result.fees.sourceGasFeeUsd = ett.estimateSourceGasUsd;
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
     result.totalEstimateSourceGas = ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;

@@ -8,7 +8,7 @@ import ResultFeeItem from "./fee-item";
 import { Service } from "@/services/constants";
 import { formatNumber } from "@/utils/format/number";
 import { BridgeFee, checkIsBridgeFee } from "@/services/oneclick";
-import { ServiceLogoMap } from "@/services";
+import { ServiceLogoMap } from "@/services/constants";
 
 const ResultUsdt0OneClick = (props: any) => {
   const { service } = props;
@@ -61,7 +61,6 @@ const ResultUsdt0OneClick = (props: any) => {
         messagingFeeAmount: 0,
         messagingFeeUnit: "",
         legacyMeshFee: 0,
-        estimatedSourceGas: 0,
         bridgeFee: totalBridgeFeeLabel,
         bridgeFeeValue: 0,
         netFee: 0,
@@ -78,7 +77,6 @@ const ResultUsdt0OneClick = (props: any) => {
       messagingFeeAmount: _quoteData?.fees?.nativeFee,
       messagingFeeUnit: [Service.OneClickUsdt0, Service.OneClickFraxZero].includes(service) ? _quoteData?.quoteParam?.middleToken?.nativeToken?.symbol : _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
       legacyMeshFee: _quoteData?.fees?.legacyMeshFeeUsd,
-      estimatedSourceGas: _quoteData?.fees?.estimateGasUsd,
       bridgeFee: totalBridgeFeeLabel,
       bridgeFeeValue: totalBridgeFeeValue,
       netFee: _quoteData?.fees?.destinationGasFeeUsd,
@@ -128,56 +126,16 @@ const ResultUsdt0OneClick = (props: any) => {
     ];
   }, [_quoteData]);
 
-  const routePathMap = useMemo(() => {
-    if (!_quoteData) return [];
-
-    const p = _quoteData.quoteParam;
-
-    const buildPath = (
-      steps: Array<{ from: any; to: any; svc: Service; skip?: boolean }>
-    ) =>
-      steps
-        .filter((s) => !s.skip)
-        .map(({ from, to, svc }) => ({ fromToken: from, toToken: to, service: svc }));
-
-    switch (service) {
-      case Service.OneClickUsdt0:
-        return buildPath([
-          { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick },
-          { from: p?.middleToken, to: p?.toToken, svc: Service.Usdt0 },
-        ]);
-      case Service.Usdt0OneClick:
-        return buildPath([
-          { from: p?.fromToken, to: p?.middleToken, svc: Service.Usdt0 },
-          { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick },
-        ]);
-      case Service.OneClickFraxZero:
-        return buildPath([
-          { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick, skip: p?.isFromEthereumUSDC },
-          { from: p?.middleToken, to: p?.middleToken2, svc: Service.FraxZero },
-          { from: p?.middleToken2, to: p?.toToken, svc: Service.FraxZero, skip: p?.isToEthereumFrxUSD },
-        ]);
-      case Service.FraxZeroOneClick:
-        return buildPath([
-          { from: p?.fromToken, to: p?.middleToken2, svc: Service.FraxZero, skip: p?.isFromEthereumFrxUSD },
-          { from: p?.middleToken2, to: p?.middleToken, svc: Service.FraxZero },
-          { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick, skip: p?.isToEthereumUSDC },
-        ]);
-      default:
-        return [];
-    }
-  }, [_quoteData, service]);
-
   return (
     <AnimatePresence>
       {
         bridgeStore.showFee && (
           <motion.div
             key="fee-detail"
-            className="w-full flex flex-col items-stretch gap-[8px] px-[10px] overflow-hidden"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            className="w-full flex flex-col items-stretch gap-2 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
             {
               isLayerzeroBridge && (
@@ -238,31 +196,6 @@ const ResultUsdt0OneClick = (props: any) => {
                 </>
               )
             }
-            {
-              routePathMap && routePathMap.length > 1 && (
-                <ResultFeeItem
-                  label="Routes"
-                  className="items-start"
-                  labelClassName="pt-0"
-                  loading={false}
-                  isDelete={false}
-                  isFormat={false}
-                >
-                  <div className="space-y-2">
-                    {
-                      routePathMap.map((item: any, index: number) => (
-                        <RoutePath
-                          key={index}
-                          fromToken={item.fromToken}
-                          toToken={item.toToken}
-                          service={item.service}
-                        />
-                      ))
-                    }
-                  </div>
-                </ResultFeeItem>
-              )
-            }
           </motion.div>
         )
       }
@@ -271,37 +204,3 @@ const ResultUsdt0OneClick = (props: any) => {
 };
 
 export default ResultUsdt0OneClick;
-
-const RoutePath = (props: any) => {
-  const { fromToken, toToken, service } = props;
-
-  return (
-    <div className="flex items-center gap-1 min-w-[280px]">
-      <div className="shrink-0 flex items-center gap-1">
-        <div className="">{fromToken?.chainName}</div>
-        <img
-          src={fromToken?.icon}
-          alt=""
-          className="shrink-0 w-4 h-4 object-center object-contain rounded-full"
-        />
-      </div>
-      <div className="relative flex items-center flex-1 w-0 gap-1">
-        <div className="flex-1 border-t border-dashed border-[#D6D6D6]"></div>
-        <img
-          src={ServiceLogoMap[service as Service]}
-          alt=""
-          className="shrink-0 w-14 h-4 object-center object-contain"
-        />
-        <div className="flex-1 border-t border-dashed border-[#D6D6D6]"></div>
-      </div>
-      <div className="shrink-0 flex items-center gap-1">
-        <div className="">{toToken?.chainName}</div>
-        <img
-          src={toToken?.icon}
-          alt=""
-          className="shrink-0 w-4 h-4 object-center object-contain rounded-full"
-        />
-      </div>
-    </div>
-  );
-};

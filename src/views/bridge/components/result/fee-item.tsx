@@ -9,7 +9,7 @@ const ResultFeeItem = (props: any) => {
   return (
     <div className={clsx("w-full flex items-center justify-between gap-[10px] text-[#70788A] text-[12px] font-[400] leading-[120%]", className)}>
       <div className={labelClassName}>{label}</div>
-      <div className={clsx("text-black", isDelete && "line-through [text-decoration-color:#F00]")}>
+      <div className={clsx("text-[#444C59]", isDelete && "line-through [text-decoration-color:#F00]")}>
         {
           loading ? (
             <Loading size={10} />

@@ -11,7 +11,7 @@ import { ExecTime } from "@/utils/exec-time";
 
 export const PayInLzToken = false;
 
-const excludeFees: string[] = ["estimateApproveGasUsd"];
+const excludeFees: string[] = ["estimateGasUsd"];
 
 export class CCTPService {
   private api: AxiosInstance;
@@ -118,6 +118,7 @@ export class CCTPService {
     result.estimateSourceGas = ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
+    result.totalFeesUsd = "0";
     for (const feeKey in result.fees) {
       if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
         continue;

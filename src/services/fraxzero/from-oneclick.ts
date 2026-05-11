@@ -11,6 +11,7 @@ import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "@/libs/wallets/types";
 import { ExecTime } from "@/utils/exec-time";
 import { getRouteStatus, Service } from "../constants";
+import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 
 export class OneClick2FraxZeroService extends FraxZeroService {
   public override async quote(params: any) {
@@ -42,8 +43,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
 
     const routeStatus = getRouteStatus(Service.OneClickFraxZero);
 
-    const providers = FRAXZERO_MIDDLE_TOKEN_USDC.rpcUrls.map((rpc: string) => new ethers.JsonRpcProvider(rpc, FRAXZERO_MIDDLE_TOKEN_USDC.chainId));
-    const provider = new ethers.FallbackProvider(providers);
+    const provider = evmRpcFallbackProvider(FRAXZERO_MIDDLE_TOKEN_USDC);
 
     let middleChainWallet = wallets?.evm?.wallet;
     let middleChainRecipientAddress = wallets?.evm?.account;
@@ -74,6 +74,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
       // The ratio can be obtained from the contract.
       execTime.breakpoint();
       previewMintResult = await middleChainWallet.previewMintFrxUSD({
+        dry,
         amountWei: Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0),
         fromToken: FRAXZERO_MIDDLE_TOKEN_USDC,
         abi: FRAXZERO_REDEEM_MINT_ABI,
@@ -177,6 +178,10 @@ export class OneClick2FraxZeroService extends FraxZeroService {
 
       execTime.logTotal("OneClick2FraxZeroService.quote is NOT FromEthereumUSDC");
 
+      const notFromEthUSDCFinalOutputAmount = isToEthereumFrxUSD
+        ? numberRemoveEndZero(Big(estimateEthereumFrxUSDAmountWei.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, Big.roundDown))
+        : secondStepResult.outputAmount;
+
       return {
         ...firstStepResult,
         routeDisabled: routeStatus.disabled,
@@ -188,7 +193,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         fees,
         totalFeesUsd: numberRemoveEndZero(Big(totalFeesUsd).toFixed(20)),
         estimateTime: (isToEthereumFrxUSD ? 0 : secondStepResult.estimateTime) + firstStepResult.estimateTime,
-        outputAmount: isToEthereumFrxUSD ? Big(estimateEthereumFrxUSDAmountWei.toString()).div(10 ** toToken.decimals).toFixed(toToken.decimals, Big.roundDown) : secondStepResult.outputAmount,
+        outputAmount: notFromEthUSDCFinalOutputAmount,
         quoteParam: {
           ...firstStepResult.quoteParam,
           toToken: params.toToken,

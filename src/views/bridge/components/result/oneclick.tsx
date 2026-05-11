@@ -72,10 +72,10 @@ const ResultOneClick = (props: any) => {
         bridgeStore.showFee && (
           <motion.div
             key="fee-detail"
-            className="w-full flex flex-col items-stretch gap-[8px] px-[10px] overflow-hidden"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            className="w-full flex flex-col items-stretch gap-2 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
             {
               isExchangeToken ? (

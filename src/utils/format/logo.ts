@@ -8,15 +8,15 @@ export const getLogo = (path: string) => {
   path = formatPath(path);
   return `${host}${path}`;
 };
-export const getStableflowChainLogo = (name: string) => {
+export const getStableflowChainLogo = (name: string, suffix: string = "png") => {
   name = name.toLowerCase();
   name = formatPath(name);
-  return getLogo(`/stableflow/networks${name}.png`);
+  return getLogo(`/stableflow/networks${name}.${suffix}`);
 };
-export const getStableflowTokenLogo = (name: string) => {
+export const getStableflowTokenLogo = (name: string, suffix: string = "png") => {
   name = name.toLowerCase();
   name = formatPath(name);
-  return getLogo(`/stableflow/tokens${name}.png`);
+  return getLogo(`/stableflow/tokens${name}.${suffix}`);
 };
 export const getStableflowRouteLogo = (name: string) => {
   name = name.toLowerCase();

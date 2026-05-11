@@ -4,20 +4,23 @@ import {
   RouterProvider
 } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
-import Bridge from "./views/bridge";
 import WalletsProvider from "./libs/wallets/providers";
 import Layout from "./layouts";
 import { lazy, Suspense } from "react";
 import { useEvmGasFees } from "./hooks/use-evm-gas-fees";
 import { usePrices } from "./hooks/use-prices";
+import { useTradeReport } from "./hooks/use-trade-report";
+import ZendeskPrivider from "./components/zendesk-widget";
 
+const Bridge = lazy(() => import("./views/bridge"));
 const History = lazy(() => import("./views/history"));
-const LearnMore = lazy(() => import("./views/learn-more"));
+const About = lazy(() => import("./views/about"));
 const Apply = lazy(() => import("./views/apply"));
 const Privacy = lazy(() => import("./views/policy/privacy"));
 const TermsOfService = lazy(() => import("./views/policy/terms-of-service"));
 const Developer = lazy(() => import("./views/developer"));
 const DeveloperMD = lazy(() => import("./views/developer/md"));
+const Ecosystem = lazy(() => import("./views/ecosystem"));
 
 const TronEnergyModal = lazy(() => import("./views/bridge/components/tron-energy/modal"));
 const TrackRoot = lazy(() => import("./components/track-root"));
@@ -41,7 +44,7 @@ const router = createBrowserRouter([
       },
       {
         path: "about",
-        element: <LearnMore />
+        element: <About />
       },
       {
         path: "developer",
@@ -63,7 +66,11 @@ const router = createBrowserRouter([
       {
         path: "terms-of-service",
         element: <TermsOfService />
-      }
+      },
+      {
+        path: "ecosystem",
+        element: <Ecosystem />
+      },
     ]
   },
   {
@@ -75,30 +82,33 @@ const router = createBrowserRouter([
 function App() {
   usePrices();
   useEvmGasFees();
+  useTradeReport();
   return (
     <WalletsProvider>
-      <RouterProvider router={router} />
+      <ZendeskPrivider>
+        <RouterProvider router={router} />
 
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={true}
-        theme="light"
-        toastStyle={{ backgroundColor: "transparent", boxShadow: "none" }}
-        newestOnTop
-        rtl={false}
-        pauseOnFocusLoss
-        closeButton={false}
-      />
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={true}
+          theme="light"
+          toastStyle={{ backgroundColor: "transparent", boxShadow: "none" }}
+          newestOnTop
+          rtl={false}
+          pauseOnFocusLoss
+          closeButton={false}
+        />
 
-      <Suspense fallback={null}>
-        <TronEnergyModal />
-      </Suspense>
+        <Suspense fallback={null}>
+          <TronEnergyModal />
+        </Suspense>
 
-      <Suspense fallback={null}>
-        <TrackRoot />
-      </Suspense>
+        <Suspense fallback={null}>
+          <TrackRoot />
+        </Suspense>
 
+      </ZendeskPrivider>
     </WalletsProvider>
   );
 }

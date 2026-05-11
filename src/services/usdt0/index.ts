@@ -201,6 +201,7 @@ export class Usdt0Service {
       result.estimateApproveGas = estApptroveGas.estimateSourceGas;
     }
 
+    result.totalFeesUsd = "0";
     for (const feeKey in result.fees) {
       if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
         continue;
