@@ -45,6 +45,7 @@ import { fromWeb3JsPublicKey, toWeb3JsInstruction } from "@metaplex-foundation/u
 import { addressToBytes32 } from "@/utils/address-validation";
 import { createSolanaFallbackConnection, getAvailableSolanaRpcUrl } from "../utils/solana";
 import { ExecTime } from "@/utils/exec-time";
+import { generateRpcSignature } from "@/libs/signature";
 
 export default class SolanaWallet {
   connection: Connection;
@@ -767,23 +768,24 @@ export default class SolanaWallet {
 
     csl("Solana sendTransaction", "green-400", "Transaction sent with signature: %o", signature);
 
-    // Confirm the transaction
-    const confirmation = didRefreshBlockhash && latestBlockhash
-      ? await this.connection.confirmTransaction(
-        {
-          signature,
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-        },
-        "confirmed"
-      )
-      : await this.connection.confirmTransaction(signature, "confirmed");
+    // // Confirm the transaction
+    // // If adding confirmation, you need to catch errors because it may throw a TransactionExpiredBlockheightExceededError.
+    // const confirmation = didRefreshBlockhash && latestBlockhash
+    //   ? await this.connection.confirmTransaction(
+    //     {
+    //       signature,
+    //       blockhash: latestBlockhash.blockhash,
+    //       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+    //     },
+    //     "confirmed"
+    //   )
+    //   : await this.connection.confirmTransaction(signature, "confirmed");
 
-    if (confirmation.value.err) {
-      throw new Error(
-        `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
-      );
-    }
+    // if (confirmation.value.err) {
+    //   throw new Error(
+    //     `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
+    //   );
+    // }
 
     return signature;
   }
@@ -1179,9 +1181,13 @@ export default class SolanaWallet {
     } = destinationLayerzero;
 
     const availableRpcUrl = await getAvailableSolanaRpcUrl();
+    const rpcSignature = generateRpcSignature("solana");
 
     const ALT_ADDRESS = new PublicKey("AokBxha6VMLLgf97B5VYHEtqztamWmYERBmmFvjuTzJB");
-    const umi = createUmi(availableRpcUrl).use(mplToolbox());
+    const umi = createUmi(availableRpcUrl, {
+      commitment: "confirmed",
+      httpHeaders: rpcSignature.headers as any,
+    }).use(mplToolbox());
     const oftProgramId = publicKey(originLayerzero.programId);
     const oftMint = publicKey(fromToken.contractAddress);
     const oftEscrow = publicKey(originLayerzero.escrow);

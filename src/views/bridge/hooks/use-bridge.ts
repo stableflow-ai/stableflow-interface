@@ -15,12 +15,10 @@ import useTokenBalance from "@/hooks/use-token-balance";
 import useToast from "@/hooks/use-toast";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import { BridgeDefaultWallets, PRICE_IMPACT_THRESHOLD } from "@/config";
-import axios from "axios";
 import { formatNumber } from "@/utils/format/number";
 import { getRouteStatus, Service, ServiceBackend } from "@/services/constants";
 import usePricesStore from "@/stores/use-prices";
 import { v4 as uuidV4 } from "uuid";
-import { BASE_API_URL } from "@/config/api";
 import { BridgeFees, TronTransferStepStatus } from "@/config/tron";
 import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
@@ -28,6 +26,7 @@ import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { csl } from "@/utils/log";
+import { addTradeReport } from "@/stores/use-trade-report";
 import { createEvmAllowanceProvider, formatBridgeRpcErrorMessage, sortQuoteData, verifyPostApproveAllowance } from "../utils";
 import { getQuoteModes } from "@/services/utils";
 import useEvmGasFeesStore from "@/stores/use-evm-gas-fees";
@@ -461,18 +460,6 @@ export default function useBridge(props?: any) {
     });
   };
 
-  const report = async (params: any) => {
-    try {
-      await axios.post(`${BASE_API_URL}/v1/trade/add`, {
-        type: 0,
-        ...params,
-      });
-      getPendingList();
-    } catch (error) {
-      csl("report", "red-500", "Report failed: %o", error);
-    }
-  };
-
   const estimateNativeTokenBalance = async (params?: { estimateGas?: number | string; }) => {
     const result = { isContinue: true };
 
@@ -822,10 +809,11 @@ export default function useBridge(props?: any) {
 
           historyStore.addHistory(localHistoryData);
           historyStore.updateStatus(_quote.data.quote.depositAddress, "CONTINUE");
-          report({
+          addTradeReport({
             ...reportData,
             status: 4, // continue
           });
+          getPendingList();
         }
 
         if (_quote?.data?.sendParam?.param) {
@@ -848,7 +836,8 @@ export default function useBridge(props?: any) {
         historyStore.updateStatus(_quote.data.quote.depositAddress, "PENDING_DEPOSIT");
 
         reportData.tx_hash = hash;
-        report(reportData);
+        addTradeReport(reportData);
+        getPendingList();
         addTrackParams.txHash = hash;
         addTransferTrack(addTrackParams);
 
@@ -914,7 +903,8 @@ export default function useBridge(props?: any) {
         historyStore.addHistory(localHistoryData);
         historyStore.updateStatus(hash, "PENDING_DEPOSIT");
 
-        report(reportData);
+        addTradeReport(reportData);
+        getPendingList();
         addTrackParams.txHash = hash;
         addTransferTrack(addTrackParams);
       }

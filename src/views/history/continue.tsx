@@ -12,8 +12,6 @@ import Big from "big.js";
 import { ServiceMap } from "@/services";
 import { Service } from "@/services/constants";
 import { useHistoryStore } from "@/stores/use-history";
-import axios from "axios";
-import { BASE_API_URL } from "@/config/api";
 import Modal from "@/components/modal";
 import { useState } from "react";
 import { formatNumber } from "@/utils/format/number";
@@ -27,6 +25,7 @@ import { useSwitchChain } from "wagmi";
 import usdt0Service from "@/services/usdt0";
 import { useConfigStore } from "@/stores/use-config";
 import { useTrack } from "@/hooks/use-track";
+import { addTradeReport } from "@/stores/use-trade-report";
 
 const ContinueTransfer = (props: any) => {
   const { history, reload } = props;
@@ -334,14 +333,7 @@ const ContinueTransfer = (props: any) => {
       historyStore.updateStatus(quoteData.data.quote.depositAddress, "PENDING_DEPOSIT");
 
       reportData.tx_hash = hash;
-      try {
-        await axios.post(`${BASE_API_URL}/v1/trade/add`, {
-          type: 0,
-          ...reportData,
-        });
-      } catch (error) {
-        csl("ContinueTransfer handleContinue", "red-500", "report failed: %o", error);
-      }
+      addTradeReport(reportData);
 
       toast.success({
         title: "Transfer submitted"

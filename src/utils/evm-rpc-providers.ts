@@ -1,6 +1,8 @@
+import type { TokenChain } from "@/config/chains";
+import { generateRpcSignature } from "@/libs/signature";
 import { ethers } from "ethers";
 
-const PROXY_RPC_DOMAIN = "rpc.stableflow.jimmygu.com";
+const PROXY_RPC_DOMAIN = import.meta.env.VITE_PRC_PROXY_HOST || "rpcs.stableflow.ai";
 const providerCache = new Map<number, ethers.AbstractProvider>();
 
 class SequentialFallbackProvider extends ethers.AbstractProvider {
@@ -29,25 +31,35 @@ class SequentialFallbackProvider extends ethers.AbstractProvider {
   }
 }
 
-export function evmRpcFallbackProvider(chain: any) {
+export function evmRpcFallbackProvider(chain: TokenChain) {
   const { rpcUrls, chainId } = chain;
 
-  if (providerCache.has(chainId)) return providerCache.get(chainId)!;
+  if (providerCache.has(chainId!)) return providerCache.get(chainId!)!;
 
   const sortedUrls: string[] = [...rpcUrls].sort(
     (a: string, b: string) =>
       (b.includes(PROXY_RPC_DOMAIN) ? 1 : 0) - (a.includes(PROXY_RPC_DOMAIN) ? 1 : 0)
   );
 
+  const rpcSignature = generateRpcSignature(chain.blockchain);
+
   const providers = sortedUrls.map(
-    (rpc: string) => new ethers.JsonRpcProvider(rpc, chainId, { staticNetwork: true })
+    (rpc: string) => {
+      if (rpc.includes(PROXY_RPC_DOMAIN)) {
+        const req = new ethers.FetchRequest(rpc);
+        req.setHeader("x-hmac-signature", rpcSignature.headers["x-hmac-signature"]);
+        req.setHeader("x-timestamp", rpcSignature.headers["x-timestamp"]);
+        return new ethers.JsonRpcProvider(req, chainId, { staticNetwork: true });
+      }
+      return new ethers.JsonRpcProvider(rpc, chainId, { staticNetwork: true });
+    }
   );
 
   const provider =
     providers.length === 1
       ? providers[0]
-      : new SequentialFallbackProvider(providers, chainId);
+      : new SequentialFallbackProvider(providers, chainId!);
 
-  providerCache.set(chainId, provider);
+  providerCache.set(chainId!, provider);
   return provider;
 }
