@@ -1,4 +1,5 @@
 import { getChainRpcUrl } from "@/config/chains";
+import { generateRpcSignature } from "@/libs/signature";
 import { csl } from "@/utils/log";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Connection, PublicKey } from "@solana/web3.js";
@@ -33,7 +34,11 @@ export const createSolanaFallbackConnection = (rpcUrls: string[]) => {
     throw new Error("No Solana RPC URLs configured");
   }
 
-  const connections = rpcUrls.map((rpcUrl) => new Connection(rpcUrl, "confirmed"));
+  const rpcSignature = generateRpcSignature("solana");
+  const connections = rpcUrls.map((rpcUrl) => new Connection(rpcUrl, {
+    commitment: "confirmed",
+    httpHeaders: rpcSignature.headers as any,
+  }));
   let activeIndex = 0;
   let active: Connection = connections[activeIndex];
 
@@ -95,10 +100,12 @@ export const createSolanaFallbackConnection = (rpcUrls: string[]) => {
 };
 
 const probeRpcHealth = async (rpcUrl: string) => {
+  const rpcSignature = generateRpcSignature("solana");
   const response = await withTimeout(fetch(rpcUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(rpcSignature.headers as any),
     },
     body: JSON.stringify({
       jsonrpc: "2.0",
