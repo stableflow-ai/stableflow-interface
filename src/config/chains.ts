@@ -70,7 +70,7 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
 const HeliusRpcApiKey = import.meta.env.VITE_HELIUS_RPC_API_KEY;
 const AlchemyRpcApiKey = import.meta.env.VITE_ALCHEMY_RPC_API_KEY;
 
-const ProxyRpcHost = "https://rpc.stableflow.jimmygu.com/rpc";
+const ProxyRpcHost = "https://rpcs.stableflow.ai/rpc";
 
 export const chainsRpcUrls: Record<string, string[]> = {
   "Ethereum": [
