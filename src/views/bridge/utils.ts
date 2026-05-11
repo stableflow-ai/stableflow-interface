@@ -1,3 +1,4 @@
+import type { TokenChain } from "@/config/chains";
 import { Service } from "@/services/constants";
 import type { WalletType } from "@/stores/use-wallets";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
@@ -50,16 +51,11 @@ type ApproveDetailsResult = {
   data?: Record<string, unknown>;
 };
 
-type EvmAllowanceToken = {
-  rpcUrls?: string[];
-  chainId?: number;
-};
-
 const getErrorMessage = (error: unknown) => {
   return error instanceof Error ? error.message : "";
 };
 
-export const createEvmAllowanceProvider = (fromToken?: EvmAllowanceToken) => {
+export const createEvmAllowanceProvider = (fromToken?: TokenChain) => {
   if (!fromToken?.rpcUrls?.length) return void 0;
 
   return evmRpcFallbackProvider(fromToken);
@@ -68,7 +64,7 @@ export const createEvmAllowanceProvider = (fromToken?: EvmAllowanceToken) => {
 export const verifyPostApproveAllowance = async (params: {
   wallet: PostApproveWallet;
   chainType: WalletType;
-  fromToken?: EvmAllowanceToken;
+  fromToken?: TokenChain;
   contractAddress: string;
   spender: string;
   address: string;
