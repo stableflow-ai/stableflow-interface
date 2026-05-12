@@ -16,6 +16,7 @@ const Social = lazy(() => import("@/components/social"));
 const NavigationMenu = lazy(() => import("@/components/navigation-menu"));
 const HyperliquidDeposit = lazy(() => import("@/components/navigation-menu/hyper-liquid"));
 const Terms = lazy(() => import("@/components/terms"));
+const MaintenanceBanner = lazy(() => import("@/components/maintenance-banner"));
 
 const HEADER_SCROLL_BLUR_PX = 35;
 
@@ -54,65 +55,72 @@ export default function UserActions() {
 
   return (
     <>
-      <div className={clsx(
-        "w-full fixed z-9 pl-1.5 md:pl-5 pr-2.5 top-0 py-4 flex justify-between items-center gap-2.5 duration-150",
-        showHeaderBg && "bg-[rgba(246,248,252,0.30)] backdrop-blur-[10px]",
-      )}>
-        {
-          isMobile ? (
-            <>
-              <div className="flex items-center gap-2">
-                <Link to="/" className="shrink-0 h-10 w-[41px] flex items-center justify-center">
-                  <img
-                    src={getStableflowLogo("logo-stableflow.svg")}
-                    alt="StableFlow"
-                    className="h-10 w-[41px] object-contain"
+      <div className="w-full fixed z-9">
+        <Suspense fallback={null}>
+          <MaintenanceBanner />
+        </Suspense>
+        <div 
+        className={clsx(
+          "w-full pl-1.5 md:pl-5 pr-2.5 top-0 py-4 flex justify-between items-center gap-2.5 duration-150",
+          showHeaderBg && "bg-[rgba(246,248,252,0.30)] backdrop-blur-[10px]",
+        )}
+        >
+          {
+            isMobile ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <Link to="/" className="shrink-0 h-10 w-[41px] flex items-center justify-center">
+                    <img
+                      src={getStableflowLogo("logo-stableflow.svg")}
+                      alt="StableFlow"
+                      className="h-10 w-[41px] object-contain"
+                    />
+                  </Link>
+                  <MobileMenuButton
+                    isOpen={mobileMenuOpen}
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    isSimple
                   />
-                </Link>
-                <MobileMenuButton
-                  isOpen={mobileMenuOpen}
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  isSimple
-                />
-              </div>
-              {
-                isAppBar
-                  ? (
+                </div>
+                {
+                  isAppBar
+                    ? (
+                      <AccountButton />
+                    )
+                    : (
+                      <Link
+                        to="/"
+                        className="shrink-0 h-9 px-4 rounded-[26px] bg-black text-white text-[16px] font-normal leading-none flex items-center gap-2"
+                      >
+                        Launch App
+                        <span className="text-[14px]" aria-hidden>
+                          →
+                        </span>
+                      </Link>
+                    )
+                }
+              </>
+            ) : (
+              <>
+                <Suspense fallback={null}>
+                  <NavigationMenu />
+                </Suspense>
+                <div className="shrink-0 flex items-center gap-2">
+                  {!hideActions ? (
                     <AccountButton />
-                  )
-                  : (
-                    <Link
-                      to="/"
-                      className="shrink-0 h-9 px-4 rounded-[26px] bg-black text-white text-[16px] font-normal leading-none flex items-center gap-2"
-                    >
-                      Launch App
-                      <span className="text-[14px]" aria-hidden>
-                        →
-                      </span>
-                    </Link>
-                  )
-              }
-            </>
-          ) : (
-            <>
-              <Suspense fallback={null}>
-                <NavigationMenu />
-              </Suspense>
-              <div className="shrink-0 flex items-center gap-2">
-                {!hideActions ? (
-                  <AccountButton />
-                ) : (
-                  <div className="h-9.5"></div>
-                )}
-                {/* Mobile menu button */}
-                <MobileMenuButton
-                  isOpen={mobileMenuOpen}
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                />
-              </div>
-            </>
-          )
-        }
+                  ) : (
+                    <div className="h-9.5"></div>
+                  )}
+                  {/* Mobile menu button */}
+                  <MobileMenuButton
+                    isOpen={mobileMenuOpen}
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  />
+                </div>
+              </>
+            )
+          }
+        </div>
       </div>
       {/* Mobile menu drawer */}
       <MobileMenuDrawer

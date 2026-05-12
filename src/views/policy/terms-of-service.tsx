@@ -1,14 +1,22 @@
 import BackButton from "@/components/back-button";
 import MainTitle from "@/components/main-title";
 import BackToTop from "./components/back-to-top";
+import { useMaintenanceStore } from "@/stores/use-maintenance";
+import clsx from "clsx";
 
 /// created by public/terms-of-service.25.12.2025.docx
 
 export default function TermsOfService() {
+  const bannerVisible = useMaintenanceStore((s) => s.getBannerVisible());
 
   return (
     <div className="w-full min-h-[100dvh] flex flex-col items-center mb-[100px]">
-      <div className="md:w-[1100px] w-full mx-auto pt-[60px] md:pt-[60px] shrink-0 relative">
+      <div
+        className={clsx(
+          "md:w-[1100px] w-full mx-auto shrink-0 relative",
+          bannerVisible ? "pt-32" : "pt-15",
+        )}
+      >
         <BackButton className="absolute translate-x-[10px] translate-y-[-5px] md:translate-y-[10px] md:translate-x-[0px]" />
         <MainTitle className="!hidden md:!flex" />
         <div className="px-[10px] md:px-0 mt-[40px] mb-[40px]">
