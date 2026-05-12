@@ -13,6 +13,7 @@ import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
 import { metadata } from "../rainbow/metadata";
 import { csl } from "@/utils/log";
+import { generateRpcSignature } from "@/libs/signature";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
@@ -122,6 +123,8 @@ const Content = () => {
         if (!adapter) {
           return "";
         }
+        const rpcSignature = generateRpcSignature("tron");
+        _tronWeb.setHeader(rpcSignature.headers);
         const signedTx = await adapter.signTransaction(transaction);
         return _tronWeb.trx.sendRawTransaction(signedTx);
       },

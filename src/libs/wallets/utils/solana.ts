@@ -1,9 +1,11 @@
 import { getChainRpcUrl } from "@/config/chains";
+import { generateRpcSignature } from "@/libs/signature";
 import { csl } from "@/utils/log";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Connection, PublicKey } from "@solana/web3.js";
 
 const SOLANA_RPC_TIMEOUT_MS = 5000;
+const PROXY_RPC_DOMAIN = import.meta.env.VITE_PRC_PROXY_HOST || "rpcs.stableflow.ai";
 
 const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number) => {
   return await Promise.race([
@@ -33,7 +35,11 @@ export const createSolanaFallbackConnection = (rpcUrls: string[]) => {
     throw new Error("No Solana RPC URLs configured");
   }
 
-  const connections = rpcUrls.map((rpcUrl) => new Connection(rpcUrl, "confirmed"));
+  const rpcSignature = generateRpcSignature("solana");
+  const connections = rpcUrls.map((rpcUrl) => new Connection(rpcUrl, {
+    commitment: "confirmed",
+    httpHeaders: rpcSignature.headers as any,
+  }));
   let activeIndex = 0;
   let active: Connection = connections[activeIndex];
 
@@ -95,10 +101,12 @@ export const createSolanaFallbackConnection = (rpcUrls: string[]) => {
 };
 
 const probeRpcHealth = async (rpcUrl: string) => {
+  const rpcSignature = generateRpcSignature("solana");
   const response = await withTimeout(fetch(rpcUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(rpcSignature.headers as any),
     },
     body: JSON.stringify({
       jsonrpc: "2.0",
@@ -130,23 +138,33 @@ const probeRpcHealth = async (rpcUrl: string) => {
   }
 };
 
-export const getAvailableSolanaRpcUrl = async () => {
+export const getAvailableSolanaRpcUrl = async (options?: { isQuerySignature?: boolean; }) => {
+  const { isQuerySignature = false } = options || {};
+
   const rpcUrls = getChainRpcUrl("Solana").rpcUrls;
   if (!rpcUrls?.length) {
     throw new Error("No Solana RPC URLs configured");
   }
 
+  const formatRpcUrl = (rpcUrl: string) => {
+    if (!isQuerySignature || !rpcUrl.includes(PROXY_RPC_DOMAIN)) {
+      return rpcUrl;
+    }
+    const rpcSignature = generateRpcSignature("solana");
+    return `${rpcUrl}?${new URLSearchParams(rpcSignature.headers).toString()}`;
+  };
+
   for (const rpcUrl of rpcUrls) {
     try {
       await probeRpcHealth(rpcUrl);
-      return rpcUrl;
+      return formatRpcUrl(rpcUrl);
     } catch (error) {
       csl("solana rpc health", "yellow-400", "rpc health check failed: %o", error);
     }
   }
 
   // If all checks fail, still return primary endpoint for backward compatibility.
-  return rpcUrls[0];
+  return formatRpcUrl(rpcUrls[0]);
 };
 
 export const getDestinationAssociatedTokenAddress = async (params: any) => {

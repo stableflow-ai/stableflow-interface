@@ -47,18 +47,20 @@ import { createSolanaFallbackConnection, getAvailableSolanaRpcUrl } from "../uti
 import { ExecTime } from "@/utils/exec-time";
 
 export default class SolanaWallet {
-  connection: Connection;
   private publicKey: PublicKey | null;
   private signTransaction: any;
   private signer: any;
 
   constructor(options: { publicKey: PublicKey | null; signer: any }) {
-    const solanaRpcUrls: string[] = getChainRpcUrl("Solana").rpcUrls;
-    this.connection = createSolanaFallbackConnection(solanaRpcUrls);
     this.publicKey = options.publicKey;
     this.signTransaction = options.signer.signTransaction;
     this.signer = options.signer;
   }
+
+  getConnection() {
+    const solanaRpcUrls: string[] = getChainRpcUrl("Solana").rpcUrls;
+    return createSolanaFallbackConnection(solanaRpcUrls);
+  };
 
   // Transfer SOL
   async transferSOL(to: string, amount: string) {
@@ -78,16 +80,17 @@ export default class SolanaWallet {
       })
     );
 
-    const { blockhash } = await this.connection.getLatestBlockhash();
+    const connection = this.getConnection();
+    const { blockhash } = await connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = fromPubkey;
 
     const signedTransaction = await this.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(
+    const signature = await connection.sendRawTransaction(
       signedTransaction.serialize()
     );
 
-    await this.connection.confirmTransaction(signature);
+    await connection.confirmTransaction(signature);
     return signature;
   }
 
@@ -96,6 +99,8 @@ export default class SolanaWallet {
     if (!this.publicKey) {
       throw new Error("Wallet not connected");
     }
+
+    const connection = this.getConnection();
 
     const fromPubkey = this.publicKey;
     const toPubkey = new PublicKey(to);
@@ -109,7 +114,7 @@ export default class SolanaWallet {
 
     // Check if recipient has token account, create if not
     try {
-      await getAccount(this.connection, toTokenAccount);
+      await getAccount(connection, toTokenAccount);
     } catch (error) {
       // If token account doesn't exist, create it
       transaction.add(
@@ -134,16 +139,16 @@ export default class SolanaWallet {
       )
     );
 
-    const { blockhash } = await this.connection.getLatestBlockhash();
+    const { blockhash } = await connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = fromPubkey;
 
     const signedTransaction = await this.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(
+    const signature = await connection.sendRawTransaction(
       signedTransaction.serialize()
     );
 
-    await this.connection.confirmTransaction(signature);
+    await connection.confirmTransaction(signature);
 
     return signature;
   }
@@ -173,9 +178,11 @@ export default class SolanaWallet {
   async getSOLBalance(account: string, options?: { isCatchError?: boolean; }) {
     const { isCatchError = false } = options || {};
 
+    const connection = this.getConnection();
+
     try {
       const publicKey = new PublicKey(account);
-      const balance = await this.connection.getBalance(publicKey);
+      const balance = await connection.getBalance(publicKey);
       return balance;
     } catch (error) {
       csl("Solana getSOLBalance", "red-500", "Get SOL balance failed: %o", error);
@@ -189,13 +196,15 @@ export default class SolanaWallet {
   async getTokenBalance(tokenMint: string, account: string, options?: { isCatchError?: boolean; }) {
     const { isCatchError = false } = options || {};
 
+    const connection = this.getConnection();
+
     const mint = new PublicKey(tokenMint);
     const owner = new PublicKey(account);
 
     try {
       const tokenAccount = await getAssociatedTokenAddress(mint, owner);
 
-      const accountInfo = await getAccount(this.connection, tokenAccount);
+      const accountInfo = await getAccount(connection, tokenAccount);
 
       return accountInfo.amount;
     } catch (error: any) {
@@ -238,6 +247,8 @@ export default class SolanaWallet {
     gasPrice: bigint;
     estimateGas: bigint;
   }> {
+    const connection = this.getConnection();
+
     // Solana transaction fees are typically fixed at 5000 lamports per signature
     // Base fee per signature: 5000 lamports
     let estimatedFee = 5000n;
@@ -253,7 +264,7 @@ export default class SolanaWallet {
 
       // Check if recipient has token account
       try {
-        await getAccount(this.connection, toTokenAccount);
+        await getAccount(connection, toTokenAccount);
         // Account exists, no additional fee
       } catch (error) {
         // Account doesn't exist, will need to create it (additional fee)
@@ -291,12 +302,14 @@ export default class SolanaWallet {
       prices,
     } = params;
 
+    const connection = this.getConnection();
+
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
 
     let estimatedFee = 5000n;
     if (!dry) {
       try {
-        const sendSim = await this.connection.simulateTransaction(versionedTx, {
+        const sendSim = await connection.simulateTransaction(versionedTx, {
           sigVerify: false,
           replaceRecentBlockhash: true,
         });
@@ -340,13 +353,15 @@ export default class SolanaWallet {
   }
 
   async checkTransactionStatus(signature: string) {
+    const connection = this.getConnection();
+
     const maxAttempts = 30;
     const interval = 4000;
     let timer: any;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const tx = await this.connection.getTransaction(signature, {
+        const tx = await connection.getTransaction(signature, {
           commitment: "finalized",
           maxSupportedTransactionVersion: 0
         });
@@ -377,9 +392,11 @@ export default class SolanaWallet {
   }
 
   async simulateIx(ix: any) {
+    const connection = this.getConnection();
+
     const tx = new Transaction().add(ix);
 
-    const { blockhash } = await this.connection.getLatestBlockhash();
+    const { blockhash } = await connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = this.publicKey!;
 
@@ -387,7 +404,7 @@ export default class SolanaWallet {
     const message = tx.compileMessage();
     const versionedTx = new VersionedTransaction(message);
 
-    const sim = await this.connection.simulateTransaction(versionedTx, {
+    const sim = await connection.simulateTransaction(versionedTx, {
       // commitment: "confirmed",
       sigVerify: false
     });
@@ -423,6 +440,8 @@ export default class SolanaWallet {
       destinationLayerzero,
     } = params;
 
+    const connection = this.getConnection();
+
     try {
       const result: any = {
         needApprove: false,
@@ -450,7 +469,7 @@ export default class SolanaWallet {
       const userPubkey = new PublicKey(refundTo || sender.toString());
 
       execTime.breakpoint();
-      const mintInfo = await this.connection.getParsedAccountInfo(tokenMint);
+      const mintInfo = await connection.getParsedAccountInfo(tokenMint);
       execTime.log("getParsedAccountInfo");
       const decimals = (mintInfo.value?.data as { parsed: { info: { decimals: number } } }).parsed.info
         .decimals;
@@ -510,7 +529,7 @@ export default class SolanaWallet {
 
       execTime.breakpoint();
       const pdas = deriveOftPdas(programId, _dstEid);
-      const peerAddress = await getPeerAddress(this.connection, programId, _dstEid);
+      const peerAddress = await getPeerAddress(connection, programId, _dstEid);
       execTime.log("deriveOftPdas+getPeerAddress");
 
       execTime.breakpoint();
@@ -525,7 +544,7 @@ export default class SolanaWallet {
       const sendHelper = new SendHelper();
       execTime.breakpoint();
       const remainingAccounts = await sendHelper.getQuoteAccounts(
-        this.connection as any,
+        connection as any,
         quotePayer,
         pdas.oftStore,
         _dstEid,
@@ -557,14 +576,14 @@ export default class SolanaWallet {
       execTime.breakpoint();
       const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 });
       const tx: any = await buildVersionedTransaction(
-        this.connection as any,
+        connection as any,
         quotePayer,
         [computeIx, ix],
         undefined,
         undefined,
         lookupTable,
       );
-      const sim = await this.connection.simulateTransaction(tx, {
+      const sim = await connection.simulateTransaction(tx, {
         sigVerify: false,
         replaceRecentBlockhash: true,
       });
@@ -613,7 +632,7 @@ export default class SolanaWallet {
         const sendSendHelper = new SendHelper();
         execTime.breakpoint();
         const sendRemainingAccounts = await sendSendHelper.getSendAccounts(
-          this.connection as any,
+          connection as any,
           userPubkey,
           pdas.oftStore,
           _dstEid,
@@ -653,7 +672,7 @@ export default class SolanaWallet {
         execTime.breakpoint();
         const computeSendIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
         sendTx = await buildVersionedTransaction(
-          this.connection as any,
+          connection as any,
           userPubkey,
           [computeSendIx, sendIx],
           undefined,
@@ -705,6 +724,8 @@ export default class SolanaWallet {
   async sendTransaction(params: any) {
     const { transaction } = params;
 
+    const connection = this.getConnection();
+
     if (!this.publicKey) {
       throw new Error("Wallet not connected");
     }
@@ -723,7 +744,7 @@ export default class SolanaWallet {
     if (transaction instanceof Transaction) {
       const isUnsigned = transaction.signatures.every(({ signature }) => !hasAnySignature(signature as any));
       if (isUnsigned) {
-        latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+        latestBlockhash = await connection.getLatestBlockhash("confirmed");
         transaction.recentBlockhash = latestBlockhash.blockhash;
         if (!transaction.feePayer) {
           transaction.feePayer = this.publicKey;
@@ -733,7 +754,7 @@ export default class SolanaWallet {
     } else if (transaction instanceof VersionedTransaction) {
       const isUnsigned = transaction.signatures.every((signature) => !hasAnySignature(signature));
       if (isUnsigned) {
-        latestBlockhash = await this.connection.getLatestBlockhash("confirmed");
+        latestBlockhash = await connection.getLatestBlockhash("confirmed");
         // web3.js does not expose a convenient mutator here in typings, but runtime object is mutable.
         (transaction.message as any).recentBlockhash = latestBlockhash.blockhash;
         didRefreshBlockhash = true;
@@ -746,7 +767,7 @@ export default class SolanaWallet {
     let signature: string;
     try {
       // Send the transaction
-      signature = await this.connection.sendRawTransaction(
+      signature = await connection.sendRawTransaction(
         signedTransaction.serialize(),
         {
           skipPreflight: false,
@@ -756,7 +777,7 @@ export default class SolanaWallet {
     } catch (error: any) {
       if (error instanceof SendTransactionError) {
         try {
-          const logs = await error.getLogs(this.connection);
+          const logs = await error.getLogs(connection);
           csl("Solana sendTransaction", "red-500", "sendRawTransaction failed logs: %o", logs);
         } catch (logsError: any) {
           csl("Solana sendTransaction", "red-500", "failed to fetch SendTransactionError logs: %o", logsError?.message || logsError);
@@ -770,7 +791,7 @@ export default class SolanaWallet {
     // // Confirm the transaction
     // // If adding confirmation, you need to catch errors because it may throw a TransactionExpiredBlockheightExceededError.
     // const confirmation = didRefreshBlockhash && latestBlockhash
-    //   ? await this.connection.confirmTransaction(
+    //   ? await connection.confirmTransaction(
     //     {
     //       signature,
     //       blockhash: latestBlockhash.blockhash,
@@ -778,7 +799,7 @@ export default class SolanaWallet {
     //     },
     //     "confirmed"
     //   )
-    //   : await this.connection.confirmTransaction(signature, "confirmed");
+    //   : await connection.confirmTransaction(signature, "confirmed");
 
     // if (confirmation.value.err) {
     //   throw new Error(
@@ -836,6 +857,8 @@ export default class SolanaWallet {
       depositAddress,
     } = params;
 
+    const connection = this.getConnection();
+
     const result: any = { fees: {} };
     try {
       const execTime = new ExecTime({ type: "Oneclick Solana", logStyle: "fuchsia-200" });
@@ -849,7 +872,7 @@ export default class SolanaWallet {
       const userPubkey = new PublicKey(refundTo || sender.toString());
 
       // Create AnchorProvider
-      const provider = new AnchorProvider(this.connection, this.signer, {
+      const provider = new AnchorProvider(connection, this.signer, {
         commitment: "confirmed"
       });
 
@@ -870,7 +893,7 @@ export default class SolanaWallet {
 
       execTime.breakpoint();
       try {
-        await getAccount(this.connection, toTokenAccount);
+        await getAccount(connection, toTokenAccount);
       } catch (error) {
         transaction.add(
           createAssociatedTokenAccountInstruction(
@@ -902,7 +925,7 @@ export default class SolanaWallet {
       transaction.add(transferInstruction);
 
       execTime.breakpoint();
-      const { blockhash } = await this.connection.getLatestBlockhash();
+      const { blockhash } = await connection.getLatestBlockhash();
       execTime.log("getLatestBlockhash");
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = userPubkey;
@@ -951,6 +974,8 @@ export default class SolanaWallet {
       sourceDomain,
     } = params;
 
+    const connection = this.getConnection();
+
     try {
       const result: any = {
         needApprove: false,
@@ -986,7 +1011,7 @@ export default class SolanaWallet {
       let userNonce = 0;
       execTime.breakpoint();
       try {
-        const accountInfo = await this.connection.getAccountInfo(userStatePda);
+        const accountInfo = await connection.getAccountInfo(userStatePda);
         if (accountInfo && accountInfo.data) {
           // UserState structure: user (32 bytes) + nonce (8 bytes) + bump (1 byte)
           // Skip user (32 bytes) and read nonce (8 bytes, little-endian)
@@ -1086,6 +1111,8 @@ export default class SolanaWallet {
       tokenMint,
     } = params;
 
+    const connection = this.getConnection();
+
     if (!this.publicKey) {
       throw new Error("Wallet not connected");
     }
@@ -1108,13 +1135,13 @@ export default class SolanaWallet {
         )
       );
 
-      const { blockhash } = await this.connection.getLatestBlockhash();
+      const { blockhash } = await connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = ownerPubkey;
 
       const signedTransaction = await this.signTransaction(transaction);
 
-      const signature = await this.connection.sendRawTransaction(
+      const signature = await connection.sendRawTransaction(
         signedTransaction.serialize()
       );
 
@@ -1124,7 +1151,7 @@ export default class SolanaWallet {
     };
 
     try {
-      const accountRes = await getAccount(this.connection, associatedTokenAccount);
+      const accountRes = await getAccount(connection, associatedTokenAccount);
       csl("Solana createAssociatedTokenAddress", "purple-400", "associatedTokenAccount account: %o", accountRes);
       return associatedTokenAccount;
     } catch (error) {
@@ -1148,6 +1175,8 @@ export default class SolanaWallet {
       originLayerzero,
       destinationLayerzero,
     } = params;
+
+    const connection = this.getConnection();
 
     const execTime = new ExecTime({ type: "FraxZero Solana", logStyle: "fuchsia-400" });
 
@@ -1179,10 +1208,10 @@ export default class SolanaWallet {
       eid: dstEid,
     } = destinationLayerzero;
 
-    const availableRpcUrl = await getAvailableSolanaRpcUrl();
+    const availableRpcUrl = await getAvailableSolanaRpcUrl({ isQuerySignature: true });
 
     const ALT_ADDRESS = new PublicKey("AokBxha6VMLLgf97B5VYHEtqztamWmYERBmmFvjuTzJB");
-    const umi = createUmi(availableRpcUrl).use(mplToolbox());
+    const umi = createUmi(availableRpcUrl, "confirmed").use(mplToolbox());
     const oftProgramId = publicKey(originLayerzero.programId);
     const oftMint = publicKey(fromToken.contractAddress);
     const oftEscrow = publicKey(originLayerzero.escrow);
@@ -1202,7 +1231,7 @@ export default class SolanaWallet {
     const minAmountLd = (amountLd * 99n) / 100n;
 
     execTime.breakpoint();
-    const { value: lookupTableAccount } = await this.connection.getAddressLookupTable(ALT_ADDRESS);
+    const { value: lookupTableAccount } = await connection.getAddressLookupTable(ALT_ADDRESS);
     execTime.log("getAddressLookupTable", "ALT_ADDRESS: %o, lookupTableAccount: %o", ALT_ADDRESS, lookupTableAccount);
     if (!lookupTableAccount) {
       throw new Error("ALT not found");
@@ -1290,7 +1319,7 @@ export default class SolanaWallet {
       units: 400000, // Increase to 400k units (default is 200k)
     });
     execTime.breakpoint();
-    const { blockhash } = await this.connection.getLatestBlockhash();
+    const { blockhash } = await connection.getLatestBlockhash();
     execTime.log("getLatestBlockhash");
     const messageV0 = new TransactionMessage({
       payerKey: new PublicKey(userPubkey),

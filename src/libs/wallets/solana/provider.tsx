@@ -21,6 +21,7 @@ import { useWatchOKXConnect } from "../okxconnect";
 import SolanaWalletSelectorProvider, { useSolanaWalletModal } from "./wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
 import { getAvailableSolanaRpcUrl } from "../utils/solana";
+import { generateRpcSignature } from "@/libs/signature";
 
 export const adapters = [
   new SolflareWalletAdapter(),
@@ -48,14 +49,17 @@ export default function SolanaProvider({
   // Wallet order configuration: Solflare first, Phantom second
   const walletOrder = ["Solflare", "Phantom"];
   const [endpoint, setEndpoint] = useState(getChainRpcUrl("Solana").rpcUrls[0]);
+  const [endpointConfig, setEndpointConfig] = useState<any>({ commitment: "confirmed" });
 
   useEffect(() => {
     let mounted = true;
     const resolveEndpoint = async () => {
       try {
         const availableRpcUrl = await getAvailableSolanaRpcUrl();
+        const rpcSignature = generateRpcSignature("solana");
         if (mounted) {
           setEndpoint(availableRpcUrl);
+          setEndpointConfig({ commitment: "confirmed", httpHeaders: rpcSignature.headers });
         }
       } catch (_error) {
         // keep default primary rpc url
@@ -69,7 +73,7 @@ export default function SolanaProvider({
   }, []);
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
+    <ConnectionProvider endpoint={endpoint} config={endpointConfig}>
       <WalletProvider wallets={adapters} autoConnect={false}>
         <SolanaWalletSelectorProvider walletOrder={walletOrder}>
           {children}<DeviceDetector />
