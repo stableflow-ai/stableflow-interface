@@ -1,5 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Hero } from "./components/hero";
+import { useMaintenanceStore } from "@/stores/use-maintenance";
+import clsx from "clsx";
 
 const DocOverview = lazy(() => import("./components/doc-overview"));
 const ApiPlayground = lazy(() => import("./components/api-playground"));
@@ -9,10 +11,17 @@ const Footer = lazy(() => import("./components/footer"));
 const DeveloperPage = (props: any) => {
   const { } = props;
 
+  const bannerVisible = useMaintenanceStore((s) => s.getBannerVisible());
+
   return (
     <div className="min-h-screen relative font-[SpaceGrotesk] leading-[120%] md:leading-[100%] font-normal">
       <div className="relative">
-        <div className="max-w-5xl mx-auto px-4 md:px-6">
+        <div
+          className={clsx(
+            "max-w-5xl mx-auto px-4 md:px-6",
+            bannerVisible ? "pt-35" : "pt-30",
+          )}
+        >
           <main>
             <Hero />
             <Suspense fallback={null}>
