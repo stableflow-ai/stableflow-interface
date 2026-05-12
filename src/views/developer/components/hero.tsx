@@ -4,7 +4,7 @@ import { ApplayAPIAccess } from "../config";
 
 export function Hero() {
   return (
-    <section className="pt-30">
+    <section className="">
       <div className="max-w-[1070px]">
         <p className="text-[14px] text-[#9FA7BA]">
           Developer Documentation

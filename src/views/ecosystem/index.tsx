@@ -5,8 +5,12 @@ import Trusted from "@/views/bridge/components/trusted";
 import { getStableflowTokenLogo } from "@/utils/format/logo";
 import { ECOSYSTEM_NETWORK_ORDER, ECOSYSTEM_RAILS, ECOSYSTEM_STABLECOINS } from "./config";
 import SupportLink from "@/components/support-link";
+import clsx from "clsx";
+import { useMaintenanceStore } from "@/stores/use-maintenance";
 
 const Ecosystem = () => {
+  const bannerVisible = useMaintenanceStore((s) => s.getBannerVisible());
+
   return (
     <div className="grid w-full min-h-full overflow-x-hidden">
       <div className="w-screen col-start-1 row-start-1 min-h-full">
@@ -22,7 +26,12 @@ const Ecosystem = () => {
       </div>
 
       <div className="w-screen col-start-1 row-start-1 relative z-1 min-h-full flex flex-col">
-        <main className="max-w-[1440px] w-full mx-auto px-4 pt-[112px] md:pt-[120px] flex-1">
+        <main
+          className={clsx(
+            "max-w-[1440px] w-full mx-auto px-4 flex-1",
+            bannerVisible ? "pt-[150px] md:pt-[150px]" : "pt-[112px] md:pt-[120px]",
+          )}
+        >
           <section className="text-center">
             <h1 className="text-[36px] md:text-[42px] leading-none font-medium text-black">
               StableFlow <span className="text-[#6284F5]">Ecosystem</span>
