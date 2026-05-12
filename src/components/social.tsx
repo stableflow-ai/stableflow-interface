@@ -30,7 +30,7 @@ const Social = (props: any) => {
         rel="noopener noreferrer nofollow"
         className="w-6.5 h-6.5 bg-no-repeat bg-center bg-[length:12px_12px] border border-[#F2F2F2] rounded-lg bg-white flex justify-center items-center cursor-pointer grayscale hover:grayscale-0 transition-all duration-300"
         style={{
-          backgroundImage: `url(${getStableflowLogo('logo-telegram.svg')})`
+          backgroundImage: `url(${getStableflowLogo('logo-telegram-black.svg')})`
         }}
       />
       <a
