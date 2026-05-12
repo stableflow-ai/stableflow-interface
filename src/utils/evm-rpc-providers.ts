@@ -57,21 +57,27 @@ const ChainNameMap: Record<string, string> = {
 export function evmRpcFallbackProvider(chain: TokenChain) {
   const { rpcUrls, chainId } = chain;
 
-  if (providerCache.has(chainId!)) return providerCache.get(chainId!)!;
+  if (providerCache.has(chainId!)) {
+    return providerCache.get(chainId!)!;
+  }
 
   const sortedUrls: string[] = [...rpcUrls].sort(
     (a: string, b: string) =>
       (b.includes(PROXY_RPC_DOMAIN) ? 1 : 0) - (a.includes(PROXY_RPC_DOMAIN) ? 1 : 0)
   );
 
-  const rpcSignature = generateRpcSignature(ChainNameMap[chain.blockchain]);
+  const rpcChainSlug = ChainNameMap[chain.blockchain];
 
   const providers = sortedUrls.map(
     (rpc: string) => {
       if (rpc.includes(PROXY_RPC_DOMAIN)) {
         const req = new ethers.FetchRequest(rpc);
-        req.setHeader("x-hmac-signature", rpcSignature.headers["x-hmac-signature"]);
-        req.setHeader("x-timestamp", rpcSignature.headers["x-timestamp"]);
+        req.preflightFunc = async (r) => {
+          const { headers } = generateRpcSignature(rpcChainSlug);
+          r.setHeader("x-hmac-signature", headers["x-hmac-signature"]);
+          r.setHeader("x-timestamp", headers["x-timestamp"]);
+          return r;
+        };
         return new ethers.JsonRpcProvider(req, chainId, { staticNetwork: true });
       }
       return new ethers.JsonRpcProvider(rpc, chainId, { staticNetwork: true });
