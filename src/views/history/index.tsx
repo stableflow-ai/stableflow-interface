@@ -5,19 +5,32 @@ import { useHistory } from "./hooks/use-history";
 import { usePendingHistory } from "./hooks/use-pending-history";
 import { useTrack } from "@/hooks/use-track";
 import { useEffect } from "react";
+import { useMaintenanceStore } from "@/stores/use-maintenance";
+import clsx from "clsx";
 
 export default function History() {
   const history = useHistory();
   const pendingHistory = usePendingHistory(history);
   const { addHistory } = useTrack();
+  const bannerVisible = useMaintenanceStore((s) => s.getBannerVisible());
 
   useEffect(() => {
     addHistory({ type: "view" });
   }, []);
 
   return (
-    <div className="w-full md:w-[680px] px-[10px] md:px-0 mx-auto pt-[72px] relative pb-[150px]">
-      <BackButton className="absolute left-[10px] md:left-[0px] top-[72px] md:top-[72px] z-[10]" />
+    <div
+      className={clsx(
+        "w-full md:w-[680px] px-[10px] md:px-0 mx-auto relative pb-[150px]",
+        bannerVisible ? "pt-30" : "pt-18",
+      )}
+    >
+      <BackButton
+        className={clsx(
+          "absolute left-[10px] md:left-[0px] z-[10]",
+          bannerVisible ? "top-30" : "top-18",
+        )}
+      />
       <div className="relative text-center text-[20px] font-[500]">
         Transaction History
       </div>

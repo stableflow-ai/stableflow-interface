@@ -1,14 +1,9 @@
 import dayjs from "@/libs/dayjs";
 import { BASE_API_URL } from "@/config/api";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
-
-interface MaintenanceNotice {
-  content: string;
-  end_time: number; // Unix timestamp in seconds
-  start_time: number; // Unix timestamp in seconds
-}
+import { useMaintenanceStore, type MaintenanceNotice } from "@/stores/use-maintenance";
 
 interface ApiResponse {
   code: number;
@@ -18,8 +13,9 @@ interface ApiResponse {
 const POLLING_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 export default function MaintenanceBanner() {
-  const [isVisible, setIsVisible] = useState(false);
-  const [maintenanceData, setMaintenanceData] = useState<MaintenanceNotice | null>(null);
+  const maintenanceData = useMaintenanceStore((s) => s.maintenanceData);
+  const bannerVisible = useMaintenanceStore((s) => s.getBannerVisible());
+  const setMaintenance = useMaintenanceStore((s) => s.set);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Format duration from start_time to end_time
@@ -45,24 +41,13 @@ export default function MaintenanceBanner() {
 
       if (response.data.code === 200 && response.data.data !== null) {
         const data = response.data.data;
-        setMaintenanceData(data);
-
-        // Check if current time is within maintenance window
-        // const now = dayjs();
-        // const startTime = dayjs.unix(data.start_time);
-        // const endTime = dayjs.unix(data.end_time);
-        // const inMaintenanceWindow = dayjs(now).isAfter(startTime) && (dayjs(now).isBefore(endTime) || dayjs(now).isSame(endTime));
-        setIsVisible(true);
+        setMaintenance({ maintenanceData: data, isVisible: true });
       } else {
-        // No maintenance notice or invalid response
-        setMaintenanceData(null);
-        setIsVisible(false);
+        setMaintenance({ maintenanceData: null, isVisible: false });
       }
     } catch (error) {
       console.error("Failed to fetch maintenance notice:", error);
-      // On error, hide the banner
-      setMaintenanceData(null);
-      setIsVisible(false);
+      setMaintenance({ maintenanceData: null, isVisible: false });
     }
   };
 
@@ -93,9 +78,9 @@ export default function MaintenanceBanner() {
   // Handle page visibility change
   useEffect(() => {
     const handleVisibilityChange = () => {
-      const isVisible = !document.hidden;
+      const pageVisible = !document.hidden;
 
-      if (isVisible) {
+      if (pageVisible) {
         // Page became visible, resume polling
         startPolling();
         return;
@@ -134,7 +119,7 @@ export default function MaintenanceBanner() {
   return (
     <AnimatePresence>
       {
-        (!isVisible || !maintenanceData) ? null : (
+        !bannerVisible ? null : (
           <motion.div
             className="relative top-0 left-0 right-0 z-[1] bg-gradient-to-r from-[#FF6B35] to-[#F7931E] text-white shadow-lg"
             initial={{ opacity: 0, y: -50 }}
@@ -146,7 +131,7 @@ export default function MaintenanceBanner() {
               <div className="flex items-center justify-center gap-[12px] text-[13px] md:text-[14px]">
                 <span className="text-center">
                   {
-                    maintenanceData.content ?? "1Click Services will undergo scheduled maintenance"
+                    maintenanceData?.content ?? "1Click Services will undergo scheduled maintenance"
                   }
                   {
                     (
@@ -171,7 +156,7 @@ export default function MaintenanceBanner() {
                         {
                           startTime && endTime ? (
                             <>
-                              &nbsp;|&nbsp;Duration:&nbsp;<strong>{formatDuration(maintenanceData.start_time, maintenanceData.end_time)}</strong>
+                              &nbsp;|&nbsp;Duration:&nbsp;<strong>{formatDuration(maintenanceData?.start_time ?? 0, maintenanceData?.end_time ?? 0)}</strong>
                             </>
                           ) : null
                         }
