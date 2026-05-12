@@ -45,7 +45,6 @@ import { fromWeb3JsPublicKey, toWeb3JsInstruction } from "@metaplex-foundation/u
 import { addressToBytes32 } from "@/utils/address-validation";
 import { createSolanaFallbackConnection, getAvailableSolanaRpcUrl } from "../utils/solana";
 import { ExecTime } from "@/utils/exec-time";
-import { generateRpcSignature } from "@/libs/signature";
 
 export default class SolanaWallet {
   private publicKey: PublicKey | null;
@@ -1209,14 +1208,10 @@ export default class SolanaWallet {
       eid: dstEid,
     } = destinationLayerzero;
 
-    const availableRpcUrl = await getAvailableSolanaRpcUrl();
-    const rpcSignature = generateRpcSignature("solana");
+    const availableRpcUrl = await getAvailableSolanaRpcUrl({ isQuerySignature: true });
 
     const ALT_ADDRESS = new PublicKey("AokBxha6VMLLgf97B5VYHEtqztamWmYERBmmFvjuTzJB");
-    const umi = createUmi(availableRpcUrl, {
-      commitment: "confirmed",
-      httpHeaders: rpcSignature.headers as any,
-    }).use(mplToolbox());
+    const umi = createUmi(availableRpcUrl, "confirmed").use(mplToolbox());
     const oftProgramId = publicKey(originLayerzero.programId);
     const oftMint = publicKey(fromToken.contractAddress);
     const oftEscrow = publicKey(originLayerzero.escrow);
