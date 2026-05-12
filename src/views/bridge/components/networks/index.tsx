@@ -113,7 +113,7 @@ export default function Networks({ addressValidation }: NetworksProps) {
     <div className="w-full px-[10px] md:px-0">
       <div className="w-full flex justify-between items-center">
         <div className="text-[#444C59] text-sm md:text-base w-full flex items-center gap-1">
-          <div className="">
+          <div className="select-none">
             Best price compared with
           </div>
           <div className="w-17.5 h-5 overflow-hidden">
