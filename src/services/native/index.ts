@@ -45,7 +45,7 @@ class NativeService {
       from_address: refundTo,
       to_address: recipient,
       beneficiary_address: recipient,
-      refund_to: recipient,
+      refund_to: refundTo,
       src_chain: NativeChains[fromToken.chainName],
       dst_chain: NativeChains[toToken.chainName],
       token_in: fromToken.contractAddress,
