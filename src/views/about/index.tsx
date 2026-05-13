@@ -2,6 +2,8 @@ import { lazy, Suspense, type ComponentType, type LazyExoticComponent, useRef } 
 import { motion, useInView } from "framer-motion";
 import HeroBanner from "./sections/hero-banner";
 import SolverFlow from "./sections/solver-flow";
+import clsx from "clsx";
+import { useMaintenanceStore } from "@/stores/use-maintenance";
 
 const SmartRouting = lazy(() => import("./sections/smart-routing"));
 const CompetitiveSize = lazy(() => import("./sections/competitive-size"));
@@ -35,8 +37,15 @@ const LazySection = ({ Component }: LazySectionProps) => {
 };
 
 const About = () => {
+  const bannerVisible = useMaintenanceStore((s) => s.getBannerVisible());
+
   return (
-    <div className="w-full min-h-screen overflow-x-hidden pt-18 md:pt-22 pb-10 font-[SpaceGrotesk]">
+    <div
+      className={clsx(
+        "w-full min-h-screen overflow-x-hidden pb-10 font-[SpaceGrotesk]",
+        bannerVisible ? "pt-30 md:pt-30" : "pt-18 md:pt-22",
+      )}
+    >
       <HeroBanner />
       <SolverFlow />
       <LazySection Component={SmartRouting} />

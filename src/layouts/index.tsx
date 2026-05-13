@@ -7,7 +7,6 @@ import LayoutContext from "./context";
 // import SupportButton from "@/components/support-button";
 // import { AuroraBackground } from "./bg";
 
-const MaintenanceBanner = lazy(() => import("@/components/maintenance-banner"));
 const Footer = lazy(() => import("./footer"));
 const Footer2 = lazy(() => import("./footer2"));
 const Wallet = lazy(() => import("@/sections/wallet"));
@@ -46,11 +45,6 @@ export default function Layout() {
           )
         }
         {/* <AuroraBackground /> */}
-
-        {/* Maintenance Banner */}
-        <Suspense fallback={<LoadingSpinner />}>
-          <MaintenanceBanner />
-        </Suspense>
 
         {/* Content Layer */}
         <div ref={containerRef} className="relative z-10 w-full h-full overflow-y-auto">
