@@ -15,6 +15,7 @@ export const ONECLICK_PROXY: Record<string, string> = {
   ["X Layer"]: "0xc8dB1175132C64e311D01258dD05D4e2e75fD7b8",
   ["Plasma"]: "0xc8dB1175132C64e311D01258dD05D4e2e75fD7b8",
   ["Ton"]: "EQBeP9Aeu3m5n9qpVyCWZFyji8uQJbzrYuAxq0orWl5e2qjR",
+  ["Sui"]: "0xc178428ac308d322b6051421af1b6019ff4815955306c4317aafd050bdc28146",
 };
 
 export const ONECLICK_PROXY_ABI = [

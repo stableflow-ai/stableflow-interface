@@ -11,7 +11,8 @@ const WALLET_PROVIDER_IMPORTS = [
   () => import("./near/provider"),
   () => import("./tron/provider"),
   () => import("./aptos/provider"),
-  () => import("./ton/provider")
+  () => import("./ton/provider"),
+  () => import("./sui/provider")
 ] as const;
 
 // @okxconnect/core + @okxconnect/universal-provider moved out of main bundle
@@ -22,10 +23,11 @@ const NEARProvider = makeLazy(WALLET_PROVIDER_IMPORTS[3]);
 const TronProvider = makeLazy(WALLET_PROVIDER_IMPORTS[4]);
 const AptosProvider = makeLazy(WALLET_PROVIDER_IMPORTS[5]);
 const TonProvider = makeLazy(WALLET_PROVIDER_IMPORTS[6]);
+const SuiProvider = makeLazy(WALLET_PROVIDER_IMPORTS[7]);
 
 const TOTAL_PROVIDERS = WALLET_PROVIDER_IMPORTS.length;
-const PROVIDER_WEIGHTS = [14, 14, 14, 14, 14, 14, 14] as const;
-const PROVIDER_PENDING_CAPS = [12, 12, 12, 12, 12, 12, 12] as const;
+const PROVIDER_WEIGHTS = [12, 12, 12, 12, 12, 12, 12, 12] as const;
+const PROVIDER_PENDING_CAPS = [10, 10, 10, 10, 10, 10, 10, 10] as const;
 
 const LoadingSpinner = ({
   progress
@@ -140,7 +142,9 @@ export default function WalletsProvider({
               <TronProvider>
                 <AptosProvider>
                   <TonProvider>
-                    {children}
+                    <SuiProvider>
+                      {children}
+                    </SuiProvider>
                   </TonProvider>
                 </AptosProvider>
               </TronProvider>

@@ -24,7 +24,7 @@ export function usePendingHistory(history?: any) {
 
   const accounts = useMemo(() => {
     const _accounts = Object.values(wallets ?? {}).map((wallet) => wallet.account).filter((account) => !!account);
-    return _accounts;
+    return _accounts.join(",");
   }, [wallets]);
 
   const listPollingRef = useRef<any>(null);
@@ -35,7 +35,7 @@ export function usePendingHistory(history?: any) {
         params: {
           type: 0,
           status: "pending",
-          address: params?.address ?? accounts.join(","),
+          address: params?.address ?? accounts,
           page: params?.page ?? page.current,
           page_size: page.size,
         },
@@ -119,7 +119,7 @@ export function usePendingHistory(history?: any) {
       setList((prev: any) => {
         if (_list.length < prev.length) {
           history?.getList?.({
-            address: params?.address ?? accounts.join(","),
+            address: params?.address ?? accounts,
             page: history.page.current,
           });
         }
@@ -154,7 +154,7 @@ export function usePendingHistory(history?: any) {
   });
 
   useEffect(() => {
-    if (!accounts || accounts.length === 0) {
+    if (!accounts) {
       setList([]);
       historyStore.updatePendingNumber(0);
       historyStore.updateServicePendingNumber({ isClear: true });
@@ -172,7 +172,7 @@ export function usePendingHistory(history?: any) {
 
     // Initial request (debounced)
     debouncedGetList({
-      address: accounts.join(","),
+      address: accounts,
       page: 1,
     });
 

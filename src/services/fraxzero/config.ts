@@ -71,6 +71,11 @@ export const FRAXZERO_CONFIG: Record<string, FraxZeroConfig> = {
     lockbox: "0x96A394058E2b84A89bac9667B19661Ed003cF5D4",
     confirmations: 5,
   },
+  Katana: {
+    ...LAYERZZERO_CHAINS["Katana"],
+    remoteHop: "0x5d8eb59a12bc98708702305a7b032f4b69dd5b5c",
+    confirmations: 5,
+  },
 };
 
 export const FRAXZERO_MIDDLE_TOKEN_USDC = usdcChains["eth"];

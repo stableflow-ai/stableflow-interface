@@ -56,6 +56,15 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
     icon: getStableflowChainLogo("type-ton", "svg"),
     iconGray: getStableflowChainLogo("type-ton-gray", "svg"),
   },
+  sui: {
+    value: "sui",
+    name: "Sui",
+    color: "#298DFF",
+    bgColor: "#298DFF",
+    bg: "linear-gradient(90deg, rgba(41, 141, 255, 0.20) 0%, rgba(0, 152, 234, 0.00) 50%)",
+    icon: getStableflowChainLogo("type-sui", "svg"),
+    iconGray: getStableflowChainLogo("type-sui-gray", "svg"),
+  },
 };
 
 const HeliusRpcApiKey = import.meta.env.VITE_HELIUS_RPC_API_KEY;
@@ -171,6 +180,15 @@ export const chainsRpcUrls: Record<string, string[]> = {
   ],
   "Ton": [
     "https://toncenter.com/api/v2/jsonRPC",
+  ],
+  "Sui": [
+    // `${ProxyRpcHost}/sui`,
+    "https://fullnode.mainnet.sui.io:443",
+  ],
+  "Katana": [
+    `${ProxyRpcHost}/katana`,
+    "https://rpc.katana.network",
+    "https://katana.drpc.org",
   ],
 };
 
@@ -395,7 +413,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("Berachain-gray"),
     chainType: chainTypes.evm.value,
     chainId: 80094,
-    blockExplorerUrl: "https://berascan.com/tx/",
+    blockExplorerUrl: "https://berascan.com/tx",
     blockExplorerUrls: ["https://berascan.com"],
     primaryColor: "#F37325",
     nativeToken: {
@@ -411,7 +429,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("xlayer-gray"),
     chainType: chainTypes.evm.value,
     chainId: 196,
-    blockExplorerUrl: "https://www.oklink.com/xlayer/tx/",
+    blockExplorerUrl: "https://www.oklink.com/xlayer/tx",
     blockExplorerUrls: ["https://www.oklink.com"],
     primaryColor: "#000000",
     nativeToken: {
@@ -427,7 +445,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("Plasma-gray"),
     chainType: chainTypes.evm.value,
     chainId: 9745,
-    blockExplorerUrl: "https://plasmascan.to/tx/",
+    blockExplorerUrl: "https://plasmascan.to/tx",
     blockExplorerUrls: ["https://plasmascan.to"],
     primaryColor: "#162F29",
     nativeToken: {
@@ -442,7 +460,7 @@ const chains: Record<string, ChainType> = {
     chainIcon: getStableflowChainLogo("Ton"),
     chainIconGray: getStableflowChainLogo("Ton-gray"),
     chainType: chainTypes.ton.value,
-    blockExplorerUrl: "https://tonviewer.com/transaction/",
+    blockExplorerUrl: "https://tonviewer.com/transaction",
     blockExplorerUrls: ["https://tonviewer.com"],
     primaryColor: "#0098EA",
     nativeToken: {
@@ -458,7 +476,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("Mantle-gray"),
     chainType: chainTypes.evm.value,
     chainId: 5000,
-    blockExplorerUrl: "https://mantlescan.xyz/tx/",
+    blockExplorerUrl: "https://mantlescan.xyz/tx",
     blockExplorerUrls: ["https://mantlescan.xyz"],
     primaryColor: "#162F29",
     nativeToken: {
@@ -474,7 +492,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("MegaETH-gray"),
     chainType: chainTypes.evm.value,
     chainId: 4326,
-    blockExplorerUrl: "https://mega.etherscan.io/tx/",
+    blockExplorerUrl: "https://mega.etherscan.io/tx",
     blockExplorerUrls: ["https://mega.etherscan.io"],
     primaryColor: "#19191A",
     nativeToken: {
@@ -490,7 +508,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("Ink-gray"),
     chainType: chainTypes.evm.value,
     chainId: 57073,
-    blockExplorerUrl: "https://explorer.inkonchain.com/tx/",
+    blockExplorerUrl: "https://explorer.inkonchain.com/tx",
     blockExplorerUrls: ["https://explorer.inkonchain.com"],
     primaryColor: "#7132F5",
     nativeToken: {
@@ -506,7 +524,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("Stable-gray"),
     chainType: chainTypes.evm.value,
     chainId: 988,
-    blockExplorerUrl: "https://uniscan.xyz/tx/",
+    blockExplorerUrl: "https://uniscan.xyz/tx",
     blockExplorerUrls: ["https://uniscan.xyz"],
     primaryColor: "#01241D",
     nativeToken: {
@@ -522,7 +540,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("Celo-gray"),
     chainType: chainTypes.evm.value,
     chainId: 42_220,
-    blockExplorerUrl: "https://celoscan.io/tx/",
+    blockExplorerUrl: "https://celoscan.io/tx",
     blockExplorerUrls: ["https://celoscan.io"],
     primaryColor: "#FCFF52",
     nativeToken: {
@@ -538,7 +556,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("Sei-gray"),
     chainType: chainTypes.evm.value,
     chainId: 1329,
-    blockExplorerUrl: "https://seitrace.com/tx/",
+    blockExplorerUrl: "https://seitrace.com/tx",
     blockExplorerUrls: ["https://seitrace.com"],
     primaryColor: "#991717",
     nativeToken: {
@@ -554,7 +572,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("Flare-gray"),
     chainType: chainTypes.evm.value,
     chainId: 14,
-    blockExplorerUrl: "https://flare-explorer.flare.network/tx/",
+    blockExplorerUrl: "https://flare-explorer.flare.network/tx",
     blockExplorerUrls: ["https://flare-explorer.flare.network"],
     primaryColor: "#E62058",
     nativeToken: {
@@ -570,7 +588,7 @@ const chains: Record<string, ChainType> = {
     chainIconGray: getStableflowChainLogo("Frax-gray"),
     chainType: chainTypes.evm.value,
     chainId: 252,
-    blockExplorerUrl: "https://fraxscan.com/tx/",
+    blockExplorerUrl: "https://fraxscan.com/tx",
     blockExplorerUrls: ["https://fraxscan.com"],
     primaryColor: "#000",
     nativeToken: {
@@ -578,6 +596,37 @@ const chains: Record<string, ChainType> = {
       decimals: 18,
     },
     ...getChainRpcUrl("Fraxtal"),
+  },
+  sui: {
+    chainName: "Sui",
+    blockchain: "sui",
+    chainIcon: getStableflowChainLogo("Sui"),
+    chainIconGray: getStableflowChainLogo("Sui-gray"),
+    chainType: chainTypes.sui.value,
+    blockExplorerUrl: "https://suiscan.xyz/mainnet/tx",
+    blockExplorerUrls: ["https://suiscan.xyz/mainnet"],
+    primaryColor: "#298DFF",
+    nativeToken: {
+      symbol: "SUI",
+      decimals: 9,
+    },
+    ...getChainRpcUrl("Sui"),
+  },
+  katana: {
+    chainName: "Katana",
+    blockchain: "katana",
+    chainIcon: getStableflowChainLogo("Katana"),
+    chainIconGray: getStableflowChainLogo("Katana-gray"),
+    chainType: chainTypes.evm.value,
+    chainId: 747474,
+    blockExplorerUrl: "https://katanascan.com/tx",
+    blockExplorerUrls: ["https://katanascan.com"],
+    primaryColor: "#F6FF0D",
+    nativeToken: {
+      symbol: "ETH",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Katana"),
   },
 };
 
