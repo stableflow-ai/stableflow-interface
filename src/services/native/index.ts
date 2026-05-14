@@ -5,6 +5,7 @@ import Big from "big.js";
 import { NativeChains, NativeV4Routes } from "./contract";
 import { getRouteStatus, Service } from "../constants";
 import { ExecTime } from "@/utils/exec-time";
+import { csl } from "@/utils/log";
 
 class NativeService {
   private api: AxiosInstance;
@@ -106,14 +107,47 @@ class NativeService {
 
     const routeStatus = getRouteStatus(Service.Native);
     result.routeDisabled = routeStatus.disabled;
+    result.sourceQuoteParams = params;
 
     return result;
   }
 
   public async estimateTransaction(params: any, quoteData: any) {
-    const { } = params;
+    const {
+      fromToken,
+      wallet,
+      prices,
+      evmGasFees,
+      refundTo,
+    } = params;
 
-    return quoteData;
+    if (!quoteData.sendParam?.txRequest) {
+      return quoteData;
+    }
+
+    const result: any = { fees: {}, ...quoteData };
+
+    const ett = await wallet.estimateTransaction({
+      dry: false,
+      // { txRequest: {} }
+      ...quoteData.sendParam,
+      fromToken,
+      prices,
+      evmGasFees,
+      refundTo,
+    });
+    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.estimateSourceGas = ett.estimateSourceGas;
+    result.totalEstimateSourceGas = ett.estimateSourceGas;
+    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+
+    if (fromToken.chainType === "evm") {
+      csl("NativeService estimateTransaction", "green-500", "Old gasLimit: %o", result.sendParam.txRequest.gasLimit);
+      result.sendParam.txRequest.gasLimit = ett.estimateSourceGasLimit;
+      csl("NativeService estimateTransaction", "green-500", "Updated gasLimit: %o", result.sendParam.txRequest.gasLimit);
+    }
+
+    return result;
   }
 
   public async send(params: any) {

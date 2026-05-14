@@ -8,6 +8,7 @@ import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
 
 const DEFAULT_GAS_LIMIT = 5000n;
+const DEFAULT_GAS_LIMIT_FAILED = 4000000n;
 
 export default class AptosWallet {
   connection: any;
@@ -361,7 +362,7 @@ export default class AptosWallet {
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
 
     const result = {
-      estimateSourceGasLimit: dry ? 4000000n : DEFAULT_GAS_LIMIT,
+      estimateSourceGasLimit: dry ? DEFAULT_GAS_LIMIT_FAILED : DEFAULT_GAS_LIMIT,
       estimateSourceGas: 0n,
       estimateSourceGasUsd: "0",
     };
@@ -436,6 +437,7 @@ export default class AptosWallet {
     } catch (error) {
       csl("Aptos estimateTransaction", "red-500", "simulation failed: %o", error);
       await setDefaultGasLimit();
+      result.estimateSourceGasLimit = DEFAULT_GAS_LIMIT_FAILED / 2n;
     }
 
     return result;

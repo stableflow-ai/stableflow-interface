@@ -214,6 +214,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
           isFromEthereumUSDC,
           isToEthereumFrxUSD,
         },
+        sourceQuoteParams: params,
       };
     }
 
@@ -248,6 +249,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
           isFromEthereumUSDC,
           isToEthereumFrxUSD,
         },
+        sourceQuoteParams: params,
       };
     }
 
@@ -326,6 +328,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         isFromEthereumUSDC,
         isToEthereumFrxUSD,
       },
+      sourceQuoteParams: params,
     };
   }
 

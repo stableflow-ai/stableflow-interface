@@ -20,6 +20,7 @@ import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_MIDDLE_TOKEN_USDC } from "@/services/fraxzero/config";
 
 const DEFAULT_GAS_LIMIT = 100000n;
+const DEFAULT_GAS_LIMIT_FAILED = 4000000n;
 
 export default class RainbowWallet {
   provider: any;
@@ -286,13 +287,15 @@ export default class RainbowWallet {
       prices,
       evmGasFees,
       defaultGasLimit = DEFAULT_GAS_LIMIT,
+      refundTo,
+      txRequest,
     } = params;
 
     const provider = evmRpcFallbackProvider(fromToken);
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
 
     const result = {
-      estimateSourceGasLimit: dry ? 4000000n : DEFAULT_GAS_LIMIT,
+      estimateSourceGasLimit: dry ? DEFAULT_GAS_LIMIT_FAILED : DEFAULT_GAS_LIMIT,
       estimateSourceGas: 0n,
       estimateSourceGasUsd: "0",
     };
@@ -316,6 +319,32 @@ export default class RainbowWallet {
       return result;
     }
 
+    if (txRequest) {
+      try {
+        const gasLimit = await provider.estimateGas({
+          to: txRequest.target,
+          data: txRequest.calldata,
+          from: refundTo || this.signer?.address,
+        });
+        finalGasLimit = gasLimit * 120n / 100n;
+        const { usd, wei } = await this.getEstimateGas({
+          gasLimit: finalGasLimit,
+          price: nativeTokenPrice,
+          nativeToken: fromToken.nativeToken,
+          provider,
+        });
+        result.estimateSourceGasLimit = finalGasLimit;
+        result.estimateSourceGas = wei;
+        result.estimateSourceGasUsd = usd;
+      } catch (error) {
+        csl("EVM estimateTransaction", "red-500", "%s estimateGas failed: %o", method, error);
+        await setDefaultGasLimit();
+        result.estimateSourceGasLimit = DEFAULT_GAS_LIMIT_FAILED / 2n;
+      }
+
+      return result;
+    }
+
     try {
       const gasLimit = await contract[method].estimateGas(...param);
       finalGasLimit = gasLimit * 120n / 100n;
@@ -329,8 +358,9 @@ export default class RainbowWallet {
       result.estimateSourceGas = wei;
       result.estimateSourceGasUsd = usd;
     } catch (error) {
-      // csl("EVM estimateTransaction", "red-500", "%s estimateGas failed: %o", method, error);
+      csl("EVM estimateTransaction", "red-500", "%s estimateGas failed: %o", method, error);
       await setDefaultGasLimit();
+      result.estimateSourceGasLimit = DEFAULT_GAS_LIMIT_FAILED / 2n;
     }
 
     return result;
@@ -936,8 +966,6 @@ export default class RainbowWallet {
 
     const execTime = new ExecTime({ type: `Native EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-400" });
 
-    const provider = evmRpcFallbackProvider(fromToken);
-
     const estimateNativeGas = async () => {
       if (dry) {
         const ett = await this.estimateTransaction({
@@ -959,36 +987,28 @@ export default class RainbowWallet {
         result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.totalFeeUsd).toFixed(20));
       }
       else {
-        let gasEstimate = DEFAULT_GAS_LIMIT;
-        try {
-          gasEstimate = await provider.estimateGas({
-            to: quoteResponse.txRequest.target,
-            data: quoteResponse.txRequest.calldata,
-            from: refundTo,
-          });
-          result.txRequest.gasLimit = gasEstimate;
-        } catch (error) {
-          result.txRequest.gasLimit = 4000000n;
-        }
-        const { usd, wei } = await this.getEstimateGas({
-          gasLimit: gasEstimate,
-          price: getPrice(prices, fromToken.nativeToken.symbol),
-          nativeToken: fromToken.nativeToken,
-          provider,
+        const ett = await this.estimateTransaction({
+          dry,
+          fromToken,
+          prices,
+          evmGasFees,
+          txRequest: quoteResponse.txRequest,
+          refundTo,
         });
 
         result.outputAmount = Big(quoteResponse.amountOut || 0).div(10 ** (toToken.decimals || 6)).toFixed(toToken.decimals || 6, 0);
         result.fees = {
-          estimateGasUsd: usd,
+          estimateGasUsd: ett.estimateSourceGasUsd,
           // maybe 100 = 1%
           widgetFeeUsd: numberRemoveEndZero(Big(amountWei || 0).div(10 ** (fromToken.decimals || 6)).times(quoteResponse.widgetFee.feeRate || 0).toFixed(20, 0)),
           // not return by api
           liquidityProviderFeeUsd: "0",
         };
-        result.estimateSourceGas = wei;
-        result.totalEstimateSourceGas = wei;
-        result.estimateSourceGasUsd = usd;
+        result.estimateSourceGas = ett.estimateSourceGas;
+        result.totalEstimateSourceGas = ett.estimateSourceGas;
+        result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
         result.totalFeesUsd = numberRemoveEndZero(Big(quoteResponse.amountOutBeforeFee || 0).minus(quoteResponse.amountOut).div(10 ** (fromToken.decimals || 6)).toFixed(20, 0));
+        result.txRequest.gasLimit = ett.estimateSourceGasLimit;
       }
     };
 
@@ -1405,7 +1425,7 @@ export default class RainbowWallet {
       dry,
       contract: redeemContract,
       method: result.sendParam.method,
-      param: [...result.sendParam.param, { gasLimit: 4000000n }],
+      param: [...result.sendParam.param, { gasLimit: DEFAULT_GAS_LIMIT_FAILED }],
       fromToken,
       prices,
       evmGasFees,
@@ -1517,7 +1537,7 @@ export default class RainbowWallet {
       dry,
       contract: usdcCustodianWithSigner,
       method: "deposit",
-      param: [...result.sendParam.param, { gasLimit: 4000000n }],
+      param: [...result.sendParam.param, { gasLimit: DEFAULT_GAS_LIMIT_FAILED }],
       fromToken,
       prices,
       evmGasFees,
@@ -1635,7 +1655,7 @@ export default class RainbowWallet {
       dry,
       contract: redeemAndMintContractWithSigner,
       method: "mintAndSend",
-      param: [...mintAndSendParam, { gasLimit: 4000000n }],
+      param: [...mintAndSendParam, { gasLimit: DEFAULT_GAS_LIMIT_FAILED }],
       fromToken,
       prices,
       evmGasFees,

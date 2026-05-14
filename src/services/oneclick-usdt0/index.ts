@@ -161,6 +161,7 @@ export class OneClickUsdt0Service {
       usdt0SendParam,
       usdt0MessageFee,
       routeDisabled: routeStatus.disabled,
+      sourceQuoteParams: params,
     };
   }
 
