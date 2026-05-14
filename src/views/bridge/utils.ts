@@ -10,8 +10,8 @@ const RPC_REQUEST_LIMIT_ERROR_MESSAGE = "Request limit reached. Please try again
 const INVALID_RPC_CONFIGURATION_ERROR_MESSAGE =
   "Invalid RPC configuration. Please check RPC settings or switch to another RPC.";
 const INVALID_NETWORK_ERROR_MESSAGE = "Network unstable. Please try again.";
-const POST_APPROVE_ALLOWANCE_MAX_RETRIES = 3;
-const POST_APPROVE_ALLOWANCE_RETRY_DELAY = 1500;
+const POST_APPROVE_ALLOWANCE_MAX_RETRIES = 5;
+const POST_APPROVE_ALLOWANCE_RETRY_DELAY = 2000;
 
 const RPC_REQUEST_LIMIT_ERROR_PATTERNS = [
   "rate limited",
@@ -138,7 +138,7 @@ export const verifyPostApproveAllowance = async (params: {
     await wait(POST_APPROVE_ALLOWANCE_RETRY_DELAY);
   }
 
-  throw new Error("Failed to verify approval allowance");
+  throw new Error("Failed to verify approval allowance. You can click the Transfer button to retry.");
 };
 
 export const formatBridgeRpcErrorMessage = (errorMessage: string) => {

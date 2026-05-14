@@ -20,6 +20,7 @@ import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_MIDDLE_TOKEN_USDC } from "@/services/fraxzero/config";
 
 const DEFAULT_GAS_LIMIT = 100000n;
+const DEFAULT_GAS_LIMIT_FAILED = 4000000n;
 
 export default class RainbowWallet {
   provider: any;
@@ -292,7 +293,7 @@ export default class RainbowWallet {
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
 
     const result = {
-      estimateSourceGasLimit: dry ? 4000000n : DEFAULT_GAS_LIMIT,
+      estimateSourceGasLimit: dry ? DEFAULT_GAS_LIMIT_FAILED : DEFAULT_GAS_LIMIT,
       estimateSourceGas: 0n,
       estimateSourceGasUsd: "0",
     };
@@ -329,8 +330,9 @@ export default class RainbowWallet {
       result.estimateSourceGas = wei;
       result.estimateSourceGasUsd = usd;
     } catch (error) {
-      // csl("EVM estimateTransaction", "red-500", "%s estimateGas failed: %o", method, error);
+      csl("EVM estimateTransaction", "red-500", "%s estimateGas failed: %o", method, error);
       await setDefaultGasLimit();
+      result.estimateSourceGasLimit = DEFAULT_GAS_LIMIT_FAILED;
     }
 
     return result;
@@ -968,7 +970,7 @@ export default class RainbowWallet {
           });
           result.txRequest.gasLimit = gasEstimate;
         } catch (error) {
-          result.txRequest.gasLimit = 4000000n;
+          result.txRequest.gasLimit = DEFAULT_GAS_LIMIT_FAILED;
         }
         const { usd, wei } = await this.getEstimateGas({
           gasLimit: gasEstimate,
@@ -1405,7 +1407,7 @@ export default class RainbowWallet {
       dry,
       contract: redeemContract,
       method: result.sendParam.method,
-      param: [...result.sendParam.param, { gasLimit: 4000000n }],
+      param: [...result.sendParam.param, { gasLimit: DEFAULT_GAS_LIMIT_FAILED }],
       fromToken,
       prices,
       evmGasFees,
@@ -1517,7 +1519,7 @@ export default class RainbowWallet {
       dry,
       contract: usdcCustodianWithSigner,
       method: "deposit",
-      param: [...result.sendParam.param, { gasLimit: 4000000n }],
+      param: [...result.sendParam.param, { gasLimit: DEFAULT_GAS_LIMIT_FAILED }],
       fromToken,
       prices,
       evmGasFees,
@@ -1635,7 +1637,7 @@ export default class RainbowWallet {
       dry,
       contract: redeemAndMintContractWithSigner,
       method: "mintAndSend",
-      param: [...mintAndSendParam, { gasLimit: 4000000n }],
+      param: [...mintAndSendParam, { gasLimit: DEFAULT_GAS_LIMIT_FAILED }],
       fromToken,
       prices,
       evmGasFees,

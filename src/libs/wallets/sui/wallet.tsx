@@ -11,6 +11,7 @@ import { getChainRpcUrl } from "@/config/chains";
 
 const SUI_COIN_TYPE = "0x2::sui::SUI";
 const DEFAULT_GAS_LIMIT = 3000000n;
+const DEFAULT_GAS_LIMIT_FAILED = 4000000n;
 
 export default class SuiWallet {
   private account: any | null;
@@ -266,7 +267,7 @@ export default class SuiWallet {
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
 
     const result = {
-      estimateSourceGasLimit: DEFAULT_GAS_LIMIT,
+      estimateSourceGasLimit: dry ? DEFAULT_GAS_LIMIT_FAILED : DEFAULT_GAS_LIMIT,
       estimateSourceGas: 0n,
       estimateSourceGasUsd: "0",
     };
@@ -324,8 +325,9 @@ export default class SuiWallet {
       result.estimateSourceGas = wei;
       result.estimateSourceGasUsd = usd;
     } catch (error) {
-      csl("Aptos estimateTransaction", "red-500", "simulation failed: %o", error);
+      csl("Sui estimateTransaction", "red-500", "simulation failed: %o", error);
       await setDefaultGasLimit();
+      result.estimateSourceGasLimit = DEFAULT_GAS_LIMIT_FAILED;
     }
 
     return result;
