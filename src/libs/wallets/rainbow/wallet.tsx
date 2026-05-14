@@ -339,7 +339,7 @@ export default class RainbowWallet {
       } catch (error) {
         csl("EVM estimateTransaction", "red-500", "%s estimateGas failed: %o", method, error);
         await setDefaultGasLimit();
-        result.estimateSourceGasLimit = DEFAULT_GAS_LIMIT_FAILED;
+        result.estimateSourceGasLimit = DEFAULT_GAS_LIMIT_FAILED / 2n;
       }
 
       return result;
