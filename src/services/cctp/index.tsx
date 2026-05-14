@@ -93,6 +93,7 @@ export class CCTPService {
 
     const routeStatus = getRouteStatus(Service.CCTP);
     result.routeDisabled = routeStatus.disabled;
+    result.sourceQuoteParams = params;
 
     return result;
   }
@@ -126,6 +127,21 @@ export class CCTPService {
       result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
     }
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
+    if (fromToken.chainType === "evm") {
+      const sendParams = result.sendParam?.param;
+      if (
+        sendParams
+        && Array.isArray(sendParams)
+        && sendParams[sendParams.length - 1]
+        && typeof sendParams[sendParams.length - 1] === "object"
+        && sendParams[sendParams.length - 1].gasLimit !== void 0
+      ) {
+        csl("CCTPService estimateTransaction", "green-500", "Old gasLimit: %o", sendParams[sendParams.length - 1].gasLimit);
+        sendParams[sendParams.length - 1].gasLimit = ett.estimateSourceGasLimit;
+        csl("CCTPService estimateTransaction", "green-500", "Updated gasLimit: %o", sendParams[sendParams.length - 1].gasLimit);
+      }
+    }
 
     return result;
   }

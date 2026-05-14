@@ -292,6 +292,7 @@ export class OneClickService {
 
     const routeStatus = getRouteStatus(Service.OneClick);
     result.routeDisabled = routeStatus.disabled;
+    result.sourceQuoteParams = params;
 
     return result;
   }
@@ -353,6 +354,21 @@ export class OneClickService {
 
       result.transferSourceGasFee = ett.estimateSourceGas;
       result.transferSourceGasFeeUsd = ett.estimateSourceGasUsd;
+
+      if (fromToken.chainType === "evm") {
+        const sendParams = result.sendParam?.param;
+        if (
+          sendParams
+          && Array.isArray(sendParams)
+          && sendParams[sendParams.length - 1]
+          && typeof sendParams[sendParams.length - 1] === "object"
+          && sendParams[sendParams.length - 1].gasLimit !== void 0
+        ) {
+          csl("OneClickService estimateTransaction", "green-500", "Old gasLimit: %o", sendParams[sendParams.length - 1].gasLimit);
+          sendParams[sendParams.length - 1].gasLimit = ett.estimateSourceGasLimit;
+          csl("OneClickService estimateTransaction", "green-500", "Updated gasLimit: %o", sendParams[sendParams.length - 1].gasLimit);
+        }
+      }
     } else {
       let sourceGasFee = result.transferSourceGasFee || {};
       if (isFromTronEnergy) {

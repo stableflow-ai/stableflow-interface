@@ -95,6 +95,7 @@ export class Usdt0Service {
 
       result.estimateTime = estimateTime;
       result.routeDisabled = routeStatus.disabled;
+      result.sourceQuoteParams = params;
 
       execTime.logTotal("Usdt0Service.quote");
       return result;
@@ -153,6 +154,7 @@ export class Usdt0Service {
 
     result.estimateTime = estimateTime;
     result.routeDisabled = routeStatus.disabled;
+    result.sourceQuoteParams = params;
 
     execTime.logTotal("Usdt0Service.quote");
 
@@ -209,6 +211,21 @@ export class Usdt0Service {
       result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
     }
     result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
+
+    if (fromToken.chainType === "evm") {
+      const sendParams = result.sendParam?.param;
+      if (
+        sendParams
+        && Array.isArray(sendParams)
+        && sendParams[sendParams.length - 1]
+        && typeof sendParams[sendParams.length - 1] === "object"
+        && sendParams[sendParams.length - 1].gasLimit !== void 0
+      ) {
+        csl("USDT0Service estimateTransaction", "green-500", "Old gasLimit: %o", sendParams[sendParams.length - 1].gasLimit);
+        sendParams[sendParams.length - 1].gasLimit = ett.estimateSourceGasLimit;
+        csl("USDT0Service estimateTransaction", "green-500", "Updated gasLimit: %o", sendParams[sendParams.length - 1].gasLimit);
+      }
+    }
 
     return result;
   }

@@ -209,6 +209,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
           depositAddress,
         },
         routeDisabled: routeStatus.disabled,
+        sourceQuoteParams: params,
       };
     };
 
@@ -223,6 +224,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
         ...secondStepResult,
         ...oneClickResult,
         routeDisabled: routeStatus.disabled,
+        sourceQuoteParams: params,
       };
     }
 
@@ -244,6 +246,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       permitAmountWei: ethereumFrxUSDAmountWei,
       permitAdditionalData: {},
       routeDisabled: routeStatus.disabled,
+      sourceQuoteParams: params,
     };
   }
 }

@@ -46,8 +46,14 @@ const QuoteRoute = (props: any) => {
       className={clsx(
         "button w-full h-8.5 shrink-0 rounded-[8px] bg-[#FFFFFF] border border-[#F2F2F2] flex justify-between items-center gap-1 md:gap-2.5 pl-2 md:pl-3 pr-2 md:pr-3",
         selected ? "" : "",
+        bridgeStore.transferring ? "cursor-not-allowed!" : "cursor-pointer",
       )}
-      onClick={onSelect}
+      onClick={() => {
+        if (bridgeStore.transferring) {
+          return;
+        }
+        onSelect?.();
+      }}
       animate={{
         backgroundImage: selected ? "linear-gradient(0deg, rgba(98, 132, 245, 0.10) 0%, rgba(98, 132, 245, 0.10) 100%)" : "none",
         borderColor: selected ? "#6284F5" : "#F2F2F2",

@@ -116,6 +116,7 @@ export class Usdt0OneClickService {
         depositAddress: oneClickResult.quote.depositAddress,
       },
       routeDisabled: routeStatus.disabled,
+      sourceQuoteParams: params,
     };
   }
 
