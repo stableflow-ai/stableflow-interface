@@ -437,7 +437,7 @@ export default class AptosWallet {
     } catch (error) {
       csl("Aptos estimateTransaction", "red-500", "simulation failed: %o", error);
       await setDefaultGasLimit();
-      result.estimateSourceGasLimit = DEFAULT_GAS_LIMIT_FAILED;
+      result.estimateSourceGasLimit = DEFAULT_GAS_LIMIT_FAILED / 2n;
     }
 
     return result;
