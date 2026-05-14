@@ -65,6 +65,7 @@ export class FraxZeroService extends Usdt0Service {
 
       result.estimateTime = estimateTime;
       result.routeDisabled = routeStatus.disabled;
+      result.sourceQuoteParams = params;
 
       execTime.logTotal("FraxZeroService.quote isFraxtal");
 
@@ -81,6 +82,7 @@ export class FraxZeroService extends Usdt0Service {
 
     result.estimateTime = estimateTime;
     result.routeDisabled = routeStatus.disabled;
+    result.sourceQuoteParams = params;
 
     execTime.logTotal("FraxZeroService.quote");
 

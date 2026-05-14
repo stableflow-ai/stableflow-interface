@@ -691,27 +691,15 @@ export default function useBridge(props?: any) {
         bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
           needApprove: false,
         });
-      }
 
-      // Try to re-estimate gas
-      if (ServiceMap[bridgeStore.quoteDataService].estimateTransaction) {
-        const estimateTransactionQuoteData = {
-          ..._quote.data,
-          needApprove: false,
-        };
+        // Re-estimate transaction gas
+        // Only re-estimate transaction gas after approve
         try {
-          const estimateTransactionResult = await ServiceMap[bridgeStore.quoteDataService].estimateTransaction({
-            ..._quote.data.quoteParam,
-            wallet: wallet.wallet,
-          }, estimateTransactionQuoteData);
-          csl("transfer", "green-500", "final estimate transaction result: %o", estimateTransactionResult);
-          bridgeStore.modifyQuoteData(bridgeStore.quoteDataService, {
-            fees: estimateTransactionResult.fees,
-            estimateSourceGas: estimateTransactionResult.estimateSourceGas,
-            totalEstimateSourceGas: estimateTransactionResult.totalEstimateSourceGas,
-            estimateSourceGasUsd: estimateTransactionResult.estimateSourceGasUsd,
-            totalFeesUsd: estimateTransactionResult.totalFeesUsd,
+          const afterEstimateQuoteData = await ServiceMap[bridgeStore.quoteDataService].estimateTransaction(_quote.data.sourceQuoteParams, {
+            ..._quote.data,
+            needApprove: false,
           });
+          _quote.data = afterEstimateQuoteData;
         } catch (error) {
           csl("transfer", "red-500", "final estimate transaction failed: %o", error);
         }
