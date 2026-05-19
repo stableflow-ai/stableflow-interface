@@ -1,35 +1,59 @@
 import { toast } from "react-toastify";
 import Toast from "@/components/toast";
 
+const TOAST_POSITION = "top-right";
+const TOAST_CLASSNAME = "stableflow-toast stableflow-toast-top-right";
+
+interface ToastParams {
+  title: string;
+  text?: string;
+  duration?: number | false;
+}
+
 export default function useToast() {
-  const success = (params: any) => {
-    return toast(<Toast type="success" {...params} />, {
-      position: "top-right",
-      className: "stableflow-toast stableflow-toast-top-right",
+  const success = (params: ToastParams) => {
+    const { duration = 3000, ...rest } = params;
+
+    return toast(<Toast type="success" {...rest} />, {
+      position: TOAST_POSITION,
+      className: TOAST_CLASSNAME,
+      autoClose: duration,
     });
   };
-  const fail = (params: any) => {
-    return toast(<Toast type="error" {...params} />, {
-      position: "top-right",
-      className: "stableflow-toast stableflow-toast-top-right",
+  const fail = (params: ToastParams) => {
+    const { duration = 3000, ...rest } = params;
+
+    return toast(<Toast type="error" {...rest} />, {
+      position: TOAST_POSITION,
+      className: TOAST_CLASSNAME,
+      autoClose: duration,
     });
   };
-  const info = (params: any) => {
-    return toast(<Toast type="info" {...params} />, {
-      position: "top-right",
-      className: "stableflow-toast stableflow-toast-top-right",
+  const info = (params: ToastParams) => {
+    const { duration = 3000, ...rest } = params;
+
+    return toast(<Toast type="info" {...rest} />, {
+      position: TOAST_POSITION,
+      className: TOAST_CLASSNAME,
+      autoClose: duration,
     });
   };
-  const loading = (params: any) => {
-    return toast(<Toast type="pending" {...params} />, {
-      position: "top-right",
-      className: "stableflow-toast stableflow-toast-top-right",
+  const loading = (params: ToastParams) => {
+    const { duration = 3000, ...rest } = params;
+
+    return toast(<Toast type="pending" {...rest} />, {
+      position: TOAST_POSITION,
+      className: TOAST_CLASSNAME,
+      autoClose: duration,
     });
   };
-  const notice = (params: any) => {
-    return toast(<Toast type="notice" {...params} />, {
-      position: "top-right",
-      className: "stableflow-toast stableflow-toast-top-right",
+  const notice = (params: ToastParams) => {
+    const { duration = 3000, ...rest } = params;
+
+    return toast(<Toast type="notice" {...rest} />, {
+      position: TOAST_POSITION,
+      className: TOAST_CLASSNAME,
+      autoClose: duration,
     });
   };
   return {

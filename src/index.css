@@ -104,17 +104,23 @@ div::-webkit-scrollbar-thumb:hover {
 }
 
 :root {
-  --toastify-toast-right: 0px;
-  --toastify-toast-top: 50px;
+  --toastify-toast-right: 0px !important;
+  --toastify-toast-top: 65px !important;
 }
 
 .Toastify__toast-container--top-right .stableflow-toast-top-right.Toastify__toast {
   padding: 0px 0px 0px 22px;
+  margin-bottom: 10px;
+  min-height: unset;
+}
+.Toastify__toast-container--top-right .stableflow-toast-top-right.Toastify__toast > .Toastify__progress-bar--wrp {
+  pointer-events: none;
 }
 
 @media screen and (max-width: 768px) {
   .Toastify__toast-container--top-right .stableflow-toast-top-right.Toastify__toast {
     padding: 0px var(--toastify-toast-padding) 0px var(--toastify-toast-padding);
+    top: 65px;
   }
 }
 
