@@ -36,9 +36,9 @@ const NetworkCard = (props: any) => {
     <div
       className={clsx("w-full pt-2.5 pb-4 bg-white rounded-xl border border-[#F2F2F2]", className)}
     >
-      <div className={clsx("w-full flex justify-between items-center gap-2 md:gap-10 pr-2.5 pl-5", rowClassName)}>
+      <div className={clsx("w-full flex justify-between items-center gap-2 md:gap-10 pr-2.5 pl-5 select-none", rowClassName)}>
         <div className="flex-1 space-y-2">
-          <div className="text-[#9FA7BA] text-sm font-normal leading-[100%] font-['SpaceGrotesk']">
+          <div className="text-[#9FA7BA] text-sm font-normal leading-[100%] font-['SpaceGrotesk'] select-none">
             {titleContent}
           </div>
           <InputNumber

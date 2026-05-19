@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { getStableflowLogo } from "@/utils/format/logo";
+import clsx from "clsx";
 
 interface FooterLinkItem {
   label: string;
   href: string;
   external?: boolean;
+  icon?: string;
 }
 
 interface FooterColumn {
@@ -38,8 +40,18 @@ const FOOTER_COLUMNS: FooterColumn[] = [
   {
     title: "Community",
     links: [
-      { label: "X", href: "https://x.com/0xStableFlow", external: true },
-      { label: "Telegram", href: "https://t.me/stableflowai", external: true },
+      {
+        label: "X",
+        href: "https://x.com/0xStableFlow",
+        external: true,
+        icon: getStableflowLogo("logo-x.svg"),
+      },
+      {
+        label: "Telegram",
+        href: "https://t.me/stableflowai",
+        external: true,
+        icon: getStableflowLogo("logo-telegram-black.svg"),
+      },
     ],
   },
 ];
@@ -50,23 +62,52 @@ const Footer2 = () => {
       <div className="max-w-[1440px] mx-auto px-6 md:px-[80px] lg:px-[100px] pt-10 md:pt-[48px] pb-6 md:pb-[26px]">
         <div className="flex flex-col gap-10 md:flex-row md:justify-between">
           <div className="max-w-[320px]">
-            <img
-              src={getStableflowLogo("logo-stableflow-full.svg")}
-              alt="StableFlow"
-              className="w-[170px] h-auto"
-            />
-            <p className="mt-5 text-[14px] leading-normal font-light text-[#444C59]">
+            <div className="flex justify-between items-center gap-1">
+              <img
+                src={getStableflowLogo("logo-stableflow-full.svg")}
+                alt="StableFlow"
+                className="w-[170px] h-auto"
+              />
+              <div className="flex md:hidden justify-end items-center gap-2.5">
+                {
+                  FOOTER_COLUMNS[3].links.map((link, index) => (
+                    <Link
+                      key={index}
+                      to={link.href}
+                      className="shrink-0 w-7.5 h-7.5 border border-[#f2f2f2] rounded-md flex justify-center items-center bg-white"
+                      target={link.external ? "_blank" : undefined}
+                    >
+                      <img
+                        src={link.icon}
+                        alt=""
+                        className={clsx(
+                          "shrink-0 object-center object-contain",
+                          link.label === "X" ? "w-3 h-3" : "w-4 h-4",
+                        )}
+                      />
+                    </Link>
+                  ))
+                }
+              </div>
+            </div>
+            <p className="mt-3 md:mt-5 text-[14px] leading-normal font-light text-[#444C59]">
               StableFlow is an intent-based liquidity network dedicated to moving stablecoins at scale.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-4 md:gap-x-12 lg:gap-x-[72px]">
+          <div className="grid grid-cols-3 gap-x-8 gap-y-8 md:grid-cols-4 md:gap-x-12 lg:gap-x-[72px]">
             {FOOTER_COLUMNS.map((column) => (
-              <div key={column.title}>
+              <div
+                key={column.title}
+                className={clsx(
+                  "",
+                  column.title === "Community" ? "hidden md:block" : "",
+                )}
+              >
                 <h4 className="text-[14px] leading-normal font-medium text-[#444C59]">
                   {column.title}
                 </h4>
-                <div className="mt-4 grid grid-cols-3 md:flex md:flex-col gap-[10px]">
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 md:flex md:flex-col gap-[10px]">
                   {column.links.map((item) => (
                     item.external ? (
                       <a
@@ -83,6 +124,7 @@ const Footer2 = () => {
                         key={item.label}
                         to={item.href}
                         className="text-[14px] leading-normal font-light text-[#444C59] hover:text-[#000000] transition-colors"
+                        target={item.external ? "_blank" : undefined}
                       >
                         {item.label}
                       </Link>
