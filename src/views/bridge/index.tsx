@@ -30,7 +30,7 @@ export default function Bridge() {
       )}
     >
       <div className="w-full flex items-stretch gap-[10px] justify-center mt-[20px] md:min-h-[490px]">
-        <div className="md:w-150 w-full mx-auto shrink-0">
+        <div className="md:w-150 w-full mx-auto shrink-0 relative">
           <Suspense fallback={<LoadingSpinner />}>
             <PendingTransfer className="block" />
           </Suspense>
