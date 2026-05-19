@@ -198,7 +198,7 @@ const PendingTransfer = (props: any) => {
   if (!latestHistories || !latestHistories.length || !tradeStatus) return null;
 
   return (
-    <div className={clsx("w-full md:w-[calc(100%_+_10px)] pl-[10px] pr-[10px] md:pl-[5px] md:pr-[5px] pb-[5px] pt-0 md:pt-[20px] md:translate-x-[-5px] rounded-[12px] overflow-hidden", className)}>
+    <div className={clsx("md:absolute md:z-1 md:left-0 md:translate-y-[-110%] w-full md:w-[calc(100%+10px)] pl-[10px] pr-[10px] md:pl-[5px] md:pr-[5px] pb-[5px] pt-0 md:pt-[20px] md:translate-x-[-5px] rounded-[12px] overflow-hidden", className)}>
       <Swiper
         style={{
           width: "100%",
