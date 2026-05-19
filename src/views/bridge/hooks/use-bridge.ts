@@ -942,6 +942,11 @@ export default function useBridge(props?: any) {
       // get rpc error message
       _finalErrorMessage = formatBridgeRpcErrorMessage(_finalErrorMessage);
 
+      // get near wallet can not open error
+      if (_finalErrorMessage.toLowerCase().includes("couldn't open popup window to complete wallet action")) {
+        _finalErrorMessage = "Browser blocked the Wallet popup. Allow pop-ups for stableflow and try again.";
+      }
+
       toast.fail({
         title: _finalErrorMessage,
       });
