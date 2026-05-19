@@ -61,7 +61,7 @@ export default function BridgeButton({
     const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && bridgeStore.quoteDataService === Service.OneClick;
     const needApprove = quoteData?.needApprove;
     if (needApprove && !isFromTronEnergy) {
-      return "Approve";
+      return "Transfer";
     }
     if (quoteData?.needCreateTokenAccount) {
       if (!solanaWallet?.account) {
