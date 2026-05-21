@@ -1316,7 +1316,7 @@ export default class SolanaWallet {
 
     const web3Instruction = toWeb3JsInstruction(ix.instruction);
     const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
-      units: 400000, // Increase to 400k units (default is 200k)
+      units: 600000, // Increase to 400k units (default is 200k)
     });
     execTime.breakpoint();
     const { blockhash } = await connection.getLatestBlockhash();
