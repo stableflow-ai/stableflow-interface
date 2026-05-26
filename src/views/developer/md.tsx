@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { marked } from "marked";
 import hljs from "highlight.js";
 import "highlight.js/styles/github-dark.min.css";
@@ -7,8 +7,20 @@ import MainTitle from "@/components/main-title";
 // Path from this file (src/views/developer) to project root is ../../../
 import guide from "../../../DEVELOPER_GUIDE.md?raw";
 import { ApplayAPIAccess } from "./config";
-import { useDebounceFn } from "ahooks";
 import { csl } from "@/utils/log";
+import { useLayoutContext } from "@/layouts/context";
+
+const SCROLL_OFFSET = 80;
+
+// GitHub-compatible heading slug (matches DEVELOPER_GUIDE.md TOC links)
+function slugifyHeading(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+}
 
 // Normalize certain markdown quirks before rendering
 function preprocessMarkdown(md: string): string {
@@ -75,35 +87,7 @@ renderer.codespan = ({ text }: { text: string }) => {
 
 // Handle headings with proper IDs for anchor links
 renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
-  // Convert text to kebab-case for ID
-  let id = text.toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .trim();
-
-  // Replace leading digits with letters (1=a, 2=b, 3=c, etc.)
-  const leadingDigitMatch = id.match(/^(\d+)/);
-  if (leadingDigitMatch) {
-    const digit = parseInt(leadingDigitMatch[1], 10);
-    // Convert digit to letter: 1->a, 2->b, ..., 26->z, 27->aa, etc.
-    // For numbers > 26, we use modulo 26 to cycle through alphabet
-    if (digit <= 26) {
-      const letter = String.fromCharCode(96 + digit); // 96 is 'a' - 1
-      id = id.replace(/^\d+/, letter);
-    } else {
-      // For numbers > 26, convert to multiple letters (27->aa, 28->ab, etc.)
-      let num = digit;
-      let letters = '';
-      while (num > 0) {
-        const remainder = (num - 1) % 26;
-        letters = String.fromCharCode(97 + remainder) + letters; // 97 is 'a'
-        num = Math.floor((num - 1) / 26);
-      }
-      id = id.replace(/^\d+/, letters);
-    }
-  }
-
-  // Create anchor link
+  const id = slugifyHeading(text);
   const anchorLink = `#${id}`;
 
   return `<h${depth} id="${id}" class="md-h md-h${depth} md-heading-link">
@@ -116,111 +100,131 @@ marked.use({ renderer });
 
 export default function DeveloperDocs() {
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const proseRef = useRef<HTMLDivElement>(null);
+  const { containerRef } = useLayoutContext();
 
   const html = useMemo(() => marked(preprocessMarkdown(guide)), []);
 
-  const { run: scrollToAnchor, cancel: cancelScrollToAnchor } = useDebounceFn(() => {
-    const hash = window.location.hash;
-    if (hash) {
-      // Use requestAnimationFrame to ensure DOM is ready
-      const attemptScroll = (retries = 10) => {
-        requestAnimationFrame(() => {
-          const element = document.querySelector(hash);
-          if (element) {
-            const scrollContainer = document.querySelector('.overflow-y-auto');
-            if (scrollContainer) {
-              // Calculate the position relative to the scroll container
-              const containerRect = scrollContainer.getBoundingClientRect();
-              const elementRect = element.getBoundingClientRect();
-              const scrollTop = scrollContainer.scrollTop + elementRect.top - containerRect.top - 80; // 80px offset for scroll-margin-top
+  const scrollToHash = useCallback((hash: string, retries = 10) => {
+    if (!hash) return;
 
-              scrollContainer.scrollTo({
-                top: scrollTop,
-                behavior: 'smooth'
-              });
-            } else {
-              // Fallback to window scroll
-              const elementTop = element.getBoundingClientRect().top + window.pageYOffset - 80;
-              window.scrollTo({
-                top: elementTop,
-                behavior: 'smooth'
-              });
-            }
-          } else if (retries > 0) {
-            // Retry if element not found yet
-            setTimeout(() => attemptScroll(retries - 1), 50);
+    const attemptScroll = (remaining: number) => {
+      requestAnimationFrame(() => {
+        const element = document.getElementById(hash.slice(1));
+        if (element) {
+          const scrollContainer = containerRef.current;
+          if (scrollContainer) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const elementRect = element.getBoundingClientRect();
+            const scrollTop =
+              scrollContainer.scrollTop +
+              elementRect.top -
+              containerRect.top -
+              SCROLL_OFFSET;
+
+            scrollContainer.scrollTo({
+              top: scrollTop,
+              behavior: "smooth",
+            });
+          } else {
+            const elementTop =
+              element.getBoundingClientRect().top + window.pageYOffset - SCROLL_OFFSET;
+            window.scrollTo({
+              top: elementTop,
+              behavior: "smooth",
+            });
           }
-        });
-      };
-
-      attemptScroll();
-    }
-  }, { wait: 150 });
-
-  // Scroll to anchor on mount if URL has hash
-  useEffect(() => {
-    scrollToAnchor();
-
-    return () => {
-      cancelScrollToAnchor();
+        } else if (remaining > 0) {
+          setTimeout(() => attemptScroll(remaining - 1), 50);
+        }
+      });
     };
-  }, [html]);
+
+    attemptScroll(retries);
+  }, [containerRef]);
+
+  // Scroll to anchor on mount / hash change (external entry, back/forward, heading links)
+  useEffect(() => {
+    scrollToHash(window.location.hash);
+
+    const onHashChange = () => scrollToHash(window.location.hash);
+    window.addEventListener("hashchange", onHashChange);
+
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [html, scrollToHash]);
+
+  // Intercept TOC and in-doc anchor clicks for nested scroll container
+  useEffect(() => {
+    const proseEl = proseRef.current;
+    if (!proseEl) return;
+
+    const onClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest("a");
+      if (!target || target.classList.contains("md-heading-anchor")) return;
+
+      const href = target.getAttribute("href");
+      if (!href?.startsWith("#")) return;
+
+      e.preventDefault();
+      if (window.location.hash !== href) {
+        window.location.hash = href;
+      } else {
+        scrollToHash(href);
+      }
+    };
+
+    proseEl.addEventListener("click", onClick);
+    return () => proseEl.removeEventListener("click", onClick);
+  }, [html, scrollToHash]);
 
   // Show/hide back to top button based on scroll position
   useEffect(() => {
     const handleScroll = () => {
-      // Find the scrollable container (the one with overflow-y-auto)
-      const scrollContainer = document.querySelector('.overflow-y-auto');
+      const scrollContainer = containerRef.current;
       let scrollTop = 0;
 
       if (scrollContainer) {
         scrollTop = scrollContainer.scrollTop;
       } else {
-        // Fallback to window scroll
-        scrollTop = window.pageYOffset ||
+        scrollTop =
+          window.pageYOffset ||
           document.documentElement.scrollTop ||
           document.body.scrollTop ||
           0;
       }
 
-      const shouldShow = scrollTop > 50;
-      setShowBackToTop(shouldShow);
+      setShowBackToTop(scrollTop > 50);
     };
 
-    // Add scroll listener to the scrollable container
-    const scrollContainer = document.querySelector('.overflow-y-auto');
+    const scrollContainer = containerRef.current;
     if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll);
+      scrollContainer.addEventListener("scroll", handleScroll);
     } else {
-      // Fallback to window
-      window.addEventListener('scroll', handleScroll);
+      window.addEventListener("scroll", handleScroll);
     }
 
-    // Also check on mount
     handleScroll();
 
     return () => {
       if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
+        scrollContainer.removeEventListener("scroll", handleScroll);
       } else {
-        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener("scroll", handleScroll);
       }
     };
-  }, []);
+  }, [containerRef]);
 
   const scrollToTop = () => {
-    // Find the scrollable container and scroll it
-    const scrollContainer = document.querySelector('.overflow-y-auto');
+    const scrollContainer = containerRef.current;
     if (scrollContainer) {
       scrollContainer.scrollTo({
         top: 0,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     } else {
-      // Fallback to window scroll
       window.scrollTo({
         top: 0,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
   };
@@ -234,6 +238,7 @@ export default function DeveloperDocs() {
           <div className="bg-white/80 rounded-[12px] shadow-[0_0_10px_0_rgba(0,0,0,0.05)] p-[16px] md:p-[24px]">
             <div className="text-[20px] md:text-[24px] font-semibold mb-[12px]">Developer Guide</div>
             <div
+              ref={proseRef}
               className="prose max-w-none"
               // We render trusted local markdown converted to HTML
               dangerouslySetInnerHTML={{ __html: html }}
@@ -305,5 +310,3 @@ export default function DeveloperDocs() {
     </div>
   );
 }
-
-

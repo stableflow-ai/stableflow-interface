@@ -41,7 +41,7 @@ const DocOverview = () => {
         "Unified quotes across chains",
         "Exact output guarantees",
       ],
-      href: "/developer/documentation#bridge-services",
+      href: "/developer/documentation#322-full-integration-flow",
     },
     {
       title: "Economics",
@@ -50,7 +50,7 @@ const DocOverview = () => {
         "On-chain fee distribution",
         "No hidden markups",
       ],
-      href: "/developer/documentation#developer-fees",
+      href: "/developer/documentation#42-oneclickparams",
     },
     {
       title: "Integration",
@@ -59,7 +59,7 @@ const DocOverview = () => {
         "Webhooks and error handling",
         "Integration support for partners",
       ],
-      href: "/developer/documentation#core-functions-v20",
+      href: "/developer/documentation#23-api-integration-flow",
     },
   ];
 

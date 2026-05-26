@@ -16,14 +16,14 @@ export function Header() {
             Documentation
           </a>
           <a
-            href="/developer/documentation#core-functions-v20"
+            href="/developer/documentation#32-api-reference"
             target="_blank"
             className="text-sm text-[#9FA7BA] hover:text-[#2B3337] transition-colors"
           >
             API Reference
           </a>
           <a
-            href="/developer/documentation#stableflow-ai-sdk---developer-guide"
+            href="/developer/documentation#2-getting-started"
             target="_blank"
             className="text-sm text-[#9FA7BA] hover:text-[#2B3337] transition-colors"
           >

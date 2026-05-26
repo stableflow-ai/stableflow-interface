@@ -7,43 +7,176 @@ import "highlight.js/styles/github-dark.min.css";
 
 const apiExamples = [
   {
+    id: "api-integration",
+    label: "API Integration Flow",
+    command: `import {
+  OpenAPI,
+  QuoteRequest,
+  SFA,
+  OneClickStatus,
+  type QuoteResponse,
+  type TokenResponse,
+} from "@stableflow/core";
+import { ethers } from "ethers";
+
+// Configure JWT before API calls
+OpenAPI.TOKEN = "your-jwt-token";
+
+// 1. Get supported tokens
+const allTokens = await SFA.getTokens();
+const fromToken = allTokens.find(
+  (t) => t.blockchain === "eth" && t.symbol === "USDT"
+)!;
+const toToken = allTokens.find(
+  (t) => t.blockchain === "arb" && t.symbol === "USDT"
+)!;
+
+// 2. Request executable quote (dry: false returns depositAddress)
+const quoteRes: QuoteResponse = await SFA.getQuote({
+  dry: false,
+  swapType: QuoteRequest.swapType.EXACT_INPUT,
+  slippageTolerance: 50, // basis points: 50 = 0.5%
+  originAsset: fromToken.assetId,
+  destinationAsset: toToken.assetId,
+  amount: "1000000", // smallest unit (e.g. 1 USDT with 6 decimals)
+  refundTo: "0xYourRefundAddress...",
+  refundType: QuoteRequest.refundType.ORIGIN_CHAIN,
+  recipient: "0xYourRecipientAddress...",
+  recipientType: QuoteRequest.recipientType.DESTINATION_CHAIN,
+  depositType: QuoteRequest.depositType.ORIGIN_CHAIN,
+  deadline: new Date(Date.now() + 3600_000).toISOString(),
+});
+
+if (!quoteRes.quote.depositAddress) {
+  throw new Error("Missing deposit address");
+}
+
+// 3. Send deposit with your own wallet (not part of SDK)
+const provider = new ethers.BrowserProvider(window.ethereum);
+const signer = await provider.getSigner();
+const tokenContract = new ethers.Contract(
+  fromToken.contractAddress!,
+  ["function transfer(address to, uint256 amount) returns (bool)"],
+  signer
+);
+const tx = await tokenContract.transfer(
+  quoteRes.quote.depositAddress,
+  "1000000"
+);
+
+// 4. Submit source-chain tx hash (optional, speeds up matching)
+await SFA.submitDepositTx({
+  txHash: tx.hash,
+  depositAddress: quoteRes.quote.depositAddress,
+});
+
+// 5. Poll execution status
+const status = await SFA.getExecutionStatus(
+  quoteRes.quote.depositAddress,
+  quoteRes.quote.depositMemo
+);
+
+if (
+  [
+    OneClickStatus.PENDING_DEPOSIT,
+    OneClickStatus.KNOWN_DEPOSIT_TX,
+    OneClickStatus.INCOMPLETE_DEPOSIT,
+    OneClickStatus.PROCESSING,
+  ].includes(status.status)
+) {
+  // Still processing
+}
+if (status.status === OneClickStatus.SUCCESS) {
+  // Success
+}
+if (
+  [OneClickStatus.FAILED, OneClickStatus.REFUNDED].includes(status.status)
+) {
+  // Failed or refunded
+}`,
+    response: `// Step 1: TokenResponse[]
+[
+  {
+    "assetId": "nep141:eth-...",
+    "decimals": 6,
+    "blockchain": "eth",
+    "symbol": "USDT",
+    "price": 1.0,
+    "contractAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+  }
+]
+
+// Step 2: QuoteResponse (dry: false)
+{
+  "timestamp": "...",
+  "signature": "...",
+  "quote": {
+    "depositAddress": "0x...",
+    "depositMemo": null,
+    "amountIn": "1000000",
+    "amountOut": "997500",
+    "timeEstimate": 180
+  }
+}
+
+// Step 4: SubmitDepositTxResponse
+{
+  "status": "KNOWN_DEPOSIT_TX",
+  "quoteResponse": { ... },
+  "swapDetails": { ... }
+}
+
+// Step 5: GetExecutionStatusResponse
+{
+  "status": "SUCCESS",
+  "updatedAt": "...",
+  "swapDetails": { ... }
+}`,
+  },
+  {
     id: "quote",
     label: "Get quotes",
-    command: `import { SFA, tokens, EVMWallet } from 'stableflow-ai-sdk';
-import { ethers } from 'ethers';
+    command: `import Big from "big.js";
+import { BridgeSFA, type GetAllQuoteParams } from "@stableflow/bridges";
+import { tokens } from "@stableflow/core";
+import { EVMWallet } from "@stableflow/wallet-evm";
+import { ethers } from "ethers";
 
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
-const wallet = new EVMWallet(provider, signer);
+const fromWallet = new EVMWallet(provider, signer);
+const fromWalletAddress = await signer.getAddress();
 
-const fromToken = tokens.find(t => 
-  t.chainName === 'Ethereum' && t.symbol === 'USDT'
-);
-const toToken = tokens.find(t => 
-  t.chainName === 'Arbitrum' && t.symbol === 'USDT'
-);
+const fromToken = tokens.find(
+  (t) => t.chainName === "Ethereum" && t.symbol === "USDT"
+)!;
+const toToken = tokens.find(
+  (t) => t.chainName === "Arbitrum" && t.symbol === "USDT"
+)!;
 
-const quotes = await SFA.getAllQuote({
+const quoteRequest: GetAllQuoteParams = {
   dry: false,
   prices: {},
-  fromToken: fromToken!,
-  toToken: toToken!,
-  wallet: wallet,
-  recipient: '0x1234...',
-  refundTo: '0x5678...',
-  amountWei: ethers.parseUnits('100', fromToken!.decimals).toString(),
-  slippageTolerance: 0.5,
-  // optional
+  fromToken,
+  toToken,
+  wallet: fromWallet,
+  recipient: "0xRecipientAddress...",
+  refundTo: fromWalletAddress,
+  amountWei: Big("100")
+    .times(10 ** fromToken.decimals)
+    .toFixed(0, 0),
+  slippageTolerance: 0.5, // percentage: 0.5 = 0.5%
   oneclickParams: {
     appFees: [
       {
-        // Your wallet address to receive the fee
         recipient: "stableflow.near",
-        fee: 100,
+        fee: 100, // 1%
       },
     ],
-  }
-});`,
+  },
+};
+
+const quotes = await BridgeSFA.getAllQuote(quoteRequest);`,
     response: `[
   {
     "serviceType": "oneclick",
@@ -71,50 +204,64 @@ const quotes = await SFA.getAllQuote({
   {
     id: "execute",
     label: "Execute a quote",
-    command: `import { SFA, Service, EVMWallet } from 'stableflow-ai-sdk';
+    command: `import { BridgeSFA, getQuoteModes } from "@stableflow/bridges";
+import { EVMWallet } from "@stableflow/wallet-evm";
+import { ethers } from "ethers";
 
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
-const wallet = new EVMWallet(provider, signer);
+const fromWallet = new EVMWallet(provider, signer);
 
-const selectedQuote = quotes.find(q => q.quote && !q.error);
+const selectedRoute = quotes.find((q) => q.quote && !q.error);
+if (!selectedRoute?.quote) throw new Error("No valid route");
 
-if (selectedQuote && selectedQuote.quote) {
-  if (selectedQuote.quote.needApprove) {
-    await wallet.approve({
-      contractAddress: selectedQuote.quote.quoteParam.fromToken.contractAddress,
-      spender: selectedQuote.quote.approveSpender,
-      amountWei: selectedQuote.quote.quoteParam.amountWei,
-    });
-  }
-  
-  const txHash = await SFA.send(selectedQuote.serviceType, {
-    wallet: wallet,
-    quote: selectedQuote.quote,
+const { isExactOutput } = getQuoteModes({
+  quoteData: selectedRoute.quote,
+  bridgeStore: { quoteDataService: selectedRoute.serviceType },
+});
+
+const amountToApprove = isExactOutput
+  ? selectedRoute.quote.quote?.minAmountIn
+  : selectedRoute.quote.quoteParam.amountWei;
+
+if (selectedRoute.quote.needApprove && fromWallet.approve) {
+  const approveRes = await fromWallet.approve({
+    contractAddress:
+      selectedRoute.quote.quoteParam.fromToken.contractAddress,
+    spender: selectedRoute.quote.approveSpender,
+    amountWei: amountToApprove,
+    isDetails: true,
   });
-  
-  console.log('Transaction hash:', txHash);
-}`,
+  if (!approveRes.success) {
+    throw new Error(approveRes.message || "Approve failed");
+  }
+}
+
+const txHash = await BridgeSFA.send(selectedRoute.serviceType, {
+  wallet: fromWallet,
+  quote: selectedRoute.quote,
+  // permitSignature required when quote.needPermit === true
+});
+
+console.log("Transaction hash:", txHash);`,
     response: `"0xabc123def456..."`,
   },
   {
     id: "status",
     label: "Check status",
-    command: `import { SFA, Service, TransactionStatus } from 'stableflow-ai-sdk';
+    command: `import { BridgeSFA } from "@stableflow/bridges";
 
-// OneClick service: query using deposit address
-const status1 = await SFA.getStatus(Service.OneClick, {
-  depositAddress: '0x...',
+// Persist the same quote object from getAllQuote({ dry: false })
+// that you passed to BridgeSFA.send
+const status = await BridgeSFA.getStatus(finalRoute.serviceType, {
+  quote: finalRoute.quote,
+  hash: txHash, // source-chain tx hash from send (required)
 });
 
-// USDT0 or CCTP service: query using transaction hash
-const status2 = await SFA.getStatus(Service.Usdt0, {
-  hash: '0x...',
-});
-
-console.log('Status:', status1.status);
-if (status1.toChainTxHash) {
-  console.log('Destination chain tx hash:', status1.toChainTxHash);
+console.log("Status:", status.status);
+// "pending" | "success" | "failed"
+if (status.toChainTxHash) {
+  console.log("Destination chain tx hash:", status.toChainTxHash);
 }`,
     response: `{
   "status": "success",
@@ -124,25 +271,27 @@ if (status1.toChainTxHash) {
   {
     id: "chains",
     label: "Token Configuration",
-    command: `import { tokens, usdtTokens, usdcTokens } from 'stableflow-ai-sdk';
+    command: `import { tokens } from "@stableflow/core";
 
-// Get all supported tokens
+// All supported tokens (TokenConfig[])
 const allTokens = tokens;
 
-// Get USDT tokens only
-const usdtOnly = usdtTokens;
+// Filter by symbol
+const usdtTokens = tokens.filter((t) => t.symbol === "USDT");
+const usdcTokens = tokens.filter((t) => t.symbol === "USDC");
 
-// Get USDC tokens only
-const usdcOnly = usdcTokens;
-
-// Find token by chain name and symbol
-const ethUsdt = tokens.find(t => 
-  t.chainName === 'Ethereum' && t.symbol === 'USDT'
+// Find by chain name and symbol
+const ethUsdt = tokens.find(
+  (t) => t.chainName === "Ethereum" && t.symbol === "USDT"
 );
 
 // Filter by chain type
-const evmTokens = tokens.filter(t => t.chainType === 'evm');
-const solanaTokens = tokens.filter(t => t.chainType === 'sol');`,
+const evmTokens = tokens.filter((t) => t.chainType === "evm");
+const solanaTokens = tokens.filter((t) => t.chainType === "sol");
+
+// For HTTP API, use SFA.getTokens() for TokenResponse[] with assetId
+import { SFA } from "@stableflow/core";
+const apiTokens = await SFA.getTokens();`,
     response: `[
   {
     "chainName": "Ethereum",
@@ -150,36 +299,38 @@ const solanaTokens = tokens.filter(t => t.chainType === 'sol');`,
     "symbol": "USDT",
     "decimals": 6,
     "contractAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    "assetId": "usdt",
-    "services": ["oneclick", "usdt0"],
-    "rpcUrl": "https://eth.merkle.io"
-  },
-  ...
+    "assetId": "nep141:eth-...",
+    "services": ["oneclick", "usdt0"]
+  }
 ]`,
   },
   {
     id: "affiliate",
     label: "Developer Fees",
-    command: `// When requesting quotes, include appFees parameter
-const quotes = await SFA.getAllQuote({
-  // ... other parameters
+    command: `import { BridgeSFA } from "@stableflow/bridges";
+
+// Include appFees when requesting quotes (OneClick routes only)
+const quotes = await BridgeSFA.getAllQuote({
+  // ... other GetAllQuoteParams
   oneclickParams: {
     appFees: [
       {
         recipient: "yourapp.near",
         fee: 100, // 1% (100 = 1%, 50 = 0.5%, 10 = 0.10%, 1 = 0.01%)
-      }
+      },
     ],
-  }
+  },
 });
 
 // Multi-party revenue sharing
-appFees: [
-  { recipient: "yourapp.near", fee: 70 },
-  { recipient: "kol.near", fee: 30 }
-]`,
+oneclickParams: {
+  appFees: [
+    { recipient: "yourapp.near", fee: 70 },
+    { recipient: "kol.near", fee: 30 },
+  ],
+}`,
     response: `// Fees are automatically embedded in the execution path
-// 1% of the user's transfer amount will be routed 
+// 1% of the user's transfer amount will be routed
 // directly to your wallet when the transaction executes.
 
 // No custody. No settlement process. No off-chain accounting.`,
@@ -187,73 +338,82 @@ appFees: [
   {
     id: "hyperliquid",
     label: "Hyperliquid",
-    command: `import {
+    command: `import Big from "big.js";
+import { OpenAPI } from "@stableflow/core";
+import {
   Hyperliquid,
   HyperliquidFromTokens,
   HyperliuquidToToken,
   HyperliuquidMinAmount,
-  OpenAPI,
-  EVMWallet
-} from 'stableflow-ai-sdk';
-import Big from 'big.js';
-import { ethers } from 'ethers';
+} from "@stableflow/hyperliquid";
+import { EVMWallet } from "@stableflow/wallet-evm";
+import { ethers } from "ethers";
 
-OpenAPI.TOKEN = 'your-JWT';
+OpenAPI.TOKEN = "your-jwt-token";
 
 const provider = new ethers.BrowserProvider(window.ethereum);
 const signer = await provider.getSigner();
-const wallet = new EVMWallet(provider, signer);
+const fromWallet = new EVMWallet(provider, signer);
+const address = await signer.getAddress();
 
-const account = await signer.getAddress();
+const fromToken = HyperliquidFromTokens.find(
+  (t) => t.chainType === "evm"
+)!;
+const amountWei = Big(amount)
+  .times(10 ** fromToken.decimals)
+  .toFixed(0, 0);
 
-// Source: HyperliquidFromTokens (all except Arbitrum USDC)
-// Destination: always HyperliuquidToToken (Arbitrum USDC)
-// Minimum: HyperliuquidMinAmount (e.g. 5 USDC)
+if (Big(amountWei).lt(HyperliuquidMinAmount)) {
+  throw new Error(\`Min amount is \${HyperliuquidMinAmount}\`);
+}
 
-// 1. Quote (dry: false to get deposit address for transfer)
-const quoteRes = await Hyperliquid.quote({
-  dry: false,
-  slippageTolerance: 0.05,
-  refundTo: account,
-  recipient: account,
-  wallet,
-  fromToken: selectedFromToken, // from HyperliquidFromTokens
+const quoteParams = {
+  slippageTolerance: 0.5, // percentage: 0.5 = 0.5%
+  refundTo: address,
+  recipient: address,
+  wallet: fromWallet,
+  fromToken,
   prices: {},
-  amountWei: Big(amount).times(10 ** HyperliuquidToToken.decimals).toFixed(0, 0),
-});
-if (quoteRes.error || !quoteRes.quote) throw new Error(quoteRes.error || 'No quote');
-const quote = quoteRes.quote;
+  amountWei,
+};
 
-// 2. Transfer on source chain
+// 1. Preview quote
+const preview = await Hyperliquid.quote({ ...quoteParams, dry: true });
+if (preview.error) throw new Error(preview.error);
+
+// 2. Executable quote
+const finalQuote = await Hyperliquid.quote({ ...quoteParams, dry: false });
+if (!finalQuote.quote) throw new Error(finalQuote.error || "No quote");
+
+// 3. Transfer on source chain
 const txhash = await Hyperliquid.transfer({
-  wallet,
-  evmWallet: wallet,
-  evmWalletAddress: account,
-  quote,
+  wallet: fromWallet,
+  evmWallet: fromWallet,
+  evmWalletAddress: address,
+  quote: finalQuote.quote,
 });
 
-// 3. Submit deposit (switch to Arbitrum if needed)
+// 4. Submit deposit (Arbitrum USDC permit signed internally)
 const depositRes = await Hyperliquid.deposit({
-  wallet,
-  evmWallet: wallet,
-  evmWalletAddress: account,
-  quote,
   txhash,
+  wallet: fromWallet,
+  evmWallet: fromWallet,
+  evmWalletAddress: address,
+  quote: finalQuote.quote,
 });
-const depositId = depositRes.data?.depositId;
 
-// 4. Check status
-const statusRes = await Hyperliquid.getStatus({ depositId: String(depositId) });
-// statusRes.data.status: "PROCESSING" | "SUCCESS" | "REFUNDED" | "FAILED"
-// statusRes.data.txHash`,
+// 5. Poll status
+const statusRes = await Hyperliquid.getStatus({
+  depositId: String(depositRes.data.depositId),
+});
+// statusRes.data.status: "PROCESSING" | "SUCCESS" | "REFUNDED" | "FAILED"`,
     response: `// Quote response
 {
   "quote": {
     "quote": {...},
     "quoteParam": {...},
     "sendParam": {...},
-    "amountOut": "...",
-    ...
+    "amountOut": "..."
   },
   "error": null
 }
@@ -276,7 +436,7 @@ const statusRes = await Hyperliquid.getStatus({ depositId: String(depositId) });
 ];
 
 const ApiPlayground = () => {
-  const [activeTab, setActiveTab] = useState("quote");
+  const [activeTab, setActiveTab] = useState("api-integration");
   const activeExample = apiExamples.find((ex) => ex.id === activeTab);
 
   // Highlight TypeScript code
