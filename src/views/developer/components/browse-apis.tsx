@@ -36,16 +36,18 @@ const BrowseApis = () => {
     {
       title: "Routing",
       items: [
-        { text: "Get quote", href: "/developer/documentation#a-getallquote-recommended" },
-        { text: "Execute route", href: "/developer/documentation#b-send-recommended" },
-        { text: "Track transaction status", href: "/developer/documentation#c-getstatus-recommended" },
+        { text: "Get tokens", href: "/developer/documentation#321-api-integration-flow" },
+        { text: "Get quote (HTTP API)", href: "/developer/documentation#23-api-integration-flow" },
+        { text: "Submit deposit tx", href: "/developer/documentation#321-api-integration-flow" },
+        { text: "Get quote (Full Integration)", href: "/developer/documentation#322-full-integration-flow" },
+        { text: "Execute route", href: "/developer/documentation#322-full-integration-flow" },
+        { text: "Track transaction status", href: "/developer/documentation#322-full-integration-flow" },
       ],
     },
     {
       title: "Economics",
       items: [
-        { text: "Configure affiliate fees", href: "/developer/documentation#developer-fees" },
-        // { text: "Fee settlement and distribution", href: "/developer/documentation#developer-fees" },
+        { text: "Configure affiliate fees", href: "/developer/documentation#42-oneclickparams" },
       ],
     },
     // {

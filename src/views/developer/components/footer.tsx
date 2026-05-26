@@ -3,8 +3,8 @@ import { ExternalLinkIcon } from "./icons";
 
 const Footer = () => {
   const links = [
-    { label: "API Reference", href: "/developer/documentation#core-functions-v20" },
-    { label: "Integration Guide", href: "/developer/documentation#api-configuration" },
+    { label: "API Reference", href: "/developer/documentation#32-api-reference" },
+    { label: "Integration Guide", href: "/developer/documentation#22-configuration" },
     { label: "GitHub", href: GithubLink, external: true },
     { label: "Contact Support", href: DiscordLink, external: true },
   ];
