@@ -679,6 +679,16 @@ export default class TonWallet {
     result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
     result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
 
+    // Check if the output amount exceeds the slippage tolerance
+    // If it exceeds, return an error message
+    csl("TonWallet quoteOFT", "red-600", "result.outputAmount: %o", result.outputAmount);
+    csl("TonWallet quoteOFT", "red-600", "slippageTolerance: %o", slippageTolerance + "%");
+    csl("TonWallet quoteOFT", "red-600", "Minimum received amount: %o", Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(6, 0));
+    if (Big(result.outputAmount).lt(Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))))) {
+      result.errMsg = "Slippage limit exceeded";
+      return result;
+    }
+
     for (const feeKey in result.fees) {
       if (excludeFees && excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
         continue;

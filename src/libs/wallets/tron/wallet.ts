@@ -667,12 +667,31 @@ export default class TronWallet {
       sendParam[1] = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer); // to
     }
 
+    // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
+    if (isOriginLegacy || isDestinationLegacy) {
+      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(fromToken.decimals));
+      result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
+    }
+
     if (!dry) {
       execTime.breakpoint();
       const oftData = await oftContract.quoteOFT(sendParam).call();
       execTime.log("quoteOFT");
       const [, , oftReceipt] = oftData;
-      sendParam[3] = Big(oftReceipt[1].toString()).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
+      // The slippage is calculated based on the user-defined value and the user-input amount
+      sendParam[3] = Big(amountWei).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
+      // The actual received amount is based on the contract return value
+      result.outputAmount = numberRemoveEndZero(numberRemoveEndZero(Big(oftReceipt[1].toString()).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0)));
+    }
+
+    // Check if the output amount exceeds the slippage tolerance
+    // If it exceeds, return an error message
+    csl("TronWallet quoteOFT", "red-600", "result.outputAmount: %o", result.outputAmount);
+    csl("TronWallet quoteOFT", "red-600", "slippageTolerance: %o", slippageTolerance + "%");
+    csl("TronWallet quoteOFT", "red-600", "Minimum received amount: %o", Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(6, 0));
+    if (Big(result.outputAmount).lt(Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))))) {
+      result.errMsg = "Slippage limit exceeded";
+      return result;
     }
 
     if (isMultiHopComposer) {
@@ -762,12 +781,6 @@ export default class TronWallet {
     result.fees.nativeFee = numberRemoveEndZero(Big(nativeMsgFee?.toString() || 0).div(10 ** fromToken.nativeToken.decimals).toFixed(fromToken.nativeToken.decimals));
     result.fees.nativeFeeUsd = numberRemoveEndZero(Big(nativeFeeUsd).toFixed(20));
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[0]["lzTokenFee"]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
-
-    // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
-    if (isOriginLegacy || isDestinationLegacy) {
-      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(fromToken.decimals));
-      result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
-    }
 
     const transactionParams = [
       originLayerzeroAddress,
