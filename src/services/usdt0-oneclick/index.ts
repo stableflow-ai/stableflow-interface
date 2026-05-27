@@ -5,13 +5,11 @@ import usdt0Service, { excludeFees as usdt0ExcludeFees } from "../usdt0";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "./config";
-import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
 import { getRouteStatus, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
-import { addressToBytes32 } from "@/utils/address-validation";
 
 export class Usdt0OneClickService {
   public async quote(params: any) {
@@ -48,7 +46,7 @@ export class Usdt0OneClickService {
 
     // First, use the middle chain arb address (our refund address) to request Usdt0 for the output amount
     execTime.breakpoint();
-    const usdt0Result = await usdt0Service.quote(usdt0Params);
+    let usdt0Result = await usdt0Service.quote(usdt0Params);
     execTime.log("usdt0Service.quote: %o", usdt0Result);
 
     if (usdt0Result.errMsg) {
@@ -66,7 +64,11 @@ export class Usdt0OneClickService {
     }
 
     if (!dry) {
-      usdt0Result.sendParam.param.sendParam[1] = addressToBytes32(toToken.chainType, oneClickResult.quote.depositAddress);
+      usdt0Params.recipient = oneClickResult.quote.depositAddress;
+
+      execTime.breakpoint();
+      usdt0Result = await usdt0Service.quote(usdt0Params);
+      execTime.log("usdt0Service.quote again: %o", usdt0Result);
     }
 
     csl("Usdt0OneClickService quote", "rose-600", "oneClickResult: %o", oneClickResult);
