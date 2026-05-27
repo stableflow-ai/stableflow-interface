@@ -1071,6 +1071,8 @@ export default function useBridge(props?: any) {
     addressValidation,
     fromWalletAddress,
     toWalletAddress,
+    // Re-request quote when slippage changes
+    configStore.slippage,
   ]);
 
   // button status check
