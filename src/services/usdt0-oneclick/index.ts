@@ -5,7 +5,6 @@ import usdt0Service, { excludeFees as usdt0ExcludeFees } from "../usdt0";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "./config";
-import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
@@ -18,6 +17,7 @@ export class Usdt0OneClickService {
       dry,
       wallets,
       fromToken,
+      toToken,
     } = params;
 
     const execTime = new ExecTime({ type: "Usdt0OneClickService", logStyle: "lime-700" });
@@ -44,36 +44,31 @@ export class Usdt0OneClickService {
       wallet: middleChainWallet,
     };
 
-    let oneClickResult: any;
-    let usdt0Result: any;
-    if (dry) {
-      execTime.breakpoint();
-      const mergedQuotes = [
-        oneClickService.quote(oneClickParams),
-        usdt0Service.quote(usdt0Params)
-      ];
-      const merdedRes = await Promise.all(mergedQuotes);
-      oneClickResult = merdedRes[0];
-      usdt0Result = merdedRes[1];
-      execTime.log("oneClickService.quote & usdt0Service.quote");
+    // First, use the middle chain arb address (our refund address) to request Usdt0 for the output amount
+    execTime.breakpoint();
+    let usdt0Result = await usdt0Service.quote(usdt0Params);
+    execTime.log("usdt0Service.quote: %o", usdt0Result);
+
+    if (usdt0Result.errMsg) {
+      return usdt0Result;
     }
-    // not dry
-    else {
-      execTime.breakpoint();
-      oneClickResult = await oneClickService.quote(oneClickParams);
-      execTime.log("oneClickService.quote");
 
-      if (oneClickResult.errMsg) {
-        return oneClickResult;
-      }
+    // Use the output amount from Usdt0 to request near-intents for the depositAddress
+    oneClickParams.amountWei = Big(usdt0Result.outputAmount || 0).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0, 0);
+    execTime.breakpoint();
+    const oneClickResult = await oneClickService.quote(oneClickParams);
+    execTime.log("oneClickService.quote: %o", oneClickResult);
 
-      if (!dry) {
-        usdt0Params.recipient = oneClickResult.quote.depositAddress;
-      }
+    if (oneClickResult.errMsg) {
+      return oneClickResult;
+    }
+
+    if (!dry) {
+      usdt0Params.recipient = oneClickResult.quote.depositAddress;
 
       execTime.breakpoint();
       usdt0Result = await usdt0Service.quote(usdt0Params);
-      execTime.log("usdt0Service.quote");
+      execTime.log("usdt0Service.quote again: %o", usdt0Result);
     }
 
     csl("Usdt0OneClickService quote", "rose-600", "oneClickResult: %o", oneClickResult);
