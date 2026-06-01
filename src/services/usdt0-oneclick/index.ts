@@ -24,9 +24,14 @@ export class Usdt0OneClickService {
     const execTime = new ExecTime({ type: "Usdt0OneClickService", logStyle: "lime-700" });
 
     let middleChainWallet = wallets?.evm?.wallet;
+    let middleChainRecipientAddress = wallets?.evm?.account;
     if (!middleChainWallet) {
       const provider = evmRpcFallbackProvider(fromToken);
       middleChainWallet = new RainbowWallet(provider, {});
+    }
+   
+    if (!middleChainRecipientAddress) {
+      middleChainRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
     const usdt0Params = {
@@ -41,7 +46,7 @@ export class Usdt0OneClickService {
       originAsset: MIDDLE_TOKEN_CHAIN.assetId,
       swapType: "FLEX_INPUT",
       isProxy: false,
-      refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
+      refundTo: middleChainRecipientAddress,
       wallet: middleChainWallet,
     };
 

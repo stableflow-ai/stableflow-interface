@@ -24,13 +24,13 @@ export class OneClickUsdt0Service {
     const execTime = new ExecTime({ type: "OneClickUsdt0", logStyle: "lime-500" });
 
     let middleChainWallet = wallets?.evm?.wallet;
-    let destinationRecipientAddress = wallets?.evm?.account;
+    let middleChainRecipientAddress = wallets?.evm?.account;
     if (!middleChainWallet) {
       const provider = evmRpcFallbackProvider(fromToken);
       middleChainWallet = new RainbowWallet(provider, {});
     }
-    if (!destinationRecipientAddress) {
-      destinationRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
+    if (!middleChainRecipientAddress) {
+      middleChainRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
     // If it is not a USD stablecoin
@@ -45,7 +45,7 @@ export class OneClickUsdt0Service {
     // First, call the usdt0 quote method
     // Retrieve sendParam, fees, and estimated costs
     // usdt0 is the second step, so the source chain is arb
-    // The refund address is MIDDLE_CHAIN_REFOUND_ADDRESS
+    // The refund address is middleChainRecipientAddress
     // Since the first step uses oneclick with EXACT_OUTPUT mode,
     // params.amountWei is the input amount for the second step
     const usdt0Params = {
@@ -53,7 +53,7 @@ export class OneClickUsdt0Service {
       amountWei: secondStepAmountWei,
       fromToken: MIDDLE_TOKEN_CHAIN,
       originChain: MIDDLE_TOKEN_CHAIN.chainName,
-      refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
+      refundTo: middleChainRecipientAddress,
       wallet: middleChainWallet,
     };
 
@@ -104,7 +104,7 @@ export class OneClickUsdt0Service {
       destinationAsset: MIDDLE_TOKEN_CHAIN.assetId,
       swapType: "EXACT_OUTPUT",
       isProxy: true,
-      recipient: destinationRecipientAddress,
+      recipient: middleChainRecipientAddress,
       appFees: [
         {
           recipient: "reffer.near",
