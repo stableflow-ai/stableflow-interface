@@ -21,7 +21,7 @@ import { csl } from "@/utils/log";
 import useWalletStore from "@/stores/use-wallet";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 
-export default function useEvmBalances(auto = false) {
+export default function useEvmBalances(auto = false, selectedToken?: string) {
   const wallets = useWalletsStore();
   const balancesStore = useBalancesStore();
   const wallet = wallets.evm;
@@ -31,6 +31,8 @@ export default function useEvmBalances(auto = false) {
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
 
+  const resolvedToken = selectedToken ?? walletStore.selectedToken;
+
   const setLoading = (loading: boolean) => {
     walletStore.set({ evmBalancesLoading: loading });
   };
@@ -38,18 +40,20 @@ export default function useEvmBalances(auto = false) {
   const getBalances = async () => {
     if (!wallet || !wallet.account) return;
 
+    const token = selectedToken ?? walletStore.selectedToken;
+
     // Cancel the previous unfinished request
     abortControllerRef.current?.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     const currentRequestId = ++requestIdRef.current;
 
-    // Only fetch the balance of the currently selected walletStore.selectedToken
+    // Only fetch the balance of the currently selected token
     const _evmBalancesTokens: EvmBalancesToken[] = [];
     for (let i = 0; i < evmBalancesTokens.length; i++) {
       const currentChain = evmBalancesTokens[i];
-      let currentTokenIndex = currentChain?.symbols?.indexOf?.(walletStore.selectedToken);
-      if (currentChain.chain_id === 1 && walletStore.selectedToken === "USD₮0") {
+      let currentTokenIndex = currentChain?.symbols?.indexOf?.(token);
+      if (currentChain.chain_id === 1 && token === "USD₮0") {
         currentTokenIndex = currentChain?.symbols?.indexOf?.("USDT");
       }
       if (typeof currentTokenIndex !== "number" || currentTokenIndex < 0) {
@@ -63,7 +67,7 @@ export default function useEvmBalances(auto = false) {
       });
     }
 
-    csl("useEvmBalances", "pink-700", "current selected token: %o", walletStore.selectedToken);
+    csl("useEvmBalances", "pink-700", "current selected token: %o", token);
     csl("useEvmBalances", "pink-700", "current balances tokens: %o", _evmBalancesTokens);
 
     const isRequestStale = () => abortController.signal.aborted || currentRequestId !== requestIdRef.current;
@@ -130,7 +134,7 @@ export default function useEvmBalances(auto = false) {
           balancesStore.set({
             evmBalances: {
               ..._balances,
-              ...selectedTotalBalance[walletStore.selectedToken],
+              ...selectedTotalBalance[token as keyof typeof selectedTotalBalance],
             },
           });
         }
@@ -231,7 +235,7 @@ export default function useEvmBalances(auto = false) {
     if (!initRef.current) {
       debouncedGetBalances();
     }
-  }, [wallet?.account, walletStore.selectedToken]);
+  }, [wallet?.account, resolvedToken]);
 
   useEffect(() => {
     if (!wallet?.account || !auto) {
@@ -252,7 +256,7 @@ export default function useEvmBalances(auto = false) {
     return () => {
       stopPollingBalances();
     };
-  }, [wallet?.account, auto, walletStore.selectedToken]);
+  }, [wallet?.account, auto, resolvedToken]);
 
   return { loading: walletStore.evmBalancesLoading, getBalances };
 }
