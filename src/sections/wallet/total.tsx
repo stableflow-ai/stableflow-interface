@@ -8,10 +8,13 @@ import { formatNumber } from "@/utils/format/number";
 import Popover from "@/components/popover";
 import clsx from "clsx";
 import { stablecoinLogoMap, stablecoinWithChains } from "@/config/tokens";
+import Deposit2WalletModal from "./deposit/modal";
+import { useDepositStore } from "@/stores/use-deposit";
 
 export default function Total() {
   const walletStore = useWalletStore();
   const balancesStore = useBalancesStore();
+  const depositStore = useDepositStore();
 
   const [
     total,
@@ -108,9 +111,13 @@ export default function Total() {
     ];
   }, [balancesStore, walletStore.selectedToken]);
 
+  const handleDeposit = () => {
+    depositStore.openModal();
+  };
+
   return (
     <div className="flex flex-col justify-center items-center border-b border-[#EDF0EF] pb-[40px] mt-[20px]">
-      <div className="w-full px-[18px] flex items-center gap-[7px]">
+      <div className="w-full px-[18px] flex justify-between items-center gap-[7px]">
         <div className="flex flex-col gap-[0px] text-black text-[14px] font-[500] leading-[100%]">
           <div className="">
             Total {walletStore.selectedToken}
@@ -126,6 +133,13 @@ export default function Total() {
             <div className="w-[71px] h-[12px] rounded-[6px] bg-[#EDF0F7] mt-[4px]" />
           )}
         </div>
+        <button
+          type="button"
+          className="px-4 h-[32px] cursor-pointer rounded-[16px] bg-[#6284F5] shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-[14px] text-[#ffffff] hover:opacity-80 duration-150"
+          onClick={handleDeposit}
+        >
+          Deposit
+        </button>
       </div>
       <div
         className="w-full h-[16px] px-[25px] grid grid-cols-1 gap-[2px] mt-[30px]"
@@ -203,6 +217,7 @@ export default function Total() {
           );
         })}
       </div>
+      <Deposit2WalletModal />
     </div>
   );
 }
