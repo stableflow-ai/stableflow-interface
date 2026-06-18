@@ -1,5 +1,6 @@
 import type { Service } from "@/services/constants";
 import { getStableflowChainLogo } from "@/utils/format/logo";
+import { PROXY_RPC_DOMAIN } from "./api";
 
 export const chainTypes: Record<string, { value: string; name: string; color: string; bg: string; bgColor: string; icon: string; iconGray: string; }> = {
   near: {
@@ -70,7 +71,7 @@ export const chainTypes: Record<string, { value: string; name: string; color: st
 const HeliusRpcApiKey = import.meta.env.VITE_HELIUS_RPC_API_KEY;
 const AlchemyRpcApiKey = import.meta.env.VITE_ALCHEMY_RPC_API_KEY;
 
-const ProxyRpcHost = `https://${import.meta.env.VITE_PRC_PROXY_HOST || "rpcs.stableflow.ai"}/rpc`;
+const ProxyRpcHost = `https://${PROXY_RPC_DOMAIN}/rpc`;
 
 export const chainsRpcUrls: Record<string, string[]> = {
   "Ethereum": [

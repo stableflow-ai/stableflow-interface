@@ -1,8 +1,8 @@
+import { PROXY_RPC_DOMAIN } from "@/config/api";
 import type { TokenChain } from "@/config/chains";
 import { generateRpcSignature } from "@/libs/signature";
 import { ethers } from "ethers";
 
-const PROXY_RPC_DOMAIN = import.meta.env.VITE_PRC_PROXY_HOST || "rpcs.stableflow.ai";
 const providerCache = new Map<number, ethers.AbstractProvider>();
 
 class SequentialFallbackProvider extends ethers.AbstractProvider {
