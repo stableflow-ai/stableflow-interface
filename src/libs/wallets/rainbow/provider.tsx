@@ -50,6 +50,56 @@ import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 import { metadata } from "./metadata";
 import { generateRpcSignature } from "@/libs/signature";
 import { PROXY_RPC_DOMAIN } from "@/config/api";
+import { getSignedProviderByChainId } from "@/utils/evm-rpc-providers";
+
+// Read-only JSON-RPC methods that a wallet signer may trigger while populating
+// or waiting on a transaction. On mobile WalletConnect these are routed by the
+// wallet provider to the dApp's configured RPC (our signed proxy) WITHOUT the
+// HMAC headers, causing a 401. We intercept them and serve them from the
+// HMAC-signed fallback provider instead. Signing/state-changing methods
+// (eth_sendTransaction, eth_sign*, eth_accounts, eth_chainId, wallet_*) still go
+// to the wallet transport.
+const SIGNER_READ_METHODS = new Set<string>([
+  "eth_call",
+  "eth_estimateGas",
+  "eth_getTransactionCount",
+  "eth_getBalance",
+  "eth_getCode",
+  "eth_getStorageAt",
+  "eth_blockNumber",
+  "eth_getBlockByNumber",
+  "eth_getBlockByHash",
+  "eth_getBlockTransactionCountByNumber",
+  "eth_gasPrice",
+  "eth_maxPriorityFeePerGas",
+  "eth_feeHistory",
+  "eth_getTransactionReceipt",
+  "eth_getTransactionByHash",
+  "eth_getLogs",
+]);
+
+type Eip1193Request = (args: { method: string; params?: any[]; }) => Promise<any>;
+
+const createSignedReadTransport = (
+  walletTransport: { request: Eip1193Request; },
+  chainId?: number
+): { request: Eip1193Request; } => {
+  return {
+    request: async ({ method, params }) => {
+      if (SIGNER_READ_METHODS.has(method)) {
+        const signedProvider = getSignedProviderByChainId(chainId);
+        if (signedProvider) {
+          try {
+            return await signedProvider.send(method, params ?? []);
+          } catch (_err) {
+            // Fall back to the wallet transport if the signed RPC fails.
+          }
+        }
+      }
+      return walletTransport.request({ method, params });
+    },
+  };
+};
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 
@@ -210,7 +260,9 @@ function Content() {
       const provider = new ethers.BrowserProvider(publicClient);
 
       const signer = walletClient
-        ? await new ethers.BrowserProvider(walletClient.transport).getSigner()
+        ? await new ethers.BrowserProvider(
+            createSignedReadTransport(walletClient.transport, account.chainId)
+          ).getSigner()
         : null;
 
       const wallet = new RainbowWallet(provider, signer);
