@@ -9,6 +9,7 @@ const Networks = lazy(() => import("./components/networks"));
 const BridgeButton = lazy(() => import("./components/button"));
 const HistoryDrawer = lazy(() => import("../history/drawer"));
 const PendingTransfer = lazy(() => import("./components/pending"));
+const Prophet = lazy(() => import("./components/prophet"));
 
 // Loading component
 const LoadingSpinner = () => null;
@@ -46,6 +47,9 @@ export default function Bridge() {
               />
             </Suspense>
           </div>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Prophet />
+          </Suspense>
         </div>
       </div>
       <Suspense fallback={null}>
