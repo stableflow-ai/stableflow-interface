@@ -1,3 +1,4 @@
+import { PROXY_RPC_DOMAIN } from "@/config/api";
 import { getChainRpcUrl } from "@/config/chains";
 import { generateRpcSignature } from "@/libs/signature";
 import { csl } from "@/utils/log";
@@ -5,7 +6,6 @@ import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Connection, PublicKey } from "@solana/web3.js";
 
 const SOLANA_RPC_TIMEOUT_MS = 5000;
-const PROXY_RPC_DOMAIN = import.meta.env.VITE_PRC_PROXY_HOST || "rpcs.stableflow.ai";
 
 const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number) => {
   return await Promise.race([

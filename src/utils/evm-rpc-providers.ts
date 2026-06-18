@@ -1,9 +1,13 @@
-import type { TokenChain } from "@/config/chains";
+import { PROXY_RPC_DOMAIN } from "@/config/api";
+import chains, { type ChainType, type TokenChain } from "@/config/chains";
 import { generateRpcSignature } from "@/libs/signature";
 import { ethers } from "ethers";
 
-const PROXY_RPC_DOMAIN = import.meta.env.VITE_PRC_PROXY_HOST || "rpcs.stableflow.ai";
-const providerCache = new Map<number, ethers.AbstractProvider>();
+export interface SignedRpcProvider extends ethers.AbstractProvider {
+  send(method: string, params: any[]): Promise<any>;
+}
+
+const providerCache = new Map<number, SignedRpcProvider>();
 
 class SequentialFallbackProvider extends ethers.AbstractProvider {
   private providers: ethers.JsonRpcProvider[];
@@ -24,6 +28,18 @@ class SequentialFallbackProvider extends ethers.AbstractProvider {
         return await provider._perform(req);
       } catch (err) {
         if (ethers.isError(err, "CALL_EXCEPTION")) throw err;
+        lastError = err;
+      }
+    }
+    throw lastError;
+  }
+
+  async send(method: string, params: any[]): Promise<any> {
+    let lastError: unknown;
+    for (const provider of this.providers) {
+      try {
+        return await provider.send(method, params);
+      } catch (err) {
         lastError = err;
       }
     }
@@ -54,7 +70,7 @@ const ChainNameMap: Record<string, string> = {
   "katana": "katana",
 };
 
-export function evmRpcFallbackProvider(chain: TokenChain) {
+export function evmRpcFallbackProvider(chain: TokenChain): SignedRpcProvider {
   const { rpcUrls, chainId } = chain;
 
   if (providerCache.has(chainId!)) {
@@ -84,11 +100,33 @@ export function evmRpcFallbackProvider(chain: TokenChain) {
     }
   );
 
-  const provider =
+  const provider: SignedRpcProvider =
     providers.length === 1
       ? providers[0]
       : new SequentialFallbackProvider(providers, chainId!);
 
   providerCache.set(chainId!, provider);
   return provider;
+}
+
+const evmChainByChainId = new Map<number, ChainType>();
+for (const key in chains) {
+  const chain = chains[key];
+  if (chain.chainId != null && chain.chainType === "evm") {
+    evmChainByChainId.set(chain.chainId, chain);
+  }
+}
+
+/**
+ * Returns the HMAC-signed fallback provider for a given EVM chainId, or null
+ * when the chainId is unknown. Used to route a wallet signer's read calls
+ * through the signed proxy RPC instead of the wallet transport.
+ */
+export function getSignedProviderByChainId(
+  chainId?: number,
+): SignedRpcProvider | null {
+  if (chainId == null) return null;
+  const chain = evmChainByChainId.get(chainId);
+  if (!chain) return null;
+  return evmRpcFallbackProvider(chain as unknown as TokenChain);
 }

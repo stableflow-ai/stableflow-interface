@@ -346,7 +346,17 @@ export default class RainbowWallet {
     }
 
     try {
-      const gasLimit = await contract[method].estimateGas(...param);
+      // Estimate via the signed RPC provider instead of the signer's provider.
+      // Mobile WalletConnect routes read calls (eth_estimateGas) through its own
+      // HTTP client to the proxy RPC without HMAC headers, causing a 401. The
+      // fallback provider re-generates the HMAC signature on every request.
+      const readContract = contract.connect(provider);
+      const populated = await readContract[method].populateTransaction(...param);
+      const { gasLimit: _ignoredGasLimit, ...txData } = populated;
+      const gasLimit = await provider.estimateGas({
+        ...txData,
+        from: refundTo || this.signer?.address,
+      });
       finalGasLimit = gasLimit * 120n / 100n;
       const { usd, wei } = await this.getEstimateGas({
         gasLimit: finalGasLimit,
