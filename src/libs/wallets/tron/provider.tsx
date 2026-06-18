@@ -8,7 +8,7 @@ import { OKXTronProvider } from "@okxconnect/universal-provider";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { TronWeb } from "tronweb";
 import { useWatchOKXConnect } from "../okxconnect";
-import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter } from "@tronweb3/tronwallet-adapters";
+import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter, TrustAdapter } from "@tronweb3/tronwallet-adapters";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
 import { metadata } from "../rainbow/metadata";
@@ -26,6 +26,7 @@ const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 const wallets = [
   new TronLinkAdapter(),
   new OkxWalletAdapter(),
+  new TrustAdapter(),
   new WalletConnectAdapter({
     network: "Mainnet",
     options: {
