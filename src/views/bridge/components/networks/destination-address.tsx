@@ -1,7 +1,10 @@
+import useIsMobile from "@/hooks/use-is-mobile";
 import { formatAddress } from "@/utils/format/address";
 import clsx from "clsx";
 
 const DestinationAddress = ({ isError, address, onClick }: any) => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="flex items-center">
       {isError ? (
@@ -38,7 +41,7 @@ const DestinationAddress = ({ isError, address, onClick }: any) => {
           isError ? "text-[#FF6A19]" : "text-[#444C59]"
         )}
       >
-        {formatAddress(address, 12, 10)}
+        {formatAddress(address, isMobile ? 5 : 12, isMobile ? 4 : 10)}
       </span>
       <button className="button p-[2px]" onClick={onClick}>
         <svg
