@@ -55,7 +55,13 @@ export default function TronProvider({
   }, [wallets]);
 
   const isOKXSDK = useMemo(() => {
-    return installedWallets?.length <= 0 && isMobile;
+    let _isOKXSDK = isMobile;
+    if (typeof window !== "undefined") {
+      if (["localhost", "127.0.0.1", "test.stableflow.ai"].includes(window.location.hostname)) {
+        _isOKXSDK = installedWallets?.length <= 0 && isMobile;
+      }
+    }
+    return _isOKXSDK;
   }, [isMobile, installedWallets]);
 
   const detectTokenPocket = () => {

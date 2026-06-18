@@ -43,45 +43,62 @@ import "@rainbow-me/rainbowkit/styles.css";
 import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
-import { metaMaskWallet, baseAccount, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
+import { metaMaskWallet, base as baseWallet, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
 import { fallback } from "viem";
 import { getChainRpcUrl } from "@/config/chains";
 import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 import { metadata } from "./metadata";
 import { generateRpcSignature } from "@/libs/signature";
+import { PROXY_RPC_DOMAIN } from "@/config/api";
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 
 // RPC_CHAINS="tron,solana,aptos,aptos,sui,ethereum,arbitrum,bsc,avalanche,base,polygon,gnosis,optimism,berachain,xlayer,plasma,mantle,megaeth,ink,stable,celo,sei,fraxtal,katana"
-const getRpcHeaders = (chain: string) => {
+const isSignedRpcUrl = (rpcUrl: string) => {
+  return rpcUrl.includes(PROXY_RPC_DOMAIN);
+}
+
+const getSignedRpcHttpConfig = (rpcUrl: string, chain: string) => {
+  if (!isSignedRpcUrl(rpcUrl)) {
+    return {};
+  }
+
   return {
-    fetchOptions: {
-      headers: (generateRpcSignature(chain).headers as any),
-    }
+    onFetchRequest: (_request: Request, init: RequestInit) => {
+      const { headers } = generateRpcSignature(chain);
+
+      return {
+        ...init,
+        headers: {
+          ...(init.headers as Record<string, string> | undefined),
+          ...headers,
+        },
+      };
+    },
   };
 };
 
 const RpcUrls: any = {
-  [mainnet.id]: fallback(getChainRpcUrl("Ethereum").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("ethereum")))),
-  [polygon.id]: fallback(getChainRpcUrl("Polygon").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("polygon")))),
-  [arbitrum.id]: fallback(getChainRpcUrl("Arbitrum").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("arbitrum")))),
-  [optimism.id]: fallback(getChainRpcUrl("Optimism").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("optimism")))),
-  [bsc.id]: fallback(getChainRpcUrl("BNB Chain").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("bsc")))),
-  [base.id]: fallback(getChainRpcUrl("Base").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("base")))),
-  [avalanche.id]: fallback(getChainRpcUrl("Avalanche").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("avalanche")))),
-  [gnosis.id]: fallback(getChainRpcUrl("Gnosis").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("gnosis")))),
-  [berachain.id]: fallback(getChainRpcUrl("Berachain").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("berachain")))),
-  [xLayer.id]: fallback(getChainRpcUrl("X Layer").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("xlayer")))),
-  [plasma.id]: fallback(getChainRpcUrl("Plasma").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("plasma")))),
-  [mantle.id]: fallback(getChainRpcUrl("Mantle").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("mantle")))),
-  [megaeth.id]: fallback(getChainRpcUrl("MegaETH").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("megaeth")))),
-  [ink.id]: fallback(getChainRpcUrl("Ink").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("ink")))),
-  [stable.id]: fallback(getChainRpcUrl("Stable").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("stable")))),
-  [celo.id]: fallback(getChainRpcUrl("Celo").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("celo")))),
-  [sei.id]: fallback(getChainRpcUrl("Sei").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("sei")))),
+  [mainnet.id]: fallback(getChainRpcUrl("Ethereum").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "ethereum")))),
+  [polygon.id]: fallback(getChainRpcUrl("Polygon").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "polygon")))),
+  [arbitrum.id]: fallback(getChainRpcUrl("Arbitrum").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "arbitrum")))),
+  [optimism.id]: fallback(getChainRpcUrl("Optimism").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "optimism")))),
+  [bsc.id]: fallback(getChainRpcUrl("BNB Chain").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "bsc")))),
+  [base.id]: fallback(getChainRpcUrl("Base").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "base")))),
+  [avalanche.id]: fallback(getChainRpcUrl("Avalanche").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "avalanche")))),
+  [gnosis.id]: fallback(getChainRpcUrl("Gnosis").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "gnosis")))),
+  [berachain.id]: fallback(getChainRpcUrl("Berachain").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "berachain")))),
+  [xLayer.id]: fallback(getChainRpcUrl("X Layer").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "xlayer")))),
+  [plasma.id]: fallback(getChainRpcUrl("Plasma").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "plasma")))),
+  [mantle.id]: fallback(getChainRpcUrl("Mantle").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "mantle")))),
+  [megaeth.id]: fallback(getChainRpcUrl("MegaETH").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "megaeth")))),
+  [ink.id]: fallback(getChainRpcUrl("Ink").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "ink")))),
+  [stable.id]: fallback(getChainRpcUrl("Stable").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "stable")))),
+  [celo.id]: fallback(getChainRpcUrl("Celo").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "celo")))),
+  [sei.id]: fallback(getChainRpcUrl("Sei").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "sei")))),
   [flare.id]: fallback(getChainRpcUrl("Flare").rpcUrls.map((rpc) => http(rpc))),
-  [fraxtal.id]: fallback(getChainRpcUrl("Fraxtal").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("fraxtal")))),
-  [katana.id]: fallback(getChainRpcUrl("Katana").rpcUrls.map((rpc) => http(rpc, getRpcHeaders("katana")))),
+  [fraxtal.id]: fallback(getChainRpcUrl("Fraxtal").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "fraxtal")))),
+  [katana.id]: fallback(getChainRpcUrl("Katana").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "katana")))),
 };
 
 const connectors: any = connectorsForWallets(
@@ -91,7 +108,7 @@ const connectors: any = connectorsForWallets(
       wallets: [
         okxWallet,
         metaMaskWallet,
-        baseAccount,
+        baseWallet,
         bitgetWallet,
         binanceWallet,
         walletConnectWallet,
