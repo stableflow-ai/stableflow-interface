@@ -14,6 +14,7 @@ import { getChainRpcUrl } from "@/config/chains";
 import { metadata } from "../rainbow/metadata";
 import { csl } from "@/utils/log";
 import { generateRpcSignature } from "@/libs/signature";
+import { isInOKApp } from "../utils/device";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
@@ -56,6 +57,9 @@ export default function TronProvider({
 
   const isOKXSDK = useMemo(() => {
     let _isOKXSDK = isMobile;
+    if (isInOKApp()) {
+      return false;
+    }
     if (typeof window !== "undefined") {
       if (["localhost", "127.0.0.1", "test.stableflow.ai"].includes(window.location.hostname)) {
         _isOKXSDK = installedWallets?.length <= 0 && isMobile;
