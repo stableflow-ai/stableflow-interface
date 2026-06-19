@@ -1,28 +1,30 @@
 const USERS = [
   { username: "admin", password: "dapdap999000" },
 ];
-const AUTH_DOMAINS = [
-  "test.stableflow.ai",
-];
 
 export async function onRequest(context: any) {
+  const AUTH_DOMAINS = context.env.AUTH_DOMAINS ? context.env.AUTH_DOMAINS
+    .split(",")
+    .map((d) => d.trim())
+    .filter(Boolean) : [];
+
   const request = context.request
   const url = new URL(request.url)
   const hostname = url.hostname
 
   // HTTP Basic Authentication for test.stableflow.ai
-  if (AUTH_DOMAINS.includes(hostname)) {
+  if (AUTH_DOMAINS.length > 0 && AUTH_DOMAINS.includes(hostname)) {
     const authHeader = request.headers.get("Authorization")
 
     let isAuthenticated = false
-    
+
     if (authHeader && authHeader.startsWith("Basic ")) {
       try {
         // Parse Basic Auth header
         const base64Credentials = authHeader.substring(6) // Remove "Basic " prefix
         const credentials = atob(base64Credentials)
         const [username, password] = credentials.split(":", 2)
-        
+
         // Validate username and password
         if (USERS.find((user) => user.username === username && user.password === password)) {
           isAuthenticated = true
@@ -32,7 +34,7 @@ export async function onRequest(context: any) {
         isAuthenticated = false
       }
     }
-    
+
     // If not authenticated, return 401
     if (!isAuthenticated) {
       return new Response("Unauthorized", {
