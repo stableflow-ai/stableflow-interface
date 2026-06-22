@@ -5,6 +5,7 @@ import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
 import { useSwitchChain } from "wagmi";
 import { isChainDisabled } from "@/config/token-restrictions";
+import Big from "big.js";
 
 export default function Token({
   token,
@@ -49,110 +50,118 @@ export default function Token({
                 <span>Network</span>
                 <span>{token.symbol} Balance</span>
               </div>
-              {token.chains.map((chain: any) => {
-                // Check if chain is disabled: when selecting to token, check if from token causes this chain to be disabled
-                const isDisabled = walletStore.isTo
-                  ? isChainDisabled(
-                    walletStore.fromToken?.symbol,
-                    token.symbol,
-                    chain.chainName
-                  )
-                  : false;
+              {
+                [...token.chains]
+                  .sort((a: any, b: any) => {
+                    const balanceA = balances?.[a.chainId]?.[a.contractAddress] ?? "0";
+                    const balanceB = balances?.[b.chainId]?.[b.contractAddress] ?? "0";
+                    return Big(balanceB).cmp(balanceA);
+                  })
+                  .map((chain: any) => {
+                    // Check if chain is disabled: when selecting to token, check if from token causes this chain to be disabled
+                    const isDisabled = walletStore.isTo
+                      ? isChainDisabled(
+                        walletStore.fromToken?.symbol,
+                        token.symbol,
+                        chain.chainName
+                      )
+                      : false;
 
-                return (
-                  <div
-                    key={chain.chainName}
-                    className={`p-[10px] duration-300 flex justify-between items-center ${isDisabled
-                      ? "opacity-50 cursor-not-allowed"
-                      : "cursor-pointer hover:bg-[#FAFBFF]"
-                      }`}
-                    onClick={async () => {
-                      // Prevent click if disabled
-                      if (isDisabled) {
-                        return;
-                      }
+                    return (
+                      <div
+                        key={chain.chainName}
+                        className={`p-[10px] duration-300 flex justify-between items-center ${isDisabled
+                          ? "opacity-50 cursor-not-allowed"
+                          : "cursor-pointer hover:bg-[#FAFBFF]"
+                          }`}
+                        onClick={async () => {
+                          // Prevent click if disabled
+                          if (isDisabled) {
+                            return;
+                          }
 
-                      const mergedToken = {
-                        symbol: token.symbol,
-                        decimals: token.decimals,
-                        icon: token.icon,
-                        ...chain
-                      };
+                          const mergedToken = {
+                            symbol: token.symbol,
+                            decimals: token.decimals,
+                            icon: token.icon,
+                            ...chain
+                          };
 
-                      if (!walletStore.isTo) {
-                        await switchChainAsync({
-                          chainId: chain.chainId,
-                          addEthereumChainParameter: {
-                            chainName: chain.chainName,
-                            nativeCurrency: {
-                              name: chain.nativeToken.symbol,
-                              symbol: chain.nativeToken.symbol,
-                              decimals: chain.nativeToken.decimals,
-                            },
-                            rpcUrls: chain.rpcUrls,
-                            blockExplorerUrls: chain.blockExplorerUrls,
-                          },
-                        }, {
-                          onSuccess: (data) => { },
-                          onError: (error) => { },
-                        });
-                      }
+                          if (!walletStore.isTo) {
+                            await switchChainAsync({
+                              chainId: chain.chainId,
+                              addEthereumChainParameter: {
+                                chainName: chain.chainName,
+                                nativeCurrency: {
+                                  name: chain.nativeToken.symbol,
+                                  symbol: chain.nativeToken.symbol,
+                                  decimals: chain.nativeToken.decimals,
+                                },
+                                rpcUrls: chain.rpcUrls,
+                                blockExplorerUrls: chain.blockExplorerUrls,
+                              },
+                            }, {
+                              onSuccess: (data) => { },
+                              onError: (error) => { },
+                            });
+                          }
 
-                      if (walletStore.isTo) {
-                        if (mergedToken.contractAddress === walletStore.fromToken?.contractAddress && mergedToken.chainName === walletStore.fromToken?.chainName) {
+                          if (walletStore.isTo) {
+                            if (mergedToken.contractAddress === walletStore.fromToken?.contractAddress && mergedToken.chainName === walletStore.fromToken?.chainName) {
+                              walletStore.set({
+                                toToken: mergedToken,
+                                fromToken: null,
+                                showWallet: false,
+                              });
+                              return;
+                            }
+                          } else {
+                            if (mergedToken.contractAddress === walletStore.toToken?.contractAddress && mergedToken.chainName === walletStore.toToken?.chainName) {
+                              walletStore.set({
+                                fromToken: mergedToken,
+                                toToken: null,
+                                showWallet: false,
+                              });
+                              return;
+                            }
+                          }
+
                           walletStore.set({
-                            toToken: mergedToken,
-                            fromToken: null,
-                            showWallet: false,
+                            [walletStore.isTo ? "toToken" : "fromToken"]: mergedToken,
+                            selectedToken: token.symbol,
+                            showWallet: false
                           });
-                          return;
-                        }
-                      } else {
-                        if (mergedToken.contractAddress === walletStore.toToken?.contractAddress && mergedToken.chainName === walletStore.toToken?.chainName) {
-                          walletStore.set({
-                            fromToken: mergedToken,
-                            toToken: null,
-                            showWallet: false,
-                          });
-                          return;
-                        }
-                      }
-
-                      walletStore.set({
-                        [walletStore.isTo ? "toToken" : "fromToken"]: mergedToken,
-                        selectedToken: token.symbol,
-                        showWallet: false
-                      });
-                    }}
-                  >
-                    <div className="flex items-center gap-[8px]">
-                      <img src={chain.chainIcon} className="w-[24px] h-[24px]" />
-                      <span className="text-[14px] text-[#444C59]">
-                        {chain.chainName}
-                      </span>
-                      {(
-                        (
-                          walletStore.fromToken?.contractAddress === chain.contractAddress
-                          && walletStore.fromToken?.chainName === chain.chainName
-                        )
-                        || (
-                          walletStore.toToken?.contractAddress === chain.contractAddress
-                          && walletStore.toToken?.chainName === chain.chainName
-                        )
-                      ) && (
-                          <CheckIcon circleColor={"#fff"} />
+                        }}
+                      >
+                        <div className="flex items-center gap-[8px]">
+                          <img src={chain.chainIcon} className="w-[24px] h-[24px]" />
+                          <span className="text-[14px] text-[#444C59]">
+                            {chain.chainName}
+                          </span>
+                          {(
+                            (
+                              walletStore.fromToken?.contractAddress === chain.contractAddress
+                              && walletStore.fromToken?.chainName === chain.chainName
+                            )
+                            || (
+                              walletStore.toToken?.contractAddress === chain.contractAddress
+                              && walletStore.toToken?.chainName === chain.chainName
+                            )
+                          ) && (
+                              <CheckIcon circleColor={"#fff"} />
+                            )}
+                        </div>
+                        {loading ? (
+                          <Loading size={14} />
+                        ) : (
+                          <Amount
+                            amount={balances?.[chain.chainId]?.[chain.contractAddress]}
+                          />
                         )}
-                    </div>
-                    {loading ? (
-                      <Loading size={14} />
-                    ) : (
-                      <Amount
-                        amount={balances?.[chain.chainId]?.[chain.contractAddress]}
-                      />
-                    )}
-                  </div>
-                );
-              })}
+                      </div>
+                    );
+                  })
+              }
             </div>
           </motion.div>
         )}
