@@ -41,6 +41,8 @@ export function validateAddress(
       return validateTronAddress(trimmedAddress);
     case "ton":
       return validateTonAddress(trimmedAddress);
+    case "sui":
+      return validateSuiAddress(trimmedAddress);
     default:
       return {
         isValid: false,
@@ -179,6 +181,23 @@ function validateAptosAddress(address: string): AddressValidationResult {
 }
 
 /**
+ * Validates a Sui address
+ * Sui addresses are 32 bytes (64 hex characters), prefixed with 0x
+ */
+function validateSuiAddress(address: string): AddressValidationResult {
+  const suiPattern = /^0x[a-fA-F0-9]{64}$/;
+
+  if (!suiPattern.test(address)) {
+    return {
+      isValid: false,
+      error: "Invalid Sui address"
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
  * Validates a TON address
  * TON addresses can be in user-friendly format (EQ...) or raw format (workchain:hash)
  */
@@ -222,12 +241,18 @@ export function getAddressPlaceholder(blockchain: string): string {
       return "Enter NEAR wallet address (e.g., alice.near or 64-char hex)";
     case "sol":
       return "Enter Solana wallet address (e.g., 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM)";
+    case "evm":
+      return "Enter EVM wallet address (e.g., 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6)";
     case "arb":
       return "Enter Ethereum/Arbitrum wallet address (e.g., 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6)";
     case "aptos":
       return "Enter Aptos wallet address (e.g., 0x93493b07d031c4f18ad1e874575761be7e47d4cea5c81d538600e8ec72d6ab1c)";
     case "tron":
       return "Enter Tron wallet address (e.g., TG4cfJGzvmpWxYyQKSosCWTacKCxEwSiKw)";
+    case "sui":
+      return "Enter Sui wallet address (e.g., 0x...)";
+    case "ton":
+      return "Enter TON wallet address";
     default:
       return "Enter recipient wallet address";
   }
