@@ -35,8 +35,12 @@ export default function useEvmBalances(auto = false) {
     walletStore.set({ evmBalancesLoading: loading });
   };
 
-  const getBalances = async () => {
+  const getBalances = async (params?: { from?: string; }) => {
+    csl("useEvmBalances", "pink-700", "request balances from: %o", params?.from);
+
     if (!wallet || !wallet.account) return;
+
+    const requestAccount = wallet.account;
 
     // Cancel the previous unfinished request
     abortControllerRef.current?.abort();
@@ -66,7 +70,11 @@ export default function useEvmBalances(auto = false) {
     csl("useEvmBalances", "pink-700", "current selected token: %o", walletStore.selectedToken);
     csl("useEvmBalances", "pink-700", "current balances tokens: %o", _evmBalancesTokens);
 
-    const isRequestStale = () => abortController.signal.aborted || currentRequestId !== requestIdRef.current;
+    const isRequestStale = () => {
+      if (abortController.signal.aborted || currentRequestId !== requestIdRef.current) return true;
+      const currentAccount = useWalletsStore.getState().evm.account;
+      return !currentAccount || currentAccount !== requestAccount;
+    };
 
     try {
       setLoading(true);
@@ -74,6 +82,9 @@ export default function useEvmBalances(auto = false) {
         address: wallet.account,
         tokens: _evmBalancesTokens,
       }, { signal: abortController.signal });
+
+      if (isRequestStale()) return;
+
       const _data = res.data.data;
       const _balances: any = {
         ...balancesStore.evmBalances,
@@ -126,17 +137,17 @@ export default function useEvmBalances(auto = false) {
           "frxUSD": { frxusdBalance: (isFinal || Big(_balances.frxusdBalance || 0).lte(0)) ? frxusdBalance.toString() : _balances.frxusdBalance, },
         };
 
-        if (wallet?.account) {
-          balancesStore.set({
-            evmBalances: {
-              ..._balances,
-              ...selectedTotalBalance[walletStore.selectedToken],
-            },
-          });
-        }
+        balancesStore.set({
+          evmBalances: {
+            ..._balances,
+            ...selectedTotalBalance[walletStore.selectedToken],
+          },
+        });
       };
 
       setBalances(_data);
+
+      if (isRequestStale()) return;
 
       const unsupportedChainIds = _evmBalancesTokens.map((token) => Object.keys(_data).includes(token.chain_id.toString()) ? null : token.chain_id).filter(Boolean);
       const unsupportedBalances: any = {};
@@ -162,7 +173,7 @@ export default function useEvmBalances(auto = false) {
             try {
               const contract = new ethers.Contract(address, erc20Abi, provider);
               const decimals = await contract.decimals();
-              const balance = await contract.balanceOf(wallet.account);
+              const balance = await contract.balanceOf(requestAccount);
 
               _result.decimals = Number(decimals);
               _result.balance = balance.toString();
@@ -214,7 +225,7 @@ export default function useEvmBalances(auto = false) {
 
   const startPollingBalances = async () => {
     updateEvmBalancesTimer.current = setInterval(() => {
-      getBalances();
+      getBalances({ from: "startPollingBalances" });
       // 1 minute
     }, 1000 * 60);
   };
@@ -225,11 +236,14 @@ export default function useEvmBalances(auto = false) {
 
   useEffect(() => {
     if (!wallet?.account) {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+      setLoading(false);
       return;
     }
 
     if (!initRef.current) {
-      debouncedGetBalances();
+      debouncedGetBalances({ from: "!initRef.current" });
     }
   }, [wallet?.account, walletStore.selectedToken]);
 
@@ -244,7 +258,7 @@ export default function useEvmBalances(auto = false) {
     }
 
     // Initial request
-    getBalances();
+    getBalances({ from: "Initial request" });
 
     // Start polling balances
     startPollingBalances();
