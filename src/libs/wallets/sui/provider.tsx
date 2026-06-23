@@ -5,47 +5,24 @@ import useBalancesStore from "@/stores/use-balances";
 import { useDebounceFn } from "ahooks";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import WalletSelector from "../components/wallet-selector";
+import { suiDAppKit } from "./dapp-kit";
 
 import {
-  createDAppKit,
   DAppKitProvider,
   useCurrentWallet,
   useDAppKit,
-  useWalletConnection,
   useWallets,
   useCurrentAccount,
-  useCurrentClient,
 } from "@mysten/dapp-kit-react";
-import { SuiGrpcClient } from "@mysten/sui/grpc";
-import { getJsonRpcFullnodeUrl } from "@mysten/sui/jsonRpc";
-import { getChainRpcUrl } from "@/config/chains";
 
 export default function SuiProvider({
   children
 }: {
   children: React.ReactNode;
 }) {
-  const dAppKit = createDAppKit({
-    networks: ["mainnet"],
-    defaultNetwork: "mainnet",
-    createClient: (network) => {
-      return new SuiGrpcClient({
-        network,
-        baseUrl: getChainRpcUrl("Sui").rpcUrl ?? getJsonRpcFullnodeUrl("mainnet"),
-      });
-    },
-    autoConnect: true,
-    enableBurnerWallet: false,
-    walletInitializers: [],
-    slushWalletConfig: null,
-    storage: typeof window !== "undefined" ? localStorage : undefined,
-    storageKey: "stableflow.ai_sui_dapp_kit",
-
-  });
-
   return (
     <DAppKitProvider
-      dAppKit={dAppKit}
+      dAppKit={suiDAppKit}
     >
       {children}
       <Content />
@@ -74,10 +51,8 @@ const Content = () => {
   const dappKit = useDAppKit()
   const { connectWallet: connect, disconnectWallet: disconnect, signAndExecuteTransaction } = dappKit
   const currentWallet = useCurrentWallet()
-  const { } = useWalletConnection()
 
   const account = useCurrentAccount();
-  const currentClient = useCurrentClient();
 
   const [installedWallets, uninstalledWallets] = useMemo(() => {
     const _installedWallets = [];
@@ -107,11 +82,15 @@ const Content = () => {
     isConnecting,
   } = useWalletSelector({
     connect: async (wallet: any) => {
-      const connector = wallets.find((wallet) => wallet.name === wallet.name);
+      const connector = wallets.find((w) => w.name === wallet.name);
       if (!connector) {
         return;
       }
-      await connect({ wallet: connector });
+      try {
+        await connect({ wallet: connector });
+      } catch (err) {
+        console.warn("Sui wallet connect failed:", err);
+      }
     },
   });
 
@@ -161,17 +140,6 @@ const Content = () => {
   useEffect(() => {
     connect2SuiWallets();
   }, [account, mounted]);
-
-  const { run: connectDelay } = useDebounceFn(() => {
-    if (!currentWallet) {
-      return;
-    }
-    onConnect(currentWallet.name);
-  }, { wait: 500 });
-
-  useEffect(() => {
-    connectDelay();
-  }, [currentWallet]);
 
   useEffect(() => {
     setMounted(true);
