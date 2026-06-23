@@ -24,6 +24,7 @@ export const TrackAction = {
   History: "history_page",
   CreateSolanaATA: "create_solana_ata",
   Disconnect: "logout_wallet",
+  ProphetEntrance: "prophet_entrance",
 } as const;
 export type TrackAction = (typeof TrackAction)[keyof typeof TrackAction];
 
@@ -393,6 +394,13 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     });
   };
 
+  const addProphetEntrance = () => {
+    return add({
+      action: TrackAction.ProphetEntrance,
+      content: JSON.stringify({ is_mobile: isMobile }),
+    });
+  };
+
   return {
     sessionId,
     add,
@@ -406,5 +414,6 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     addHistory,
     addCreateSolanaATA,
     addDisconnect,
+    addProphetEntrance,
   };
 }
