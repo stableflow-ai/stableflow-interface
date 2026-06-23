@@ -1,4 +1,10 @@
+"use client";
+
+import { useTrack } from "@/hooks/use-track";
+
 const Prophet = () => {
+  const { addProphetEntrance } = useTrack();
+
   return (
     <div className="mt-7.5 flex justify-center items-center">
       <a
@@ -6,6 +12,7 @@ const Prophet = () => {
         target="_blank"
         rel="noopener noreferrer nofollow"
         className="block relative w-full md:w-[495px] h-[52px] px-2.5 md:px-0 duration-150 hover:opacity-80"
+        onClick={() => addProphetEntrance()}
       >
         <img
           src="/bridge/banners/prophet.png"
