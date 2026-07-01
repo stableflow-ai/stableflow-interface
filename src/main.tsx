@@ -1,9 +1,11 @@
 import { Buffer } from "buffer";
 import ErrorPage from "./views/error";
 import * as Sentry from "@sentry/react";
+import { initVConsole } from "@/libs/vconsole";
 
 if (typeof window !== "undefined") {
   (window as any).Buffer = Buffer;
+  initVConsole();
 }
 
 import { createRoot } from "react-dom/client";
