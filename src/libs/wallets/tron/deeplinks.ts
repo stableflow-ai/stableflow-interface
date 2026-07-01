@@ -1,5 +1,3 @@
-export const TP_ICON = "https://www.tokenpocket.pro/favicon.ico";
-
 // Detect which wallet's in-app DApp browser we are running inside and return
 // the matching adapter name. Returns null when running in a plain browser.
 // Note: this intentionally checks injected globals / user-agent instead of
