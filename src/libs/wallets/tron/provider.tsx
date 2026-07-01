@@ -7,7 +7,7 @@ import useBalancesStore from "@/stores/use-balances";
 import { OKXTronProvider } from "@okxconnect/universal-provider";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { TronWeb } from "tronweb";
-import { useWatchOKXConnect } from "../okxconnect";
+import { OKX_ICON, useWatchOKXConnect } from "../okxconnect";
 import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter, TrustAdapter } from "@tronweb3/tronwallet-adapters";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
@@ -61,7 +61,7 @@ export default function TronProvider({
       return false;
     }
     if (typeof window !== "undefined") {
-      if (["localhost", "127.0.0.1", "test.stableflow.ai"].includes(window.location.hostname)) {
+      if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
         _isOKXSDK = installedWallets?.length <= 0 && isMobile;
       }
     }
@@ -254,16 +254,35 @@ const Content = () => {
       wallets={wallets}
       readyState={{ key: "_readyState", value: "Found" }}
       title="Select Tron Wallet"
-      isCheckReadyState={false}
     />
   );
 };
 
+const mobileWalletOptions = [
+  { key: "okx", name: "OKX Wallet", icon: OKX_ICON },
+];
+
 const MobileWallet = () => {
   const setWallets = useWalletsStore((state) => state.set);
+  const okxConnectRef = useRef<any>(null);
+
+  const {
+    open,
+    onClose,
+    onOpen,
+    onConnect,
+    isConnecting,
+  } = useWalletSelector({
+    connect: async (wallet: any) => {
+      if (wallet.key === "okx") {
+        await okxConnectRef.current?.connect();
+      }
+    },
+  });
 
   useWatchOKXConnect((okxConnect: any) => {
-    const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
+    okxConnectRef.current = okxConnect;
+    const { okxUniversalProvider, disconnect, icon } = okxConnect;
     const provider = new OKXTronProvider(okxUniversalProvider);
 
     // @ts-ignore
@@ -282,11 +301,21 @@ const MobileWallet = () => {
         wallet: tronWallet,
         walletIcon: icon,
         walletName: "OKX Wallet",
-        connect,
+        connect: () => onOpen(),
         disconnect,
       }
     });
   });
 
-  return null;
+  return (
+    <WalletSelector
+      open={open}
+      onClose={onClose}
+      onConnect={onConnect}
+      isConnecting={isConnecting}
+      wallets={mobileWalletOptions}
+      isCheckReadyState={false}
+      title="Select Tron Wallet"
+    />
+  );
 };
