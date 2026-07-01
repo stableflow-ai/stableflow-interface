@@ -61,7 +61,7 @@ export default function TronProvider({
       return false;
     }
     if (typeof window !== "undefined") {
-      if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+      if (["localhost", "127.0.0.1", "test.stableflow.ai"].includes(window.location.hostname)) {
         _isOKXSDK = installedWallets?.length <= 0 && isMobile;
       }
     }
@@ -254,6 +254,7 @@ const Content = () => {
       wallets={wallets}
       readyState={{ key: "_readyState", value: "Found" }}
       title="Select Tron Wallet"
+      isCheckReadyState={false}
     />
   );
 };
