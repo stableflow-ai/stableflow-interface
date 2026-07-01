@@ -117,3 +117,7 @@ export const allUsdtChains: Record<string, TokenChain> = {
   ...usdtChains,
   ...usdt0Chains,
 };
+
+export const isStableToken = (token: TokenChain) => {
+  return !["EURe"].includes(token.symbol)
+};

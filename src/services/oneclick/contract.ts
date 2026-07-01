@@ -6,6 +6,7 @@ export const ONECLICK_PROXY: Record<string, string> = {
   ["Avalanche"]: "0xc8dB1175132C64e311D01258dD05D4e2e75fD7b8",
   ["Ethereum"]: "0xc8dB1175132C64e311D01258dD05D4e2e75fD7b8",
   ["Berachain"]: "0x1766A6B8453c7dbcA8c70d17980B6EA87ACA4F60",
+  ["Gnosis"]: "0x53812Feae0fd2C43f8E6D8847A7f5d035F1d1f8f",
   // ⚠️ When using Energy rental, do not use the proxy address as it will increase fees
   ["Tron"]: "TMqM35eVd3D9d7JbShRrMzMPyWLFweKYvW",
   ["Solana"]: "HWk6MsFEGzXxpe9B4mfEHpvVoCwNeVVMFxb5Mi7qNTM",
