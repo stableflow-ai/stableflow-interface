@@ -213,29 +213,34 @@ export default function useBridge(props?: any) {
       }
 
       const defaultErrorMessage = "Failed to get quote, please try again later";
-      let _finalErrorMessage = error?.response?.data?.message || error?.message || defaultErrorMessage;
-      if (service === Service.OneClick) {
+      const oneClickErrorResponse = error?.response?.data?.message;
+      let _finalErrorMessage = oneClickErrorResponse || error?.message || defaultErrorMessage;
+      let _finalReportErrorMessage = oneClickErrorResponse || error?.message || (error ? error + "" : defaultErrorMessage);
+      if (([Service.OneClick, Service.OneClickUsdt0, Service.Usdt0OneClick, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(service)) {
         const getQuoteErrorMessage = (): { message: string; sourceMessage: string; } => {
           const _messageResult = {
-            message: defaultErrorMessage,
-            sourceMessage: error?.response?.data?.message || defaultErrorMessage,
+            message: oneClickErrorResponse || defaultErrorMessage,
+            sourceMessage: oneClickErrorResponse || error?.message || (error ? error + "" : defaultErrorMessage),
           };
-          if (
-            error?.response?.data?.message &&
-            error?.response?.data?.message !== "Internal server error"
-          ) {
+          if (oneClickErrorResponse && oneClickErrorResponse !== "Internal server error") {
             // quote failed, maybe out of liquidity
-            if (error?.response?.data?.message === "Failed to get quote") {
+            if (oneClickErrorResponse === "Failed to get quote") {
               _messageResult.message = "Amount exceeds max";
               return _messageResult;
             }
             // Amount is too low for bridge
-            if (error?.response?.data?.message?.includes("Amount is too low for bridge, try at least")) {
+            if (oneClickErrorResponse?.includes("Amount is too low for bridge, try at least")) {
               const match = error.response.data.message.match(/try at least\s+(\d+(?:\.\d+)?)/i);
               let minimumAmount = match ? match[1] : Big(1).times(10 ** walletStore.fromToken.decimals).toFixed(0);
               minimumAmount = Big(minimumAmount).div(10 ** walletStore.fromToken.decimals);
               _messageResult.message = `Amount is too low, at least ${formatNumber(minimumAmount, walletStore.fromToken.decimals, true)}`;
+              _messageResult.sourceMessage = _messageResult.message;
               return _messageResult;
+            }
+            // over 5% appFee
+            if (oneClickErrorResponse?.includes("Cannot convert undefined or null to object")) {
+              _messageResult.message = "app fees exceeds 5% of amount";
+              _messageResult.sourceMessage = "app fees exceeds 5% of amount";
             }
             return _messageResult;
           }
@@ -245,6 +250,7 @@ export default function useBridge(props?: any) {
 
         const _errorMessage = getQuoteErrorMessage();
         _finalErrorMessage = _errorMessage.message;
+        _finalReportErrorMessage = _errorMessage.sourceMessage;
       }
 
       const _quoteData = {
@@ -257,7 +263,10 @@ export default function useBridge(props?: any) {
       bridgeStore.setQuoteData(service, _quoteData);
 
       addQuoteTrack({
-        quoteData: _quoteData,
+        quoteData: {
+          ..._quoteData,
+          errMsg: _finalReportErrorMessage,
+        },
         service,
       });
 
