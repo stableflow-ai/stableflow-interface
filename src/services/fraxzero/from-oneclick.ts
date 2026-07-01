@@ -76,6 +76,9 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         const inputPrice = getPrice(prices, fromToken.symbol);
         const inputValue = Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(inputPrice);
         firstStepAmountWei = Big(inputValue).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0);
+
+        // FIXME Quoting for non-stablecoins is not supported for now
+        return { errMsg: "Non-stablecoin is not supported for now" };
       }
 
       // Mint should be a 1:1 conversion from Ethereum USDC to Ethereum frxUSD.
