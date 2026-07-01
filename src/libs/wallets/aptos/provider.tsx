@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import AptosWallet from "@/libs/wallets/aptos/wallet";
 import useWalletsStore from "@/stores/use-wallets";
 import useBalancesStore from "@/stores/use-balances";
@@ -7,7 +7,7 @@ import { useDebounceFn } from "ahooks";
 import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { useWatchOKXConnect } from "../okxconnect";
+import { OKX_ICON, useWatchOKXConnect } from "../okxconnect";
 import { OKXAptosProvider } from "@okxconnect/aptos-provider";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import WalletSelector from "../components/wallet-selector";
@@ -158,11 +158,31 @@ const Content = () => {
   );
 };
 
+const mobileWalletOptions = [
+  { key: "okx", name: "OKX Wallet", icon: OKX_ICON },
+];
+
 const MobileContent = () => {
   const setWallets = useWalletsStore((state) => state.set);
+  const okxConnectRef = useRef<any>(null);
+
+  const {
+    open,
+    onClose,
+    onOpen,
+    onConnect,
+    isConnecting,
+  } = useWalletSelector({
+    connect: async (wallet: any) => {
+      if (wallet.key === "okx") {
+        await okxConnectRef.current?.connect();
+      }
+    },
+  });
 
   useWatchOKXConnect((okxConnect: any) => {
-    const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
+    okxConnectRef.current = okxConnect;
+    const { okxUniversalProvider, disconnect, icon } = okxConnect;
     const provider = new OKXAptosProvider(okxUniversalProvider);
     const account = provider.getAccount("aptos:mainnet") || null;
     const config = new AptosConfig({
@@ -186,11 +206,21 @@ const MobileContent = () => {
         wallet: aptosWallet,
         walletIcon: icon,
         walletName: "OKX Wallet",
-        connect: connect,
-        disconnect: disconnect,
+        connect: () => onOpen(),
+        disconnect,
       }
     });
   });
 
-  return null;
+  return (
+    <WalletSelector
+      open={open}
+      onClose={onClose}
+      onConnect={onConnect}
+      isConnecting={isConnecting}
+      wallets={mobileWalletOptions}
+      isCheckReadyState={false}
+      title="Select Aptos Wallet"
+    />
+  );
 };

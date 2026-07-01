@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ConnectionProvider,
   WalletProvider
@@ -17,7 +17,9 @@ import useIsMobile from "@/hooks/use-is-mobile";
 import { useDebounceFn } from "ahooks";
 import { OKXSolanaProvider } from "@okxconnect/solana-provider";
 import { PublicKey, Transaction } from "@solana/web3.js";
-import { useWatchOKXConnect } from "../okxconnect";
+import { OKX_ICON, useWatchOKXConnect } from "../okxconnect";
+import { useWalletSelector } from "../hooks/use-wallet-selector";
+import WalletSelector from "../components/wallet-selector";
 import SolanaWalletSelectorProvider, { useSolanaWalletModal } from "./wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
 import { getAvailableSolanaRpcUrl } from "../utils/solana";
@@ -171,11 +173,31 @@ const Content = () => {
   return null;
 };
 
+const mobileWalletOptions = [
+  { key: "okx", name: "OKX Wallet", icon: OKX_ICON },
+];
+
 const MobileContent = () => {
   const setWallets = useWalletsStore((state) => state.set);
+  const okxConnectRef = useRef<any>(null);
+
+  const {
+    open,
+    onClose,
+    onOpen,
+    onConnect,
+    isConnecting,
+  } = useWalletSelector({
+    connect: async (wallet: any) => {
+      if (wallet.key === "okx") {
+        await okxConnectRef.current?.connect();
+      }
+    },
+  });
 
   useWatchOKXConnect((okxConnect: any) => {
-    const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
+    okxConnectRef.current = okxConnect;
+    const { okxUniversalProvider, disconnect, icon } = okxConnect;
     const provider = new OKXSolanaProvider(okxUniversalProvider);
     const account = provider.getAccount()?.address || null;
     const solanaWallet = new SolanaWallet({
@@ -195,11 +217,21 @@ const MobileContent = () => {
         wallet: solanaWallet,
         walletIcon: icon,
         walletName: "OKX Wallet",
-        connect: connect,
-        disconnect: disconnect,
+        connect: () => onOpen(),
+        disconnect,
       }
     });
   });
 
-  return null;
+  return (
+    <WalletSelector
+      open={open}
+      onClose={onClose}
+      onConnect={onConnect}
+      isConnecting={isConnecting}
+      wallets={mobileWalletOptions}
+      isCheckReadyState={false}
+      title="Select Solana Wallet"
+    />
+  );
 };

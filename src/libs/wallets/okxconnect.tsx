@@ -4,6 +4,8 @@ import { OKXUniversalProvider } from "@okxconnect/universal-provider";
 import { useDebounceFn } from "ahooks";
 import { createContext, useContext, useEffect, useState } from "react";
 
+export const OKX_ICON = "https://web3.okx.com/cdn/assets/imgs/254/2056DB8D2D22F68E.png";
+
 const OKXConnectContext = createContext<any>(null);
 
 const OKXConnectProvider = (props: any) => {
@@ -64,7 +66,7 @@ const OKXConnectProvider = (props: any) => {
         disconnect,
         updated,
         okxUniversalProvider,
-        icon: "https://web3.okx.com/cdn/assets/imgs/254/2056DB8D2D22F68E.png",
+        icon: OKX_ICON,
       }}
     >
       {children}

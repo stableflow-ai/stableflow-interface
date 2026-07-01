@@ -7,14 +7,15 @@ import useBalancesStore from "@/stores/use-balances";
 import { OKXTronProvider } from "@okxconnect/universal-provider";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { TronWeb } from "tronweb";
-import { useWatchOKXConnect } from "../okxconnect";
+import { OKX_ICON, useWatchOKXConnect } from "../okxconnect";
 import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter, TrustAdapter } from "@tronweb3/tronwallet-adapters";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
 import { metadata } from "../rainbow/metadata";
 import { csl } from "@/utils/log";
 import { generateRpcSignature } from "@/libs/signature";
-import { isInOKApp } from "../utils/device";
+import { isInMobileBrowser, isInOKApp } from "../utils/device";
+import { hasInjectedTronWallet, openDeeplink, TP_ICON } from "./deeplinks";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
@@ -51,22 +52,42 @@ export default function TronProvider({
 }) {
   const isMobile = useIsMobile();
 
-  const installedWallets = useMemo(() => {
-    return wallets.filter((wallet) => wallet.readyState === "Found");
-  }, [wallets]);
+  // Detect an injected Tron provider (in-app wallet browser). Poll briefly to
+  // catch providers injected slightly after initial render.
+  const [hasInjectedWallet, setHasInjectedWallet] = useState(hasInjectedTronWallet);
+
+  useEffect(() => {
+    if (hasInjectedTronWallet()) {
+      setHasInjectedWallet(true);
+      return;
+    }
+
+    let times = 0;
+    const timer = setInterval(() => {
+      times += 1;
+      if (hasInjectedTronWallet()) {
+        setHasInjectedWallet(true);
+        clearInterval(timer);
+      } else if (times >= 30) {
+        clearInterval(timer);
+      }
+    }, 100);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const isOKXSDK = useMemo(() => {
-    let _isOKXSDK = isMobile;
+    if (!isMobile) {
+      return false;
+    }
     if (isInOKApp()) {
       return false;
     }
-    if (typeof window !== "undefined") {
-      if (["localhost", "127.0.0.1", "test.stableflow.ai"].includes(window.location.hostname)) {
-        _isOKXSDK = installedWallets?.length <= 0 && isMobile;
-      }
+    if (hasInjectedWallet) {
+      return false;
     }
-    return _isOKXSDK;
-  }, [isMobile, installedWallets]);
+    return true;
+  }, [isMobile, hasInjectedWallet]);
 
   const detectTokenPocket = () => {
     // Only detect TokenPocket in-app browser (UA contains 'tokenpocket'), do not detect desktop TokenPocket extension
@@ -85,17 +106,22 @@ export default function TronProvider({
   return (
     <>
       {children}
-      {isOKXSDK ? <MobileWallet /> : <Content />}
+      {isOKXSDK ? <MobileWallet /> : <Content autoConnectInjected={isMobile} />}
     </>
   );
 }
 
-const Content = () => {
+const Content = ({
+  autoConnectInjected = false,
+}: {
+  autoConnectInjected?: boolean;
+}) => {
   const setWallets = useWalletsStore((state) => state.set);
   const [adapter, setAdapter] = useState<any>(null);
   const configStore = useConfigStore();
   const setBalancesStore = useBalancesStore((state) => state.set);
   const walletRef = useRef<TronWallet | null>(null);
+  const autoConnectedRef = useRef(false);
 
   // Wallet selector
   const {
@@ -118,8 +144,44 @@ const Content = () => {
       if (savedAdapter) {
         setAdapter(savedAdapter);
       }
+      return;
     }
-  }, []);
+
+    if (!autoConnectInjected || !isInMobileBrowser()) {
+      return;
+    }
+
+    const tryAutoConnect = () => {
+      if (autoConnectedRef.current) {
+        return;
+      }
+
+      const injectedAdapter = wallets.find(
+        (wallet) => wallet.readyState === "Found" && wallet.name !== "WalletConnect"
+      );
+
+      if (!injectedAdapter) {
+        return;
+      }
+
+      autoConnectedRef.current = true;
+      setAdapter(injectedAdapter);
+      injectedAdapter.connect().catch((error) => {
+        console.error("Tron injected wallet auto connect failed:", error);
+      });
+    };
+
+    tryAutoConnect();
+    wallets.forEach((wallet) => {
+      wallet.on("readyStateChanged", tryAutoConnect);
+    });
+
+    return () => {
+      wallets.forEach((wallet) => {
+        wallet.off("readyStateChanged", tryAutoConnect);
+      });
+    };
+  }, [autoConnectInjected]);
 
   const setWindowWallet = (address?: string) => {
     const _address = address || adapter?.address;
@@ -254,16 +316,49 @@ const Content = () => {
       wallets={wallets}
       readyState={{ key: "_readyState", value: "Found" }}
       title="Select Tron Wallet"
-      isCheckReadyState={false}
     />
   );
 };
 
 const MobileWallet = () => {
   const setWallets = useWalletsStore((state) => state.set);
+  const okxConnectRef = useRef<any>(null);
+
+  const mobileWalletOptions = useMemo(() => {
+    const tronLinkAdapter = wallets.find((wallet) => wallet.name === "TronLink");
+    const trustAdapter = wallets.find((wallet) => wallet.name === "Trust");
+
+    return [
+      { key: "okx", name: "OKX Wallet", icon: OKX_ICON },
+      { key: "tokenpocket", name: "TokenPocket", icon: TP_ICON },
+      { key: "tronlink", name: "TronLink", icon: tronLinkAdapter?.icon },
+      { key: "trust", name: "Trust", icon: trustAdapter?.icon },
+    ];
+  }, []);
+
+  const {
+    open,
+    onClose,
+    onOpen,
+    onConnect,
+    isConnecting,
+  } = useWalletSelector({
+    connect: async (wallet: any) => {
+      if (wallet.key === "okx") {
+        await okxConnectRef.current?.connect();
+        return;
+      }
+
+      if (wallet.key === "tokenpocket" || wallet.key === "tronlink" || wallet.key === "trust") {
+        openDeeplink(wallet.key, window.location.href);
+        onClose();
+      }
+    },
+  });
 
   useWatchOKXConnect((okxConnect: any) => {
-    const { okxUniversalProvider, connect, disconnect, icon } = okxConnect;
+    okxConnectRef.current = okxConnect;
+    const { okxUniversalProvider, disconnect, icon } = okxConnect;
     const provider = new OKXTronProvider(okxUniversalProvider);
 
     // @ts-ignore
@@ -282,11 +377,21 @@ const MobileWallet = () => {
         wallet: tronWallet,
         walletIcon: icon,
         walletName: "OKX Wallet",
-        connect,
+        connect: () => onOpen(),
         disconnect,
       }
     });
   });
 
-  return null;
+  return (
+    <WalletSelector
+      open={open}
+      onClose={onClose}
+      onConnect={onConnect}
+      isConnecting={isConnecting}
+      wallets={mobileWalletOptions}
+      isCheckReadyState={false}
+      title="Select Tron Wallet"
+    />
+  );
 };
