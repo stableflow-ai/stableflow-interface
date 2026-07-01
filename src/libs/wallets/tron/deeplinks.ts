@@ -1,15 +1,34 @@
 export const TP_ICON = "https://www.tokenpocket.pro/favicon.ico";
 
-// Detect whether an injected Tron provider exists (i.e. running inside a
-// wallet's in-app DApp browser such as TronLink/TokenPocket/Trust).
-// Note: this intentionally checks injected globals instead of adapter
-// readyState, because the WalletConnect adapter always reports "Found".
-export function hasInjectedTronWallet() {
+// Detect which wallet's in-app DApp browser we are running inside and return
+// the matching adapter name. Returns null when running in a plain browser.
+// Note: this intentionally checks injected globals / user-agent instead of
+// adapter readyState, because on mobile TronLinkAdapter always reports "Found"
+// and WalletConnectAdapter always reports "Found".
+export function detectInjectedTronWalletName(): "Trust" | "TronLink" | null {
   if (typeof window === "undefined") {
-    return false;
+    return null;
   }
   const w = window as any;
-  return !!(w.tronLink || w.tronWeb || w.tron || w.trustwallet?.tronLink);
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+
+  // Trust injects window.trustwallet.tronLink (and its in-app browser UA
+  // contains "Trust").
+  if (w.trustwallet?.tronLink || /Trust/i.test(ua)) {
+    return "Trust";
+  }
+
+  // TokenPocket / TronLink in-app browsers expose window.tronLink / tronWeb,
+  // both handled by TronLinkAdapter.
+  if (w.tronLink || w.tronWeb || w.tron) {
+    return "TronLink";
+  }
+
+  return null;
+}
+
+export function hasInjectedTronWallet() {
+  return detectInjectedTronWalletName() !== null;
 }
 
 export type MobileDeeplinkKey = "tokenpocket" | "tronlink" | "trust";
