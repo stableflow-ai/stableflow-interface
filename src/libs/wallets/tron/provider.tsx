@@ -15,7 +15,7 @@ import { metadata } from "../rainbow/metadata";
 import { csl } from "@/utils/log";
 import { generateRpcSignature } from "@/libs/signature";
 import { isInMobileBrowser, isInOKApp } from "../utils/device";
-import { hasInjectedTronWallet, openDeeplink, TP_ICON } from "./deeplinks";
+import { detectInjectedTronWalletName, hasInjectedTronWallet, openDeeplink, TP_ICON } from "./deeplinks";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
@@ -26,9 +26,12 @@ const tronWeb = new TronWeb({
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 
 const wallets = [
-  new TronLinkAdapter(),
+  // Disable the adapters' built-in deeplink/redirect behavior on mobile; we
+  // control deeplinks ourselves and rely on injected providers inside the
+  // wallet's in-app browser. This prevents the "reopen page" redirect loop.
+  new TronLinkAdapter({ openAppWithDeeplink: false, openUrlWhenWalletNotFound: false }),
   new OkxWalletAdapter(),
-  new TrustAdapter(),
+  new TrustAdapter({ openAppWithDeeplink: false, openUrlWhenWalletNotFound: false }),
   new WalletConnectAdapter({
     network: "Mainnet",
     options: {
@@ -151,36 +154,43 @@ const Content = ({
       return;
     }
 
+    let times = 0;
+    let timer: ReturnType<typeof setInterval>;
+
     const tryAutoConnect = () => {
       if (autoConnectedRef.current) {
+        clearInterval(timer);
         return;
       }
 
-      const injectedAdapter = wallets.find(
-        (wallet) => wallet.readyState === "Found" && wallet.name !== "WalletConnect"
-      );
+      // Pick the adapter matching the wallet in-app browser we are in, instead
+      // of the first "Found" adapter (TronLinkAdapter always reports Found on
+      // mobile, which would select the wrong wallet).
+      const injectedName = detectInjectedTronWalletName();
+      const injectedAdapter = injectedName
+        ? wallets.find((wallet) => wallet.name === injectedName)
+        : null;
 
-      if (!injectedAdapter) {
+      if (injectedAdapter) {
+        autoConnectedRef.current = true;
+        clearInterval(timer);
+        setAdapter(injectedAdapter);
+        injectedAdapter.connect().catch((error) => {
+          console.error("Tron injected wallet auto connect failed:", error);
+        });
         return;
       }
 
-      autoConnectedRef.current = true;
-      setAdapter(injectedAdapter);
-      injectedAdapter.connect().catch((error) => {
-        console.error("Tron injected wallet auto connect failed:", error);
-      });
+      times += 1;
+      if (times >= 30) {
+        clearInterval(timer);
+      }
     };
 
     tryAutoConnect();
-    wallets.forEach((wallet) => {
-      wallet.on("readyStateChanged", tryAutoConnect);
-    });
+    timer = setInterval(tryAutoConnect, 100);
 
-    return () => {
-      wallets.forEach((wallet) => {
-        wallet.off("readyStateChanged", tryAutoConnect);
-      });
-    };
+    return () => clearInterval(timer);
   }, [autoConnectInjected]);
 
   const setWindowWallet = (address?: string) => {
