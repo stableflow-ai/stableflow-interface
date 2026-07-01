@@ -283,9 +283,9 @@ export class OneClickService {
         quoteParams.appFees = BridgeFee.map((it) => ({ recipient: it.recipient, fee: it.fee }));
       }
     }
-    if (swapType === "EXACT_OUTPUT") {
-      quoteParams.amount = Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
-    }
+    // if (swapType === "EXACT_OUTPUT") {
+    //   quoteParams.amount = Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** toToken.decimals).toFixed(0);
+    // }
 
     execTime.breakpoint();
     const res = await this.quoteApi.post("/quote", quoteParams);
@@ -421,7 +421,9 @@ export class OneClickService {
       isFromTronEnergy,
     } = params;
 
-    if (isFromTronEnergy) {
+    const proxyAddress = ONECLICK_PROXY[fromToken.chainName];
+
+    if (isFromTronEnergy || !proxyAddress) {
       const hash = await wallet.send(SendType.TRANSFER, {
         originAsset: fromToken.contractAddress,
         depositAddress: depositAddress,

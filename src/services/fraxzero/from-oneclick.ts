@@ -12,6 +12,7 @@ import { SendType } from "@/libs/wallets/types";
 import { ExecTime } from "@/utils/exec-time";
 import { getRouteStatus, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
+import { isStableToken } from "@/config/tokens";
 
 export class OneClick2FraxZeroService extends FraxZeroService {
   public override async quote(params: any) {
@@ -70,12 +71,22 @@ export class OneClick2FraxZeroService extends FraxZeroService {
       }
       gasLimit = gasLimit * 120n / 100n;
 
+      let firstStepAmountWei = Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0);
+      if (!isStableToken(fromToken)) {
+        const inputPrice = getPrice(prices, fromToken.symbol);
+        const inputValue = Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(inputPrice);
+        firstStepAmountWei = Big(inputValue).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0);
+
+        // FIXME Quoting for non-stablecoins is not supported for now
+        return { errMsg: "Non-stablecoin is not supported for now" };
+      }
+
       // Mint should be a 1:1 conversion from Ethereum USDC to Ethereum frxUSD.
       // The ratio can be obtained from the contract.
       execTime.breakpoint();
       previewMintResult = await middleChainWallet.previewMintFrxUSD({
         dry,
-        amountWei: Big(amountWei || 0).div(10 ** fromToken.decimals).times(10 ** FRAXZERO_MIDDLE_TOKEN_USDC.decimals).toFixed(0, 0),
+        amountWei: firstStepAmountWei,
         fromToken: FRAXZERO_MIDDLE_TOKEN_USDC,
         abi: FRAXZERO_REDEEM_MINT_ABI,
         usdcCustodianAddress: FRAXZERO_REDEEM_USDC_CONTRACT,
@@ -138,6 +149,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
       execTime.breakpoint();
       const firstStepResult = await oneClickService.quote({
         ...params,
+        amountWei: firstStepAmountWei,
         toToken: FRAXZERO_MIDDLE_TOKEN_USDC,
         destinationAsset: FRAXZERO_MIDDLE_TOKEN_USDC.assetId,
         swapType: "EXACT_OUTPUT",

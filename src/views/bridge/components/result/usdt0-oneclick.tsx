@@ -155,7 +155,7 @@ const ResultUsdt0OneClick = (props: any) => {
                     isFormat={false}
                     loading={bridgeStore.getQuoting(service)}
                   >
-                    {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$" })})
+                    {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$", round: 0 })})
                   </ResultFeeItem>
                 </>
               )
