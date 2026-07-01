@@ -12,6 +12,7 @@ import { getPrice } from "@/utils/format/price";
 import { ExecTime } from "@/utils/exec-time";
 import { getRouteStatus, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
+import { isStableToken } from "@/config/tokens";
 
 export class FraxZero2OneClickService extends FraxZeroService {
   public override async quote(params: any) {
@@ -49,6 +50,11 @@ export class FraxZero2OneClickService extends FraxZeroService {
     }
     if (!middleChainRecipientAddress) {
       middleChainRecipientAddress = FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS;
+    }
+
+    if (!isStableToken(toToken)) {
+      // FIXME Quoting for non-stablecoins is not supported for now
+      return { errMsg: "Non-stablecoin is not supported for now" };
     }
 
     // fraxzero quote result
