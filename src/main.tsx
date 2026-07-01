@@ -9,9 +9,6 @@ if (typeof window !== "undefined") {
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./app.tsx";
-import { initVConsole } from "./utils/vconsole";
-
-void initVConsole();
 
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
