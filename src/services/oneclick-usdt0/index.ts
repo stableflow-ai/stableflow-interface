@@ -11,6 +11,7 @@ import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
 import { getRouteStatus, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
+import { isStableToken } from "@/config/tokens";
 
 export class OneClickUsdt0Service {
   public async quote(params: any) {
@@ -32,6 +33,15 @@ export class OneClickUsdt0Service {
       destinationRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
+    // If it is not a USD stablecoin
+    // Need to convert based on price
+    let secondStepAmountWei = Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0);
+    if (!isStableToken(fromToken)) {
+      const inputPrice = getPrice(prices, fromToken.symbol);
+      const inputValue = Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(inputPrice);
+      secondStepAmountWei = Big(inputValue).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0);
+    }
+
     // First, call the usdt0 quote method
     // Retrieve sendParam, fees, and estimated costs
     // usdt0 is the second step, so the source chain is arb
@@ -40,7 +50,7 @@ export class OneClickUsdt0Service {
     // params.amountWei is the input amount for the second step
     const usdt0Params = {
       ...params,
-      amountWei: Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0),
+      amountWei: secondStepAmountWei,
       fromToken: MIDDLE_TOKEN_CHAIN,
       originChain: MIDDLE_TOKEN_CHAIN.chainName,
       refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
@@ -56,27 +66,29 @@ export class OneClickUsdt0Service {
     usdt0Result.fees.nativeFee = numberRemoveEndZero(Big(usdt0Result.fees?.nativeFee || 0).times(1 + usdt0MessageFeeBuffer).toFixed(fromToken.nativeToken.decimals));
     // LZ message fee to USD
     const usdt0MessageFeeUsd = usdt0Result.fees.nativeFeeUsd;
-    // add 20% buffer
-    const usdt0MessageFeeAmount = Big(usdt0MessageFeeUsd || 0).div(getPrice(prices, MIDDLE_TOKEN_CHAIN.symbol) || 1).toFixed(MIDDLE_TOKEN_CHAIN.decimals);
 
     if (usdt0Result.errMsg) {
       return usdt0Result;
     }
 
-    // OneClick charges a proportional fee
-    // The OneClick fee ratio is calculated based on usdt0MessageFeeAmount
+    // OneClick charges a proportional fee on fromToken input
+    // Convert LZ message fee USD to fromToken amount so fee ratio uses consistent units
     // fee bp = fee amount / (fee amount + amount), minimum is 1, maximum is 10000
-    const oneClickFeeRatio = Big(usdt0MessageFeeAmount || 0)
-      .div(Big(usdt0MessageFeeAmount || 0).plus(Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals)))
+    const usdt0MessageFeeAmountInFromToken = Big(usdt0MessageFeeUsd || 0)
+      .div(getPrice(prices, fromToken.symbol) || 1)
+      .toFixed(fromToken.decimals);
+    const fromTokenAmount = Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals);
+    const oneClickFeeRatio = Big(usdt0MessageFeeAmountInFromToken || 0)
+      .div(Big(usdt0MessageFeeAmountInFromToken || 0).plus(fromTokenAmount))
       .times(10000)
       .toFixed(0, Big.roundUp);
 
-    // csl("OneClickUsdt0Service quote", "rose-400", "usdt0MessageFeeAmount: %o", usdt0MessageFeeAmount);
-    // csl("OneClickUsdt0Service quote", "rose-400", "amount: %o", Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
+    // csl("OneClickUsdt0Service quote", "rose-400", "usdt0MessageFeeAmountInFromToken: %o", usdt0MessageFeeAmountInFromToken);
+    // csl("OneClickUsdt0Service quote", "rose-400", "amount: %o", fromTokenAmount);
     // csl("OneClickUsdt0Service quote", "rose-400", "oneClickFeeRatio: %o", oneClickFeeRatio);
 
     if (Big(oneClickFeeRatio).gt(10000)) {
-      return { errMsg: `Amount is too low, at least ${usdt0MessageFeeAmount}` };
+      return { errMsg: `Amount is too low, at least ${usdt0MessageFeeAmountInFromToken}` };
     }
 
     // Call oneclick quote method again
@@ -84,8 +96,10 @@ export class OneClickUsdt0Service {
     // Since the exact amount transferred by oneclick needs to be signed, EXACT_OUTPUT mode must be used
     // In EXACT_OUTPUT mode, the output amount equals the expected value
     execTime.breakpoint();
+
     const oneClickResult = await oneClickService.quote({
       ...params,
+      amountWei: secondStepAmountWei,
       toToken: MIDDLE_TOKEN_CHAIN,
       destinationAsset: MIDDLE_TOKEN_CHAIN.assetId,
       swapType: "EXACT_OUTPUT",
