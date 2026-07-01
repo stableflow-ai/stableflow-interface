@@ -2,6 +2,7 @@ import { usdt0 } from "@/config/tokens/usdt0";
 import { usdt } from "@/config/tokens/usdt";
 import { usdc } from "@/config/tokens/usdc";
 import { frxusd } from "@/config/tokens/frxusd";
+import { eure } from "@/config/tokens/eure";
 // import { usd1 } from "@/config/tokens/usd1";
 import clsx from "clsx";
 import useWalletStore from "@/stores/use-wallet";
@@ -31,7 +32,7 @@ export default function Assets() {
     <div className="w-full px-[10px] mt-[8px]">
       <div
         ref={wrapperRef}
-        className="flex items-center gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        className="flex items-center gap-1.5 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
         <AssetItem
           asset={usdt}
@@ -149,12 +150,27 @@ export default function Assets() {
             scrollTo("right");
           }}
         />
-         <AssetItem
+        <AssetItem
           asset={frxusd}
           active={currentToken === "frxUSD"}
           onClick={() => {
             const updateParams: any = {
               selectedToken: "frxUSD"
+            };
+            walletStore.set(updateParams);
+
+            scrollTo("right");
+          }}
+          onMouseEnter={() => {
+            scrollToDebounced("right");
+          }}
+        />
+        <AssetItem
+          asset={eure}
+          active={currentToken === "EURe"}
+          onClick={() => {
+            const updateParams: any = {
+              selectedToken: "EURe"
             };
             walletStore.set(updateParams);
 
@@ -197,10 +213,10 @@ const AssetItem = ({
   return (
     <div
       className={clsx(
-        "relative group hover:border-[#6284F5] hover:pr-[66px] flex items-center pl-[6px] gap-[10px] h-[46px] rounded-[26px] duration-150 shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] border-[2px] text-black shrink-0 overflow-hidden",
+        "relative group hover:border-[#6284F5] hover:pr-[66px] flex items-center pl-[5px] gap-[10px] h-[40px] rounded-[20px] duration-150 shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] border-[2px] text-black shrink-0 overflow-hidden",
         active
           ? "border-[#6284F5] pr-[66px]"
-          : "border-[#ffffff] pr-[6px]",
+          : "border-[#ffffff] pr-[5px]",
         disabled ? "cursor-not-allowed" : "cursor-pointer"
       )}
       onClick={() => {
@@ -215,7 +231,7 @@ const AssetItem = ({
         src={asset.icon}
         alt={asset.symbol}
         className={clsx(
-          "w-[30px] h-[30px]",
+          "w-[28px] h-[28px]",
           disabled && "grayscale opacity-50"
         )}
       />
