@@ -8,14 +8,14 @@ import { OKXTronProvider } from "@okxconnect/universal-provider";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { TronWeb } from "tronweb";
 import { OKX_ICON, useWatchOKXConnect } from "../okxconnect";
-import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter, TrustAdapter } from "@tronweb3/tronwallet-adapters";
+import { OkxWalletAdapter, TronLinkAdapter, WalletConnectAdapter, TrustAdapter, TokenPocketAdapter } from "@tronweb3/tronwallet-adapters";
 import { useWalletSelector } from "../hooks/use-wallet-selector";
 import { getChainRpcUrl } from "@/config/chains";
 import { metadata } from "../rainbow/metadata";
 import { csl } from "@/utils/log";
 import { generateRpcSignature } from "@/libs/signature";
 import { isInMobileBrowser, isInOKApp } from "../utils/device";
-import { detectInjectedTronWalletName, hasInjectedTronWallet, openDeeplink, TP_ICON } from "./deeplinks";
+import { detectInjectedTronWalletName, hasInjectedTronWallet, openDeeplink } from "./deeplinks";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
@@ -29,9 +29,10 @@ const wallets = [
   // Disable the adapters' built-in deeplink/redirect behavior on mobile; we
   // control deeplinks ourselves and rely on injected providers inside the
   // wallet's in-app browser. This prevents the "reopen page" redirect loop.
-  new TronLinkAdapter({ openAppWithDeeplink: false, openUrlWhenWalletNotFound: false }),
+  new TronLinkAdapter({ openAppWithDeeplink: true, openUrlWhenWalletNotFound: false }),
   new OkxWalletAdapter(),
-  new TrustAdapter({ openAppWithDeeplink: false, openUrlWhenWalletNotFound: false }),
+  new TrustAdapter({ openAppWithDeeplink: true, openUrlWhenWalletNotFound: false }),
+  new TokenPocketAdapter({ openAppWithDeeplink: true, openUrlWhenWalletNotFound: false }),
   new WalletConnectAdapter({
     network: "Mainnet",
     options: {
@@ -334,13 +335,14 @@ const MobileWallet = () => {
   const setWallets = useWalletsStore((state) => state.set);
   const okxConnectRef = useRef<any>(null);
 
-  const mobileWalletOptions = useMemo(() => {
-    const tronLinkAdapter = wallets.find((wallet) => wallet.name === "TronLink");
-    const trustAdapter = wallets.find((wallet) => wallet.name === "Trust");
+  const tronLinkAdapter = wallets.find((wallet) => wallet.name === "TronLink");
+  const trustAdapter = wallets.find((wallet) => wallet.name === "Trust");
+  const tokenPocketAdapter = wallets.find((wallet) => wallet.name === "TokenPocket");
 
+  const mobileWalletOptions = useMemo(() => {
     return [
       { key: "okx", name: "OKX Wallet", icon: OKX_ICON },
-      { key: "tokenpocket", name: "TokenPocket", icon: TP_ICON },
+      { key: "tokenpocket", name: "TokenPocket", icon: tokenPocketAdapter?.icon },
       { key: "tronlink", name: "TronLink", icon: tronLinkAdapter?.icon },
       { key: "trust", name: "Trust", icon: trustAdapter?.icon },
     ];
@@ -359,10 +361,25 @@ const MobileWallet = () => {
         return;
       }
 
-      if (wallet.key === "tokenpocket" || wallet.key === "tronlink" || wallet.key === "trust") {
-        openDeeplink(wallet.key, window.location.href);
+      if (wallet.key === "tokenpocket") {
+        tokenPocketAdapter?.connect?.();
         onClose();
       }
+
+      if (wallet.key === "tronlink") {
+        tronLinkAdapter?.connect?.();
+        onClose();
+      }
+
+      if (wallet.key === "trust") {
+        trustAdapter?.connect?.();
+        onClose();
+      }
+
+      // if (wallet.key === "tokenpocket" || wallet.key === "tronlink" || wallet.key === "trust") {
+      //   openDeeplink(wallet.key, window.location.href);
+      //   onClose();
+      // }
     },
   });
 
