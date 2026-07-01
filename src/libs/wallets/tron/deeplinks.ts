@@ -3,21 +3,15 @@
 // Note: this intentionally checks injected globals / user-agent instead of
 // adapter readyState, because on mobile TronLinkAdapter always reports "Found"
 // and WalletConnectAdapter always reports "Found".
-export function detectInjectedTronWalletName(): "Trust" | "TronLink" | null {
+export function detectInjectedTronWalletName(): "TronLink" | null {
   if (typeof window === "undefined") {
     return null;
   }
   const w = window as any;
-  const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-
-  // Trust injects window.trustwallet.tronLink (and its in-app browser UA
-  // contains "Trust").
-  if (w.trustwallet?.tronLink || /Trust/i.test(ua)) {
-    return "Trust";
-  }
 
   // TokenPocket / TronLink in-app browsers expose window.tronLink / tronWeb,
-  // both handled by TronLinkAdapter.
+  // both handled by TronLinkAdapter. (Trust's in-app browser only injects an
+  // EVM provider and has no Tron provider, so it is intentionally excluded.)
   if (w.tronLink || w.tronWeb || w.tron) {
     return "TronLink";
   }
@@ -29,7 +23,7 @@ export function hasInjectedTronWallet() {
   return detectInjectedTronWalletName() !== null;
 }
 
-export type MobileDeeplinkKey = "tokenpocket" | "tronlink" | "trust";
+export type MobileDeeplinkKey = "tokenpocket" | "tronlink";
 
 export function buildTokenPocketDeeplink(url: string) {
   const params = encodeURIComponent(JSON.stringify({
@@ -50,10 +44,6 @@ export function buildTronLinkDeeplink(url: string) {
   return `tronlinkoutside://pull.activity?param=${param}`;
 }
 
-export function buildTrustDeeplink(url: string) {
-  return `https://link.trustwallet.com/open_url?coin_id=195&url=${encodeURIComponent(url)}`;
-}
-
 export function openDeeplink(key: MobileDeeplinkKey, url?: string) {
   const targetUrl = url || (typeof window !== "undefined" ? window.location.href : "");
   let deeplink = "";
@@ -64,9 +54,6 @@ export function openDeeplink(key: MobileDeeplinkKey, url?: string) {
       break;
     case "tronlink":
       deeplink = buildTronLinkDeeplink(targetUrl);
-      break;
-    case "trust":
-      deeplink = buildTrustDeeplink(targetUrl);
       break;
     default:
       return;
