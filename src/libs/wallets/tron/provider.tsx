@@ -15,7 +15,7 @@ import { metadata } from "../rainbow/metadata";
 import { csl } from "@/utils/log";
 import { generateRpcSignature } from "@/libs/signature";
 import { isInMobileBrowser, isInOKApp } from "../utils/device";
-import { detectInjectedTronWalletName, hasInjectedTronWallet, openDeeplink } from "./deeplinks";
+import { detectInjectedTronWalletName, hasInjectedTronWallet } from "./deeplinks";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
@@ -336,7 +336,6 @@ const MobileWallet = () => {
   const okxConnectRef = useRef<any>(null);
 
   const tronLinkAdapter = wallets.find((wallet) => wallet.name === "TronLink");
-  const trustAdapter = wallets.find((wallet) => wallet.name === "Trust");
   const tokenPocketAdapter = wallets.find((wallet) => wallet.name === "TokenPocket");
 
   const mobileWalletOptions = useMemo(() => {
@@ -344,7 +343,6 @@ const MobileWallet = () => {
       { key: "okx", name: "OKX Wallet", icon: OKX_ICON },
       { key: "tokenpocket", name: "TokenPocket", icon: tokenPocketAdapter?.icon },
       { key: "tronlink", name: "TronLink", icon: tronLinkAdapter?.icon },
-      { key: "trust", name: "Trust", icon: trustAdapter?.icon },
     ];
   }, []);
 
@@ -370,16 +368,6 @@ const MobileWallet = () => {
         tronLinkAdapter?.connect?.();
         onClose();
       }
-
-      if (wallet.key === "trust") {
-        trustAdapter?.connect?.();
-        onClose();
-      }
-
-      // if (wallet.key === "tokenpocket" || wallet.key === "tronlink" || wallet.key === "trust") {
-      //   openDeeplink(wallet.key, window.location.href);
-      //   onClose();
-      // }
     },
   });
 
