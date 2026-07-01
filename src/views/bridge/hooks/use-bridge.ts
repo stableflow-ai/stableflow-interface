@@ -578,8 +578,10 @@ export default function useBridge(props?: any) {
       }
     }
 
-    if (!walletStore.fromToken) return;
     try {
+      if (!walletStore.fromToken) {
+        throw new Error("Please select a source token");
+      }
       bridgeStore.set({ transferring: true });
       const _quote = await quoteWithRequestId({ dry: false }, true);
 
