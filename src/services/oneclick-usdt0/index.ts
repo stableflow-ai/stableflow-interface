@@ -40,9 +40,6 @@ export class OneClickUsdt0Service {
       const inputPrice = getPrice(prices, fromToken.symbol);
       const inputValue = Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(inputPrice);
       secondStepAmountWei = Big(inputValue).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0);
-
-      // FIXME Quoting for non-stablecoins is not supported for now
-      return { errMsg: "Non-stablecoin is not supported for now" };
     }
 
     // First, call the usdt0 quote method

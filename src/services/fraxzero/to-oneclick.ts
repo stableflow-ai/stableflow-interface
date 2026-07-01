@@ -52,11 +52,6 @@ export class FraxZero2OneClickService extends FraxZeroService {
       middleChainRecipientAddress = FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
-    if (!isStableToken(toToken)) {
-      // FIXME Quoting for non-stablecoins is not supported for now
-      return { errMsg: "Non-stablecoin is not supported for now" };
-    }
-
     // fraxzero quote result
     let firstStepResult: any;
     if (!isFromEthereumFrxUSD) {
