@@ -10,6 +10,7 @@ import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
 import { getRouteStatus, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
+import { isStableToken } from "@/config/tokens";
 
 export class Usdt0OneClickService {
   public async quote(params: any) {
@@ -31,6 +32,11 @@ export class Usdt0OneClickService {
    
     if (!middleChainRecipientAddress) {
       middleChainRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
+    }
+
+    if (!isStableToken(toToken)) {
+      // FIXME Quoting for non-stablecoins is not supported for now
+      return { errMsg: "Non-stablecoin is not supported for now" };
     }
 
     const usdt0Params = {
