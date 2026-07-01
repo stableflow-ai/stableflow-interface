@@ -571,13 +571,6 @@ export default function useBridge(props?: any) {
       quoteData: bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService),
     };
 
-    if (([Service.OneClickUsdt0, Service.Usdt0OneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
-      const evmAddress = wallets.evm.account;
-      if (!evmAddress) {
-        throw new Error("Arbitrum wallet not connected");
-      }
-    }
-
     try {
       if (([Service.OneClickUsdt0, Service.Usdt0OneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
         const evmAddress = wallets.evm.account;
