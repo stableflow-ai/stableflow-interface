@@ -9,6 +9,7 @@ import { SendType } from "@/libs/wallets/types";
 import { getRouteStatus, Service } from "@/services/constants";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
+import { BASE_API_URL } from "@/config/api";
 
 export const BridgeFee = [
   {
@@ -46,6 +47,7 @@ export const excludeFees: string[] = ["estimateGasUsd"];
 
 export class OneClickService {
   private api: AxiosInstance;
+  private quoteApi: AxiosInstance;
   private offsetTime = 1000 * 60 * 60;
   constructor() {
     this.api = axios.create({
@@ -53,7 +55,13 @@ export class OneClickService {
       timeout: 30000,
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${import.meta.env.VITE_NEAR_INTENTS_KEY}`
+      }
+    });
+    this.quoteApi = axios.create({
+      baseURL: `${BASE_API_URL}/v1/nearintents`,
+      timeout: 30000,
+      headers: {
+        "Content-Type": "application/json",
       }
     });
   }
@@ -280,7 +288,7 @@ export class OneClickService {
     }
 
     execTime.breakpoint();
-    const res = await this.api.post("/quote", quoteParams);
+    const res = await this.quoteApi.post("/quote", quoteParams);
     execTime.log("1click API /quote");
 
     execTime.breakpoint();
