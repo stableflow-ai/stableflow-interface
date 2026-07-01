@@ -421,7 +421,9 @@ export class OneClickService {
       isFromTronEnergy,
     } = params;
 
-    if (isFromTronEnergy) {
+    const proxyAddress = ONECLICK_PROXY[fromToken.chainName];
+
+    if (isFromTronEnergy || !proxyAddress) {
       const hash = await wallet.send(SendType.TRANSFER, {
         originAsset: fromToken.contractAddress,
         depositAddress: depositAddress,
