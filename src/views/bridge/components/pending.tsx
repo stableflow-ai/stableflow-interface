@@ -13,7 +13,9 @@ import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import usdt0Service from "@/services/usdt0";
+import pyusdService from "@/services/pyusd";
 import { LzScanDestinationStatus, LzScanLzComposeStatus, LzScanSourceStatus, LzScanStatus, USDT0_CONFIG } from "@/services/usdt0/config";
+import { PYUSD_LZ_CONFIG, resolvePyusdMultiHopComposerAddress } from "@/services/pyusd/config";
 import Loading from "@/components/loading/icon";
 
 const PendingTransfer = (props: any) => {
@@ -73,10 +75,11 @@ const PendingTransfer = (props: any) => {
       result.time = new Date(result.create_time).getTime();
       result.timeEstimate = history[deposit_address]?.timeEstimate ?? Math.floor(Math.random() * 29) + 21;
 
-      // USDT0 status
+      // LayerZero OFT status (USDT0 / PYUSD)
       try {
-        if (result.project === TradeProject.Usdt0) {
-          const layerzeroData = await usdt0Service.getLayerzeroData({
+        if ([TradeProject.Usdt0, TradeProject.Pyusd].includes(result.project)) {
+          const layerzeroService = result.project === TradeProject.Pyusd ? pyusdService : usdt0Service;
+          const layerzeroData = await layerzeroService.getLayerzeroData({
             tx_hash: result.tx_hash,
             from_chain: result.from_chain,
           });
@@ -91,7 +94,9 @@ const PendingTransfer = (props: any) => {
           const isLzComponsePending = [LzScanLzComposeStatus.Waiting, LzScanLzComposeStatus.ValidatingTx, LzScanLzComposeStatus.WaitingForComposeSentEvent].includes(layerzeroData.destination?.lzCompose?.status);
           const isLzComponseSuccess = [LzScanLzComposeStatus.Succeeded].includes(layerzeroData.destination?.lzCompose?.status);
 
-          const multiHopComposer = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
+          const multiHopComposer = result.project === TradeProject.Pyusd
+            ? resolvePyusdMultiHopComposerAddress(PYUSD_LZ_CONFIG[currentToChain.chainName as string]?.eid ?? 0)
+            : USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
 
           result.isMultiHop = isMultiHop;
           result.hops = [
@@ -150,7 +155,7 @@ const PendingTransfer = (props: any) => {
           return result;
         }
       } catch (error) {
-        console.error("get USDT0 status failed: %o", error);
+        console.error("get LayerZero OFT status failed: %o", error);
       }
 
       if ([TradeStatus.Failed, TradeStatus.Success].includes(result.status) && timerRef.current) {

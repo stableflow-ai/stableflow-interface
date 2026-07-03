@@ -400,6 +400,7 @@ export default class RainbowWallet {
       isDestinationLegacy,
       originLayerzero,
       destinationLayerzero,
+      hopQuote,
     } = params;
 
     const result: any = {
@@ -466,13 +467,18 @@ export default class RainbowWallet {
 
     // csl("EVM quoteOFT", "blue-900", "isMultiHopComposer: %o", isMultiHopComposer);
     if (isMultiHopComposer) {
-      // multiHopComposer: Arbitrum legacy mesh MultiHopComposer, eid = 30110
+      // multiHopComposer: Arbitrum MultiHopComposer, eid = 30110
       sendParam.dstEid = multiHopComposer.eid;
       sendParam.to = addressToBytes32("evm", multiHopComposer.oftMultiHopComposer);
 
+      const destinationLzReceiveGas = hopQuote?.destinationLzReceiveOptionGas ?? lzReceiveOptionGas;
+      const destinationLzReceiveValue = hopQuote?.destinationLzReceiveOptionValue ?? lzReceiveOptionValue;
+      const shouldAddDestinationLzReceive = hopQuote?.destinationLzReceiveRequired || destinationLzReceiveValue > 0;
       let multiHopExtraOptions = Options.newOptions().toHex();
-      if (lzReceiveOptionValue) {
-        multiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+      if (shouldAddDestinationLzReceive) {
+        multiHopExtraOptions = Options.newOptions()
+          .addExecutorLzReceiveOption(destinationLzReceiveGas, destinationLzReceiveValue || 0)
+          .toHex();
       }
 
       const composeMsgSendParam = {
@@ -488,16 +494,37 @@ export default class RainbowWallet {
       const hopMsgFee = await getHopMsgFee({
         sendParam: composeMsgSendParam,
         toToken,
+        hopQuote,
       });
       execTime.log("getHopMsgFee");
 
-      sendParam.extraOptions = Options.newOptions()
-        .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
+      const composeOptionValue = hopQuote?.composeOptionValue ?? hopMsgFee;
+      let firstHopOptions = Options.newOptions();
+      if (hopQuote?.hubLzReceiveOptionGas) {
+        firstHopOptions = firstHopOptions.addExecutorLzReceiveOption(
+          hopQuote.hubLzReceiveOptionGas,
+          hopQuote.hubLzReceiveOptionValue || 0,
+        );
+      }
+      sendParam.extraOptions = firstHopOptions
+        .addExecutorComposeOption(
+          0,
+          hopQuote?.composeOptionGas ?? (originLayerzero.composeOptionGas || 800000),
+          composeOptionValue,
+        )
         .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       sendParam.composeMsg = abiCoder.encode(
         ["tuple(uint32 dstEid, bytes32 to, uint256 amountLD, uint256 minAmountLD, bytes extraOptions, bytes composeMsg, bytes oftCmd)"],
-        [Object.values(composeMsgSendParam)]
+        [[
+          composeMsgSendParam.dstEid,
+          composeMsgSendParam.to,
+          composeMsgSendParam.amountLD,
+          composeMsgSendParam.minAmountLD,
+          composeMsgSendParam.extraOptions,
+          composeMsgSendParam.composeMsg,
+          composeMsgSendParam.oftCmd,
+        ]]
       );
     }
 
@@ -691,6 +718,7 @@ export default class RainbowWallet {
       case Service.CCTP:
         return await this.quoteCCTP(params);
       case Service.Usdt0:
+      case Service.Pyusd:
         return await this.quoteOFT(params);
       case Service.OneClick:
         return await this.quoteOneClickProxy(params);

@@ -589,6 +589,7 @@ export default class TronWallet {
       isDestinationLegacy,
       originLayerzero,
       destinationLayerzero,
+      hopQuote,
     } = params;
 
     const { Options } = await import("@layerzerolabs/lz-v2-utilities");
@@ -695,9 +696,14 @@ export default class TronWallet {
     }
 
     if (isMultiHopComposer) {
+      const destinationLzReceiveGas = hopQuote?.destinationLzReceiveOptionGas ?? lzReceiveOptionGas;
+      const destinationLzReceiveValue = hopQuote?.destinationLzReceiveOptionValue ?? lzReceiveOptionValue;
+      const shouldAddDestinationLzReceive = hopQuote?.destinationLzReceiveRequired || destinationLzReceiveValue > 0;
       let multiHopExtraOptions = Options.newOptions().toHex();
-      if (lzReceiveOptionValue) {
-        multiHopExtraOptions = Options.newOptions().addExecutorLzReceiveOption(lzReceiveOptionGas, lzReceiveOptionValue).toHex();
+      if (shouldAddDestinationLzReceive) {
+        multiHopExtraOptions = Options.newOptions()
+          .addExecutorLzReceiveOption(destinationLzReceiveGas, destinationLzReceiveValue || 0)
+          .toHex();
       }
 
       const composeMsgSendParam = {
@@ -713,11 +719,24 @@ export default class TronWallet {
       const hopMsgFee = await getHopMsgFee({
         sendParam: composeMsgSendParam,
         toToken,
+        hopQuote,
       });
       execTime.log("getHopMsgFee");
 
-      sendParam[4] = Options.newOptions()
-        .addExecutorComposeOption(0, originLayerzero.composeOptionGas || 800000, hopMsgFee)
+      const composeOptionValue = hopQuote?.composeOptionValue ?? hopMsgFee;
+      let firstHopOptions = Options.newOptions();
+      if (hopQuote?.hubLzReceiveOptionGas) {
+        firstHopOptions = firstHopOptions.addExecutorLzReceiveOption(
+          hopQuote.hubLzReceiveOptionGas,
+          hopQuote.hubLzReceiveOptionValue || 0,
+        );
+      }
+      sendParam[4] = firstHopOptions
+        .addExecutorComposeOption(
+          0,
+          hopQuote?.composeOptionGas ?? (originLayerzero.composeOptionGas || 800000),
+          composeOptionValue,
+        )
         .toHex();
       const abiCoder = ethers.AbiCoder.defaultAbiCoder();
       sendParam[5] = abiCoder.encode(
@@ -919,6 +938,7 @@ export default class TronWallet {
   async quote(type: Service, params: any) {
     switch (type) {
       case Service.Usdt0:
+      case Service.Pyusd:
         return await this.quoteOFT(params);
       case Service.OneClick:
         return await this.quoteOneClickProxy(params);

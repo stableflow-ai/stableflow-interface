@@ -1,19 +1,18 @@
 import { USDT0_CONFIG, USDT0_DVN_COUNT } from "./config";
 import { OFT_ABI, SOLANA_IDL } from "./contract";
-import axios from "axios";
-import { SendType } from "@/libs/wallets/types";
 import { getRouteStatus, Service } from "@/services/constants";
 import { calculateEstimateTime } from "../utils";
-import { csl } from "@/utils/log";
-import Big from "big.js";
-import { numberRemoveEndZero } from "@/utils/format/number";
 import { ExecTime } from "@/utils/exec-time";
+import { OftService } from "../oft/base-service";
 
 export const PayInLzToken = false;
 
 export const excludeFees: string[] = ["estimateGasUsd"];
 
-export class Usdt0Service {
+export class Usdt0Service extends OftService {
+  protected readonly service = Service.Usdt0;
+  protected readonly dvnCount = USDT0_DVN_COUNT;
+
   public async quote(params: any) {
     const {
       dry,
@@ -40,9 +39,8 @@ export class Usdt0Service {
     let destinationLayerzeroAddress = destinationLayerzero.oft;
     let dstEid = destinationLayerzero.eid;
 
-    // Dynamically calculate estimated time
     const estimateTime = calculateEstimateTime({
-      requiredDvnCount: USDT0_DVN_COUNT,
+      requiredDvnCount: this.dvnCount,
       originConfig: originLayerzero,
       destinationConfig: destinationLayerzero,
     });
@@ -101,7 +99,6 @@ export class Usdt0Service {
       return result;
     }
 
-    // source chain must be legacy
     const isOriginLegacy = true;
     originLayerzeroAddress = originLayerzero.oftLegacy;
     destinationLayerzeroAddress = destinationLayerzero.oftLegacy || destinationLayerzero.oft;
@@ -109,9 +106,6 @@ export class Usdt0Service {
     const isBothLegacy = isOriginLegacy && isDestinationLegacy;
     const isMultiHopComposer = !isBothLegacy;
 
-    // one is legacy, and one is upgradeable
-    // should use multi hop composer
-    // and special extraOptions & composeMsg
     if (isMultiHopComposer) {
       dstEid = USDT0_CONFIG["Arbitrum"].eid;
       destinationLayerzeroAddress = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
@@ -159,156 +153,6 @@ export class Usdt0Service {
     execTime.logTotal("Usdt0Service.quote");
 
     return result;
-  }
-
-  public async estimateTransaction(params: any, quoteData: any) {
-    const {
-      fromToken,
-      amountWei,
-      wallet,
-      prices,
-      evmGasFees,
-    } = params;
-
-    const result: any = { fees: {}, ...quoteData };
-
-    const isFromTron = fromToken.chainType === "tron";
-    const nativeTokenDecimals = fromToken.nativeToken.decimals;
-
-    const estimateTransactionParams = {
-      dry: false,
-      ...quoteData.sendParam,
-      fromToken,
-      prices,
-      evmGasFees,
-    };
-    if (isFromTron) {
-      estimateTransactionParams.defaultEnergyUsed = 300000;
-      estimateTransactionParams.defaultRawDataHexLength = 1000;
-    }
-    const ett = await wallet.estimateTransaction(estimateTransactionParams);
-    result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
-    result.estimateSourceGas = ett.estimateSourceGas;
-    result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
-    result.totalEstimateSourceGas = BigInt(Big(quoteData.fees?.nativeFee || 0).times(10 ** nativeTokenDecimals).toFixed(0)) + ett.estimateSourceGas;
-
-    if (result.needApprove && wallet.estimateApprove) {
-      const estApptroveGas = await wallet.estimateApprove({
-        dry: false,
-        amountWei,
-        spender: result.approveSpender,
-        fromToken,
-        prices,
-      });
-      result.estimateApproveGas = estApptroveGas.estimateSourceGas;
-    }
-
-    result.totalFeesUsd = "0";
-    for (const feeKey in result.fees) {
-      if (excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
-        continue;
-      }
-      result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
-    }
-    result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd).toFixed(20));
-
-    if (fromToken.chainType === "evm") {
-      const sendParams = result.sendParam?.param;
-      if (
-        sendParams
-        && Array.isArray(sendParams)
-        && sendParams[sendParams.length - 1]
-        && typeof sendParams[sendParams.length - 1] === "object"
-        && sendParams[sendParams.length - 1].gasLimit !== void 0
-      ) {
-        csl("USDT0Service estimateTransaction", "green-500", "Old gasLimit: %o", sendParams[sendParams.length - 1].gasLimit);
-        sendParams[sendParams.length - 1].gasLimit = ett.estimateSourceGasLimit;
-        csl("USDT0Service estimateTransaction", "green-500", "Updated gasLimit: %o", sendParams[sendParams.length - 1].gasLimit);
-      }
-    }
-
-    return result;
-  }
-
-  public async send(params: any) {
-    const {
-      wallet,
-      ...rest
-    } = params;
-
-    return wallet.send(SendType.SEND, rest);
-  }
-
-  public async getStatus(params: any): Promise<{ status: string; toTxHash?: string }> {
-    const { hash, history, fromWallet } = params;
-    const result = { status: "PENDING_DEPOSIT" };
-
-    // If it's Tron, get the transaction status first
-    if (history?.fromToken?.chainType === "tron" && fromWallet) {
-      const response = await fromWallet.getTransactionResult(hash);
-
-      if (!response || !response.receipt || !response.receipt.result) {
-        return result;
-      }
-
-      if (response.receipt.result !== "SUCCESS") {
-        result.status = "FAILED";
-        return result;
-      }
-    }
-
-    try {
-      const txhash = history?.fromToken?.chainType === "tron" ? `0x${hash}` : hash;
-      const response = await axios({
-        url: `https://scan.layerzero-api.com/v1/messages/tx/${txhash}`,
-        method: "GET",
-        timeout: 30000,
-        headers: {
-          "Content-Type": "application/json"
-        },
-      });
-      const data = response.data.data[0];
-      // INFLIGHT | CONFIRMING | DELIVERED | BLOCKED | FAILED
-      const status = data.status.name;
-      const toTxHash = data.destination?.tx?.txHash;
-      let finalStatus = "PENDING_DEPOSIT";
-      if (status === "DELIVERED") {
-        finalStatus = "SUCCESS";
-      }
-      if (status === "FAILED" || status === "BLOCKED") {
-        finalStatus = "FAILED";
-      }
-
-      return {
-        status: finalStatus,
-        toTxHash,
-      };
-    } catch (error) {
-      console.error("usdt0 get status failed: %o", error);
-      return {
-        status: "PENDING_DEPOSIT",
-      };
-    }
-  }
-
-  public async getLayerzeroData(params: any) {
-    const { tx_hash, from_chain } = params;
-
-    try {
-      const txhash = from_chain === "tron" ? `0x${tx_hash}` : tx_hash;
-      const response = await axios({
-        url: `https://scan.layerzero-api.com/v1/messages/tx/${txhash}`,
-        method: "GET",
-        timeout: 30000,
-        headers: {
-          "Content-Type": "application/json"
-        },
-      });
-      return response.data.data[0];
-    } catch (error) {
-      console.error("usdt0 get status failed: %o", error);
-      return null;
-    }
   }
 }
 

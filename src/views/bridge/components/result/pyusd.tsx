@@ -1,0 +1,82 @@
+import useBridgeStore from "@/stores/use-bridge";
+import { useConfigStore } from "@/stores/use-config";
+import { useDebounceFn } from "ahooks";
+import Big from "big.js";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import ResultFeeItem from "./fee-item";
+import { Service } from "@/services/constants";
+import { formatNumber } from "@/utils/format/number";
+
+const ResultPyusd = () => {
+  const bridgeStore = useBridgeStore();
+  const configStore = useConfigStore();
+  const _quoteData = bridgeStore.quoteDataMap.get(Service.Pyusd);
+
+  const [fees, setFees] = useState<any>();
+
+  const { run: calculateFees } = useDebounceFn(() => {
+    const slippage = Big(configStore.slippage).toFixed(2) + "%";
+
+    if (
+      !bridgeStore.amount
+      || !_quoteData?.outputAmount
+      || Big(bridgeStore.amount).lte(0)
+      || Big(_quoteData?.outputAmount).lte(0)
+    ) {
+      setFees({
+        totalFee: 0,
+        messagingFee: 0,
+        messagingFeeAmount: 0,
+        messagingFeeUnit: "",
+        slippage,
+      });
+      return;
+    }
+
+    setFees({
+      totalFee: _quoteData?.totalFeesUsd,
+      messagingFee: _quoteData?.fees?.nativeFeeUsd,
+      messagingFeeAmount: _quoteData?.fees?.nativeFee,
+      messagingFeeUnit: _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
+      slippage,
+    });
+  }, { wait: 500 });
+
+  useEffect(() => {
+    calculateFees();
+  }, [bridgeStore, configStore.slippage]);
+
+  return (
+    <AnimatePresence>
+      {
+        bridgeStore.showFee && (
+          <motion.div
+            key="fee-detail"
+            className="w-full flex flex-col items-stretch gap-2 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ResultFeeItem
+              label="Messaging Fee"
+              isFormat={false}
+              loading={bridgeStore.getQuoting(Service.Pyusd)}
+            >
+              {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$", round: 0 })})
+            </ResultFeeItem>
+            {/* <ResultFeeItem
+              label="Slippage"
+              loading={bridgeStore.getQuoting(Service.Pyusd)}
+              isFormat={false}
+            >
+              {fees?.slippage}
+            </ResultFeeItem> */}
+          </motion.div>
+        )
+      }
+    </AnimatePresence>
+  );
+};
+
+export default ResultPyusd;

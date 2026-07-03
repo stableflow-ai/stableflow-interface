@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useHistoryStore } from "@/stores/use-history";
 import { TradeProject, TradeProjectMap } from "@/config/trade";
 import usdt0Service from "@/services/usdt0";
+import pyusdService from "@/services/pyusd";
 import { useDebounceFn, useRequest } from "ahooks";
 import useWalletsStore from "@/stores/use-wallets";
 import useToast from "@/hooks/use-toast";
@@ -28,10 +29,13 @@ export default function Pending(props: any) {
   const [layerzeroDataMap, setLayerzeroDataMap] = useState<any>();
   const { run: getLayerzeroData, cancel: cancelGetLayerzeroData } = useDebounceFn(async () => {
     if (!history.list.length) return;
-    const layerzeroHistory = history.list.filter((_history: any) => _history.project === TradeProject.Usdt0);
+    const layerzeroHistory = history.list.filter((_history: any) => (
+      [TradeProject.Usdt0, TradeProject.Pyusd].includes(_history.project)
+    ));
     if (!layerzeroHistory.length) return;
     const layerzeroData = await Promise.all(layerzeroHistory.map((_history: any) => {
-      return usdt0Service.getLayerzeroData(_history);
+      const service = _history.project === TradeProject.Pyusd ? pyusdService : usdt0Service;
+      return service.getLayerzeroData(_history);
     }));
 
     const _layerzeroDataMap: any = {};
@@ -56,7 +60,9 @@ export default function Pending(props: any) {
 
   const layerzeroHistoryKey = useMemo(() => {
     if (!history.list.length) return "";
-    const layerzeroHistory = history.list.filter((_history: any) => _history.project === TradeProject.Usdt0);
+    const layerzeroHistory = history.list.filter((_history: any) => (
+      [TradeProject.Usdt0, TradeProject.Pyusd].includes(_history.project)
+    ));
     return layerzeroHistory.map((_history: any) => _history.deposit_address).sort().join(",");
   }, [history.list]);
 

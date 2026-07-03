@@ -16,6 +16,7 @@ import Popover from "@/components/popover";
 
 const ResultOneClick = lazy(() => import("./oneclick"));
 const ResultUsdt0 = lazy(() => import("./usdt0"));
+const ResultPyusd = lazy(() => import("./pyusd"));
 const ResultCCTP = lazy(() => import("./cctp"));
 const ResultFraxZero = lazy(() => import("./fraxzero"));
 const ResultUsdt0OneClick = lazy(() => import("./usdt0-oneclick"));
@@ -89,6 +90,11 @@ export default function Result() {
         {
           bridgeStore.quoteDataService === Service.Usdt0 && (
             <ResultUsdt0 />
+          )
+        }
+        {
+          bridgeStore.quoteDataService === Service.Pyusd && (
+            <ResultPyusd />
           )
         }
         {

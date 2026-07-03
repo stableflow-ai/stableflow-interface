@@ -3,6 +3,7 @@ import { usdt } from "@/config/tokens/usdt";
 import { usdc } from "@/config/tokens/usdc";
 import { frxusd } from "@/config/tokens/frxusd";
 import { eure } from "@/config/tokens/eure";
+import { pyusd, pyusd0 } from "@/config/tokens/pyusd";
 // import { usd1 } from "@/config/tokens/usd1";
 import clsx from "clsx";
 import useWalletStore from "@/stores/use-wallet";
@@ -147,7 +148,7 @@ export default function Assets() {
             walletStore.set(updateParams);
           }}
           onMouseEnter={() => {
-            scrollTo("right");
+            scrollTo("left");
           }}
         />
         <AssetItem
@@ -162,7 +163,7 @@ export default function Assets() {
             scrollTo("right");
           }}
           onMouseEnter={() => {
-            scrollToDebounced("right");
+            scrollTo("right");
           }}
         />
         <AssetItem
@@ -174,6 +175,32 @@ export default function Assets() {
             };
             walletStore.set(updateParams);
 
+            scrollTo("right");
+          }}
+          onMouseEnter={() => {
+            scrollTo("right");
+          }}
+        />
+        <AssetItem
+          asset={pyusd}
+          active={currentToken === "PYUSD"}
+          onClick={() => {
+            walletStore.set({
+              selectedToken: "PYUSD",
+            });
+            scrollTo("right");
+          }}
+          onMouseEnter={() => {
+            scrollTo("right");
+          }}
+        />
+        <AssetItem
+          asset={pyusd0}
+          active={currentToken === "PYUSD0"}
+          onClick={() => {
+            walletStore.set({
+              selectedToken: "PYUSD0",
+            });
             scrollTo("right");
           }}
           onMouseEnter={() => {
@@ -242,7 +269,11 @@ const AssetItem = ({
         )}
       >
         <div
-          className={clsx("text-[16px] font-[500]", disabled && "opacity-50")}
+          className={clsx(
+            "font-[500]",
+            ["PYUSD0"].includes(asset.symbol) ? "text-[15px]" : "text-[16px]",
+            disabled && "opacity-50"
+          )}
         >
           {asset.symbol}
         </div>
