@@ -515,7 +515,7 @@ export default class RainbowWallet {
       // The slippage is calculated based on the user-defined value and the user-input amount
       sendParam.minAmountLD = Big(amountWei).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
       // The actual received amount is based on the contract return value
-      result.outputAmount = numberRemoveEndZero(numberRemoveEndZero(Big(oftReceipt[1].toString()).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0)));
+      result.outputAmount = numberRemoveEndZero(Big(oftReceipt[1].toString()).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
       // csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
       execTime.log("quoteOFT.staticCall");
     }
