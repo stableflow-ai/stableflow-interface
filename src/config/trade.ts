@@ -30,7 +30,6 @@ export const TradeProject = {
   Usdt0OneClick: 3,
   OneClickUsdt0: 4,
   Native: 5,
-  Pyusd: 9,
 } as const;
 
 export type TradeProject = (typeof TradeProject)[keyof typeof TradeProject];
@@ -90,10 +89,19 @@ export const TradeProjectMap: Record<TradeProject, { logo: string; logoSimple: s
     name: "Native",
     service: Service.Native,
   },
-  [TradeProject.Pyusd]: {
-    logo: ServiceLogoMap[Service.Pyusd],
-    logoSimple: ServiceLogoSimpleMap[Service.Pyusd],
-    name: "PYUSD",
-    service: Service.Pyusd,
-  },
+};
+
+export const getRealService = (project: TradeProject, fromToken: { symbol: string; }) => {
+  if (project === TradeProject.Usdt0) {
+    if (["USDT", "USDT0", "USD₮0"].includes(fromToken.symbol)) {
+      return TradeProjectMap[TradeProject.Usdt0];
+    }
+    return {
+      logo: ServiceLogoMap[Service.Pyusd],
+      logoSimple: ServiceLogoSimpleMap[Service.Pyusd],
+      name: "Layerzero",
+      service: Service.Pyusd,
+    };
+  }
+  return TradeProjectMap[project];
 };

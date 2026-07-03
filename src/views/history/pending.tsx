@@ -4,9 +4,7 @@ import dayjs from "dayjs";
 import { formatNumber } from "@/utils/format/number";
 import { useEffect, useMemo, useState } from "react";
 import { useHistoryStore } from "@/stores/use-history";
-import { TradeProject, TradeProjectMap } from "@/config/trade";
-import usdt0Service from "@/services/usdt0";
-import pyusdService from "@/services/pyusd";
+import { getRealService, TradeProject } from "@/config/trade";
 import { useDebounceFn, useRequest } from "ahooks";
 import useWalletsStore from "@/stores/use-wallets";
 import useToast from "@/hooks/use-toast";
@@ -15,6 +13,7 @@ import { arbitrum } from "viem/chains";
 import Loading from "@/components/loading/icon";
 import { csl } from "@/utils/log";
 import { getStableflowIcon } from "@/utils/format/logo";
+import { getLayerzeroProjectService } from "@/services/project-service";
 
 export default function Pending(props: any) {
   const { className, isTitle = true, contentClassName, history } = props;
@@ -30,12 +29,12 @@ export default function Pending(props: any) {
   const { run: getLayerzeroData, cancel: cancelGetLayerzeroData } = useDebounceFn(async () => {
     if (!history.list.length) return;
     const layerzeroHistory = history.list.filter((_history: any) => (
-      [TradeProject.Usdt0, TradeProject.Pyusd].includes(_history.project)
+      [TradeProject.Usdt0].includes(_history.project)
     ));
     if (!layerzeroHistory.length) return;
     const layerzeroData = await Promise.all(layerzeroHistory.map((_history: any) => {
-      const service = _history.project === TradeProject.Pyusd ? pyusdService : usdt0Service;
-      return service.getLayerzeroData(_history);
+      const service = getLayerzeroProjectService(_history.project, { symbol: _history.symbol }).quoteService;
+      return service?.getLayerzeroData(_history);
     }));
 
     const _layerzeroDataMap: any = {};
@@ -61,7 +60,7 @@ export default function Pending(props: any) {
   const layerzeroHistoryKey = useMemo(() => {
     if (!history.list.length) return "";
     const layerzeroHistory = history.list.filter((_history: any) => (
-      [TradeProject.Usdt0, TradeProject.Pyusd].includes(_history.project)
+      [TradeProject.Usdt0].includes(_history.project)
     ));
     return layerzeroHistory.map((_history: any) => _history.deposit_address).sort().join(",");
   }, [history.list]);
@@ -183,7 +182,7 @@ const PendingItem = ({ className, data, layerzeroData, wallets, toast, evmAccoun
       <div className="rounded-[12px] bg-white border border-[#EDF0F7] p-[12px] pt-[6px]">
         <div className="mb-2 flex justify-between items-center">
           <img
-            src={TradeProjectMap[data.project as TradeProject]?.logo}
+            src={getRealService(data.project as TradeProject, { symbol: data.symbol }).logo}
             alt=""
             className="w-[62px] h-[16px] object-center object-contain shrink-0"
           />

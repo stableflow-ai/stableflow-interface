@@ -121,7 +121,7 @@ export const ServiceLogoMap: Record<Service, string> = {
   [Service.Usdt0OneClick]: getStableflowRouteLogo("logo-usdt0-near-intents-2.svg"),
   [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-2.svg"),
   [Service.Native]: getStableflowRouteLogo("logo-native.svg"),
-  [Service.Pyusd]: getStableflowRouteLogo("logo-pyusd.svg"),
+  [Service.Pyusd]: getStableflowRouteLogo("logo-layerzero.svg"),
 };
 
 export const ServiceLogoSimpleMap: Record<Service, string> = {
@@ -134,5 +134,5 @@ export const ServiceLogoSimpleMap: Record<Service, string> = {
   [Service.Usdt0OneClick]: getStableflowRouteLogo("logo-usdt0-near-intents-simple.svg"),
   [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-simple.svg"),
   [Service.Native]: getStableflowRouteLogo("logo-native-simple.svg"),
-  [Service.Pyusd]: getStableflowRouteLogo("logo-pyusd-simple.svg"),
+  [Service.Pyusd]: getStableflowRouteLogo("logo-layerzero-simple.svg"),
 };

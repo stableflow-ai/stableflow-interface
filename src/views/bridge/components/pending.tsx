@@ -12,11 +12,11 @@ import clsx from "clsx";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import usdt0Service from "@/services/usdt0";
-import pyusdService from "@/services/pyusd";
 import { LzScanDestinationStatus, LzScanLzComposeStatus, LzScanSourceStatus, LzScanStatus, USDT0_CONFIG } from "@/services/usdt0/config";
 import { PYUSD_LZ_CONFIG, resolvePyusdMultiHopComposerAddress } from "@/services/pyusd/config";
 import Loading from "@/components/loading/icon";
+import { getLayerzeroProjectService } from "@/services/project-service";
+import { Service } from "@/services/constants";
 
 const PendingTransfer = (props: any) => {
   const { className } = props;
@@ -77,9 +77,9 @@ const PendingTransfer = (props: any) => {
 
       // LayerZero OFT status (USDT0 / PYUSD)
       try {
-        if ([TradeProject.Usdt0, TradeProject.Pyusd].includes(result.project)) {
-          const layerzeroService = result.project === TradeProject.Pyusd ? pyusdService : usdt0Service;
-          const layerzeroData = await layerzeroService.getLayerzeroData({
+        if ([TradeProject.Usdt0].includes(result.project)) {
+          const layerzeroService = getLayerzeroProjectService(result.project, { symbol: result.symbol });
+          const layerzeroData = await layerzeroService.quoteService?.getLayerzeroData({
             tx_hash: result.tx_hash,
             from_chain: result.from_chain,
           });
@@ -94,7 +94,7 @@ const PendingTransfer = (props: any) => {
           const isLzComponsePending = [LzScanLzComposeStatus.Waiting, LzScanLzComposeStatus.ValidatingTx, LzScanLzComposeStatus.WaitingForComposeSentEvent].includes(layerzeroData.destination?.lzCompose?.status);
           const isLzComponseSuccess = [LzScanLzComposeStatus.Succeeded].includes(layerzeroData.destination?.lzCompose?.status);
 
-          const multiHopComposer = result.project === TradeProject.Pyusd
+          const multiHopComposer = layerzeroService.service === Service.Pyusd
             ? resolvePyusdMultiHopComposerAddress(PYUSD_LZ_CONFIG[currentToChain.chainName as string]?.eid ?? 0)
             : USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
 
