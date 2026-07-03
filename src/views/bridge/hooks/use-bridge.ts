@@ -148,7 +148,7 @@ export default function useBridge(props?: any) {
           _params.appFees = params.appFees;
         }
       }
-      if (([Service.Usdt0, Service.CCTP, Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
+      if (([Service.Usdt0, Service.Pyusd, Service.CCTP, Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
         _params.originChain = walletStore.fromToken.chainName;
         _params.destinationChain = walletStore.toToken.chainName;
       }

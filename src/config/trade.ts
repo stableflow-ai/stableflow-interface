@@ -90,3 +90,18 @@ export const TradeProjectMap: Record<TradeProject, { logo: string; logoSimple: s
     service: Service.Native,
   },
 };
+
+export const getRealService = (project: TradeProject, fromToken: { symbol: string; }) => {
+  if (project === TradeProject.Usdt0) {
+    if (["USDT", "USDT0", "USD₮0"].includes(fromToken.symbol)) {
+      return TradeProjectMap[TradeProject.Usdt0];
+    }
+    return {
+      logo: ServiceLogoMap[Service.Pyusd],
+      logoSimple: ServiceLogoSimpleMap[Service.Pyusd],
+      name: "Layerzero",
+      service: Service.Pyusd,
+    };
+  }
+  return TradeProjectMap[project];
+};

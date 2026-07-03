@@ -2,6 +2,7 @@ import { usdcEvm, usdcNear, usdcSol, usdcChains, usdcAptos, usdcSui } from "@/co
 import { usdtAptos, usdtEvm, usdtNear, usdtSol, usdtTron, usdtChains, usdtTon } from "@/config/tokens/usdt";
 import { usdt0Chains, usdt0Evm } from "./usdt0";
 import { frxusdChains, frxusdEvm, frxusdSol } from "./frxusd";
+import { pyusdChains, pyusdEvm, pyusd0Evm, pyusdSol, pyusdTron } from "./pyusd";
 import { eureChains, eureEvm } from "./eure";
 import type { TokenChain } from "../chains";
 import { getStableflowTokenLogo } from "@/utils/format/logo";
@@ -11,7 +12,10 @@ const evmTokenChains = [
   usdtEvm.chains,
   usdt0Evm.chains,
   frxusdEvm.chains,
+  pyusdEvm.chains,
   eureEvm.chains,
+  pyusdEvm.chains,
+  pyusd0Evm.chains,
 ];
 
 export interface EvmBalancesToken {
@@ -63,6 +67,14 @@ export const eureAddresses = Object.values(eureEvm.chains).map((chain) => ({
   [chain.chainId!]: chain.contractAddress.toLowerCase(),
 })).reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
+export const pyusdAddresses = Object.values(pyusdEvm.chains).map((chain) => ({
+  [chain.chainId!]: chain.contractAddress.toLowerCase(),
+})).reduce((acc, curr) => ({ ...acc, ...curr }), {});
+
+export const pyusd0Addresses = Object.values(pyusd0Evm.chains).map((chain) => ({
+  [chain.chainId!]: chain.contractAddress.toLowerCase(),
+})).reduce((acc, curr) => ({ ...acc, ...curr }), {});
+
 export const stablecoinWithChains: any = {
   evm: {
     "USDT": usdtEvm,
@@ -70,11 +82,14 @@ export const stablecoinWithChains: any = {
     "USD₮0": usdt0Evm,
     "frxUSD": frxusdEvm,
     "EURe": eureEvm,
+    "PYUSD": pyusdEvm,
+    "PYUSD0": pyusd0Evm,
   },
   sol: {
     "USDT": usdtSol,
     "USDC": usdcSol,
     "frxUSD": frxusdSol,
+    "PYUSD": pyusdSol,
   },
   near: {
     "USDT": usdtNear,
@@ -82,6 +97,7 @@ export const stablecoinWithChains: any = {
   },
   tron: {
     "USDT": usdtTron,
+    "PYUSD0": pyusdTron,
   },
   aptos: {
     "USDT": usdtAptos,
@@ -103,6 +119,8 @@ export const stablecoinLogoMap: Record<string, string> = {
   "USD₮": getStableflowTokenLogo("usdt0"),
   "frxUSD": getStableflowTokenLogo("frxusd"),
   "EURe": getStableflowTokenLogo("eure"),
+  "PYUSD": getStableflowTokenLogo("pyusd"),
+  "PYUSD0": getStableflowTokenLogo("pyusd"),
 };
 
 export const tokens = [
@@ -110,6 +128,7 @@ export const tokens = [
   ...Object.values(usdtChains),
   ...Object.values(usdt0Chains),
   ...Object.values(frxusdChains),
+  ...Object.values(pyusdChains),
   ...Object.values(eureChains),
 ];
 
@@ -119,5 +138,5 @@ export const allUsdtChains: Record<string, TokenChain> = {
 };
 
 export const isStableToken = (token: TokenChain) => {
-  return !["EURe"].includes(token.symbol)
+  return !["EURe"].includes(token.symbol);
 };

@@ -24,6 +24,11 @@ export const ECOSYSTEM_STABLECOINS = [
     tokenLogo: "frxUSD",
     gradient: "radial-gradient(44.36% 43.69% at 50% 0%, rgba(180,180,184,0.2) 0%, rgba(255,255,255,0.2) 100%)",
   },
+  {
+    symbol: "PYUSD",
+    tokenLogo: "pyusd",
+    gradient: "radial-gradient(44.36% 43.69% at 50% 0%, rgba(0,112,243,0.2) 0%, rgba(255,255,255,0.2) 100%)",
+  },
 ] as const;
 
 export const ECOSYSTEM_NETWORK_ORDER: ChainKey[] = [
@@ -58,4 +63,5 @@ export const ECOSYSTEM_RAILS: Service[] = [
   Service.CCTP,
   Service.Native,
   Service.FraxZero,
+  Service.Pyusd,
 ];

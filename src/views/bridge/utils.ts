@@ -177,10 +177,10 @@ export const sortQuoteData = (quoteDataMap: Map<string, any>) => {
     let netB = Big(dataB.outputAmount || 0);
 
     // Usdt0 should minus message fee
-    if ([Service.Usdt0, Service.Usdt0OneClick, Service.OneClickUsdt0].includes(_serviceA)) {
+    if ([Service.Usdt0, Service.Pyusd, Service.Usdt0OneClick, Service.OneClickUsdt0].includes(_serviceA)) {
       netA = netA.minus(dataA.fees?.nativeFeeUsd || 0);
     }
-    if ([Service.Usdt0, Service.Usdt0OneClick, Service.OneClickUsdt0].includes(_serviceB)) {
+    if ([Service.Usdt0, Service.Pyusd, Service.Usdt0OneClick, Service.OneClickUsdt0].includes(_serviceB)) {
       netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
     }
 

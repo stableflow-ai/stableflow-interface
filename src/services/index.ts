@@ -1,5 +1,6 @@
 import oneClickService from "./oneclick";
 import usdt0Service from "./usdt0";
+import pyusdService from "./pyusd";
 import cctpService from "./cctp";
 import fraxZeroService from "./fraxzero";
 import fraxZeroOneClickService from "./fraxzero/to-oneclick";
@@ -12,6 +13,7 @@ import { Service } from "./constants";
 export const ServiceMap: Record<Service, any> = {
   [Service.OneClick]: oneClickService,
   [Service.Usdt0]: usdt0Service,
+  [Service.Pyusd]: pyusdService,
   [Service.CCTP]: cctpService,
   [Service.FraxZero]: fraxZeroService,
   [Service.FraxZeroOneClick]: fraxZeroOneClickService,

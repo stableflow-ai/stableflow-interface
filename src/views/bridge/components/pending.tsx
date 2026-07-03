@@ -1,5 +1,5 @@
 import { BASE_API_URL } from "@/config/api";
-import chains from "@/config/chains";
+import chains, { type ChainType } from "@/config/chains";
 import { stablecoinLogoMap } from "@/config/tokens";
 import { TradeProject, TradeStatus } from "@/config/trade";
 import { useHistoryStore } from "@/stores/use-history";
@@ -12,9 +12,11 @@ import clsx from "clsx";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import usdt0Service from "@/services/usdt0";
 import { LzScanDestinationStatus, LzScanLzComposeStatus, LzScanSourceStatus, LzScanStatus, USDT0_CONFIG } from "@/services/usdt0/config";
+import { PYUSD_LZ_CONFIG, resolvePyusdMultiHopComposerAddress } from "@/services/pyusd/config";
 import Loading from "@/components/loading/icon";
+import { getLayerzeroProjectService } from "@/services/project-service";
+import { Service } from "@/services/constants";
 
 const PendingTransfer = (props: any) => {
   const { className } = props;
@@ -64,8 +66,8 @@ const PendingTransfer = (props: any) => {
       result.token_icon = stablecoinLogoMap[result.symbol];
       result.to_token_icon = stablecoinLogoMap[result.to_symbol];
 
-      const currentFromChain = Object.values(chains).find((chain) => chain.blockchain === result.from_chain) ?? {};
-      const currentToChain = Object.values(chains).find((chain) => chain.blockchain === result.to_chain) ?? {};
+      const currentFromChain = Object.values(chains).find((chain) => chain.blockchain === result.from_chain) ?? {} as ChainType;
+      const currentToChain = Object.values(chains).find((chain) => chain.blockchain === result.to_chain) ?? {} as ChainType;
 
       result.source_chain = currentFromChain;
       result.destination_chain = currentToChain;
@@ -73,10 +75,11 @@ const PendingTransfer = (props: any) => {
       result.time = new Date(result.create_time).getTime();
       result.timeEstimate = history[deposit_address]?.timeEstimate ?? Math.floor(Math.random() * 29) + 21;
 
-      // USDT0 status
+      // LayerZero OFT status (USDT0 / PYUSD)
       try {
-        if (result.project === TradeProject.Usdt0) {
-          const layerzeroData = await usdt0Service.getLayerzeroData({
+        if ([TradeProject.Usdt0].includes(result.project)) {
+          const layerzeroService = getLayerzeroProjectService(result.project, { symbol: result.symbol });
+          const layerzeroData = await layerzeroService.quoteService?.getLayerzeroData({
             tx_hash: result.tx_hash,
             from_chain: result.from_chain,
           });
@@ -91,7 +94,9 @@ const PendingTransfer = (props: any) => {
           const isLzComponsePending = [LzScanLzComposeStatus.Waiting, LzScanLzComposeStatus.ValidatingTx, LzScanLzComposeStatus.WaitingForComposeSentEvent].includes(layerzeroData.destination?.lzCompose?.status);
           const isLzComponseSuccess = [LzScanLzComposeStatus.Succeeded].includes(layerzeroData.destination?.lzCompose?.status);
 
-          const multiHopComposer = USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
+          const multiHopComposer = layerzeroService.service === Service.Pyusd
+            ? resolvePyusdMultiHopComposerAddress(PYUSD_LZ_CONFIG[currentToChain.chainName as string]?.eid ?? 0)
+            : USDT0_CONFIG["Arbitrum"].oftMultiHopComposer;
 
           result.isMultiHop = isMultiHop;
           result.hops = [
@@ -150,7 +155,7 @@ const PendingTransfer = (props: any) => {
           return result;
         }
       } catch (error) {
-        console.error("get USDT0 status failed: %o", error);
+        console.error("get LayerZero OFT status failed: %o", error);
       }
 
       if ([TradeStatus.Failed, TradeStatus.Success].includes(result.status) && timerRef.current) {

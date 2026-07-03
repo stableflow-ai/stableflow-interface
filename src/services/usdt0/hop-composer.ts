@@ -1,47 +1,35 @@
-import { getChainRpcUrl } from "@/config/chains";
-import { ethers } from "ethers";
-import { USDT0_CONFIG } from "./config";
-import { OFT_ABI } from "./contract";
-import { csl } from "@/utils/log";
-import { ExecTime } from "@/utils/exec-time";
-import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { usdt0Chains } from "@/config/tokens/usdt0";
+import { USDT0_CONFIG } from "./config";
+import type { OftHopQuoteParams } from "../oft/types";
+import {
+  buildUsdt0HopQuoteParams,
+  getHopMsgFee as getHopMsgFeeBase,
+  resolveUsdt0HubQuoteOftAddress,
+} from "../oft/hop-composer";
 
-export const getHopMsgFee = async (params: any) => {
-  const {
-    sendParam,
-    toToken,
-  } = params;
+export {
+  buildUsdt0HopQuoteParams,
+  resolveUsdt0HubQuoteOftAddress,
+} from "../oft/hop-composer";
 
-  const execTime = new ExecTime({ type: "getHopMsgFee", logStyle: "lime-800" });
+export const getHopMsgFee = async (params: {
+  sendParam: any;
+  toToken?: { chainName: string };
+  hopQuote?: Partial<OftHopQuoteParams> & Pick<OftHopQuoteParams, "hubConfig" | "hubChain">;
+}) => {
+  const hopQuote = params.hopQuote
+    ? {
+      resolveHubQuoteOftAddress: resolveUsdt0HubQuoteOftAddress,
+      ...params.hopQuote,
+      sendParam: params.sendParam,
+    } as OftHopQuoteParams
+    : buildUsdt0HopQuoteParams({
+      sendParam: params.sendParam,
+      toToken: params.toToken as any,
+      hubConfig: USDT0_CONFIG["Arbitrum"],
+      hubChain: usdt0Chains["arb"],
+      destinationConfig: USDT0_CONFIG[params.toToken!.chainName],
+    });
 
-  const originLayerzero = USDT0_CONFIG["Arbitrum"];
-  const destinationLayerzero = USDT0_CONFIG[toToken.chainName];
-
-  let arbitrumOft = originLayerzero.oft;
-  let destinationLayerzeroAddress = destinationLayerzero.oft || destinationLayerzero.oftLegacy;
-  const isDestinationLegacy = destinationLayerzeroAddress === destinationLayerzero.oftLegacy;
-  if (isDestinationLegacy) {
-    arbitrumOft = originLayerzero.oftLegacy || originLayerzero.oft;
-  }
-
-  execTime.breakpoint();
-  const provider = evmRpcFallbackProvider(usdt0Chains["arb"]);
-  const oftContractRead = new ethers.Contract(arbitrumOft!, OFT_ABI, provider);
-  execTime.log("provider init");
-
-  try {
-    execTime.breakpoint();
-    const msgFee = await oftContractRead.quoteSend.staticCall(sendParam, false);
-    execTime.log("quoteSend");
-
-    const [nativeFee] = msgFee;
-
-    execTime.logTotal("getHopMsgFee");
-
-    return nativeFee * 100n / 100n;
-  } catch (error) {
-    csl("getHopMsgFee", "red-500", "getHopMsgFee failed: %o", error);
-    throw new Error("Quote multi hop message fee failed");
-  }
+  return getHopMsgFeeBase(hopQuote);
 };

@@ -18,7 +18,7 @@ import { formatNumber } from "@/utils/format/number";
 import { formatAddress } from "@/utils/format/address";
 import Skeleton from "@/components/skeleton";
 import { csl } from "@/utils/log";
-import { TradeProject, TradeProjectMap } from "@/config/trade";
+import { getRealService, TradeProject } from "@/config/trade";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_REDEEM_AND_MINT_CONTRACT } from "@/services/fraxzero/config";
 import { useSwitchChain } from "wagmi";
@@ -71,7 +71,7 @@ const ContinueTransfer = (props: any) => {
 
     const addTrackParams: any = {
       type: "continue_button",
-      service: TradeProjectMap[history.project as TradeProject].service,
+      service: getRealService(history.project as TradeProject, { symbol: history.symbol }).service,
       quoteData: {
         quoteParam: {
           estimateTime: history.complete_time,

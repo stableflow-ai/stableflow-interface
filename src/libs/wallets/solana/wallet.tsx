@@ -14,6 +14,7 @@ import {
   getAssociatedTokenAddress,
   createTransferInstruction,
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   getAccount,
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddressSync,
@@ -27,7 +28,7 @@ import stableflowProxyIdl from "@/services/oneclick/stableflow-proxy.json";
 import { quoteSignature } from "../utils/cctp";
 import { SendType } from "../types";
 import { Service } from "@/services/constants";
-import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
+import { deriveEventAuthority, deriveOftPdas, derivePeerPda, encodeQuoteSend, encodeSend, getPeerAddress, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
 import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
 import { ethers, getBytes } from "ethers";
@@ -438,6 +439,7 @@ export default class SolanaWallet {
       excludeFees,
       originLayerzero,
       destinationLayerzero,
+      hopQuote,
     } = params;
 
     const connection = this.getConnection();
@@ -512,6 +514,7 @@ export default class SolanaWallet {
         const hopMsgFee = await getHopMsgFee({
           sendParam: composeMsgSendParam,
           toToken,
+          hopQuote,
         });
         execTime.log("getHopMsgFee");
 
@@ -731,6 +734,259 @@ export default class SolanaWallet {
     }
   }
 
+  async quotePyusdOFT(params: any) {
+    const { Options } = await import("@layerzerolabs/lz-v2-utilities");
+    const {
+      dry,
+      originLayerzeroAddress,
+      fromToken,
+      toToken,
+      dstEid,
+      refundTo,
+      recipient,
+      amountWei,
+      slippageTolerance,
+      prices,
+      excludeFees,
+      originLayerzero,
+    } = params;
+
+    const connection = this.getConnection();
+
+    try {
+      const result: any = {
+        needApprove: false,
+        sendParam: void 0,
+        fees: {},
+        estimateSourceGas: 0n,
+        totalEstimateSourceGas: 0n,
+        estimateSourceGasUsd: "0",
+        outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
+        quoteParam: {
+          ...params,
+        },
+        totalFeesUsd: "0",
+        estimateTime: 0,
+      };
+
+      const execTime = new ExecTime({ type: "PYUSD Solana", logStyle: "fuchsia-100" });
+
+      const programId = new PublicKey(originLayerzeroAddress || originLayerzero.programId || originLayerzero.oft);
+      const tokenMint = new PublicKey(fromToken.contractAddress);
+      const quotePayer = new PublicKey("9JXR51yBLBgfesHF8SJgKWkNnx4FxtJCxCc3AV31TBsn");
+      const lookupTable = new PublicKey(originLayerzero.addressLookupTable);
+      const oftStore = new PublicKey(originLayerzero.oftPDA);
+      const tokenEscrow = new PublicKey(originLayerzero.escrow);
+      const tokenProgram = new PublicKey(originLayerzero.innerTokenProgramId || TOKEN_2022_PROGRAM_ID);
+      const sender = this.publicKey!;
+      const userPubkey = new PublicKey(refundTo || sender.toString());
+
+      const amountLd = BigInt(amountWei);
+      const slippage = slippageTolerance || 0.01;
+      const minAmountLd = BigInt(Big(amountWei).times(Big(1).minus(Big(slippage).div(100))).toFixed(0));
+      const to = getBytes(addressToBytes32(toToken.chainType, recipient));
+      const extraOptions = Options.newOptions().toBytes() as Uint8Array<any>;
+      const composeMsg = null;
+
+      execTime.breakpoint();
+      const peer = derivePeerPda(programId, oftStore, dstEid);
+      const eventAuthority = deriveEventAuthority(programId);
+      const peerInfo = await connection.getAccountInfo(peer);
+      if (!peerInfo) {
+        throw new Error(`Peer not found for EID ${dstEid}`);
+      }
+      const peerAddress = `0x${peerInfo.data.subarray(8, 40).toString("hex")}` as `0x${string}`;
+      execTime.log("derivePeerPda+getPeerAddress");
+
+      execTime.breakpoint();
+      const tokenSource = await getAssociatedTokenAddress(
+        tokenMint,
+        userPubkey,
+        false,
+        tokenProgram,
+      );
+      execTime.log("getAssociatedTokenAddress");
+
+      const sendHelper = new SendHelper();
+      execTime.breakpoint();
+      const remainingAccounts = await sendHelper.getQuoteAccounts(
+        connection as any,
+        quotePayer,
+        oftStore,
+        dstEid,
+        peerAddress,
+      );
+      execTime.log("sendHelper.getQuoteAccounts");
+
+      const ix = new TransactionInstruction({
+        programId,
+        keys: [
+          { pubkey: oftStore, isSigner: false, isWritable: false },
+          { pubkey: peer, isSigner: false, isWritable: false },
+          { pubkey: tokenMint, isSigner: false, isWritable: false },
+          ...remainingAccounts,
+        ],
+        data: Buffer.from(
+          encodeQuoteSend({
+            dstEid,
+            to,
+            amountLd,
+            minAmountLd,
+            extraOptions,
+            composeMsg,
+            payInLzToken: false,
+          }),
+        ),
+      });
+
+      execTime.breakpoint();
+      const computeIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 });
+      const tx: any = await buildVersionedTransaction(
+        connection as any,
+        quotePayer,
+        [computeIx, ix],
+        undefined,
+        undefined,
+        lookupTable,
+      );
+      const sim = await connection.simulateTransaction(tx, {
+        sigVerify: false,
+        replaceRecentBlockhash: true,
+      });
+      execTime.log("buildTx+simulateTransaction(quote)");
+
+      if (sim.value.err) {
+        console.error("PYUSD quote simulation logs:", sim, JSON.stringify(sim));
+        throw new Error(`Quote failed: ${JSON.stringify(sim.value.err)}`);
+      }
+
+      const prefix = `Program return: ${programId} `;
+      const log = sim.value.logs?.find((l) => l.startsWith(prefix));
+      if (!log) throw new Error("Return data not found");
+
+      const data = Buffer.from(log.slice(prefix.length), "base64");
+
+      let nativeFee = data.readBigUInt64LE(0);
+      csl("Solana quotePyusdOFT", "purple-500", "nativeFee: %o", nativeFee);
+      nativeFee = nativeFee * NATIVE_MSG_FEE_BUFFER / 100n;
+      csl("Solana quotePyusdOFT", "purple-500", "nativeFee after buffer: %o", nativeFee);
+      const lzTokenFee = data.readBigUInt64LE(8);
+
+      if (prices && fromToken.nativeToken) {
+        const nativeFeeUsd = Big(nativeFee.toString())
+          .div(10 ** fromToken.nativeToken.decimals)
+          .times(getPrice(prices, fromToken.nativeToken.symbol));
+        result.fees.nativeFeeUsd = numberRemoveEndZero(nativeFeeUsd.toFixed(20));
+      }
+      result.fees.nativeFee = Big(nativeFee.toString())
+        .div(10 ** fromToken.nativeToken.decimals)
+        .toFixed(fromToken.nativeToken.decimals, 0);
+      result.totalEstimateSourceGas = nativeFee;
+
+      if (lzTokenFee > 0n && prices && fromToken) {
+        const lzTokenFeeUsd = Big(lzTokenFee.toString())
+          .div(10 ** fromToken.decimals)
+          .times(getPrice(prices, fromToken.symbol));
+        result.fees.lzTokenFeeUsd = numberRemoveEndZero(lzTokenFeeUsd.toFixed(20));
+      }
+      result.fees.lzTokenFee = lzTokenFee.toString();
+
+      let sendTx: any;
+      if (!dry) {
+        const sendSendHelper = new SendHelper();
+        execTime.breakpoint();
+        const sendRemainingAccounts = await sendSendHelper.getSendAccounts(
+          connection as any,
+          userPubkey,
+          oftStore,
+          dstEid,
+          peerAddress,
+        );
+        execTime.log("getSendAccounts");
+
+        const sendIx = new TransactionInstruction({
+          programId,
+          keys: [
+            { pubkey: userPubkey, isSigner: true, isWritable: false },
+            { pubkey: peer, isSigner: false, isWritable: true },
+            { pubkey: oftStore, isSigner: false, isWritable: true },
+            { pubkey: tokenSource, isSigner: false, isWritable: true },
+            { pubkey: tokenEscrow, isSigner: false, isWritable: true },
+            { pubkey: tokenMint, isSigner: false, isWritable: true },
+            { pubkey: tokenProgram, isSigner: false, isWritable: false },
+            { pubkey: eventAuthority, isSigner: false, isWritable: false },
+            { pubkey: programId, isSigner: false, isWritable: false },
+            ...sendRemainingAccounts,
+          ],
+          data: Buffer.from(
+            encodeSend({
+              dstEid,
+              to,
+              amountLd,
+              minAmountLd,
+              extraOptions,
+              composeMsg,
+              nativeFee,
+              lzTokenFee: 0n,
+            }),
+          ),
+        });
+
+        execTime.breakpoint();
+        const computeSendIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
+        sendTx = await buildVersionedTransaction(
+          connection as any,
+          userPubkey,
+          [computeSendIx, sendIx],
+          undefined,
+          undefined,
+          lookupTable,
+        );
+        execTime.log("buildTx(send)");
+      }
+
+      const ett = await this.estimateTransaction({
+        dry,
+        versionedTx: sendTx,
+        fromToken,
+        prices,
+      });
+
+      result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
+      result.estimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas += ett.estimateSourceGas;
+
+      csl("SolanaWallet quotePyusdOFT", "red-600", "result.outputAmount: %o", result.outputAmount);
+      csl("SolanaWallet quotePyusdOFT", "red-600", "slippageTolerance: %o", slippageTolerance + "%");
+      csl("SolanaWallet quotePyusdOFT", "red-600", "Minimum received amount: %o", Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(6, 0));
+      if (Big(result.outputAmount).lt(Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))))) {
+        result.errMsg = "Slippage limit exceeded";
+        return result;
+      }
+
+      result.sendParam = {
+        transaction: sendTx,
+        versionedTx: sendTx,
+      };
+
+      for (const feeKey in result.fees) {
+        if (excludeFees && excludeFees.includes(feeKey) || !/Usd$/.test(feeKey)) {
+          continue;
+        }
+        result.totalFeesUsd = Big(result.totalFeesUsd || 0).plus(result.fees[feeKey] || 0);
+      }
+      result.totalFeesUsd = numberRemoveEndZero(Big(result.totalFeesUsd || 0).toFixed(20));
+
+      execTime.logTotal("quotePyusdOFT");
+
+      return result;
+    } catch (error: any) {
+      csl("Solana quotePyusdOFT", "red-500", "quotePyusdOFT failed: %o", error);
+      return { errMsg: error.message };
+    }
+  }
+
   async sendTransaction(params: any) {
     const { transaction } = params;
 
@@ -831,6 +1087,8 @@ export default class SolanaWallet {
         return this.quoteCCTP(params);
       case Service.Usdt0:
         return this.quoteOFT(params);
+      case Service.Pyusd:
+        return this.quotePyusdOFT(params);
       case Service.OneClick:
         return this.quoteOneClickProxy(params);
       case Service.FraxZero:

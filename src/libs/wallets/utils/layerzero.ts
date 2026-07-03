@@ -32,6 +32,14 @@ export function deriveOftPdas(programId: PublicKey, dstEid: number) {
   };
 }
 
+export function derivePeerPda(programId: PublicKey, oftStore: PublicKey, dstEid: number) {
+  return PublicKey.findProgramAddressSync([SEEDS.PEER, oftStore.toBuffer(), u32be(dstEid)], programId)[0];
+}
+
+export function deriveEventAuthority(programId: PublicKey) {
+  return PublicKey.findProgramAddressSync([SEEDS.EVENT_AUTHORITY], programId)[0];
+}
+
 export async function getPeerAddress(
   connection: Connection,
   programId: PublicKey,

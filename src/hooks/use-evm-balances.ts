@@ -7,6 +7,9 @@ import {
   usdt0Addresses,
   usdtAddresses,
   frxusdAddresses,
+  eureAddresses,
+  pyusdAddresses,
+  pyusd0Addresses,
   type EvmBalancesToken,
 } from "@/config/tokens";
 import Big from "big.js";
@@ -100,6 +103,9 @@ export default function useEvmBalances(auto = false, selectedToken?: string) {
         let usdtBalance = Big(0);
         let usdt0Balance = Big(0);
         let frxusdBalance = Big(0);
+        let eureBalance = Big(0);
+        let pyusdBalance = Big(0);
+        let pyusd0Balance = Big(0);
 
         Object.entries(__data).forEach(([key, item]: any) => {
           if (!item) return;
@@ -123,6 +129,15 @@ export default function useEvmBalances(auto = false, selectedToken?: string) {
             if (Object.values(frxusdAddresses).includes(sl.address.toLowerCase())) {
               frxusdBalance = frxusdBalance.plus(_balance);
             }
+            if (Object.values(eureAddresses).includes(sl.address.toLowerCase())) {
+              eureBalance = eureBalance.plus(_balance);
+            }
+            if (Object.values(pyusdAddresses).includes(sl.address.toLowerCase())) {
+              pyusdBalance = pyusdBalance.plus(_balance);
+            }
+            if (Object.values(pyusd0Addresses).includes(sl.address.toLowerCase())) {
+              pyusd0Balance = pyusd0Balance.plus(_balance);
+            }
 
             if (_balances[key]) {
               _balances[key][sl.address] = _balance.toString();
@@ -139,6 +154,9 @@ export default function useEvmBalances(auto = false, selectedToken?: string) {
           "USDC": { usdcBalance: (isFinal || Big(_balances.usdcBalance || 0).lte(0)) ? usdcBalance.toString() : _balances.usdcBalance, },
           "USD₮0": { "usd₮0Balance": (isFinal || Big(_balances["usd₮0Balance"] || 0).lte(0)) ? usdt0Balance.toString() : _balances["usd₮0Balance"], },
           "frxUSD": { frxusdBalance: (isFinal || Big(_balances.frxusdBalance || 0).lte(0)) ? frxusdBalance.toString() : _balances.frxusdBalance, },
+          "EURe": { eureBalance: (isFinal || Big(_balances.eureBalance || 0).lte(0)) ? eureBalance.toString() : _balances.eureBalance, },
+          "PYUSD": { pyusdBalance: (isFinal || Big(_balances.pyusdBalance || 0).lte(0)) ? pyusdBalance.toString() : _balances.pyusdBalance, },
+          "PYUSD0": { pyusd0Balance: (isFinal || Big(_balances.pyusd0Balance || 0).lte(0)) ? pyusd0Balance.toString() : _balances.pyusd0Balance, },
         };
 
         if (wallet?.account) {

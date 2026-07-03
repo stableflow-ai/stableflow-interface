@@ -10,6 +10,7 @@ export const Service = {
   Usdt0OneClick: "usdt0-oneclick",
   OneClickUsdt0: "oneclick-usdt0",
   Native: "native",
+  Pyusd: "pyusd",
 } as const;
 export type Service = (typeof Service)[keyof typeof Service];
 
@@ -23,6 +24,7 @@ export const ServiceBackend: Record<Service, string> = {
   [Service.Usdt0OneClick]: "zerointent",
   [Service.OneClickUsdt0]: "intentzero",
   [Service.Native]: "native",
+  [Service.Pyusd]: "layerzero",
 } as const;
 
 export const getRouteStatus = (service: Service): { disabled: boolean; } => {
@@ -35,12 +37,15 @@ export const getRouteStatus = (service: Service): { disabled: boolean; } => {
   // const IS_PAUSE_FRAXZERO = import.meta.env.VITE_ROUTE_PAUSE_FRAXZERO === "true";
   // const IS_PAUSE_NATIVE = import.meta.env.VITE_ROUTE_PAUSE_NATIVE === "true";
 
+  // const IS_PAUSE_PYUSD = import.meta.env.VITE_ROUTE_PAUSE_PYUSD === "true";
+
   const IS_PAUSE_ALL = false;
   const IS_PAUSE_NEAR_INTENTS = false;
   const IS_PAUSE_USDT0 = false;
   const IS_PAUSE_CCTP = false;
   const IS_PAUSE_FRAXZERO = false;
   const IS_PAUSE_NATIVE = false;
+  const IS_PAUSE_PYUSD = false;
 
   if (IS_PAUSE_ALL) {
     result.disabled = true;
@@ -89,6 +94,13 @@ export const getRouteStatus = (service: Service): { disabled: boolean; } => {
     }
   }
 
+  if (service === Service.Pyusd) {
+    if (IS_PAUSE_PYUSD) {
+      result.disabled = true;
+      return result;
+    }
+  }
+
   if (([Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
     if (IS_PAUSE_NEAR_INTENTS || IS_PAUSE_USDT0) {
       result.disabled = true;
@@ -109,6 +121,7 @@ export const ServiceLogoMap: Record<Service, string> = {
   [Service.Usdt0OneClick]: getStableflowRouteLogo("logo-usdt0-near-intents-2.svg"),
   [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-2.svg"),
   [Service.Native]: getStableflowRouteLogo("logo-native.svg"),
+  [Service.Pyusd]: getStableflowRouteLogo("logo-layerzero.svg"),
 };
 
 export const ServiceLogoSimpleMap: Record<Service, string> = {
@@ -121,4 +134,5 @@ export const ServiceLogoSimpleMap: Record<Service, string> = {
   [Service.Usdt0OneClick]: getStableflowRouteLogo("logo-usdt0-near-intents-simple.svg"),
   [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-simple.svg"),
   [Service.Native]: getStableflowRouteLogo("logo-native-simple.svg"),
+  [Service.Pyusd]: getStableflowRouteLogo("logo-layerzero-simple.svg"),
 };

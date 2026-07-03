@@ -1,7 +1,7 @@
 import { BASE_API_URL } from "@/config/api";
 import chains from "@/config/chains";
 import { stablecoinLogoMap } from "@/config/tokens";
-import { TradeProject, TradeProjectMap } from "@/config/trade";
+import { getRealService, TradeProject } from "@/config/trade";
 import { Service } from "@/services/constants";
 import { getQuoteModes } from "@/services/utils";
 import { useHistoryStore } from "@/stores/use-history";
@@ -75,8 +75,9 @@ export function usePendingHistory(history?: any) {
           item.to_tx_hash = item.to_tx_hash?.replace(/^0x/, "");
         }
 
-        if (TradeProjectMap[item.project as TradeProject]) {
-          const _service = TradeProjectMap[item.project as TradeProject].service;
+        const realService = getRealService(item.project as TradeProject, { symbol: item.symbol });
+        if (realService) {
+          const _service = realService.service;
           if (servicePendingNumber[_service]) {
             servicePendingNumber[_service] = servicePendingNumber[_service] + 1;
           } else {
