@@ -71,6 +71,10 @@ export const pyusdAddresses = Object.values(pyusdEvm.chains).map((chain) => ({
   [chain.chainId!]: chain.contractAddress.toLowerCase(),
 })).reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
+export const pyusd0Addresses = Object.values(pyusd0Evm.chains).map((chain) => ({
+  [chain.chainId!]: chain.contractAddress.toLowerCase(),
+})).reduce((acc, curr) => ({ ...acc, ...curr }), {});
+
 export const stablecoinWithChains: any = {
   evm: {
     "USDT": usdtEvm,

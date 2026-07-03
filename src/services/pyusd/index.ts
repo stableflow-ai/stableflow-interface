@@ -47,7 +47,7 @@ export class PyusdService extends OftService {
     }
 
     const _quoteType = `PyusdService ${fromToken?.chainName}->${toToken?.chainName}`;
-    const execTime = new ExecTime({ type: _quoteType, logStyle: "cyan-600" });
+    const execTime = new ExecTime({ type: _quoteType, logStyle: "lime-600" });
 
     const originLayerzero = PYUSD_LZ_CONFIG[originChain];
     const destinationLayerzero = PYUSD_LZ_CONFIG[destinationChain];

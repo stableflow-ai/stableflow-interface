@@ -1,5 +1,5 @@
 import { BASE_API_URL } from "@/config/api";
-import chains from "@/config/chains";
+import chains, { type ChainType } from "@/config/chains";
 import { stablecoinLogoMap } from "@/config/tokens";
 import { TradeProject, TradeStatus } from "@/config/trade";
 import { useHistoryStore } from "@/stores/use-history";
@@ -66,8 +66,8 @@ const PendingTransfer = (props: any) => {
       result.token_icon = stablecoinLogoMap[result.symbol];
       result.to_token_icon = stablecoinLogoMap[result.to_symbol];
 
-      const currentFromChain = Object.values(chains).find((chain) => chain.blockchain === result.from_chain) ?? {};
-      const currentToChain = Object.values(chains).find((chain) => chain.blockchain === result.to_chain) ?? {};
+      const currentFromChain = Object.values(chains).find((chain) => chain.blockchain === result.from_chain) ?? {} as ChainType;
+      const currentToChain = Object.values(chains).find((chain) => chain.blockchain === result.to_chain) ?? {} as ChainType;
 
       result.source_chain = currentFromChain;
       result.destination_chain = currentToChain;
