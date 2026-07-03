@@ -154,5 +154,6 @@ export const formatNumber = (
 };
 
 export const numberRemoveEndZero = (value: string) => {
-  return value.replace("-", "").replace(/\.?0+$/, "");
+  if (!value.includes(".")) return value;
+  return value.replace(/(?:\.0*|(\.\d+?)0+)$/, "$1");
 };
