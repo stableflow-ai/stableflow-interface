@@ -580,8 +580,16 @@ export default function useBridge(props?: any) {
       quoteData: bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService),
     };
 
-    if (!walletStore.fromToken) return;
     try {
+      if (([Service.OneClickUsdt0, Service.Usdt0OneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
+        const evmAddress = wallets.evm.account;
+        if (!evmAddress) {
+          throw new Error("Arbitrum wallet not connected");
+        }
+      }
+      if (!walletStore.fromToken) {
+        throw new Error("Please select a source token");
+      }
       bridgeStore.set({ transferring: true });
       const _quote = await quoteWithRequestId({ dry: false }, true);
 
