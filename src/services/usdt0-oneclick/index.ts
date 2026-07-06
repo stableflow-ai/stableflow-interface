@@ -29,11 +29,6 @@ export class Usdt0OneClickService {
       middleChainWallet = new RainbowWallet(provider, {});
     }
 
-    if (!isStableToken(toToken)) {
-      // FIXME Quoting for non-stablecoins is not supported for now
-      return { errMsg: "Non-stablecoin is not supported for now" };
-    }
-
     const usdt0Params = {
       ...params,
       toToken: MIDDLE_TOKEN_CHAIN,

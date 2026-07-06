@@ -9,6 +9,7 @@ const WalletSelector = (props: any) => {
     isConnecting,
     onConnect,
     readyState,
+    isCheckReadyState = true,
   } = props;
 
   return (
@@ -52,9 +53,11 @@ const WalletSelector = (props: any) => {
               <button
                 key={_wallet.name}
                 onClick={() => {
-                  if (readyState && _wallet[readyState.key] !== readyState.value) {
-                    window.open(_wallet.url, "_blank");
-                    return;
+                  if (isCheckReadyState) {
+                    if (readyState && _wallet[readyState.key] !== readyState.value) {
+                      window.open(_wallet.url, "_blank");
+                      return;
+                    }
                   }
                   onConnect(_wallet);
                 }}
