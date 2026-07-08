@@ -6,9 +6,9 @@ export const TRON_RENTAL_RECEIVING_ADDRESS = "TGKiSaDG7wp5N4T9SJweotgfgwmxDTgjMi
 // Tron Energy rental fee (TRX)
 export const TRON_RENTAL_FEE = {
   // Account without referral code
-  Normal: 10, // 10 TRX
+  Normal: import.meta.env.VITE_TRON_RENTAL_FEE || 10, // 10 TRX
   // Account with referral code
-  Referral: 7, // 7 TRX
+  Referral: import.meta.env.VITE_TRON_RENTAL_FEE || 7, // 7 TRX
 };
 
 export const EnergyAmounts = {

@@ -1,5 +1,5 @@
-import { TRON_ENERGY_API_URL } from "@/config/api";
-import axios, { type AxiosInstance } from "axios";
+import { BASE_API_URL, TRON_ENERGY_API_URL } from "@/config/api";
+import axios, { type AxiosInstance, type AxiosResponse } from "axios";
 
 export type EnergyPeriod = "1H" | "1D" | "3D" | "30D";
 export type EnergyAmount = 65000n | 131000n;
@@ -36,98 +36,45 @@ class EnergyService {
     return await this.api.get("/api/price", { params });
   }
 
-  /**
-   * Generate request signature
-   * @param params - Signature parameters
-   * @returns Signature result
-   */
-  public async getSignature(params: {
-    body: any;
-  }) {
-    const { body } = params;
-    const timestamp = Math.floor(Date.now() / 1000);
-    const secret = import.meta.env.VITE_FRONTEND_API_SECRET;
-
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const canonicalBody = canonical(body);
-    const message = `${timestamp}&${canonicalBody}`;
-    const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
-    const sign = Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, "0"))
-      .join("");
-
-    return {
-      timestamp,
-      signature: sign,
-    };
-  }
-
   public async getEnergy(params: {
     receiveAddress: string;
-    energyAmount: number | BigInt;
-    period: EnergyPeriod;
-    outTradeNo?: string;
-    autoActivate?: boolean;
+    txHash: string;
   }) {
-    // return {
-    //   data: {
-    //     errno: 0,
-    //     data: {
-    //       "orderId": "4b21d62b-6c35-44ce-91fd-0e25d85807b8",
-    //       "serial": "e62f6a935ee9d4670053c8f8a782b93c",
-    //       "status": "pending"
-    //     },
-    //   }
-    // };
-    const signature = await this.getSignature({
-      body: params,
-    });
+    try {
+      const response = await axios.post<EnergyRentParams, AxiosResponse<StableflowApiResponse<EnergyRentResponse>>>(`${BASE_API_URL}/v1/tron/energy/rent`, {
+        address: params.receiveAddress,
+        tx_hash: params.txHash,
+      });
 
-    return this.api({
-      url: "/api/orders",
-      method: "POST",
-      data: params,
-      headers: {
-        "TIMESTAMP": signature.timestamp,
-        "SIGNATURE": signature.signature,
-      },
-    });
+      if (response.status !== 200 || response.data.code !== 200) {
+        throw new Error(response.data.message || response.statusText);
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || error.message);
+    }
   }
 
   public async getEnergyStatus(params: {
-    orderId: string;
+    orderSerial: string;
   }) {
-    const { orderId } = params;
-    // return {
-    //   data: {
-    //     "errno": 0,
-    //     "data": {
-    //       "id": "4b21d62b-6c35-44ce-91fd-0e25d85807b8",
-    //       "out_trade_no": "order-1762850667",
-    //       "serial": "e62f6a935ee9d4670053c8f8a782b93c",
-    //       "receive_address": "TGq3sfQXazu79b6ivrxXLPk3TXXvjCxF1a",
-    //       "period": "1H",
-    //       "energy_amount": 13100,
-    //       "status": Math.random() > 0.9 ? "delegated" : "pending",
-    //       "trxx_status": 40,
-    //       "txid": null,
-    //       "bandwidth_hash": null,
-    //       "active_hash": null,
-    //       "price_sun": null,
-    //       "details_json": null,
-    //       "created_at": 1762850668,
-    //       "updated_at": 1762850865
-    //     }
-    //   }
-    // };
-    return await this.api.get(`/api/orders/${orderId}`);
+    const { orderSerial } = params;
+    try {
+      const response = await axios.get<EnergyRentStatusParams, AxiosResponse<StableflowApiResponse<EnergyRentStatusResponse>>>(`${BASE_API_URL}/v1/tron/energy/order`, {
+        params: {
+          order_serial: orderSerial,
+        },
+      });
+
+      if (response.status !== 200 || response.data.code !== 200) {
+        throw new Error(response.data.message || response.statusText);
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || error.message);
+    }
   }
 }
 
@@ -182,4 +129,93 @@ function sortObject(obj: any): any {
 
 function canonical(obj: any) {
   return JSON.stringify(sortObject(obj));
+}
+
+interface EnergyRentResponse {
+  address: string;
+  energy_amount: number;
+  id: number;
+  order_serial: string;
+  trx_amount: number;
+  tx_hash: string;
+  tx_time: number;
+}
+
+interface StableflowApiResponse<T> {
+  code: number;
+  message?: string;
+  data: T;
+}
+
+interface EnergyRentParams {
+  address: string;
+  tx_hash: string;
+}
+
+
+interface EnergyRentStatusParams {
+  order_serial: string;
+}
+
+interface EnergyRentStatusDetail {
+  delegate_hash: string;
+  delegate_time: string;
+  reclaim_hash: string;
+  reclaim_time: string;
+  reclaim_time_real: string;
+  status: number;
+}
+
+/**
+ * Order status enum for EnergyRentStatusResponse.
+ * 
+ * 0  - Timeout closed
+ * 10 - Waiting for payment
+ * 20 - Paid
+ * 30 - Delegation in preparation
+ * 31 - Partial commission
+ * 32 - Exception retrying
+ * 40 - Normal completion
+ * 41 - Refund termination
+ * 43 - Abnormal termination
+ */
+export const EnergyOrderStatus = {
+  TimeoutClosed: 0,
+  WaitingForPayment: 10,
+  Paid: 20,
+  DelegationPreparation: 30,
+  PartialCommission: 31,
+  ExceptionRetrying: 32,
+  NormalCompletion: 40,
+  RefundTermination: 41,
+  AbnormalTermination: 43,
+} as const;
+export type EnergyOrderStatus = (typeof EnergyOrderStatus)[keyof typeof EnergyOrderStatus];
+
+export const EnergyOrderStatusMessage: Record<EnergyOrderStatus, string> = {
+  [EnergyOrderStatus.TimeoutClosed]: "Timeout closed",
+  [EnergyOrderStatus.WaitingForPayment]: "Waiting for payment",
+  [EnergyOrderStatus.Paid]: "Paid",
+  [EnergyOrderStatus.DelegationPreparation]: "Delegation in preparation",
+  [EnergyOrderStatus.PartialCommission]: "Partial commission",
+  [EnergyOrderStatus.ExceptionRetrying]: "Exception retrying",
+  [EnergyOrderStatus.NormalCompletion]: "Normal completion",
+  [EnergyOrderStatus.RefundTermination]: "Refund termination",
+  [EnergyOrderStatus.AbnormalTermination]: "Abnormal termination",
+};
+
+interface EnergyRentStatusResponse {
+  errno: number;
+  message: string;
+  receive_address: string;
+  order_no: string;
+  energy_amount: number;
+  pay_amount: number;
+  amount: number;
+  details: EnergyRentStatusDetail[];
+  create_time: string;
+  api_name: string;
+  period: number;
+  status: EnergyOrderStatus; // Order status, see EnergyOrderStatus enum above
+  refund_amount: number;
 }
