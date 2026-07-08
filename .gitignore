@@ -27,3 +27,5 @@ dist-ssr
 pnpm-lock.yaml
 /public/.well-known/*
 stats.html
+
+.cursor/
