@@ -8,4 +8,5 @@ export const CCTP_DOMAINS: Record<string, number> = {
   Avalanche: 1,
   Solana: 5,
   Base: 6,
+  Pharos: 31,
 };
