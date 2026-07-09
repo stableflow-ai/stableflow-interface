@@ -14,7 +14,7 @@ export const usdtChains: Record<string, TokenChain> = {
     assetId: "nep141:eth-0xdac17f958d2ee523a2206206994597c13d831ec7.omft.near",
     contractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
     ...chains.eth,
-    services: [Service.OneClick, Service.Usdt0, Service.Native],
+    services: [Service.OneClick, Service.Usdt0, Service.Native, Service.LayerzeroVt],
   },
   bsc: {
     ...usdt,
@@ -22,21 +22,21 @@ export const usdtChains: Record<string, TokenChain> = {
     contractAddress: "0x55d398326f99059ff775485246999027b3197955",
     ...chains.bsc,
     decimals: 18,
-    services: [Service.OneClick, Service.Native],
+    services: [Service.OneClick, Service.Native, Service.LayerzeroVt],
   },
   op: {
     ...usdt,
     assetId: "nep245:v2_1.omni.hot.tg:10_359RPSJVdTxwTJT9TyGssr2rFoWo",
     contractAddress: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
     ...chains.op,
-    services: [Service.OneClick],
+    services: [Service.OneClick, Service.LayerzeroVt],
   },
   avax: {
     ...usdt,
     assetId: "nep245:v2_1.omni.hot.tg:43114_372BeH7ENZieCaabwkbWkBiTTgXp",
     contractAddress: "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7",
     ...chains.avax,
-    services: [Service.OneClick],
+    services: [Service.OneClick, Service.LayerzeroVt],
   },
   // disabled gnosis temporarily, 22/Oct/2025
   // gnosis: {

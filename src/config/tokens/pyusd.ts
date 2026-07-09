@@ -20,7 +20,7 @@ export const pyusdChains: Record<string, TokenChain> = {
     assetId: "",
     contractAddress: "0x6c3ea9036406852006290770bedfcaba0e23a0e8",
     ...chains.eth,
-    services: [Service.Pyusd],
+    services: [Service.Pyusd, Service.LayerzeroVt],
   },
   arb: {
     ...pyusd,

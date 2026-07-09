@@ -330,6 +330,13 @@ export default function useBridge(props?: any) {
     const quoteServices: any = [];
     for (const service of Object.values(Service)) {
       if (walletStore.fromToken.services.includes(service) && walletStore.toToken.services.includes(service)) {
+        if (service === Service.LayerzeroVt) {
+          const PYUSD_SYMBOLS = ["PYUSD", "PYUSD0"];
+          // LayerzeroVt is temporarily not supported if there is no PYUSD in the trading pair
+          if (!PYUSD_SYMBOLS.includes(walletStore.fromToken.symbol) && !PYUSD_SYMBOLS.includes(walletStore.toToken.symbol)) {
+            continue;
+          }
+        }
         pushQuoteService(service);
       }
     }
@@ -615,6 +622,7 @@ export default function useBridge(props?: any) {
         isExactOutput,
         isOneClickService,
         isQuoteParamDepositAddress,
+        isLayerzeroVtService,
       } = getQuoteModes({
         quoteData: _quote.data,
         bridgeStore,
@@ -903,6 +911,9 @@ export default function useBridge(props?: any) {
         if (isQuoteParamDepositAddress) {
           _depositAddress = _quote?.data?.quoteParam?.depositAddress || hash;
         }
+        if (isLayerzeroVtService) {
+          _depositAddress = _quote?.data?.vtQuoteId;
+        }
         localHistoryData.txHash = hash;
         localHistoryData.toChainTxHash = hash;
         localHistoryData.depositAddress = _depositAddress;
@@ -911,6 +922,12 @@ export default function useBridge(props?: any) {
 
         if (bridgeStore.quoteDataService === Service.Native) {
           const quoteIds = _quote?.data?.orders?.map?.((order: any) => order.quoteId) || [];
+          localHistoryData.quoteIds = quoteIds;
+          reportData.quoteIds = quoteIds;
+        }
+
+        if (bridgeStore.quoteDataService === Service.LayerzeroVt) {
+          const quoteIds = _quote?.data?.vtQuoteId ? [_quote.data.vtQuoteId] : [];
           localHistoryData.quoteIds = quoteIds;
           reportData.quoteIds = quoteIds;
         }
