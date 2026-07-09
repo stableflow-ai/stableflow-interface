@@ -44,7 +44,7 @@ import useWalletsStore from "@/stores/use-wallets";
 import { useDebounceFn } from "ahooks";
 import useBalancesStore from "@/stores/use-balances";
 import { metaMaskWallet, base as baseWallet, okxWallet, bitgetWallet, binanceWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
-import { fallback } from "viem";
+import { fallback, defineChain } from "viem";
 import { getChainRpcUrl } from "@/config/chains";
 import { useEVMWalletInfo } from "@/hooks/use-evm-wallet-info";
 import { metadata } from "./metadata";
@@ -103,7 +103,19 @@ const createSignedReadTransport = (
 
 const projectId = import.meta.env.VITE_RAINBOW_PROJECT_ID as string;
 
-// RPC_CHAINS="tron,solana,aptos,aptos,sui,ethereum,arbitrum,bsc,avalanche,base,polygon,gnosis,optimism,berachain,xlayer,plasma,mantle,megaeth,ink,stable,celo,sei,fraxtal,katana"
+const pharos = defineChain({
+  id: 1672,
+  name: "Pharos",
+  nativeCurrency: { name: "PROS", symbol: "PROS", decimals: 18 },
+  rpcUrls: {
+    default: { http: getChainRpcUrl("Pharos").rpcUrls },
+  },
+  blockExplorers: {
+    default: { name: "PharosScan", url: "https://www.pharosscan.xyz" },
+  },
+});
+
+// RPC_CHAINS="tron,solana,aptos,aptos,sui,ethereum,arbitrum,bsc,avalanche,base,polygon,gnosis,optimism,berachain,xlayer,plasma,mantle,megaeth,ink,stable,celo,sei,fraxtal,katana,pharos"
 const isSignedRpcUrl = (rpcUrl: string) => {
   return rpcUrl.includes(PROXY_RPC_DOMAIN);
 }
@@ -149,6 +161,7 @@ const RpcUrls: any = {
   [flare.id]: fallback(getChainRpcUrl("Flare").rpcUrls.map((rpc) => http(rpc))),
   [fraxtal.id]: fallback(getChainRpcUrl("Fraxtal").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "fraxtal")))),
   [katana.id]: fallback(getChainRpcUrl("Katana").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "katana")))),
+  [pharos.id]: fallback(getChainRpcUrl("Pharos").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "pharos")))),
 };
 
 const connectors: any = connectorsForWallets(
@@ -197,6 +210,7 @@ const wagmiConfig = createConfig({
     flare,
     fraxtal,
     katana,
+    pharos,
   ],
   transports: {
     [mainnet.id]: RpcUrls[mainnet.id] || http(),
@@ -219,6 +233,7 @@ const wagmiConfig = createConfig({
     [flare.id]: RpcUrls[flare.id] || http(),
     [fraxtal.id]: RpcUrls[fraxtal.id] || http(),
     [katana.id]: RpcUrls[katana.id] || http(),
+    [pharos.id]: RpcUrls[pharos.id] || http(),
   },
 });
 
