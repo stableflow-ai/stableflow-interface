@@ -1,11 +1,9 @@
 import useBridgeStore from "@/stores/use-bridge";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { EnergyAmounts, energyPeriod, TRON_RENTAL_FEE, TRON_RENTAL_RECEIVING_ADDRESS, TronBandwidthTransderTRX, TronBandwidthTransferToken, TronTransferStepStatus } from "@/config/tron";
+import { EnergyAmounts, TRON_RENTAL_FEE, TRON_RENTAL_RECEIVING_ADDRESS, TronBandwidthTransderTRX, TronBandwidthTransferToken, TronTransferStepStatus } from "@/config/tron";
 import axios from "axios";
 import Big from "big.js";
-import { v4 as uuidv4 } from "uuid";
-import energyService, { type EnergyAmount, type EnergyPeriod } from "@/libs/energy";
-import usePricesStore from "@/stores/use-prices";
+import energyService, { EnergyOrderStatus, EnergyOrderStatusMessage } from "@/libs/energy";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { csl } from "@/utils/log";
 
@@ -13,7 +11,6 @@ export function useTronEnergy(props?: any) {
   const { } = props ?? {};
 
   const bridgeStore = useBridgeStore();
-  const prices = usePricesStore((state) => state.prices);
 
   const { tronTransferQuoteData, setTronTransferStep } = bridgeStore;
 
@@ -173,7 +170,7 @@ export function useTronEnergy(props?: any) {
   // Poll the energy rental result
   const pollingTimer = useRef<NodeJS.Timeout | null>(null);
   const [pollCount, setPollCount] = useState(0);
-  const pollEnergyResult = async (orderId: string): Promise<any> => {
+  const pollEnergyResult = async (orderSerial: string): Promise<any> => {
     return new Promise((resolve) => {
       let currentPollCount = 0;
       const maxPolls = 120;
@@ -182,21 +179,20 @@ export function useTronEnergy(props?: any) {
         pollingTimer.current && clearTimeout(pollingTimer.current);
         currentPollCount++;
         setPollCount(currentPollCount);
-        csl("useTronEnergy pollEnergyResult", "teal-500", "Polling energy result for order: %s, count: %d", orderId, currentPollCount);
+        csl("useTronEnergy pollEnergyResult", "teal-500", "Polling energy result for order: %s, count: %d", orderSerial, currentPollCount);
 
         try {
-          const result = await energyService.getEnergyStatus({ orderId });
+          const result = await energyService.getEnergyStatus({ orderSerial });
 
-          if (result.data.errno !== 0) {
+          if (result.errno !== 0) {
             setPollCount(0);
-            // @ts-ignore
-            resolve({ success: false, error: result.data.message });
+            resolve({ success: false, error: result.message || EnergyOrderStatusMessage[result.status] });
             return;
           }
 
-          const status = result.data.data.status;
+          const status = result.status;
 
-          if (status === "delegated") {
+          if (([EnergyOrderStatus.NormalCompletion] as EnergyOrderStatus[]).includes(status)) {
             setPollCount(0);
             resolve({ success: true });
             return;
@@ -230,16 +226,17 @@ export function useTronEnergy(props?: any) {
     // 1. First, pay the energy rental fee
     csl("useTronEnergy getEnergy", "teal-500", "1. Start paying energy rental fee... %o", rentalFee);
 
+    let txHash;
     if (rentalFee > 0) {
-      const transferResult = await params.wallet.transfer({
+      txHash = await params.wallet.transfer({
         originAsset: "TRX",
         depositAddress: TRON_RENTAL_RECEIVING_ADDRESS,
         amount: rentalFee.toString(),
       });
-      // const transferResult = "3343cf067ed0f06eaf2a34b701ad6a24582bca4e14da970d762c7fb3340a72b8";
-      csl("useTronEnergy getEnergy", "teal-500", "Energy rental fee transfer sent, TXID: %o", transferResult);
+      // const txHash = "3343cf067ed0f06eaf2a34b701ad6a24582bca4e14da970d762c7fb3340a72b8";
+      csl("useTronEnergy getEnergy", "teal-500", "Energy rental fee transfer sent, TXID: %o", txHash);
 
-      if (!transferResult) {
+      if (!txHash) {
         throw new Error("Failed to pay rental fee, please try again later");
       }
       report?.();
@@ -248,7 +245,7 @@ export function useTronEnergy(props?: any) {
       csl("useTronEnergy getEnergy", "teal-500", "2. Start polling for transfer result...");
 
       setTronTransferStep(TronTransferStepStatus.EnergyPaying);
-      const transferTRXResult = await checkTransactionStatusFromScan(transferResult, {
+      const transferTRXResult = await checkTransactionStatusFromScan(txHash, {
         maxPolls: 120,
         pollInterval: 3000,
       });
@@ -267,55 +264,21 @@ export function useTronEnergy(props?: any) {
     // 3. After completion, place an order for rental energy
     setTronTransferStep(TronTransferStepStatus.EnergyRequest);
 
-    const outTradeNo = uuidv4();
-
     const energyResponse = await energyService.getEnergy({
       receiveAddress: params.account,
-      energyAmount: Number(EnergyAmounts.New),
-      period: energyPeriod,
-      outTradeNo,
-      autoActivate: false,
+      txHash,
     });
 
-    if (!energyResponse.data || energyResponse.data.errno !== 0) {
-      // @ts-ignore
-      const errorMsg = energyResponse.data.message;
-      throw new Error(errorMsg);
-    }
-
-    const orderId = energyResponse.data.data.orderId;
+    const orderSerial = energyResponse.order_serial;
 
     // 4. Polling the rental result
-    const pollingRes = await pollEnergyResult(orderId);
+    const pollingRes = await pollEnergyResult(orderSerial);
     if (!pollingRes.success) {
       throw new Error(pollingRes.error || "Energy rental failed, please try again later");
     }
 
     // 5. Energy rental successful
     setTronTransferStep(TronTransferStepStatus.EnergyReady);
-  };
-
-  // Get the actual amount of TRX required to rent energy
-  const getEnergyPrice = async (params?: { energyPeriod?: EnergyPeriod; energyAmount?: EnergyAmount; }) => {
-    const response = await energyService.getPrice({
-      period: params?.energyPeriod ?? energyPeriod,
-      energyAmount: params?.energyAmount ?? BigInt(EnergyAmounts.New) as EnergyAmount,
-    });
-
-    if (response.status !== 200 || response.data.errno !== 0) {
-      return {};
-    }
-
-    const { total_price } = response.data.data ?? {};
-    // TRX decimals is 6
-    const totalPrice = Big(total_price || 0).div(10 ** 6);
-    const totalPriceUsd = Big(totalPrice).times(prices["TRX"] || 1);
-
-    return {
-      amount: numberRemoveEndZero(Big(totalPrice).toFixed(6)),
-      sun: total_price + "",
-      usd: numberRemoveEndZero(Big(totalPriceUsd).toFixed(20)),
-    };
   };
 
   useEffect(() => {
@@ -334,6 +297,5 @@ export function useTronEnergy(props?: any) {
   return {
     getEstimateNeedsEnergy,
     getEnergy,
-    getEnergyPrice,
   };
 }
