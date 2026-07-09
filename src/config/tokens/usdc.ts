@@ -104,6 +104,12 @@ export const usdcChains: Record<string, TokenChain> = {
     ...chains.sui,
     services: [Service.OneClick],
   },
+  pharos: {
+    ...usdc,
+    contractAddress: "0xC879C018dB60520F4355C26eD1a6D572cdAC1815",
+    ...chains.pharos,
+    services: [Service.CCTP],
+  },
 };
 
 export const usdcSol = {
