@@ -21,6 +21,7 @@ const ResultCCTP = lazy(() => import("./cctp"));
 const ResultFraxZero = lazy(() => import("./fraxzero"));
 const ResultUsdt0OneClick = lazy(() => import("./usdt0-oneclick"));
 const ResultNative = lazy(() => import("./native"));
+const ResultLayerzeroVt = lazy(() => import("./layerzero-vt"));
 const ResultFeeItem = lazy(() => import("./fee-item"));
 
 const LargeTransactionTip = "Large transactions can take a bit longer to process — usually no more than 3-5 minutes.";
@@ -115,6 +116,11 @@ export default function Result() {
         {
           bridgeStore.quoteDataService === Service.Native && (
             <ResultNative />
+          )
+        }
+        {
+          bridgeStore.quoteDataService === Service.LayerzeroVt && (
+            <ResultLayerzeroVt />
           )
         }
       </Suspense>

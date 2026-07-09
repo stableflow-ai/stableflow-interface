@@ -221,8 +221,21 @@ export const isPyusdRouteBlocked = (fromToken: any, toToken: any) => {
 };
 
 /*
- * Swap research (not implemented):
- * - Cross-stablecoin routes rely on OneClick (NEAR Intents) once PYUSD assetIds are registered.
- * - Fallback hybrid routes: PyusdOneClick / OneClickPyusd via Arbitrum PYUSD hub (see usdt0-oneclick pattern).
- * - PYUSD <-> frxUSD would chain through Ethereum USDC (FraxZeroOneClick-style).
+ * Hybrid route architecture (NOT implemented — design reference only):
+ *
+ * Route 1 — PYUSD <-> USDT/USDT0/USDC (~50% chain coverage):
+ *   Forward:  Pyusd OFT (src -> ethereum) -> VT API (ethereum PYUSD -> dst stable)
+ *   Reverse:  VT API (src stable -> ethereum PYUSD) -> Pyusd OFT (ethereum -> dst)
+ *
+ * Route 2 — PYUSD <-> USDT/USDT0/USDC/EURe (~full coverage via Near Intents):
+ *   Forward:  Pyusd OFT -> VT (ethereum PYUSD -> ethereum USDC, recipient = nearintents deposit_address)
+ *             -> Near Intents (ethereum USDC -> dst)
+ *   Reverse:  Near Intents (src -> ethereum USDC) -> VT (ethereum USDC -> PYUSD)
+ *             -> Pyusd OFT (ethereum -> dst)
+ *
+ * Route 3 — PYUSD <-> frxUSD (full coverage via FraxZero):
+ *   Forward:  Pyusd OFT -> VT (PYUSD -> USDC) -> mint frxUSD -> FraxZero (ethereum -> dst)
+ *   Reverse:  FraxZero (src -> ethereum frxUSD) -> redeem USDC -> VT (USDC -> PYUSD) -> Pyusd OFT
+ *
+ * See also: src/services/layerzero-vt/config.ts for VT-side hybrid route notes.
  */

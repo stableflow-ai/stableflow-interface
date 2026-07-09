@@ -62,5 +62,6 @@ export const getQuoteModes = (params: { quoteData?: any; bridgeStore?: BridgeSta
     isOneClickService: getIsOneClickService(),
     isQuoteParamDepositAddress: getIsQuoteParamDepositAddress(),
     isPermitWithNonce: typeof quoteDataService === "undefined" ? false : ([Service.OneClickUsdt0, Service.OneClickFraxZero, Service.FraxZeroOneClick] as Service[]).includes(quoteDataService),
+    isLayerzeroVtService: quoteDataService === Service.LayerzeroVt,
   };
 };

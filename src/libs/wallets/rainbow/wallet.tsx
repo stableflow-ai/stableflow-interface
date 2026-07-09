@@ -324,6 +324,7 @@ export default class RainbowWallet {
         const gasLimit = await provider.estimateGas({
           to: txRequest.target,
           data: txRequest.calldata,
+          value: txRequest.value ? BigInt(txRequest.value) : void 0,
           from: refundTo || this.signer?.address,
         });
         finalGasLimit = gasLimit * 120n / 100n;
@@ -1947,5 +1948,86 @@ export default class RainbowWallet {
       r,
       s,
     };
+  }
+
+  async signEip712TypedData(params: {
+    domain: Record<string, unknown>;
+    types: Record<string, Array<{ name: string; type: string; }>>;
+    primaryType?: string;
+    message: Record<string, unknown>;
+  }) {
+    const { domain, types, message } = params;
+
+    // ethers v6: EIP712Domain must not be in types (domain is passed separately),
+    // otherwise it throws "ambiguous primary types or unused types".
+    const { EIP712Domain: _eip712Domain, ...signTypes } = types;
+
+    csl("EVM signEip712TypedData", "blue-900", "domain: %o", domain);
+
+    const signature = await this.signer?.signTypedData(
+      domain as any,
+      signTypes as any,
+      message as any,
+    );
+
+    if (!signature) {
+      throw new Error("Signature failed");
+    }
+
+    return signature;
+  }
+
+  async sendEncodedTransaction(params: {
+    encoded: {
+      to: string;
+      data: string;
+      value?: string;
+      gasLimit?: string;
+      chainId?: number;
+    };
+  }) {
+    const { encoded } = params;
+
+    const txRequest: Record<string, unknown> = {
+      to: encoded.to,
+      data: encoded.data,
+      value: encoded.value ? BigInt(encoded.value) : 0n,
+    };
+
+    if (encoded.gasLimit) {
+      txRequest.gasLimit = BigInt(encoded.gasLimit);
+    }
+
+    try {
+      const feeData = await this.provider.getFeeData();
+      if (feeData.maxFeePerGas) {
+        txRequest.maxFeePerGas = (feeData.maxFeePerGas * 120n) / 100n;
+      }
+      if (feeData.maxPriorityFeePerGas) {
+        txRequest.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
+      }
+    } catch (error) {
+      csl("EVM sendEncodedTransaction", "red-500", "Failed to get fee data for gas buffer: %o", error);
+    }
+
+    try {
+      const tx = await this.signer.sendTransaction(txRequest as any);
+      return tx.hash;
+    } catch (error: any) {
+      csl("EVM sendEncodedTransaction", "red-500", "Error sending transaction: %o, message: %o", error, error.message);
+      let finalErrorMessage = `Transaction failed: ${error.message}`;
+      if (error?.message?.includes("user rejected action")) {
+        finalErrorMessage = error.message;
+      }
+      throw new Error(finalErrorMessage);
+    }
+  }
+
+  async waitForTransaction(hash: string) {
+    const receipt = await this.provider.waitForTransaction(hash);
+    if (!receipt || receipt.status !== 1) {
+      throw new Error("Transaction failed");
+    }
+    return receipt;
   }
 }

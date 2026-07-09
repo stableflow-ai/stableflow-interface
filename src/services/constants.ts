@@ -11,6 +11,7 @@ export const Service = {
   OneClickUsdt0: "oneclick-usdt0",
   Native: "native",
   Pyusd: "pyusd",
+  LayerzeroVt: "layerzero-vt",
 } as const;
 export type Service = (typeof Service)[keyof typeof Service];
 
@@ -25,6 +26,7 @@ export const ServiceBackend: Record<Service, string> = {
   [Service.OneClickUsdt0]: "intentzero",
   [Service.Native]: "native",
   [Service.Pyusd]: "layerzero",
+  [Service.LayerzeroVt]: "layerzero",
 } as const;
 
 export const getRouteStatus = (service: Service): { disabled: boolean; } => {
@@ -46,6 +48,7 @@ export const getRouteStatus = (service: Service): { disabled: boolean; } => {
   const IS_PAUSE_FRAXZERO = false;
   const IS_PAUSE_NATIVE = false;
   const IS_PAUSE_PYUSD = false;
+  const IS_PAUSE_LAYERZERO_VT = false;
 
   if (IS_PAUSE_ALL) {
     result.disabled = true;
@@ -101,6 +104,13 @@ export const getRouteStatus = (service: Service): { disabled: boolean; } => {
     }
   }
 
+  if (service === Service.LayerzeroVt) {
+    if (IS_PAUSE_LAYERZERO_VT) {
+      result.disabled = true;
+      return result;
+    }
+  }
+
   if (([Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
     if (IS_PAUSE_NEAR_INTENTS || IS_PAUSE_USDT0) {
       result.disabled = true;
@@ -122,6 +132,7 @@ export const ServiceLogoMap: Record<Service, string> = {
   [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-2.svg"),
   [Service.Native]: getStableflowRouteLogo("logo-native.svg"),
   [Service.Pyusd]: getStableflowRouteLogo("logo-layerzero.svg"),
+  [Service.LayerzeroVt]: getStableflowRouteLogo("logo-layerzero.svg"),
 };
 
 export const ServiceLogoSimpleMap: Record<Service, string> = {
@@ -135,4 +146,5 @@ export const ServiceLogoSimpleMap: Record<Service, string> = {
   [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-simple.svg"),
   [Service.Native]: getStableflowRouteLogo("logo-native-simple.svg"),
   [Service.Pyusd]: getStableflowRouteLogo("logo-layerzero-simple.svg"),
+  [Service.LayerzeroVt]: getStableflowRouteLogo("logo-layerzero-simple.svg"),
 };

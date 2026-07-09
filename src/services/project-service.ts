@@ -1,5 +1,6 @@
 import usdt0Service from "@/services/usdt0";
 import pyusdService from "@/services/pyusd";
+import layerzeroVtService from "@/services/layerzero-vt";
 import { getRealService, TradeProject } from "@/config/trade";
 import { Service } from "./constants";
 
@@ -16,6 +17,12 @@ export const getLayerzeroProjectService = (project: TradeProject, fromToken: { s
     return {
       ...realService,
       quoteService: pyusdService,
+    };
+  }
+  if (realService.service === Service.LayerzeroVt) {
+    return {
+      ...realService,
+      quoteService: layerzeroVtService,
     };
   }
   return {

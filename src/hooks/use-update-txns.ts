@@ -29,6 +29,13 @@ export default function useUpdateTxns() {
         };
       }
 
+      if (historyType === Service.LayerzeroVt) {
+        getStatusParams = {
+          hash: currentHistory?.txHash,
+          history: currentHistory,
+        };
+      }
+
       const result = await ServiceMap[historyType].getStatus(getStatusParams);
 
       historyStore.updateStatus(address, result.status);
