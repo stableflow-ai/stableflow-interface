@@ -108,7 +108,7 @@ const pharos = defineChain({
   name: "Pharos",
   nativeCurrency: { name: "PROS", symbol: "PROS", decimals: 18 },
   rpcUrls: {
-    default: { http: getChainRpcUrl("Pharos").rpcUrls },
+    default: { http: ["https://rpc.pharos.xyz"] },
   },
   blockExplorers: {
     default: { name: "PharosScan", url: "https://www.pharosscan.xyz" },
