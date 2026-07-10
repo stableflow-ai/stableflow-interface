@@ -122,6 +122,33 @@ export const PYUSD_LZ_CONFIG: Record<string, PyusdChainConfig> = {
     composeOptionGas: DEFAULT_COMPOSE_GAS,
     oftApprovalRequired: false,
   },
+  Stable: {
+    contractAddress: "0x99aF3EeA856556646C98c8B9b2548Fe815240750",
+    oft: "0x26d27d5af2f6f1c14f40013c8619d97aaf015509",
+    ...LAYERZZERO_CHAINS["Stable"],
+    confirmations: 3,
+    lzReceiveOptionGas: DEFAULT_LZ_RECEIVE_GAS,
+    composeOptionGas: DEFAULT_COMPOSE_GAS,
+    oftApprovalRequired: false,
+  },
+  Ink: {
+    contractAddress: "0x142cdc44890978B506e745bB3Bd11607B7f7faEf",
+    oft: "0x3cd2b89c49d130c08f1d683225b2e5deb63ff876",
+    ...LAYERZZERO_CHAINS["Ink"],
+    confirmations: 20,
+    lzReceiveOptionGas: DEFAULT_LZ_RECEIVE_GAS,
+    composeOptionGas: DEFAULT_COMPOSE_GAS,
+    oftApprovalRequired: false,
+  },
+  Flow: {
+    contractAddress: "0x99aF3EeA856556646C98c8B9b2548Fe815240750",
+    oft: "0x26d27d5af2f6f1c14f40013c8619d97aaf015509",
+    ...LAYERZZERO_CHAINS["Flow"],
+    confirmations: 20,
+    lzReceiveOptionGas: DEFAULT_LZ_RECEIVE_GAS,
+    composeOptionGas: DEFAULT_COMPOSE_GAS,
+    oftApprovalRequired: false,
+  },
 };
 
 export const PYUSD_HUB_CONFIG = PYUSD_LZ_CONFIG[PYUSD_HUB_CHAIN];
