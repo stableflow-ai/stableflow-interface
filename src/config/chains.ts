@@ -195,6 +195,9 @@ export const chainsRpcUrls: Record<string, string[]> = {
     `${ProxyRpcHost}/pharos`,
     "https://rpc.pharos.xyz",
   ],
+  "Flow": [
+    "https://mainnet.evm.nodes.onflow.org",
+  ],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
@@ -648,6 +651,22 @@ const chains: Record<string, ChainType> = {
       decimals: 18,
     },
     ...getChainRpcUrl("Pharos"),
+  },
+  flow: {
+    chainName: "Flow",
+    blockchain: "flow",
+    chainIcon: getStableflowChainLogo("Flow"),
+    chainIconGray: getStableflowChainLogo("Flow-gray"),
+    chainType: chainTypes.evm.value,
+    chainId: 747,
+    blockExplorerUrl: "https://evm.flowscan.io/tx",
+    blockExplorerUrls: ["https://evm.flowscan.io"],
+    primaryColor: "#00EF8B",
+    nativeToken: {
+      symbol: "FLOW",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Flow"),
   },
 };
 
