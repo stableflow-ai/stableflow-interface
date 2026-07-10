@@ -8,6 +8,7 @@ export interface LayerZeroChainConfig {
 
 // LayerZero chain configuration
 // blockTime: Average block time in seconds, fetched from https://chainspect.app/
+// eid reference site: https://docs.layerzero.network/v2/deployments/deployed-contracts
 export const LAYERZZERO_CHAINS: Record<string, LayerZeroChainConfig> = {
   "Ethereum": {
     eid: 30101,
@@ -112,6 +113,11 @@ export const LAYERZZERO_CHAINS: Record<string, LayerZeroChainConfig> = {
   Katana: {
     eid: 30375,
     chainKey: "katana",
+    blockTime: 1,
+  },
+  Flow: {
+    eid: 30336,
+    chainKey: "flow",
     blockTime: 1,
   },
 };
