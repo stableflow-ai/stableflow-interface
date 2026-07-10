@@ -78,6 +78,27 @@ export const pyusdChains: Record<string, TokenChain> = {
     ...chains.tron,
     services: [Service.Pyusd],
   },
+  stable: {
+    ...pyusd0,
+    assetId: "",
+    contractAddress: "0x99aF3EeA856556646C98c8B9b2548Fe815240750",
+    ...chains.stable,
+    services: [Service.Pyusd],
+  },
+  ink: {
+    ...pyusd0,
+    assetId: "",
+    contractAddress: "0x142cdc44890978B506e745bB3Bd11607B7f7faEf",
+    ...chains.ink,
+    services: [Service.Pyusd],
+  },
+  flow: {
+    ...pyusd0,
+    assetId: "",
+    contractAddress: "0x99aF3EeA856556646C98c8B9b2548Fe815240750",
+    ...chains.flow,
+    services: [Service.Pyusd],
+  },
 };
 
 export const pyusdEvm = {

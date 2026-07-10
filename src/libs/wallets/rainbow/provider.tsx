@@ -20,6 +20,7 @@ import {
   flare,
   fraxtal,
   katana,
+  flowMainnet,
 } from "viem/chains";
 import {
   WagmiProvider,
@@ -162,6 +163,7 @@ const RpcUrls: any = {
   [fraxtal.id]: fallback(getChainRpcUrl("Fraxtal").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "fraxtal")))),
   [katana.id]: fallback(getChainRpcUrl("Katana").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "katana")))),
   [pharos.id]: fallback(getChainRpcUrl("Pharos").rpcUrls.map((rpc) => http(rpc, getSignedRpcHttpConfig(rpc, "pharos")))),
+  [flowMainnet.id]: fallback(getChainRpcUrl("Flow").rpcUrls.map((rpc) => http(rpc))),
 };
 
 const connectors: any = connectorsForWallets(
@@ -211,6 +213,7 @@ const wagmiConfig = createConfig({
     fraxtal,
     katana,
     pharos,
+    flowMainnet,
   ],
   transports: {
     [mainnet.id]: RpcUrls[mainnet.id] || http(),
@@ -234,6 +237,7 @@ const wagmiConfig = createConfig({
     [fraxtal.id]: RpcUrls[fraxtal.id] || http(),
     [katana.id]: RpcUrls[katana.id] || http(),
     [pharos.id]: RpcUrls[pharos.id] || http(),
+    [flowMainnet.id]: RpcUrls[flowMainnet.id] || http(),
   },
 });
 
