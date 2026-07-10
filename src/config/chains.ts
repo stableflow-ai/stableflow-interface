@@ -191,6 +191,10 @@ export const chainsRpcUrls: Record<string, string[]> = {
     "https://rpc.katana.network",
     "https://katana.drpc.org",
   ],
+  "Pharos": [
+    `${ProxyRpcHost}/pharos`,
+    "https://rpc.pharos.xyz",
+  ],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
@@ -628,6 +632,22 @@ const chains: Record<string, ChainType> = {
       decimals: 18,
     },
     ...getChainRpcUrl("Katana"),
+  },
+  pharos: {
+    chainName: "Pharos",
+    blockchain: "pharos",
+    chainIcon: getStableflowChainLogo("Pharos"),
+    chainIconGray: getStableflowChainLogo("Pharos-gray"),
+    chainType: chainTypes.evm.value,
+    chainId: 1672,
+    blockExplorerUrl: "https://www.pharosscan.xyz/tx",
+    blockExplorerUrls: ["https://www.pharosscan.xyz"],
+    primaryColor: "#0066FF",
+    nativeToken: {
+      symbol: "PROS",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Pharos"),
   },
 };
 
