@@ -337,7 +337,7 @@ export default function Networks({ addressValidation }: NetworksProps) {
                             ) : (
                               <div className="">
                                 {
-                                  (([Service.OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService) && isFromTron) ? (
+                                  (([Service.OneClick, Service.OneClickUsdt0, Service.OneClickCCTP] as Service[]).includes(bridgeStore.quoteDataService) && isFromTron) ? (
                                     bridgeStore.acceptTronEnergy ?
                                       formatNumber(quoteData?.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
                                       formatNumber(quoteData?.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })

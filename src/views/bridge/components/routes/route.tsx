@@ -69,7 +69,7 @@ const QuoteRoute = (props: any) => {
           alt=""
           className={clsx(
             "object-left object-contain shrink-0",
-            ([Service.OneClickUsdt0, Service.Usdt0OneClick, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(displayService)
+            ([Service.OneClickUsdt0, Service.Usdt0OneClick, Service.OneClickCCTP, Service.CCTPOneClick, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(displayService)
               ? isMobile ? "w-7.5 h-4" : "w-29.5 h-6"
               : isMobile ? "size-4" : "w-15.5 h-4",
           )}
@@ -91,7 +91,7 @@ const QuoteRoute = (props: any) => {
           />
           <div className="">
             {
-              ([Service.OneClick, Service.OneClickUsdt0].includes(service) && isFromTron) ? (
+              ([Service.OneClick, Service.OneClickUsdt0, Service.OneClickCCTP].includes(service) && isFromTron) ? (
                 bridgeStore.acceptTronEnergy ?
                   formatNumber(Big(data.energySourceGasFeeUsd || 0).plus(data.totalFeesUsd || 0), 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
                   formatNumber(Big(data.transferSourceGasFeeUsd || 0).plus(data.totalFeesUsd || 0), 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })

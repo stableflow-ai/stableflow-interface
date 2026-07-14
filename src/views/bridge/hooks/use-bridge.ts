@@ -111,6 +111,8 @@ export default function useBridge(props?: any) {
         Service.OneClick,
         Service.Usdt0OneClick,
         Service.OneClickUsdt0,
+        Service.CCTPOneClick,
+        Service.OneClickCCTP,
         Service.FraxZeroOneClick,
         Service.OneClickFraxZero,
       ] as Service[]).includes(service)) {
@@ -148,7 +150,7 @@ export default function useBridge(props?: any) {
           _params.appFees = params.appFees;
         }
       }
-      if (([Service.Usdt0, Service.CCTP, Service.Usdt0OneClick, Service.OneClickUsdt0] as Service[]).includes(service)) {
+      if (([Service.Usdt0, Service.CCTP, Service.Usdt0OneClick, Service.OneClickUsdt0, Service.CCTPOneClick, Service.OneClickCCTP] as Service[]).includes(service)) {
         _params.originChain = walletStore.fromToken.chainName;
         _params.destinationChain = walletStore.toToken.chainName;
       }
@@ -216,7 +218,7 @@ export default function useBridge(props?: any) {
       const oneClickErrorResponse = error?.response?.data?.message;
       let _finalErrorMessage = oneClickErrorResponse || error?.message || defaultErrorMessage;
       let _finalReportErrorMessage = oneClickErrorResponse || error?.message || (error ? error + "" : defaultErrorMessage);
-      if (([Service.OneClick, Service.OneClickUsdt0, Service.Usdt0OneClick, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(service)) {
+      if (([Service.OneClick, Service.OneClickUsdt0, Service.Usdt0OneClick, Service.CCTPOneClick, Service.OneClickCCTP, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(service)) {
         const getQuoteErrorMessage = (): { message: string; sourceMessage: string; } => {
           const _messageResult = {
             message: oneClickErrorResponse || defaultErrorMessage,
@@ -340,6 +342,8 @@ export default function useBridge(props?: any) {
 
     const isFromUsdt = ["USDT", "USD₮0"].includes(walletStore.fromToken.symbol);
     const isToUsdt = ["USDT", "USD₮0"].includes(walletStore.toToken.symbol);
+    const isFromUsdc = walletStore.fromToken.symbol === "USDC";
+    const isToUsdc = walletStore.toToken.symbol === "USDC";
 
     // If fromToken is usdt0 and toToken is usdc, Usdt0OneClick mode can be used
     if (
@@ -368,6 +372,36 @@ export default function useBridge(props?: any) {
         }
       } else {
         pushQuoteService(Service.OneClickUsdt0);
+      }
+    }
+
+    // CCTPOneClick mode
+    if (
+      walletStore.fromToken.services.includes(Service.CCTP)
+      && walletStore.toToken.services.includes(Service.OneClick)
+      && walletStore.fromToken.chainName !== "Arbitrum"
+    ) {
+      if (isFromUsdc && isToUsdc) {
+        if (walletStore.toToken.chainName !== "Arbitrum") {
+          pushQuoteService(Service.CCTPOneClick);
+        }
+      } else {
+        pushQuoteService(Service.CCTPOneClick);
+      }
+    }
+
+    // OneClickCCTP mode
+    if (
+      walletStore.fromToken.services.includes(Service.OneClick)
+      && walletStore.toToken.services.includes(Service.CCTP)
+      && walletStore.toToken.chainName !== "Arbitrum"
+    ) {
+      if (isFromUsdc && isToUsdc) {
+        if (walletStore.fromToken.chainName !== "Arbitrum") {
+          pushQuoteService(Service.OneClickCCTP);
+        }
+      } else {
+        pushQuoteService(Service.OneClickCCTP);
       }
     }
 
@@ -581,7 +615,7 @@ export default function useBridge(props?: any) {
     };
 
     try {
-      if (([Service.OneClickUsdt0, Service.Usdt0OneClick] as Service[]).includes(bridgeStore.quoteDataService)) {
+      if (([Service.OneClickUsdt0, Service.Usdt0OneClick, Service.CCTPOneClick, Service.OneClickCCTP] as Service[]).includes(bridgeStore.quoteDataService)) {
         const evmAddress = wallets.evm.account;
         if (!evmAddress) {
           throw new Error("Arbitrum wallet not connected");
@@ -807,6 +841,9 @@ export default function useBridge(props?: any) {
         if (permitResultData) {
           if (([Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService)) {
             reportData.layer_zero_permit = permitResultData;
+          }
+          if (([Service.OneClickCCTP] as Service[]).includes(bridgeStore.quoteDataService)) {
+            reportData.cctp_permit = permitResultData;
           }
           if (([Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService)) {
             reportData.frax_zero_permit = permitResultData;

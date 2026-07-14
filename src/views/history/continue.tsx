@@ -20,9 +20,11 @@ import Skeleton from "@/components/skeleton";
 import { csl } from "@/utils/log";
 import { TradeProject, TradeProjectMap } from "@/config/trade";
 import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
+import { CCTP_PROXY_RELAY_CONTRACT, MIDDLE_CHAIN_REFUND_ADDRESS, MIDDLE_TOKEN_CHAIN as CCTP_MIDDLE_TOKEN_CHAIN } from "@/services/cctp/config";
 import { FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_REDEEM_AND_MINT_CONTRACT } from "@/services/fraxzero/config";
 import { useSwitchChain } from "wagmi";
 import usdt0Service from "@/services/usdt0";
+import cctpService from "@/services/cctp";
 import { useConfigStore } from "@/stores/use-config";
 import { useTrack } from "@/hooks/use-track";
 import { addTradeReport } from "@/stores/use-trade-report";
@@ -50,9 +52,10 @@ const ContinueTransfer = (props: any) => {
     // @ts-ignore
     const evmWallet = wallets["evm"];
 
-    const isFromOneClickHybridProject = [TradeProject.OneClickUsdt0, TradeProject.OneClickFraxZero].includes(history.project);
+    const isFromOneClickHybridProject = [TradeProject.OneClickUsdt0, TradeProject.OneClickCCTP, TradeProject.OneClickFraxZero].includes(history.project);
     // Need to sign permit for USDT(MIDDLE_TOKEN_CHAIN) on the Arbitrum chain
     const isOneClickUsdt0 = history.project === TradeProject.OneClickUsdt0;
+    const isOneClickCCTP = history.project === TradeProject.OneClickCCTP;
     // Need to sign permit for USDC(FRAXZERO_MIDDLE_TOKEN_USDC) on the Ethereum chain
     const isOneClickFraxZero = history.project === TradeProject.OneClickFraxZero;
 
@@ -63,6 +66,10 @@ const ContinueTransfer = (props: any) => {
     if (isOneClickUsdt0) {
       toToken = MIDDLE_TOKEN_CHAIN;
       permitSpender = MIDDLE_CHAIN_LAYERZERO_EXECUTOR;
+    }
+    if (isOneClickCCTP) {
+      toToken = CCTP_MIDDLE_TOKEN_CHAIN;
+      permitSpender = CCTP_PROXY_RELAY_CONTRACT;
     }
     if (isOneClickFraxZero) {
       toToken = FRAXZERO_MIDDLE_TOKEN_USDC;
@@ -290,6 +297,40 @@ const ContinueTransfer = (props: any) => {
           oft_cmd: usdt0SendParam?.oftCmd,
           to: usdt0SendParam?.to,
           native_fee: usdt0MessageFee?.nativeFee?.toString(),
+        };
+      }
+
+      if (isOneClickCCTP) {
+        const cctpResult = await cctpService.quote({
+          wallet: evmWallet.wallet,
+          fromToken: CCTP_MIDDLE_TOKEN_CHAIN,
+          toToken: sourceToToken,
+          originChain: CCTP_MIDDLE_TOKEN_CHAIN.chainName,
+          destinationChain: sourceToToken?.chainName,
+          amountWei: quote.amountOut,
+          refundTo: MIDDLE_CHAIN_REFUND_ADDRESS,
+          recipient: history.receive_address,
+          slippageTolerance: configStore.slippage,
+          prices,
+        });
+
+        if (cctpResult.errMsg) {
+          throw new Error(cctpResult.errMsg);
+        }
+
+        const cctpSendParam = cctpResult.sendParam?.param;
+
+        reportData.cctp_permit = {
+          ...permitResult,
+          amount_wei: cctpSendParam?.[0]?.toString(),
+          charged_amount: cctpSendParam?.[1]?.toString(),
+          destination_domain: cctpSendParam?.[2]?.toString(),
+          mint_recipient: cctpSendParam?.[3]?.toString(),
+          burn_token: cctpSendParam?.[4]?.toString(),
+          destination_caller: cctpSendParam?.[5]?.toString(),
+          max_fee: cctpSendParam?.[6]?.toString(),
+          finality_threshold: cctpSendParam?.[7]?.toString(),
+          receipt_address: history.receive_address,
         };
       }
 

@@ -184,10 +184,10 @@ export const sortQuoteData = (quoteDataMap: Map<string, any>) => {
       netB = netB.minus(dataB.fees?.nativeFeeUsd || 0);
     }
 
-    if ([Service.OneClickUsdt0].includes(_serviceA)) {
+    if ([Service.OneClickUsdt0, Service.OneClickCCTP].includes(_serviceA)) {
       netA = netA.minus(dataA.fees?.destinationGasFeeUsd || 0);
     }
-    if ([Service.OneClickUsdt0].includes(_serviceB)) {
+    if ([Service.OneClickUsdt0, Service.OneClickCCTP].includes(_serviceB)) {
       netB = netB.minus(dataB.fees?.destinationGasFeeUsd || 0);
     }
 
@@ -223,9 +223,19 @@ export const routeHybridPath = (quoteData: any, service: Service) => {
         { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick },
         { from: p?.middleToken, to: p?.toToken, svc: Service.Usdt0 },
       ]);
+    case Service.OneClickCCTP:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken, svc: Service.OneClick },
+        { from: p?.middleToken, to: p?.toToken, svc: Service.CCTP },
+      ]);
     case Service.Usdt0OneClick:
       return buildPath([
         { from: p?.fromToken, to: p?.middleToken, svc: Service.Usdt0 },
+        { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick },
+      ]);
+    case Service.CCTPOneClick:
+      return buildPath([
+        { from: p?.fromToken, to: p?.middleToken, svc: Service.CCTP },
         { from: p?.middleToken, to: p?.toToken, svc: Service.OneClick },
       ]);
     case Service.OneClickFraxZero:

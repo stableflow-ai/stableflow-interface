@@ -24,6 +24,8 @@ export const TradeProject = {
   OneClick: 0,
   Usdt0: 1,
   CCTP: 2,
+  CCTPOneClick: 9,
+  OneClickCCTP: 10,
   FraxZero: 6,
   FraxZeroOneClick: 7,
   OneClickFraxZero: 8,
@@ -52,6 +54,18 @@ export const TradeProjectMap: Record<TradeProject, { logo: string; logoSimple: s
     logoSimple: ServiceLogoSimpleMap[Service.CCTP],
     name: "CCTP",
     service: Service.CCTP,
+  },
+  [TradeProject.CCTPOneClick]: {
+    logo: ServiceLogoMap[Service.CCTPOneClick],
+    logoSimple: ServiceLogoSimpleMap[Service.CCTPOneClick],
+    name: "CCTPOneClick",
+    service: Service.CCTPOneClick,
+  },
+  [TradeProject.OneClickCCTP]: {
+    logo: ServiceLogoMap[Service.OneClickCCTP],
+    logoSimple: ServiceLogoSimpleMap[Service.OneClickCCTP],
+    name: "OneClickCCTP",
+    service: Service.OneClickCCTP,
   },
   [TradeProject.FraxZero]: {
     logo: ServiceLogoMap[Service.FraxZero],

@@ -27,7 +27,15 @@ const ResultUsdt0OneClick = (props: any) => {
       oneclickFromToken = _quoteData?.quoteParam?.middleToken;
       oneclickToToken = _quoteData?.quoteParam?.toToken;
     }
+    if (service === Service.CCTPOneClick) {
+      oneclickFromToken = _quoteData?.quoteParam?.middleToken;
+      oneclickToToken = _quoteData?.quoteParam?.toToken;
+    }
     if (service === Service.OneClickUsdt0) {
+      oneclickFromToken = _quoteData?.quoteParam?.fromToken;
+      oneclickToToken = _quoteData?.quoteParam?.middleToken;
+    }
+    if (service === Service.OneClickCCTP) {
       oneclickFromToken = _quoteData?.quoteParam?.fromToken;
       oneclickToToken = _quoteData?.quoteParam?.middleToken;
     }
@@ -71,11 +79,15 @@ const ResultUsdt0OneClick = (props: any) => {
       return;
     }
 
+    const messagingFeeUsd = [Service.OneClickCCTP, Service.CCTPOneClick].includes(service)
+      ? Big(_quoteData?.fees?.estimateMintGasUsd || 0).plus(_quoteData?.fees?.bridgeFeeUsd || 0).toFixed(20)
+      : _quoteData?.fees?.nativeFeeUsd;
+
     setFees({
       totalFee: _quoteData?.totalFeesUsd,
-      messagingFee: _quoteData?.fees?.nativeFeeUsd,
+      messagingFee: messagingFeeUsd,
       messagingFeeAmount: _quoteData?.fees?.nativeFee,
-      messagingFeeUnit: [Service.OneClickUsdt0, Service.OneClickFraxZero].includes(service) ? _quoteData?.quoteParam?.middleToken?.nativeToken?.symbol : _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
+      messagingFeeUnit: [Service.OneClickUsdt0, Service.OneClickCCTP, Service.OneClickFraxZero].includes(service) ? _quoteData?.quoteParam?.middleToken?.nativeToken?.symbol : _quoteData?.quoteParam?.fromToken?.nativeToken?.symbol,
       legacyMeshFee: _quoteData?.fees?.legacyMeshFeeUsd,
       bridgeFee: totalBridgeFeeLabel,
       bridgeFeeValue: totalBridgeFeeValue,
@@ -90,16 +102,21 @@ const ResultUsdt0OneClick = (props: any) => {
     calculateFees();
   }, [bridgeStore, configStore.slippage]);
 
-  const [isOneClickExchangeToken, isOneClickBridge, isLayerzeroBridge] = useMemo(() => {
+  const [isOneClickExchangeToken, isOneClickBridge, isLayerzeroBridge, isCctpBridge] = useMemo(() => {
     let _fromToken = _quoteData?.quoteParam?.fromToken;
     let _toToken = _quoteData?.quoteParam?.toToken;
     let _isOneClickBridge = true;
     let _isLayerzeroBridge = true;
-    if ([Service.OneClickUsdt0, Service.OneClickFraxZero].includes(service)) {
+    let _isCctpBridge = false;
+    if ([Service.OneClickUsdt0, Service.OneClickFraxZero, Service.OneClickCCTP].includes(service)) {
       _toToken = _quoteData?.quoteParam?.middleToken;
     }
-    if ([Service.Usdt0OneClick, Service.FraxZeroOneClick].includes(service)) {
+    if ([Service.Usdt0OneClick, Service.FraxZeroOneClick, Service.CCTPOneClick].includes(service)) {
       _fromToken = _quoteData?.quoteParam?.middleToken;
+    }
+    if ([Service.OneClickCCTP, Service.CCTPOneClick].includes(service)) {
+      _isLayerzeroBridge = false;
+      _isCctpBridge = true;
     }
     const fromTokenSymbol = _fromToken?.symbol === "USD₮0" ? "USDT" : _fromToken?.symbol;
     const toTokenSymbol = _toToken?.symbol === "USD₮0" ? "USDT" : _toToken?.symbol;
@@ -123,8 +140,9 @@ const ResultUsdt0OneClick = (props: any) => {
       fromTokenSymbol && toTokenSymbol && fromTokenSymbol !== toTokenSymbol,
       _isOneClickBridge,
       _isLayerzeroBridge,
+      _isCctpBridge,
     ];
-  }, [_quoteData]);
+  }, [_quoteData, service]);
 
   return (
     <AnimatePresence>
@@ -158,6 +176,16 @@ const ResultUsdt0OneClick = (props: any) => {
                     {formatNumber(fees?.messagingFeeAmount, 6, true)} {fees?.messagingFeeUnit} ({formatNumber(fees?.messagingFee, 2, true, { prefix: "$", round: 0 })})
                   </ResultFeeItem>
                 </>
+              )
+            }
+            {
+              isCctpBridge && (
+                <ResultFeeItem
+                  label="CCTP Fee"
+                  loading={bridgeStore.getQuoting(service)}
+                >
+                  {fees?.messagingFee}
+                </ResultFeeItem>
               )
             }
             {
