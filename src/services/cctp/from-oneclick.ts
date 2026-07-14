@@ -146,6 +146,7 @@ export class OneClickCCTPService {
       totalFeesUsd: numberRemoveEndZero(Big(totalFeesUsd).toFixed(20)),
       estimateTime: cctpResult.estimateTime + oneClickResult.estimateTime,
       outputAmount: cctpResult.outputAmount,
+      needCreateTokenAccount: cctpResult.needCreateTokenAccount,
       quoteParam: {
         ...oneClickResult.quoteParam,
         toToken: params.toToken,
