@@ -2,7 +2,6 @@ import { usdcChains } from "@/config/tokens/usdc";
 
 export const IRIS_API_URL = "https://iris-api.circle.com/v2";
 
-export const MIDDLE_CHAIN_REFUND_ADDRESS = "0x654E7B96E1DE0b54E53D9ae8082fC2219E66dAC3";
 export const MIDDLE_TOKEN_CHAIN = usdcChains["arb"];
 
 export const CCTP_DOMAINS: Record<string, number> = {

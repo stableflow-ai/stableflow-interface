@@ -6,8 +6,8 @@ import oneClickCCTPService from "./cctp/from-oneclick";
 import fraxZeroService from "./fraxzero";
 import fraxZeroOneClickService from "./fraxzero/to-oneclick";
 import oneClickFraxZeroService from "./fraxzero/from-oneclick";
-import usdt0OneClickService from "./usdt0-oneclick";
-import oneClickUsdt0Service from "./oneclick-usdt0";
+import usdt0OneClickService from "./usdt0/to-oneclick";
+import oneClickUsdt0Service from "./usdt0/from-oneclick";
 import nativeService from "./native";
 import { Service } from "./constants";
 

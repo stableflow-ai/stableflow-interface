@@ -4,7 +4,8 @@ import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick
 import cctpService from "./index";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
-import { MIDDLE_CHAIN_REFUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "./config";
+import { MIDDLE_TOKEN_CHAIN } from "./config";
+import { MIDDLE_CHAIN_REFUND_ADDRESS } from "../utils";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";

@@ -19,8 +19,9 @@ import { formatAddress } from "@/utils/format/address";
 import Skeleton from "@/components/skeleton";
 import { csl } from "@/utils/log";
 import { TradeProject, TradeProjectMap } from "@/config/trade";
-import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
-import { CCTP_PROXY_RELAY_CONTRACT, MIDDLE_CHAIN_REFUND_ADDRESS, MIDDLE_TOKEN_CHAIN as CCTP_MIDDLE_TOKEN_CHAIN } from "@/services/cctp/config";
+import { USDT0_MIDDLE_CHAIN_LAYERZERO_EXECUTOR, USDT0_MIDDLE_TOKEN_CHAIN } from "@/services/usdt0/config";
+import { CCTP_PROXY_RELAY_CONTRACT, MIDDLE_TOKEN_CHAIN as CCTP_MIDDLE_TOKEN_CHAIN } from "@/services/cctp/config";
+import { MIDDLE_CHAIN_REFUND_ADDRESS } from "@/services/utils";
 import { FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_REDEEM_AND_MINT_CONTRACT } from "@/services/fraxzero/config";
 import { useSwitchChain } from "wagmi";
 import usdt0Service from "@/services/usdt0";
@@ -64,8 +65,8 @@ const ContinueTransfer = (props: any) => {
     let toToken = sourceToToken;
     let permitSpender;
     if (isOneClickUsdt0) {
-      toToken = MIDDLE_TOKEN_CHAIN;
-      permitSpender = MIDDLE_CHAIN_LAYERZERO_EXECUTOR;
+      toToken = USDT0_MIDDLE_TOKEN_CHAIN;
+      permitSpender = USDT0_MIDDLE_CHAIN_LAYERZERO_EXECUTOR;
     }
     if (isOneClickCCTP) {
       toToken = CCTP_MIDDLE_TOKEN_CHAIN;
@@ -269,12 +270,12 @@ const ContinueTransfer = (props: any) => {
         // is from USDT(MIDDLE_TOKEN_CHAIN) on the Arbitrum chain to sourceToToken
         const usdt0Result = await usdt0Service.quote({
           wallet: evmWallet.wallet,
-          fromToken: MIDDLE_TOKEN_CHAIN,
+          fromToken: USDT0_MIDDLE_TOKEN_CHAIN,
           toToken: sourceToToken,
-          originChain: MIDDLE_TOKEN_CHAIN.chainName,
+          originChain: USDT0_MIDDLE_TOKEN_CHAIN.chainName,
           destinationChain: sourceToToken?.chainName,
           amountWei: quote.amountOut,
-          refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
+          refundTo: MIDDLE_CHAIN_REFUND_ADDRESS,
           recipient: history.receive_address,
           slippageTolerance: configStore.slippage,
           prices,

@@ -24,7 +24,6 @@ import { useTronEnergy } from "./use-tron";
 import { BridgeFee } from "@/services/oneclick";
 import { useAccount, useSwitchChain } from "wagmi";
 import { usePendingHistory } from "@/views/history/hooks/use-pending-history";
-import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_TOKEN_CHAIN } from "@/services/usdt0-oneclick/config";
 import { csl } from "@/utils/log";
 import { addTradeReport } from "@/stores/use-trade-report";
 import { createEvmAllowanceProvider, formatBridgeRpcErrorMessage, sortQuoteData, verifyPostApproveAllowance } from "../utils";
