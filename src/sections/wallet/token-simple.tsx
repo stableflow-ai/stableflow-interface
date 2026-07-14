@@ -4,7 +4,7 @@ import useTokenBalance from "@/hooks/use-token-balance";
 import useBalancesStore, { type BalancesState } from "@/stores/use-balances";
 import useWalletStore from "@/stores/use-wallet";
 
-export default function TokenSimple({ token }: any) {
+export default function TokenSimple({ token, isDisabled }: any) {
   const { loading } = useTokenBalance(token, true);
   const balancesStore = useBalancesStore();
   const walletStore = useWalletStore();
@@ -13,7 +13,7 @@ export default function TokenSimple({ token }: any) {
     <div
       className="mx-[10px] h-[50px] pb-[10px] flex items-center justify-between"
       onClick={() => {
-        if (!token) {
+        if (!token || isDisabled) {
           return;
         }
 

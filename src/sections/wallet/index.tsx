@@ -11,6 +11,8 @@ import Drawer from "@/components/drawer";
 import { lazy, Suspense, useMemo } from "react";
 import { stablecoinWithChains } from "@/config/tokens";
 import { chainTypes } from "@/config/chains";
+import clsx from "clsx";
+import { isInTrustWallet } from "@/libs/wallets/utils/device";
 
 const Assets = lazy(() => import("@/views/bridge/components/assets"));
 const Total = lazy(() => import("./total"));
@@ -77,10 +79,15 @@ export default function Wallet() {
           Object.entries(stablecoinWithChains)
             .filter(([chain, tokens]) => !["evm"].includes(chain) && !!(tokens as any)[walletStore.selectedToken])
             .map(([chain, tokens]) => {
+              const isDisabled = chain === "tron" && isInTrustWallet();
+
               return (
                 <div
                   key={chain}
-                  className="mt-[4px] pt-[6px] cursor-pointer rounded-[12px] border border-[#EDF0F7] hover:bg-[#EDF0F7] duration-300"
+                  className={clsx(
+                    "mt-[4px] pt-[6px] rounded-[12px] border border-[#EDF0F7] hover:bg-[#EDF0F7] duration-300",
+                    isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+                  )}
                   style={{
                     backgroundImage: chainTypes[chain as WalletType].bg,
                   }}
@@ -88,9 +95,12 @@ export default function Wallet() {
                   <TypeItem
                     type={chain as WalletType}
                     token={(tokens as any)[walletStore.selectedToken]}
+                    isDisabled={isDisabled}
                   />
-                  {/* <TokenSimple token={usdcSol} /> */}
-                  <TokenSimple token={(tokens as any)[walletStore.selectedToken]} />
+                  <TokenSimple
+                    token={(tokens as any)[walletStore.selectedToken]}
+                    isDisabled={isDisabled}
+                  />
                 </div>
               );
             })
