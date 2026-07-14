@@ -1,7 +1,7 @@
 import type { EnergyPeriod } from "@/libs/energy";
 
 // Tron Energy rental receiving address
-export const TRON_RENTAL_RECEIVING_ADDRESS = "TGKiSaDG7wp5N4T9SJweotgfgwmxDTgjMi";
+export const TRON_RENTAL_RECEIVING_ADDRESS = "TLKzb5xwDV2bQQsQjqYUTfKHmRCzGX9vo8";
 
 // Tron Energy rental fee (TRX)
 export const TRON_RENTAL_FEE = {
