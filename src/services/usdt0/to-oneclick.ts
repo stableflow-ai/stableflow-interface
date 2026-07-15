@@ -30,10 +30,6 @@ export class Usdt0OneClickService {
       const provider = evmRpcFallbackProvider(fromToken);
       middleChainWallet = new RainbowWallet(provider, {});
     }
-   
-    if (!middleChainRecipientAddress) {
-      middleChainRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
-    }
 
     if (!middleChainRecipientAddress) {
       middleChainRecipientAddress = MIDDLE_CHAIN_REFUND_ADDRESS;
