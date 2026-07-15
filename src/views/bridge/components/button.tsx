@@ -37,7 +37,7 @@ export default function BridgeButton({
   }, [wallet]);
 
   const errorConnectEvm = useMemo(() => {
-    if (([Service.OneClickUsdt0, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService)) {
+    if (([Service.OneClickUsdt0, Service.OneClickCCTP, Service.CCTPOneClick, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService)) {
       return !evmWallet?.account;
     }
     return false;

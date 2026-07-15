@@ -1,6 +1,7 @@
 import { csl } from "@/utils/log";
 import { FraxZeroService, excludeFees as fraxExcludeFees } from ".";
-import { FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED, FRAXZERO_REDEMPTION_CONTRACT } from "./config";
+import { FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED, FRAXZERO_REDEMPTION_CONTRACT } from "./config";
+import { MIDDLE_CHAIN_REFUND_ADDRESS } from "../utils";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { ethers } from "ethers";
 import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick";
@@ -49,7 +50,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       middleChainWallet = new RainbowWallet(provider, {});
     }
     if (!middleChainRecipientAddress) {
-      middleChainRecipientAddress = FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS;
+      middleChainRecipientAddress = MIDDLE_CHAIN_REFUND_ADDRESS;
     }
 
     // fraxzero quote result

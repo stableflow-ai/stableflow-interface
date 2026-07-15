@@ -1,10 +1,11 @@
 import { SendType } from "@/libs/wallets/types";
 
 import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick";
-import usdt0Service, { excludeFees as usdt0ExcludeFees } from "../usdt0";
+import usdt0Service, { excludeFees as usdt0ExcludeFees } from "./index";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
-import { MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "./config";
+import { MIDDLE_CHAIN_REFUND_ADDRESS } from "../utils";
+import { USDT0_MIDDLE_TOKEN_CHAIN } from "./config";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
@@ -34,16 +35,20 @@ export class Usdt0OneClickService {
       middleChainRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
     }
 
+    if (!middleChainRecipientAddress) {
+      middleChainRecipientAddress = MIDDLE_CHAIN_REFUND_ADDRESS;
+    }
+
     const usdt0Params = {
       ...params,
-      toToken: MIDDLE_TOKEN_CHAIN,
-      destinationChain: MIDDLE_TOKEN_CHAIN.chainName,
-      recipient: MIDDLE_CHAIN_REFOUND_ADDRESS,
+      toToken: USDT0_MIDDLE_TOKEN_CHAIN,
+      destinationChain: USDT0_MIDDLE_TOKEN_CHAIN.chainName,
+      recipient: MIDDLE_CHAIN_REFUND_ADDRESS,
     };
     const oneClickParams = {
       ...params,
-      fromToken: MIDDLE_TOKEN_CHAIN,
-      originAsset: MIDDLE_TOKEN_CHAIN.assetId,
+      fromToken: USDT0_MIDDLE_TOKEN_CHAIN,
+      originAsset: USDT0_MIDDLE_TOKEN_CHAIN.assetId,
       swapType: "FLEX_INPUT",
       isProxy: false,
       refundTo: middleChainRecipientAddress,
@@ -60,7 +65,7 @@ export class Usdt0OneClickService {
     }
 
     // Use the output amount from Usdt0 to request near-intents for the depositAddress
-    oneClickParams.amountWei = Big(usdt0Result.outputAmount || 0).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0, 0);
+    oneClickParams.amountWei = Big(usdt0Result.outputAmount || 0).times(10 ** USDT0_MIDDLE_TOKEN_CHAIN.decimals).toFixed(0, 0);
     execTime.breakpoint();
     const oneClickResult = await oneClickService.quote(oneClickParams);
     execTime.log("oneClickService.quote: %o", oneClickResult);
@@ -112,7 +117,7 @@ export class Usdt0OneClickService {
       quoteParam: {
         ...usdt0Result.quoteParam,
         toToken: params.toToken,
-        middleToken: MIDDLE_TOKEN_CHAIN,
+        middleToken: USDT0_MIDDLE_TOKEN_CHAIN,
         recipient: params.recipient,
         depositAddress: oneClickResult.quote.depositAddress,
       },

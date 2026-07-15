@@ -195,7 +195,13 @@ export function useTrack(props?: { isRoot?: boolean; }) {
           case Service.OneClickUsdt0:
             swap_type = "EXACT_OUTPUT";
             break;
+          case Service.OneClickCCTP:
+            swap_type = "EXACT_OUTPUT";
+            break;
           case Service.Usdt0OneClick:
+            swap_type = "FLEX_INPUT";
+            break;
+          case Service.CCTPOneClick:
             swap_type = "FLEX_INPUT";
             break;
           case Service.OneClickFraxZero:
