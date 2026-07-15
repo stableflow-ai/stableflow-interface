@@ -134,7 +134,7 @@ export class OneClickCCTPService {
         amount_wei: cctpSendParam?.[0]?.toString(),
         charged_amount: cctpSendParam?.[1]?.toString(),
         destination_domain: cctpSendParam?.[2]?.toString(),
-        mint_recipient: cctpSendParam?.[3]?.toString(),
+        mint_recipient: cctpParams.recipient,
         burn_token: cctpSendParam?.[4]?.toString(),
         destination_caller: cctpSendParam?.[5]?.toString(),
         max_fee: cctpSendParam?.[6]?.toString(),
