@@ -7,6 +7,7 @@ import {
   usdt0Addresses,
   usdtAddresses,
   frxusdAddresses,
+  eureAddresses,
   type EvmBalancesToken,
 } from "@/config/tokens";
 import Big from "big.js";
@@ -96,6 +97,7 @@ export default function useEvmBalances(auto = false) {
         let usdtBalance = Big(0);
         let usdt0Balance = Big(0);
         let frxusdBalance = Big(0);
+        let eureBalance = Big(0);
 
         Object.entries(__data).forEach(([key, item]: any) => {
           if (!item) return;
@@ -119,6 +121,9 @@ export default function useEvmBalances(auto = false) {
             if (Object.values(frxusdAddresses).includes(sl.address.toLowerCase())) {
               frxusdBalance = frxusdBalance.plus(_balance);
             }
+            if (Object.values(eureAddresses).includes(sl.address.toLowerCase())) {
+              eureBalance = eureBalance.plus(_balance);
+            }
 
             if (_balances[key]) {
               _balances[key][sl.address] = _balance.toString();
@@ -130,11 +135,12 @@ export default function useEvmBalances(auto = false) {
           });
         });
 
-        const selectedTotalBalance = {
+        const selectedTotalBalance: Record<typeof walletStore.selectedToken, Record<string, string>> = {
           "USDT": { usdtBalance: (isFinal || Big(_balances.usdtBalance || 0).lte(0)) ? usdtBalance.toString() : _balances.usdtBalance, },
           "USDC": { usdcBalance: (isFinal || Big(_balances.usdcBalance || 0).lte(0)) ? usdcBalance.toString() : _balances.usdcBalance, },
           "USD₮0": { "usd₮0Balance": (isFinal || Big(_balances["usd₮0Balance"] || 0).lte(0)) ? usdt0Balance.toString() : _balances["usd₮0Balance"], },
           "frxUSD": { frxusdBalance: (isFinal || Big(_balances.frxusdBalance || 0).lte(0)) ? frxusdBalance.toString() : _balances.frxusdBalance, },
+          "EURe": { eureBalance: (isFinal || Big(_balances.eureBalance || 0).lte(0)) ? eureBalance.toString() : _balances.eureBalance, },
         };
 
         balancesStore.set({
