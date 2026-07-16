@@ -3,6 +3,7 @@ import CheckIcon from "./check-icon";
 import useWalletStore from "@/stores/use-wallet";
 import Address from "./address";
 import TipInfo from "@/components/tip-info";
+import clsx from "clsx";
 
 const LABEL = {
   evm: "EVM chains",
@@ -14,16 +15,19 @@ const LABEL = {
   sui: "Sui",
 };
 
-export default function TypeItem({ type = "evm", token }: { type: WalletType; token: any; }) {
+export default function TypeItem({ type = "evm", token, isDisabled }: { type: WalletType; token: any; isDisabled?: boolean; }) {
   const wallets = useWalletsStore();
   const wallet = wallets[type || "evm"];
   const walletStore = useWalletStore();
 
   return (
     <div
-      className="button pl-[10px] pr-[4px] py-[6px] flex justify-between items-center"
+      className={clsx(
+        "pl-[10px] pr-[4px] py-[6px] flex justify-between items-center",
+        isDisabled ? "" : "button",
+      )}
       onClick={() => {
-        if (type === "evm" || !token) {
+        if (type === "evm" || !token || isDisabled) {
           return;
         }
 
@@ -86,13 +90,19 @@ export default function TypeItem({ type = "evm", token }: { type: WalletType; to
         <Address type={type} />
       ) : (
         <button
-          className="duration-300 cursor-pointer w-[90px] h-[32px] rounded-[16px] bg-white shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-[14px] text-[#444C59] hover:bg-[#6284F5] hover:text-white"
+          className={clsx(
+            "duration-300 h-[32px] rounded-[16px] bg-white shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-[14px] text-[#444C59]",
+            isDisabled ? "cursor-not-allowed w-[120px]" : "cursor-pointer w-[90px] hover:bg-[#6284F5] hover:text-white",
+          )}
           onClick={(e) => {
             e.stopPropagation();
+            if (isDisabled) {
+              return;
+            }
             wallet.connect();
           }}
         >
-          Connect
+          {isDisabled ? "Not supported" : "Connect"}
         </button>
       )}
     </div>

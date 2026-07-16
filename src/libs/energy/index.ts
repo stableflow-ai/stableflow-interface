@@ -1,6 +1,11 @@
 import { BASE_API_URL, TRON_ENERGY_API_URL } from "@/config/api";
 import axios, { type AxiosInstance, type AxiosResponse } from "axios";
 
+const ENERGY_RENT_MAX_ATTEMPTS = 5;
+const ENERGY_RENT_BASE_DELAY_MS = 3000;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export type EnergyPeriod = "1H" | "1D" | "3D" | "30D";
 export type EnergyAmount = 65000n | 131000n;
 export type EnergyStatus = "pending" | "delegated";
@@ -36,24 +41,41 @@ class EnergyService {
     return await this.api.get("/api/price", { params });
   }
 
+  private async requestEnergyRent(params: {
+    receiveAddress: string;
+    txHash: string;
+  }) {
+    const response = await axios.post<EnergyRentParams, AxiosResponse<StableflowApiResponse<EnergyRentResponse>>>(`${BASE_API_URL}/v1/tron/energy/rent`, {
+      address: params.receiveAddress,
+      tx_hash: params.txHash,
+    });
+
+    if (response.status !== 200 || response.data.code !== 200) {
+      throw new Error(response.data.message || response.statusText);
+    }
+
+    return response.data.data;
+  }
+
   public async getEnergy(params: {
     receiveAddress: string;
     txHash: string;
   }) {
-    try {
-      const response = await axios.post<EnergyRentParams, AxiosResponse<StableflowApiResponse<EnergyRentResponse>>>(`${BASE_API_URL}/v1/tron/energy/rent`, {
-        address: params.receiveAddress,
-        tx_hash: params.txHash,
-      });
+    let lastError: Error | undefined;
 
-      if (response.status !== 200 || response.data.code !== 200) {
-        throw new Error(response.data.message || response.statusText);
+    for (let attempt = 1; attempt <= ENERGY_RENT_MAX_ATTEMPTS; attempt++) {
+      try {
+        return await this.requestEnergyRent(params);
+      } catch (error: any) {
+        lastError = new Error(error.response?.data?.message || error.message);
+        if (attempt === ENERGY_RENT_MAX_ATTEMPTS) {
+          throw lastError;
+        }
+        await sleep(ENERGY_RENT_BASE_DELAY_MS * attempt);
       }
-
-      return response.data.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || error.message);
     }
+
+    throw lastError ?? new Error("Energy rent request failed");
   }
 
   public async getEnergyStatus(params: {

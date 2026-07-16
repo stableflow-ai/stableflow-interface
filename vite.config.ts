@@ -45,6 +45,12 @@ export default defineConfig({
     // Force pre-bundling of problematic dependencies
     force: true
   },
+  build: {
+    // Multi-chain wallet SDKs make the bundle very large; gzip size reporting
+    // alone can push CI past the Node heap limit near the end of the build.
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 2000
+  },
   server: {
     host: "0.0.0.0",
     port: 5173
