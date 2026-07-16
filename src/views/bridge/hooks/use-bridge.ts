@@ -333,7 +333,10 @@ export default function useBridge(props?: any) {
         if (service === Service.LayerzeroVt) {
           const PYUSD_SYMBOLS = ["PYUSD", "PYUSD0"];
           // LayerzeroVt is temporarily not supported if there is no PYUSD in the trading pair
-          if (!PYUSD_SYMBOLS.includes(walletStore.fromToken.symbol) && !PYUSD_SYMBOLS.includes(walletStore.toToken.symbol)) {
+          if (
+            (!PYUSD_SYMBOLS.includes(walletStore.fromToken.symbol) && !PYUSD_SYMBOLS.includes(walletStore.toToken.symbol))
+            || (PYUSD_SYMBOLS.includes(walletStore.fromToken.symbol) && PYUSD_SYMBOLS.includes(walletStore.toToken.symbol))
+          ) {
             continue;
           }
         }
