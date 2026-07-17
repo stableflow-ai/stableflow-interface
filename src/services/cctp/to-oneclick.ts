@@ -37,7 +37,6 @@ export class CCTPOneClickService {
       toToken: MIDDLE_TOKEN_CHAIN,
       destinationChain: MIDDLE_TOKEN_CHAIN.chainName,
       recipient: refundTo,
-      refundTo,
     };
     const oneClickParams = {
       ...params,
@@ -92,7 +91,7 @@ export class CCTPOneClickService {
       // Dry quote: CCTP first, then OneClick FLEX_INPUT
       execTime.breakpoint();
       cctpResult = await cctpService.quote(cctpParams);
-      execTime.log("cctpService.quote: %o", cctpResult);
+      execTime.log("cctpService.quote", "dry quote: %o", cctpResult);
 
       if (cctpResult.errMsg) {
         return cctpResult;
