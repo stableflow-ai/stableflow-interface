@@ -9,7 +9,7 @@ import { USDT0_MIDDLE_TOKEN_CHAIN } from "./config";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
-import { getRouteStatus, Service } from "../constants";
+import { getRouteStatus, OneClickSwapType, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { isStableToken } from "@/config/tokens";
 
@@ -45,7 +45,7 @@ export class Usdt0OneClickService {
       ...params,
       fromToken: USDT0_MIDDLE_TOKEN_CHAIN,
       originAsset: USDT0_MIDDLE_TOKEN_CHAIN.assetId,
-      swapType: "FLEX_INPUT",
+      swapType: OneClickSwapType.Flex,
       isProxy: false,
       refundTo: middleChainRecipientAddress,
       wallet: middleChainWallet,

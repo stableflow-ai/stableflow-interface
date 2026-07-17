@@ -163,3 +163,10 @@ export const ServiceLogoSimpleMap: Record<Service, string> = {
   [Service.Pyusd]: getStableflowRouteLogo("logo-layerzero-simple.svg"),
   [Service.LayerzeroVt]: getStableflowRouteLogo("logo-layerzero-simple.svg"),
 };
+
+export const OneClickSwapType = {
+  Input: "EXACT_INPUT",
+  Output: "EXACT_OUTPUT",
+  Flex: "FLEX_INPUT",
+};
+export type OneClickSwapType = (typeof OneClickSwapType)[keyof typeof OneClickSwapType];

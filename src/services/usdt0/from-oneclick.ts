@@ -8,7 +8,7 @@ import { USDT0_MIDDLE_CHAIN_LAYERZERO_EXECUTOR, USDT0_MIDDLE_TOKEN_CHAIN } from 
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { getPrice } from "@/utils/format/price";
 import { ExecTime } from "@/utils/exec-time";
-import { getRouteStatus, Service } from "../constants";
+import { getRouteStatus, OneClickSwapType, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { isStableToken } from "@/config/tokens";
 
@@ -45,7 +45,7 @@ export class OneClickUsdt0Service {
     // Retrieve sendParam, fees, and estimated costs
     // usdt0 is the second step, so the source chain is arb
     // The refund address is middleChainRecipientAddress
-    // Since the first step uses oneclick with EXACT_OUTPUT mode,
+    // Since the first step uses oneclick with OneClickSwapType.Output mode,
     // params.amountWei is the input amount for the second step
     const usdt0Params = {
       ...params,
@@ -88,8 +88,8 @@ export class OneClickUsdt0Service {
 
     // Call oneclick quote method again
     // The destination chain is arb
-    // Since the exact amount transferred by oneclick needs to be signed, EXACT_OUTPUT mode must be used
-    // In EXACT_OUTPUT mode, the output amount equals the expected value
+    // Since the exact amount transferred by oneclick needs to be signed, OneClickSwapType.Output mode must be used
+    // In OneClickSwapType.Output mode, the output amount equals the expected value
     execTime.breakpoint();
 
     const oneClickResult = await oneClickService.quote({
@@ -97,7 +97,7 @@ export class OneClickUsdt0Service {
       amountWei: secondStepAmountWei,
       toToken: USDT0_MIDDLE_TOKEN_CHAIN,
       destinationAsset: USDT0_MIDDLE_TOKEN_CHAIN.assetId,
-      swapType: "EXACT_OUTPUT",
+      swapType: OneClickSwapType.Output,
       isProxy: true,
       recipient: middleChainRecipientAddress,
       appFees: [

@@ -7,7 +7,7 @@ import { MIDDLE_CHAIN_REFUND_ADDRESS } from "../utils";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { getPrice } from "@/utils/format/price";
 import { ExecTime } from "@/utils/exec-time";
-import { getRouteStatus, Service } from "../constants";
+import { getRouteStatus, OneClickSwapType, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { isStableToken } from "@/config/tokens";
 
@@ -80,7 +80,7 @@ export class OneClickCCTPService {
       amountWei: secondStepAmountWei,
       toToken: MIDDLE_TOKEN_CHAIN,
       destinationAsset: MIDDLE_TOKEN_CHAIN.assetId,
-      swapType: "EXACT_OUTPUT",
+      swapType: OneClickSwapType.Output,
       isProxy: true,
       recipient: destinationRecipientAddress,
       appFees: [
