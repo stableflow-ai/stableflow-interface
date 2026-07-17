@@ -149,7 +149,7 @@ export default function useEvmBalances(auto = false, selectedToken?: string) {
           });
         });
 
-        const selectedTotalBalance = {
+        const selectedTotalBalance: Record<typeof walletStore.selectedToken, Record<string, string>> = {
           "USDT": { usdtBalance: (isFinal || Big(_balances.usdtBalance || 0).lte(0)) ? usdtBalance.toString() : _balances.usdtBalance, },
           "USDC": { usdcBalance: (isFinal || Big(_balances.usdcBalance || 0).lte(0)) ? usdcBalance.toString() : _balances.usdcBalance, },
           "USD₮0": { "usd₮0Balance": (isFinal || Big(_balances["usd₮0Balance"] || 0).lte(0)) ? usdt0Balance.toString() : _balances["usd₮0Balance"], },
