@@ -11,7 +11,7 @@ import { SendType } from "@/libs/wallets/types";
 import { FRAXZERO_REDEEM_MINT_ABI } from "./contract";
 import { getPrice } from "@/utils/format/price";
 import { ExecTime } from "@/utils/exec-time";
-import { getRouteStatus, Service } from "../constants";
+import { getRouteStatus, OneClickSwapType, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { isStableToken } from "@/config/tokens";
 
@@ -124,7 +124,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
         amountWei: ethereumUSDCAmountWei,
         fromToken: FRAXZERO_MIDDLE_TOKEN_USDC,
         originAsset: FRAXZERO_MIDDLE_TOKEN_USDC.assetId,
-        swapType: "FLEX_INPUT",
+        swapType: OneClickSwapType.Flex,
         isProxy: false,
         refundTo: middleChainRecipientAddress,
         wallet: middleChainWallet,

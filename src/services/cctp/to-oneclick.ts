@@ -9,7 +9,7 @@ import { MIDDLE_CHAIN_REFUND_ADDRESS } from "../utils";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
-import { getRouteStatus, Service } from "../constants";
+import { getRouteStatus, OneClickSwapType, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 
 export const excludeFees: string[] = ["estimateGasUsd"];
@@ -42,7 +42,7 @@ export class CCTPOneClickService {
       ...params,
       fromToken: MIDDLE_TOKEN_CHAIN,
       originAsset: MIDDLE_TOKEN_CHAIN.assetId,
-      swapType: "FLEX_INPUT",
+      swapType: OneClickSwapType.Flex,
       isProxy: false,
       refundTo,
       wallet: middleChainWallet,
@@ -58,7 +58,7 @@ export class CCTPOneClickService {
         ...oneClickParams,
         amountWei: Big(0.01).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0, 0),
       });
-      execTime.log("oneClickService.quote confirm: %o", oneClickResult);
+      execTime.log("oneClickService.quote", "oneClickResult: %o", oneClickResult);
 
       if (oneClickResult.errMsg) {
         return oneClickResult;
@@ -67,7 +67,7 @@ export class CCTPOneClickService {
       cctpParams.recipient = oneClickResult.quote.depositAddress;
       execTime.breakpoint();
       cctpResult = await cctpService.quote(cctpParams);
-      execTime.log("cctpService.quote confirm: %o", cctpResult);
+      execTime.log("cctpService.quote", "cctpResult: %o", cctpResult);
 
       execTime.breakpoint();
       // Get the actual output amount
@@ -88,7 +88,7 @@ export class CCTPOneClickService {
         execTime.log("cctpService.quote", "confirm get actual output amount error: %o", err);
       }
     } else {
-      // Dry quote: CCTP first, then OneClick FLEX_INPUT
+      // Dry quote: CCTP first, then OneClick OneClickSwapType.Flex
       execTime.breakpoint();
       cctpResult = await cctpService.quote(cctpParams);
       execTime.log("cctpService.quote", "dry quote: %o", cctpResult);
@@ -100,7 +100,7 @@ export class CCTPOneClickService {
       oneClickParams.amountWei = Big(cctpResult.outputAmount || 0).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0, 0);
       execTime.breakpoint();
       oneClickResult = await oneClickService.quote(oneClickParams);
-      execTime.log("oneClickService.quote: %o", oneClickResult);
+      execTime.log("oneClickService.quote", "oneClickResult: %o", oneClickResult);
     }
 
     if (oneClickResult.errMsg) {

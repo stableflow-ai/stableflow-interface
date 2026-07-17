@@ -656,7 +656,7 @@ export default function useBridge(props?: any) {
       const isFromTronEnergy = isFromTron && bridgeStore.acceptTronEnergy && isOneClickService;
 
       if (isExactOutput) {
-        _amount = _quote.data.quote.minAmountIn;
+        _amount = _quote.data.quote.amountIn;
       }
 
       // check latest balance

@@ -11,7 +11,7 @@ import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "@/libs/wallets/types";
 import { ExecTime } from "@/utils/exec-time";
-import { getRouteStatus, Service } from "../constants";
+import { getRouteStatus, OneClickSwapType, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { isStableToken } from "@/config/tokens";
 
@@ -150,7 +150,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         amountWei: firstStepAmountWei,
         toToken: FRAXZERO_MIDDLE_TOKEN_USDC,
         destinationAsset: FRAXZERO_MIDDLE_TOKEN_USDC.assetId,
-        swapType: "EXACT_OUTPUT",
+        swapType: OneClickSwapType.Output,
         isProxy: true,
         recipient: middleChainRecipientAddress,
         appFees: [
@@ -219,7 +219,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
           isOneClickTransfer: !firstStepResult.sendParam ? {
             originAsset: fromToken.contractAddress,
             depositAddress: firstStepResult.quote?.depositAddress,
-            amount: firstStepResult.quote?.minAmountIn,
+            amount: firstStepResult.quote?.amountIn,
           } : false,
           isFromEthereumUSDC,
           isToEthereumFrxUSD,

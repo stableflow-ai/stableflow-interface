@@ -10,7 +10,7 @@ import usePricesStore from "@/stores/use-prices";
 import { TRON_RENTAL_FEE, TronTransferStepStatus } from "@/config/tron";
 import Big from "big.js";
 import { ServiceMap } from "@/services";
-import { Service } from "@/services/constants";
+import { OneClickSwapType, Service } from "@/services/constants";
 import { useHistoryStore } from "@/stores/use-history";
 import Modal from "@/components/modal";
 import { useState } from "react";
@@ -175,8 +175,8 @@ const ContinueTransfer = (props: any) => {
       };
       let permitResult;
       if (isFromOneClickHybridProject) {
-        _formatQuoteDataParams.swapType = "EXACT_OUTPUT";
-        _formatQuoteDataParams.amountWei = quote.minAmountIn;
+        _formatQuoteDataParams.swapType = OneClickSwapType.Output;
+        _formatQuoteDataParams.amountWei = quote.amountIn;
         _formatQuoteDataParams.recipient = evmWallet.account;
 
         // User needs to sign permit on EVM chain

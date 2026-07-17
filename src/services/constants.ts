@@ -137,3 +137,10 @@ export const ServiceLogoSimpleMap: Record<Service, string> = {
   [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-simple.svg"),
   [Service.Native]: getStableflowRouteLogo("logo-native-simple.svg"),
 };
+
+export const OneClickSwapType = {
+  Input: "EXACT_INPUT",
+  Output: "EXACT_OUTPUT",
+  Flex: "FLEX_INPUT",
+};
+export type OneClickSwapType = (typeof OneClickSwapType)[keyof typeof OneClickSwapType];
