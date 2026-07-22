@@ -756,7 +756,7 @@ export default class RainbowWallet {
       refundTo,
       recipient,
       amountWei,
-      // slippageTolerance,
+      slippageTolerance,
       fromToken,
       toToken,
       prices,
@@ -851,6 +851,14 @@ export default class RainbowWallet {
     result.fees.bridgeFeeUsd = numberRemoveEndZero(Big(bridge_fee || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals));
     const chargedAmount = BigInt(amountWei) - BigInt(mint_fee);
     result.outputAmount = numberRemoveEndZero(Big(receipt_amount || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0));
+
+    const cctpFeeRate = Big(max_fee || 0).div(amountWei || 1);
+    const slippageLimit = Big(slippageTolerance || 0).div(100);
+    csl("EVMWallet quoteCCTP", "red-600", "cctpFeeRate: %o, slippageLimit: %o", cctpFeeRate.toFixed(6), slippageLimit.toFixed(6));
+    if (max_fee && amountWei && cctpFeeRate.gt(slippageLimit)) {
+      result.errMsg = "Slippage limit exceeded";
+      return result;
+    }
 
     const depositParam = [
       // originalAmount
