@@ -102,7 +102,7 @@ export default function Result() {
           )
         }
         {
-          ([Service.Usdt0OneClick, Service.OneClickUsdt0, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService) && (
+          ([Service.Usdt0OneClick, Service.OneClickUsdt0, Service.CCTPOneClick, Service.OneClickCCTP, Service.FraxZeroOneClick, Service.OneClickFraxZero] as Service[]).includes(bridgeStore.quoteDataService) && (
             <ResultUsdt0OneClick service={bridgeStore.quoteDataService} />
           )
         }
@@ -123,7 +123,7 @@ export default function Result() {
             isFormat={false}
           >
             {
-              (([Service.OneClick, Service.OneClickUsdt0] as Service[]).includes(bridgeStore.quoteDataService) && isFromTron) ? (
+              (([Service.OneClick, Service.OneClickUsdt0, Service.OneClickCCTP] as Service[]).includes(bridgeStore.quoteDataService) && isFromTron) ? (
                 bridgeStore.acceptTronEnergy ?
                   formatNumber(quoteData?.energySourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown }) :
                   formatNumber(quoteData?.transferSourceGasFeeUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })

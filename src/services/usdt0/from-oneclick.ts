@@ -1,15 +1,14 @@
 import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick";
-import usdt0Service, { excludeFees as usdt0ExcludeFees } from "../usdt0";
+import usdt0Service, { excludeFees as usdt0ExcludeFees } from "./index";
 import cctpService from "../cctp";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
-import { MIDDLE_CHAIN_LAYERZERO_EXECUTOR, MIDDLE_CHAIN_REFOUND_ADDRESS, MIDDLE_TOKEN_CHAIN } from "../usdt0-oneclick/config";
-import { ethers } from "ethers";
+import { MIDDLE_CHAIN_REFUND_ADDRESS } from "../utils";
+import { USDT0_MIDDLE_CHAIN_LAYERZERO_EXECUTOR, USDT0_MIDDLE_TOKEN_CHAIN } from "./config";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { getPrice } from "@/utils/format/price";
-import { csl } from "@/utils/log";
 import { ExecTime } from "@/utils/exec-time";
-import { getRouteStatus, Service } from "../constants";
+import { getRouteStatus, OneClickSwapType, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { isStableToken } from "@/config/tokens";
 
@@ -24,36 +23,36 @@ export class OneClickUsdt0Service {
     const execTime = new ExecTime({ type: "OneClickUsdt0", logStyle: "lime-500" });
 
     let middleChainWallet = wallets?.evm?.wallet;
-    let destinationRecipientAddress = wallets?.evm?.account;
+    let middleChainRecipientAddress = wallets?.evm?.account;
     if (!middleChainWallet) {
       const provider = evmRpcFallbackProvider(fromToken);
       middleChainWallet = new RainbowWallet(provider, {});
     }
-    if (!destinationRecipientAddress) {
-      destinationRecipientAddress = MIDDLE_CHAIN_REFOUND_ADDRESS;
+    if (!middleChainRecipientAddress) {
+      middleChainRecipientAddress = MIDDLE_CHAIN_REFUND_ADDRESS;
     }
 
     // If it is not a USD stablecoin
     // Need to convert based on price
-    let secondStepAmountWei = Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0);
+    let secondStepAmountWei = Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(10 ** USDT0_MIDDLE_TOKEN_CHAIN.decimals).toFixed(0);
     if (!isStableToken(fromToken)) {
       const inputPrice = getPrice(prices, fromToken.symbol);
       const inputValue = Big(params.amountWei || 0).div(10 ** fromToken.decimals).times(inputPrice);
-      secondStepAmountWei = Big(inputValue).times(10 ** MIDDLE_TOKEN_CHAIN.decimals).toFixed(0);
+      secondStepAmountWei = Big(inputValue).times(10 ** USDT0_MIDDLE_TOKEN_CHAIN.decimals).toFixed(0);
     }
 
     // First, call the usdt0 quote method
     // Retrieve sendParam, fees, and estimated costs
     // usdt0 is the second step, so the source chain is arb
-    // The refund address is MIDDLE_CHAIN_REFOUND_ADDRESS
-    // Since the first step uses oneclick with EXACT_OUTPUT mode,
+    // The refund address is middleChainRecipientAddress
+    // Since the first step uses oneclick with OneClickSwapType.Output mode,
     // params.amountWei is the input amount for the second step
     const usdt0Params = {
       ...params,
       amountWei: secondStepAmountWei,
-      fromToken: MIDDLE_TOKEN_CHAIN,
-      originChain: MIDDLE_TOKEN_CHAIN.chainName,
-      refundTo: MIDDLE_CHAIN_REFOUND_ADDRESS,
+      fromToken: USDT0_MIDDLE_TOKEN_CHAIN,
+      originChain: USDT0_MIDDLE_TOKEN_CHAIN.chainName,
+      refundTo: middleChainRecipientAddress,
       wallet: middleChainWallet,
     };
 
@@ -83,28 +82,24 @@ export class OneClickUsdt0Service {
       .times(10000)
       .toFixed(0, Big.roundUp);
 
-    // csl("OneClickUsdt0Service quote", "rose-400", "usdt0MessageFeeAmountInFromToken: %o", usdt0MessageFeeAmountInFromToken);
-    // csl("OneClickUsdt0Service quote", "rose-400", "amount: %o", fromTokenAmount);
-    // csl("OneClickUsdt0Service quote", "rose-400", "oneClickFeeRatio: %o", oneClickFeeRatio);
-
     if (Big(oneClickFeeRatio).gt(10000)) {
       return { errMsg: `Amount is too low, at least ${usdt0MessageFeeAmountInFromToken}` };
     }
 
     // Call oneclick quote method again
     // The destination chain is arb
-    // Since the exact amount transferred by oneclick needs to be signed, EXACT_OUTPUT mode must be used
-    // In EXACT_OUTPUT mode, the output amount equals the expected value
+    // Since the exact amount transferred by oneclick needs to be signed, OneClickSwapType.Output mode must be used
+    // In OneClickSwapType.Output mode, the output amount equals the expected value
     execTime.breakpoint();
 
     const oneClickResult = await oneClickService.quote({
       ...params,
       amountWei: secondStepAmountWei,
-      toToken: MIDDLE_TOKEN_CHAIN,
-      destinationAsset: MIDDLE_TOKEN_CHAIN.assetId,
-      swapType: "EXACT_OUTPUT",
+      toToken: USDT0_MIDDLE_TOKEN_CHAIN,
+      destinationAsset: USDT0_MIDDLE_TOKEN_CHAIN.assetId,
+      swapType: OneClickSwapType.Output,
       isProxy: true,
-      recipient: destinationRecipientAddress,
+      recipient: middleChainRecipientAddress,
       appFees: [
         {
           recipient: "reffer.near",
@@ -147,8 +142,8 @@ export class OneClickUsdt0Service {
     return {
       ...oneClickResult,
       needPermit: true,
-      permitSpender: MIDDLE_CHAIN_LAYERZERO_EXECUTOR,
-      permitToken: MIDDLE_TOKEN_CHAIN,
+      permitSpender: USDT0_MIDDLE_CHAIN_LAYERZERO_EXECUTOR,
+      permitToken: USDT0_MIDDLE_TOKEN_CHAIN,
       permitAmountWei: oneClickResult?.quote?.amountOut,
       permitAdditionalData: {
         amount_ld: usdt0SendParam?.amountLD,
@@ -167,7 +162,7 @@ export class OneClickUsdt0Service {
       quoteParam: {
         ...oneClickResult.quoteParam,
         toToken: params.toToken,
-        middleToken: MIDDLE_TOKEN_CHAIN,
+        middleToken: USDT0_MIDDLE_TOKEN_CHAIN,
         recipient: params.recipient,
         isOriginLegacy: usdt0Result.quoteParam?.isOriginLegacy,
         isDestinationLegacy: usdt0Result.quoteParam?.isDestinationLegacy,

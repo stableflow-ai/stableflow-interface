@@ -1,6 +1,6 @@
 import { BridgeDefaultWallets } from "@/config";
 import { BASE_API_URL } from "@/config/api";
-import { Service, ServiceBackend } from "@/services/constants";
+import { OneClickSwapType, Service, ServiceBackend } from "@/services/constants";
 import { getQuoteModes } from "@/services/utils";
 import { useTrackStore } from "@/stores/use-track";
 import useWalletStore from "@/stores/use-wallet";
@@ -187,22 +187,28 @@ export function useTrack(props?: { isRoot?: boolean; }) {
       });
 
       const getOneClickSwapType = () => {
-        let swap_type = "EXACT_INPUT";
+        let swap_type = OneClickSwapType.Input;
         switch (service) {
           case Service.OneClick:
-            swap_type = "EXACT_INPUT";
+            swap_type = OneClickSwapType.Input;
             break;
           case Service.OneClickUsdt0:
-            swap_type = "EXACT_OUTPUT";
+            swap_type = OneClickSwapType.Output;
+            break;
+          case Service.OneClickCCTP:
+            swap_type = OneClickSwapType.Output;
             break;
           case Service.Usdt0OneClick:
-            swap_type = "FLEX_INPUT";
+            swap_type = OneClickSwapType.Flex;
+            break;
+          case Service.CCTPOneClick:
+            swap_type = OneClickSwapType.Flex;
             break;
           case Service.OneClickFraxZero:
-            swap_type = "EXACT_OUTPUT";
+            swap_type = OneClickSwapType.Output;
             break;
           case Service.FraxZeroOneClick:
-            swap_type = "FLEX_INPUT";
+            swap_type = OneClickSwapType.Flex;
             break;
           default:
             break;

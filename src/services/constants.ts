@@ -4,6 +4,8 @@ export const Service = {
   OneClick: "oneclick",
   Usdt0: "usdt0",
   CCTP: "cctp",
+  CCTPOneClick: "cctp-oneclick",
+  OneClickCCTP: "oneclick-cctp",
   FraxZero: "fraxzero",
   FraxZeroOneClick: "fraxzero-oneclick",
   OneClickFraxZero: "oneclick-fraxzero",
@@ -17,6 +19,8 @@ export const ServiceBackend: Record<Service, string> = {
   [Service.OneClick]: "nearintents",
   [Service.Usdt0]: "layerzero",
   [Service.CCTP]: "cctp",
+  [Service.CCTPOneClick]: "cctpintent",
+  [Service.OneClickCCTP]: "intentcctp",
   [Service.FraxZero]: "fraxzero",
   [Service.FraxZeroOneClick]: "fraxzerointent",
   [Service.OneClickFraxZero]: "intentfraxzero",
@@ -49,6 +53,13 @@ export const getRouteStatus = (service: Service): { disabled: boolean; } => {
 
   if (service === Service.CCTP) {
     if (IS_PAUSE_CCTP) {
+      result.disabled = true;
+      return result;
+    }
+  }
+
+  if (([Service.CCTPOneClick, Service.OneClickCCTP] as Service[]).includes(service)) {
+    if (IS_PAUSE_NEAR_INTENTS || IS_PAUSE_CCTP) {
       result.disabled = true;
       return result;
     }
@@ -103,6 +114,8 @@ export const ServiceLogoMap: Record<Service, string> = {
   [Service.OneClick]: getStableflowRouteLogo("logo-near-intents.svg"),
   [Service.Usdt0]: getStableflowRouteLogo("logo-usdt0.svg"),
   [Service.CCTP]: getStableflowRouteLogo("logo-circle.svg"),
+  [Service.CCTPOneClick]: getStableflowRouteLogo("logo-circle-near-intents.svg"),
+  [Service.OneClickCCTP]: getStableflowRouteLogo("logo-near-inents-circle.svg"),
   [Service.FraxZero]: getStableflowRouteLogo("logo-fraxzero-2.svg"),
   [Service.FraxZeroOneClick]: getStableflowRouteLogo("logo-fraxzero-near-intents-2.svg"),
   [Service.OneClickFraxZero]: getStableflowRouteLogo("logo-near-intents-fraxzero-2.svg"),
@@ -115,6 +128,8 @@ export const ServiceLogoSimpleMap: Record<Service, string> = {
   [Service.OneClick]: getStableflowRouteLogo("logo-near-intents-simple.svg"),
   [Service.Usdt0]: getStableflowRouteLogo("logo-usdt0-simple.svg"),
   [Service.CCTP]: getStableflowRouteLogo("logo-circle-simple.svg"),
+  [Service.CCTPOneClick]: getStableflowRouteLogo("logo-circle-near-intents-simple.svg"),
+  [Service.OneClickCCTP]: getStableflowRouteLogo("logo-near-inents-circle-simple.svg"),
   [Service.FraxZero]: getStableflowRouteLogo("logo-fraxzero-simple.svg"),
   [Service.FraxZeroOneClick]: getStableflowRouteLogo("logo-fraxzero-near-intents-simple.svg"),
   [Service.OneClickFraxZero]: getStableflowRouteLogo("logo-near-intents-fraxzero-simple.svg"),
@@ -122,3 +137,10 @@ export const ServiceLogoSimpleMap: Record<Service, string> = {
   [Service.OneClickUsdt0]: getStableflowRouteLogo("logo-near-intents-usdt0-simple.svg"),
   [Service.Native]: getStableflowRouteLogo("logo-native-simple.svg"),
 };
+
+export const OneClickSwapType = {
+  Input: "EXACT_INPUT",
+  Output: "EXACT_OUTPUT",
+  Flex: "FLEX_INPUT",
+};
+export type OneClickSwapType = (typeof OneClickSwapType)[keyof typeof OneClickSwapType];

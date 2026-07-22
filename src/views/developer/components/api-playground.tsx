@@ -221,7 +221,7 @@ const { isExactOutput } = getQuoteModes({
 });
 
 const amountToApprove = isExactOutput
-  ? selectedRoute.quote.quote?.minAmountIn
+  ? selectedRoute.quote.quote?.amountIn
   : selectedRoute.quote.quoteParam.amountWei;
 
 if (selectedRoute.quote.needApprove && fromWallet.approve) {

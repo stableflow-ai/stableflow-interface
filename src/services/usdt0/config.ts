@@ -1,4 +1,9 @@
+import { IS_PRODUCTION } from "@/config/api";
+import { allUsdtChains } from "@/config/tokens";
 import { LAYERZZERO_CHAINS, type LayerZeroChainConfig } from "../utils";
+
+export const USDT0_MIDDLE_TOKEN_CHAIN = allUsdtChains["arb"];
+export const USDT0_MIDDLE_CHAIN_LAYERZERO_EXECUTOR = IS_PRODUCTION ? "0x53812Feae0fd2C43f8E6D8847A7f5d035F1d1f8f" : "0x78FdA46abBDE058c585eBA76De7Bde98bA64a8B5";
 
 interface Usdt0Config extends LayerZeroChainConfig {
   contractAddress: string;

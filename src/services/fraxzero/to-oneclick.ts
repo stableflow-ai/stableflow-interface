@@ -1,6 +1,7 @@
 import { csl } from "@/utils/log";
 import { FraxZeroService, excludeFees as fraxExcludeFees } from ".";
-import { FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED, FRAXZERO_REDEMPTION_CONTRACT } from "./config";
+import { FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_REDEEM_USDC_CONTRACT, FRAXZERO_REDEEM_RWA_CONTRACT, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_GAS_USED, FRAXZERO_REDEMPTION_CONTRACT } from "./config";
+import { MIDDLE_CHAIN_REFUND_ADDRESS } from "../utils";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
 import { ethers } from "ethers";
 import oneClickService, { excludeFees as oneClickExcludeFees } from "../oneclick";
@@ -10,7 +11,7 @@ import { SendType } from "@/libs/wallets/types";
 import { FRAXZERO_REDEEM_MINT_ABI } from "./contract";
 import { getPrice } from "@/utils/format/price";
 import { ExecTime } from "@/utils/exec-time";
-import { getRouteStatus, Service } from "../constants";
+import { getRouteStatus, OneClickSwapType, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { isStableToken } from "@/config/tokens";
 
@@ -49,7 +50,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
       middleChainWallet = new RainbowWallet(provider, {});
     }
     if (!middleChainRecipientAddress) {
-      middleChainRecipientAddress = FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS;
+      middleChainRecipientAddress = MIDDLE_CHAIN_REFUND_ADDRESS;
     }
 
     // fraxzero quote result
@@ -123,7 +124,7 @@ export class FraxZero2OneClickService extends FraxZeroService {
         amountWei: ethereumUSDCAmountWei,
         fromToken: FRAXZERO_MIDDLE_TOKEN_USDC,
         originAsset: FRAXZERO_MIDDLE_TOKEN_USDC.assetId,
-        swapType: "FLEX_INPUT",
+        swapType: OneClickSwapType.Flex,
         isProxy: false,
         refundTo: middleChainRecipientAddress,
         wallet: middleChainWallet,

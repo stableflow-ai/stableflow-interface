@@ -3,14 +3,15 @@ import fraxZeroService, { FraxZeroService, excludeFees as fraxZeroExcludeFees } 
 import { csl } from "@/utils/log";
 import { ethers } from "ethers";
 import RainbowWallet from "@/libs/wallets/rainbow/wallet";
-import { FRAXZERO_CONFIG, FRAXZERO_GAS_USED, FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_REDEEM_USDC_CONTRACT } from "./config";
+import { FRAXZERO_CONFIG, FRAXZERO_GAS_USED, FRAXZERO_MIDDLE_TOKEN_FRXUSD, FRAXZERO_MIDDLE_TOKEN_USDC, FRAXZERO_REDEEM_AND_MINT_CONTRACT, FRAXZERO_REDEEM_USDC_CONTRACT } from "./config";
+import { MIDDLE_CHAIN_REFUND_ADDRESS } from "../utils";
 import { getPrice } from "@/utils/format/price";
 import { FRAXZERO_REDEEM_MINT_ABI } from "./contract";
 import Big from "big.js";
 import { numberRemoveEndZero } from "@/utils/format/number";
 import { SendType } from "@/libs/wallets/types";
 import { ExecTime } from "@/utils/exec-time";
-import { getRouteStatus, Service } from "../constants";
+import { getRouteStatus, OneClickSwapType, Service } from "../constants";
 import { evmRpcFallbackProvider } from "@/utils/evm-rpc-providers";
 import { isStableToken } from "@/config/tokens";
 
@@ -52,7 +53,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
       middleChainWallet = new RainbowWallet(provider, {});
     }
     if (!middleChainRecipientAddress) {
-      middleChainRecipientAddress = FRAXZERO_MIDDLE_CHAIN_REFOUND_ADDRESS;
+      middleChainRecipientAddress = MIDDLE_CHAIN_REFUND_ADDRESS;
     }
 
     let previewMintResult: any;
@@ -149,7 +150,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
         amountWei: firstStepAmountWei,
         toToken: FRAXZERO_MIDDLE_TOKEN_USDC,
         destinationAsset: FRAXZERO_MIDDLE_TOKEN_USDC.assetId,
-        swapType: "EXACT_OUTPUT",
+        swapType: OneClickSwapType.Output,
         isProxy: true,
         recipient: middleChainRecipientAddress,
         appFees: [
@@ -218,7 +219,7 @@ export class OneClick2FraxZeroService extends FraxZeroService {
           isOneClickTransfer: !firstStepResult.sendParam ? {
             originAsset: fromToken.contractAddress,
             depositAddress: firstStepResult.quote?.depositAddress,
-            amount: firstStepResult.quote?.minAmountIn,
+            amount: firstStepResult.quote?.amountIn,
           } : false,
           isFromEthereumUSDC,
           isToEthereumFrxUSD,
