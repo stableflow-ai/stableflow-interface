@@ -29,3 +29,4 @@ pnpm-lock.yaml
 stats.html
 
 .cursor/
+doc_local/
