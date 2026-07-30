@@ -7,9 +7,9 @@ import clsx from "clsx";
 // Dynamic import components
 const Networks = lazy(() => import("./components/networks"));
 const BridgeButton = lazy(() => import("./components/button"));
+const AllTokens = lazy(() => import("./components/banners/all-tokens"));
 const HistoryDrawer = lazy(() => import("../history/drawer"));
 const PendingTransfer = lazy(() => import("./components/pending"));
-const Prophet = lazy(() => import("./components/prophet"));
 
 // Loading component
 const LoadingSpinner = () => null;
@@ -46,10 +46,10 @@ export default function Bridge() {
                 errorChain={errorChain}
               />
             </Suspense>
+            <Suspense fallback={<LoadingSpinner />}>
+              <AllTokens />
+            </Suspense>
           </div>
-          <Suspense fallback={<LoadingSpinner />}>
-            <Prophet />
-          </Suspense>
         </div>
       </div>
       <Suspense fallback={null}>
