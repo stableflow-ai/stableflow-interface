@@ -19,8 +19,8 @@ const TransferAllTokensLink = ({ isRoutes = false }: TransferAllTokensLinkProps)
       className={clsx(
         "flex items-center gap-1 text-[#444C59] text-sm font-normal leading-none underline hover:opacity-80 duration-150",
         isRoutes
-          ? "mt-[50px] md:fixed md:left-1/2 md:-translate-x-1/2 md:bottom-[20px] md:mt-0 md:z-11"
-          : "fixed left-1/2 -translate-x-1/2 bottom-[80px] md:bottom-[20px] z-11",
+          ? "mt-[50px] md:fixed md:left-1/2 md:-translate-x-1/2 md:bottom-[20px] md:mt-0 md:z-12"
+          : "fixed left-1/2 -translate-x-1/2 bottom-[80px] md:bottom-[20px] z-12",
       )}
     >
       Transfer all tokens
