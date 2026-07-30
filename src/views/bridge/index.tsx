@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import useBridge from "./hooks/use-bridge";
 import { useTrack } from "@/hooks/use-track";
 import { useMaintenanceStore } from "@/stores/use-maintenance";
@@ -10,6 +10,7 @@ const BridgeButton = lazy(() => import("./components/button"));
 const AllTokens = lazy(() => import("./components/banners/all-tokens"));
 const HistoryDrawer = lazy(() => import("../history/drawer"));
 const PendingTransfer = lazy(() => import("./components/pending"));
+const TransferAllTokensLink = lazy(() => import("@/layouts/transfer-all-tokens-link"));
 
 // Loading component
 const LoadingSpinner = () => null;
@@ -18,6 +19,7 @@ export default function Bridge() {
   const { quote, transfer, addressValidation, errorChain } = useBridge();
   const { addOpen } = useTrack();
   const bannerVisible = useMaintenanceStore((s) => s.getBannerVisible());
+  const [isRoutes, setIsRoutes] = useState(false);
 
   useEffect(() => {
     addOpen();
@@ -26,7 +28,7 @@ export default function Bridge() {
   return (
     <div
       className={clsx(
-        "relative w-full min-h-dvh md:pt-[20dvh] pb-25 flex flex-col items-center overflow-y-auto overflow-x-hidden",
+        "relative w-full min-h-dvh md:pt-[20dvh] pb-[140px] md:pb-25 flex flex-col items-center overflow-x-hidden",
         bannerVisible ? "pt-[20dvh]" : "pt-[10dvh]",
       )}
     >
@@ -36,7 +38,11 @@ export default function Bridge() {
             <PendingTransfer className="block" />
           </Suspense>
           <Suspense fallback={<LoadingSpinner />}>
-            <Networks addressValidation={addressValidation} />
+            <Networks
+              addressValidation={addressValidation}
+              isRoutes={isRoutes}
+              onToggleRoutes={() => setIsRoutes((prev) => !prev)}
+            />
           </Suspense>
           <div className="px-[10px] md:px-0 w-full">
             <Suspense fallback={<LoadingSpinner />}>
@@ -52,6 +58,9 @@ export default function Bridge() {
           </div>
         </div>
       </div>
+      <Suspense fallback={null}>
+        <TransferAllTokensLink isRoutes={isRoutes} />
+      </Suspense>
       <Suspense fallback={null}>
         <HistoryDrawer />
       </Suspense>

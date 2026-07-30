@@ -11,7 +11,6 @@ const Footer = lazy(() => import("./footer"));
 const Footer2 = lazy(() => import("./footer2"));
 const Wallet = lazy(() => import("@/sections/wallet"));
 const PixelBlast = lazy(() => import("@/components/pixel-blast"));
-const TransferAllTokensLink = lazy(() => import("./transfer-all-tokens-link"));
 
 const LoadingSpinner = () => null;
 
@@ -65,14 +64,6 @@ export default function Layout() {
             ) : (
               <Suspense fallback={<LoadingSpinner />}>
                 <Footer containerRef={containerRef} />
-              </Suspense>
-            )
-          }
-
-          {
-            isHomePage && (
-              <Suspense fallback={null}>
-                <TransferAllTokensLink />
               </Suspense>
             )
           }
