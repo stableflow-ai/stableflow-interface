@@ -1,17 +1,27 @@
 import { IS_PRODUCTION } from "@/config/api";
 import { getStableflowIcon } from "@/utils/format/logo";
+import clsx from "clsx";
 
 const X_URL = IS_PRODUCTION
   ? "https://x.stableflow.ai"
   : "https://test.x.stableflow.ai";
 
-const TransferAllTokensLink = () => {
+type TransferAllTokensLinkProps = {
+  isRoutes?: boolean;
+};
+
+const TransferAllTokensLink = ({ isRoutes = false }: TransferAllTokensLinkProps) => {
   return (
     <a
       href={X_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="hidden md:flex fixed left-1/2 -translate-x-1/2 bottom-[20px] z-11 items-center gap-1 text-[#444C59] text-sm font-normal leading-none underline hover:opacity-80 duration-150"
+      className={clsx(
+        "flex items-center gap-1 text-[#444C59] text-sm font-normal leading-none underline hover:opacity-80 duration-150",
+        isRoutes
+          ? "mt-[50px] md:fixed md:left-1/2 md:-translate-x-1/2 md:bottom-[20px] md:mt-0 md:z-11"
+          : "fixed left-1/2 -translate-x-1/2 bottom-[80px] md:bottom-[20px] z-11",
+      )}
     >
       Transfer all tokens
       <img
