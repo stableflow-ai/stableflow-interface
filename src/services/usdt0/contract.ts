@@ -10,6 +10,17 @@ export const OFT_ABI = [
   },
   {
     inputs: [
+      { internalType: "uint256", name: "_amountLD", type: "uint256" }
+    ],
+    name: "removeDust",
+    outputs: [
+      { internalType: "uint256", name: "amountLD", type: "uint256" }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [
       {
         components: [
           { internalType: "uint32", name: "dstEid", type: "uint32" },
