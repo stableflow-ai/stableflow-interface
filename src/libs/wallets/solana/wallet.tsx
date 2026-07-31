@@ -45,6 +45,7 @@ import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
 import { fromWeb3JsPublicKey, toWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
 import { addressToBytes32 } from "@/utils/address-validation";
 import { createSolanaFallbackConnection, getAvailableSolanaRpcUrl } from "../utils/solana";
+import { removeOftDust } from "../utils/oft";
 import { ExecTime } from "@/utils/exec-time";
 
 export default class SolanaWallet {
@@ -445,6 +446,7 @@ export default class SolanaWallet {
     const connection = this.getConnection();
 
     try {
+      const amountLdClean = removeOftDust(amountWei || 0, fromToken.decimals);
       const result: any = {
         needApprove: false,
         sendParam: void 0,
@@ -452,13 +454,18 @@ export default class SolanaWallet {
         estimateSourceGas: 0n,
         totalEstimateSourceGas: 0n,
         estimateSourceGasUsd: "0",
-        outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
+        outputAmount: numberRemoveEndZero(Big(amountLdClean || 0).div(10 ** fromToken.decimals).toFixed(fromToken.decimals, 0)),
         quoteParam: {
           ...params,
         },
         totalFeesUsd: "0",
         estimateTime: 0,
       };
+
+      if (BigInt(amountLdClean) === 0n) {
+        result.errMsg = "Amount below minimum cross-chain unit";
+        return result;
+      }
 
       const execTime = new ExecTime({ type: "USDT0 Solana", logStyle: "fuchsia-100" });
 
@@ -475,9 +482,9 @@ export default class SolanaWallet {
       execTime.log("getParsedAccountInfo");
       const decimals = (mintInfo.value?.data as { parsed: { info: { decimals: number } } }).parsed.info
         .decimals;
-      const amountLd = BigInt(amountWei);
+      const amountLd = BigInt(amountLdClean);
       const slippage = slippageTolerance || 0.01; // Default 1% slippage
-      const minAmountLd = BigInt(Big(amountWei).times(Big(1).minus(Big(slippage).div(100))).toFixed(0));
+      const minAmountLd = BigInt(Big(amountLdClean).times(Big(1).minus(Big(slippage).div(100))).toFixed(0));
 
       const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
       const lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
@@ -698,15 +705,15 @@ export default class SolanaWallet {
       result.totalEstimateSourceGas += ett.estimateSourceGas;
 
       // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
-      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
-      result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
+      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountLdClean || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
+      result.outputAmount = numberRemoveEndZero(Big(Big(amountLdClean || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
 
       // Check if the output amount exceeds the slippage tolerance
       // If it exceeds, return an error message
       csl("SolanaWallet quoteOFT", "red-600", "result.outputAmount: %o", result.outputAmount);
       csl("SolanaWallet quoteOFT", "red-600", "slippageTolerance: %o", slippageTolerance + "%");
-      csl("SolanaWallet quoteOFT", "red-600", "Minimum received amount: %o", Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(6, 0));
-      if (Big(result.outputAmount).lt(Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))))) {
+      csl("SolanaWallet quoteOFT", "red-600", "Minimum received amount: %o", Big(amountLdClean).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(6, 0));
+      if (Big(result.outputAmount).lt(Big(amountLdClean).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))))) {
         result.errMsg = "Slippage limit exceeded";
         return result;
       }
@@ -1459,6 +1466,8 @@ export default class SolanaWallet {
     const execTime = new ExecTime({ type: "FraxZero Solana", logStyle: "fuchsia-400" });
 
     csl("Solana quoteFraxZero", "purple-500", "params: %o", params);
+
+    const amountLdClean = removeOftDust(amountWei || 0, fromToken.decimals);
     const result: any = {
       needApprove: false,
       approveSpender: void 0,
@@ -1472,8 +1481,13 @@ export default class SolanaWallet {
       totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime: 0,
-      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
+      outputAmount: numberRemoveEndZero(Big(amountLdClean || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
+
+    if (BigInt(amountLdClean) === 0n) {
+      result.errMsg = "Amount below minimum cross-chain unit";
+      return result;
+    }
 
     const sender = this.publicKey!;
     const userPubkey = fromWeb3JsPublicKey(new PublicKey(refundTo || sender.toString()));
@@ -1505,7 +1519,7 @@ export default class SolanaWallet {
     execTime.log("safeFetchToken");
 
     const recipientAddressBytes32 = addressToBytes32(toToken.chainType, recipient);
-    const amountLd = BigInt(amountWei);
+    const amountLd = BigInt(amountLdClean);
     const minAmountLd = (amountLd * 99n) / 100n;
 
     execTime.breakpoint();
