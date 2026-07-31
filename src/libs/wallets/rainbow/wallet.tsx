@@ -12,6 +12,7 @@ import { getHopMsgFee } from "@/services/usdt0/hop-composer";
 import { getDestinationAssociatedTokenAddress } from "../utils/solana";
 import { allUsdtChains } from "@/config/tokens";
 import { buildEndpointV2LzComposePayload, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
+import { removeOftDust } from "../utils/oft";
 import { OFT_ABI } from "@/services/usdt0/contract";
 import { csl } from "@/utils/log";
 import { createMulticall3, type Call } from "@/utils/multicall3";
@@ -402,6 +403,8 @@ export default class RainbowWallet {
       destinationLayerzero,
     } = params;
 
+    const amountLdClean = removeOftDust(amountWei || 0, fromToken.decimals);
+
     const result: any = {
       needApprove: false,
       approveSpender: originLayerzeroAddress,
@@ -417,8 +420,13 @@ export default class RainbowWallet {
       totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: "0",
       estimateTime: 0, // seconds - dynamically calculated using LayerZero formula
-      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
+      outputAmount: numberRemoveEndZero(Big(amountLdClean || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
+
+    if (BigInt(amountLdClean) === 0n) {
+      result.errMsg = "Amount below minimum cross-chain unit";
+      return result;
+    }
 
     const execTime = new ExecTime({ type: `Usdt0 EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-100" });
 
@@ -457,7 +465,7 @@ export default class RainbowWallet {
     const sendParam: any = {
       dstEid: dstEid,
       to: addressToBytes32(toToken.chainType, recipient),
-      amountLD: amountWei,
+      amountLD: amountLdClean,
       minAmountLD: 0n,
       extraOptions: unMultiHopExtraOptions,
       composeMsg: "0x",
@@ -503,8 +511,8 @@ export default class RainbowWallet {
 
     // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
     if (isOriginLegacy || isDestinationLegacy) {
-      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
-      result.outputAmount = numberRemoveEndZero(Big(Big(amountWei || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
+      result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountLdClean || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
+      result.outputAmount = numberRemoveEndZero(Big(Big(amountLdClean || 0).div(10 ** params.fromToken.decimals)).minus(result.fees.legacyMeshFeeUsd || 0).toFixed(params.fromToken.decimals, 0));
     }
 
     // csl("EVM quoteOFT", "blue-900", "sendParam: %o", sendParam);
@@ -512,8 +520,10 @@ export default class RainbowWallet {
       execTime.breakpoint();
       const oftData = await oftContractRead.quoteOFT.staticCall(sendParam);
       const [, , oftReceipt] = oftData;
-      // The slippage is calculated based on the user-defined value and the user-input amount
-      sendParam.minAmountLD = Big(amountWei).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
+      // Align send amount with dust-removed amountSentLD from the OFT
+      sendParam.amountLD = oftReceipt[0].toString();
+      // The slippage is calculated based on the user-defined value and the cleaned send amount
+      sendParam.minAmountLD = Big(sendParam.amountLD).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0);
       // The actual received amount is based on the contract return value
       result.outputAmount = numberRemoveEndZero(Big(oftReceipt[1].toString()).div(10 ** params.toToken.decimals).toFixed(params.toToken.decimals, 0));
       // csl("EVM quoteOFT", "blue-900", "oftData: %o", oftData);
@@ -524,8 +534,8 @@ export default class RainbowWallet {
     // If it exceeds, return an error message
     csl("EVMWallet quoteOFT", "red-600", "result.outputAmount: %o", result.outputAmount);
     csl("EVMWallet quoteOFT", "red-600", "slippageTolerance: %o", slippageTolerance + "%");
-    csl("EVMWallet quoteOFT", "red-600", "Minimum received amount: %o", Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(6, 0));
-    if (Big(result.outputAmount).lt(Big(amountWei).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))))) {
+    csl("EVMWallet quoteOFT", "red-600", "Minimum received amount: %o", Big(amountLdClean).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(6, 0));
+    if (Big(result.outputAmount).lt(Big(amountLdClean).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))))) {
       result.errMsg = "Slippage limit exceeded";
       return result;
     }
@@ -541,7 +551,7 @@ export default class RainbowWallet {
           contractAddress: fromToken.contractAddress,
           spender: originLayerzeroAddress,
           address: refundTo,
-          amountWei,
+          amountWei: amountLdClean,
           provider,
         })
       );
@@ -1090,6 +1100,19 @@ export default class RainbowWallet {
     } = destinationLayerzero;
 
     const isFromEthereum = fromToken.chainId === 1;
+    const oftAddress = isFromEthereum ? lockbox : fromToken.contractAddress;
+    const provider = evmRpcFallbackProvider(fromToken);
+
+    let amountLdClean = removeOftDust(amountWei || 0, fromToken.decimals);
+    if (!dry) {
+      try {
+        const oftContractRead = new ethers.Contract(oftAddress, OFT_ABI, provider);
+        amountLdClean = (await oftContractRead.removeDust.staticCall(amountWei)).toString();
+      } catch (error) {
+        csl("EVM quoteFraxZero", "yellow-500", "removeDust failed, use local: %o", error);
+        amountLdClean = removeOftDust(amountWei || 0, fromToken.decimals);
+      }
+    }
 
     const result: any = {
       needApprove: false,
@@ -1104,10 +1127,13 @@ export default class RainbowWallet {
       totalEstimateSourceGas: 0n,
       estimateSourceGasUsd: 0,
       estimateTime: 0,
-      outputAmount: numberRemoveEndZero(Big(amountWei || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
+      outputAmount: numberRemoveEndZero(Big(amountLdClean || 0).div(10 ** params.fromToken.decimals).toFixed(params.fromToken.decimals, 0)),
     };
 
-    const provider = evmRpcFallbackProvider(fromToken);
+    if (BigInt(amountLdClean) === 0n) {
+      result.errMsg = "Amount below minimum cross-chain unit";
+      return result;
+    }
 
     const execTime = new ExecTime({ type: `FraxZero EVM ${fromToken.chainName}->${toToken.chainName}`, logStyle: "stone-500" });
 
@@ -1118,13 +1144,13 @@ export default class RainbowWallet {
     // 2. get message fee
     const sendParams = [
       // _oft
-      isFromEthereum ? lockbox : fromToken.contractAddress,
+      oftAddress,
       // _dstEid
       dstEid,
       // _to
       addressToBytes32(toToken.chainType, recipient),
-      // _amountLD
-      amountWei
+      // _amountLD (OFT sharedDecimals dust removed)
+      amountLdClean
     ];
     execTime.breakpoint();
     const mergedCalls = [
@@ -1133,7 +1159,7 @@ export default class RainbowWallet {
         contractAddress: fromToken.contractAddress,
         spender: remoteHop,
         address: refundTo,
-        amountWei,
+        amountWei: amountLdClean,
         provider,
       }),
       remoteHopContractRead.quote.staticCall(...sendParams)
@@ -1157,6 +1183,7 @@ export default class RainbowWallet {
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(Big(msgFee[1]?.toString() || 0).div(10 ** fromToken.decimals).toFixed(20));
 
     csl("EVM quoteFraxZero", "blue-700", "msgFee: %o", msgFee);
+    csl("EVM quoteFraxZero", "blue-700", "amountLdClean: %o", amountLdClean);
 
     execTime.breakpoint();
     // 3. estimate send gas
