@@ -481,8 +481,7 @@ export default class SolanaWallet {
       const decimals = (mintInfo.value?.data as { parsed: { info: { decimals: number } } }).parsed.info
         .decimals;
       const amountLd = BigInt(amountLdClean);
-      const slippage = slippageTolerance || 0.01; // Default 1% slippage
-      const minAmountLd = BigInt(Big(amountLdClean).times(Big(1).minus(Big(slippage).div(100))).toFixed(0));
+      const minAmountLd = BigInt(Big(amountLdClean).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0));
 
       const lzReceiveOptionGas = isDestinationLegacy ? destinationLayerzero.lzReceiveOptionGasLegacy : destinationLayerzero.lzReceiveOptionGas;
       const lzReceiveOptionValue = LZ_RECEIVE_VALUE[toToken.chainName] || 0;
@@ -1262,7 +1261,7 @@ export default class SolanaWallet {
 
     const recipientAddressBytes32 = addressToBytes32(toToken.chainType, recipient);
     const amountLd = BigInt(amountLdClean);
-    const minAmountLd = (amountLd * 99n) / 100n;
+    const minAmountLd = BigInt(Big(amountLdClean).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(0));
 
     execTime.breakpoint();
     const { value: lookupTableAccount } = await connection.getAddressLookupTable(ALT_ADDRESS);
