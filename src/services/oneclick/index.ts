@@ -256,7 +256,7 @@ export class OneClickService {
         .substr(2, 9)}`,
       recipientType: "DESTINATION_CHAIN",
       deadline: new Date(Date.now() + this.offsetTime).toISOString(),
-      quoteWaitingTimeMs: 0,
+      quoteWaitingTimeMs: 3000,
       appFees,
       referral: "stableflow",
       refundTo,
