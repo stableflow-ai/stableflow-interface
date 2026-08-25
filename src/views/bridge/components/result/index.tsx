@@ -1,4 +1,5 @@
 import useBridgeStore from "@/stores/use-bridge";
+import { useConfigStore } from "@/stores/use-config";
 import { motion } from "framer-motion";
 import { lazy, Suspense, useMemo } from "react";
 import { Service, ServiceLogoMap, ServiceLogoSimpleMap } from "@/services/constants";
@@ -13,6 +14,7 @@ import { getStableflowIcon } from "@/utils/format/logo";
 import { routeHybridPath } from "../../utils";
 import LazyImage from "@/components/lazy-image";
 import Popover from "@/components/popover";
+import { EXACT_OUTPUT_SUGGESTED_SLIPPAGE } from "./config";
 
 const ResultOneClick = lazy(() => import("./oneclick"));
 const ResultUsdt0 = lazy(() => import("./usdt0"));
@@ -26,6 +28,7 @@ const LargeTransactionTip = "Large transactions can take a bit longer to process
 
 export default function Result() {
   const bridgeStore = useBridgeStore();
+  const configStore = useConfigStore();
 
   const quoteData = useMemo(() => {
     return bridgeStore.quoteDataMap.get(bridgeStore.quoteDataService);
@@ -281,15 +284,29 @@ export default function Result() {
         }
         {
           isExactOutput && quoteData && (
-            <div className="w-full text-xs font-normal text-[#70788A]">
-              <img
-                src={getStableflowIcon("icon-info.svg")}
-                alt=""
-                className="w-[14px] h-[14px] object-center object-contain shirnk-0 -translate-y-[1px] mr-0.5 inline-block"
-              />
-              The approved amount cannot be less than <strong>{formatNumber(quoteData?.quote?.amountInFormatted, 6, true)} {quoteData?.quoteParam?.fromToken?.symbol}</strong>.
-              {/* This route requires a payment of <strong>{formatNumber(quoteData?.quote?.amountInFormatted, 6, true)} {quoteData?.quoteParam?.fromToken?.symbol}</strong>, of which <strong>{formatNumber(quoteData?.quote?.amountOutFormatted, 6, true)} {quoteData?.quoteParam?.toToken?.symbol}</strong> is the amount you will receive. */}
-            </div>
+            <>
+              <div className="w-full text-xs font-normal text-[#70788A]">
+                <img
+                  src={getStableflowIcon("icon-info.svg")}
+                  alt=""
+                  className="w-[14px] h-[14px] object-center object-contain shirnk-0 -translate-y-[1px] mr-0.5 inline-block"
+                />
+                The approved amount cannot be less than <strong>{formatNumber(quoteData?.quote?.amountInFormatted, 6, true)} {quoteData?.quoteParam?.fromToken?.symbol}</strong>.
+                {/* This route requires a payment of <strong>{formatNumber(quoteData?.quote?.amountInFormatted, 6, true)} {quoteData?.quoteParam?.fromToken?.symbol}</strong>, of which <strong>{formatNumber(quoteData?.quote?.amountOutFormatted, 6, true)} {quoteData?.quoteParam?.toToken?.symbol}</strong> is the amount you will receive. */}
+              </div>
+              {
+                Number(configStore.slippage) < EXACT_OUTPUT_SUGGESTED_SLIPPAGE && (
+                  <div className="w-full text-xs font-normal text-[#70788A]">
+                    <img
+                      src={getStableflowIcon("icon-info.svg")}
+                      alt=""
+                      className="w-[14px] h-[14px] object-center object-contain shirnk-0 -translate-y-[1px] mr-0.5 inline-block"
+                    />
+                    To avoid transaction failure, please increase slippage to <strong>{EXACT_OUTPUT_SUGGESTED_SLIPPAGE}%</strong>. Unused funds will be automatically refunded to your wallet.
+                  </div>
+                )
+              }
+            </>
           )
         }
       </div>
