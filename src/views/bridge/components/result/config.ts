@@ -1,0 +1,1 @@
+export const EXACT_OUTPUT_SUGGESTED_SLIPPAGE = 0.5;
