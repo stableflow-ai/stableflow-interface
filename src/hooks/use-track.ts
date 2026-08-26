@@ -147,9 +147,6 @@ export function useTrack(props?: { isRoot?: boolean; }) {
       const { appFees } = quoteData?.quoteRequest ?? {};
 
       const feeDetail = { ...quoteData?.fees };
-      if (([Service.OneClickCCTP, Service.CCTP, Service.CCTPOneClick] as Service[]).includes(service)) {
-        feeDetail.nativeFeeUsd = feeDetail.bridgeFeeUsd;
-      }
 
       const originWalletName = accounts.find((account) => account.chain_type === fromToken?.chainType)?.wallet_name;
 
