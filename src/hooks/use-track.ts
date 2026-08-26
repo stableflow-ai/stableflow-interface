@@ -147,7 +147,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
       const { appFees } = quoteData?.quoteRequest ?? {};
 
       const feeDetail = { ...quoteData?.fees };
-      if (service === Service.OneClickCCTP) {
+      if (([Service.OneClickCCTP, Service.CCTP, Service.CCTPOneClick] as Service[]).includes(service)) {
         feeDetail.nativeFeeUsd = feeDetail.bridgeFeeUsd;
       }
 
