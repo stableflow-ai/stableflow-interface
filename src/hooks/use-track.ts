@@ -146,6 +146,11 @@ export function useTrack(props?: { isRoot?: boolean; }) {
       const { depositAddress } = quoteData?.quote ?? {};
       const { appFees } = quoteData?.quoteRequest ?? {};
 
+      const feeDetail = { ...quoteData?.fees };
+      if (service === Service.OneClickCCTP) {
+        feeDetail.nativeFeeUsd = feeDetail.bridgeFeeUsd;
+      }
+
       const originWalletName = accounts.find((account) => account.chain_type === fromToken?.chainType)?.wallet_name;
 
       const quoteDataResult: any = {
@@ -174,7 +179,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
         estimate_from_gas: quoteData?.estimateSourceGas?.toString() ?? "0",
         // exclude estimate_from_gas
         total_fees_usd: quoteData?.totalFeesUsd ?? "0",
-        fees: transformObject(quoteData?.fees ?? {}),
+        fees: transformObject(feeDetail),
         deposit_address: depositAddress,
         dry,
         app_fees: appFees,
