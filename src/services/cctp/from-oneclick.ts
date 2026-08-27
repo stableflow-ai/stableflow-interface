@@ -51,26 +51,8 @@ export class OneClickCCTPService {
     const cctpResult = await cctpService.quote(cctpParams);
     execTime.log("cctpService.quote");
 
-    const cctpFeeBuffer = 1.2;
-    const cctpMintFeeUsd = numberRemoveEndZero(Big(cctpResult.fees?.estimateMintGasUsd || 0).times(1 + cctpFeeBuffer).toFixed(20));
-    const cctpBridgeFeeUsd = numberRemoveEndZero(Big(cctpResult.fees?.bridgeFeeUsd || 0).times(1 + cctpFeeBuffer).toFixed(20));
-    const cctpTotalFeeUsd = Big(cctpMintFeeUsd || 0).plus(cctpBridgeFeeUsd || 0).toFixed(20);
-
     if (cctpResult.errMsg) {
       return cctpResult;
-    }
-
-    const cctpFeeAmountInFromToken = Big(cctpTotalFeeUsd || 0)
-      .div(getPrice(prices, fromToken.symbol) || 1)
-      .toFixed(fromToken.decimals);
-    const fromTokenAmount = Big(params.amountWei).div(10 ** fromToken.decimals).toFixed(fromToken.decimals);
-    const oneClickFeeRatio = Big(cctpFeeAmountInFromToken || 0)
-      .div(Big(cctpFeeAmountInFromToken || 0).plus(fromTokenAmount))
-      .times(10000)
-      .toFixed(0, Big.roundUp);
-
-    if (Big(oneClickFeeRatio).gt(10000)) {
-      return { errMsg: `Amount is too low, at least ${cctpFeeAmountInFromToken}` };
     }
 
     execTime.breakpoint();
@@ -83,25 +65,14 @@ export class OneClickCCTPService {
       swapType: OneClickSwapType.Output,
       isProxy: true,
       recipient: destinationRecipientAddress,
-      appFees: [
-        {
-          recipient: "reffer.near",
-          fee: +oneClickFeeRatio,
-        },
-      ],
     });
     execTime.log("oneClickService.quote");
 
     let totalFeesUsd = Big(0);
-    let _destinationGasFeeUsd = Big(oneClickResult.fees?.destinationGasFeeUsd || 0).minus(cctpTotalFeeUsd);
-    if (Big(_destinationGasFeeUsd).lt(0)) {
-      _destinationGasFeeUsd = Big(0);
-    }
     const fees = {
       ...oneClickResult.fees,
-      destinationGasFeeUsd: numberRemoveEndZero(Big(_destinationGasFeeUsd).toFixed(20)),
-      estimateMintGasUsd: cctpMintFeeUsd,
-      bridgeFeeUsd: cctpBridgeFeeUsd,
+      estimateMintGasUsd: cctpResult.fees?.estimateMintGasUsd,
+      bridgeFeeUsd: cctpResult.fees?.bridgeFeeUsd,
     };
     for (const feeKey in cctpResult.fees) {
       if (["estimateGasUsd"].includes(feeKey)) {
