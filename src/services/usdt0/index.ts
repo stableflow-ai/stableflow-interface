@@ -190,7 +190,14 @@ export class Usdt0Service {
     result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
-    result.totalEstimateSourceGas = BigInt(Big(quoteData.fees?.nativeFee || 0).times(10 ** nativeTokenDecimals).toFixed(0)) + ett.estimateSourceGas;
+    // Solana only: rent for the accounts this transaction creates. It is not a network fee,
+    // but the wallet still needs to hold it, so it belongs in the native balance gate.
+    if (ett.accountRentUsd) {
+      result.fees.accountRentUsd = ett.accountRentUsd;
+    }
+    result.totalEstimateSourceGas = BigInt(Big(quoteData.fees?.nativeFee || 0).times(10 ** nativeTokenDecimals).toFixed(0))
+      + ett.estimateSourceGas
+      + (ett.accountRentLamports ? BigInt(ett.accountRentLamports) : 0n);
 
     if (result.needApprove && wallet.estimateApprove) {
       const estApptroveGas = await wallet.estimateApprove({

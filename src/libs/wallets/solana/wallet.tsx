@@ -26,7 +26,7 @@ import { getPrice } from "@/utils/format/price";
 import stableflowProxyIdl from "@/services/oneclick/stableflow-proxy.json";
 import { quoteSignature } from "../utils/cctp";
 import { SendType } from "../types";
-import { Service } from "@/services/constants";
+import { Service, ServiceBackend } from "@/services/constants";
 import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
 import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
@@ -43,14 +43,33 @@ import {
 import { oft } from "@layerzerolabs/oft-v2-solana-sdk";
 import { fromWeb3JsPublicKey, toWeb3JsInstruction } from "@metaplex-foundation/umi-web3js-adapters";
 import { addressToBytes32 } from "@/utils/address-validation";
-import { createSolanaFallbackConnection, getAvailableSolanaRpcUrl } from "../utils/solana";
+import { createSolanaFallbackConnection, getActiveSolanaConnection, getAvailableSolanaRpcUrl } from "../utils/solana";
+import {
+  buildComputeBudgetIxs,
+  fetchLookupTableAccounts,
+  getAssociatedTokenAccountRent,
+  getRpcEndpointHost,
+  resolveNewAccountRentLamports,
+  startRebroadcast,
+  type ComputeBudgetResult,
+} from "../utils/solana-tx";
+import { type SolanaBroadcastContext } from "@/stores/use-solana-broadcast-report";
 import { removeOftDust } from "../utils/oft";
 import { ExecTime } from "@/utils/exec-time";
+
+/** Only used when the compute unit simulation is unavailable. */
+const SOL_TRANSFER_FALLBACK_UNITS = 50_000;
+const TOKEN_TRANSFER_FALLBACK_UNITS = 100_000;
+const CREATE_ATA_FALLBACK_UNITS = 50_000;
+const OFT_SEND_FALLBACK_UNITS = 400_000;
+const FRAX_ZERO_FALLBACK_UNITS = 600_000;
+const ONECLICK_PROXY_FALLBACK_UNITS = 200_000;
 
 export default class SolanaWallet {
   private publicKey: PublicKey | null;
   private signTransaction: any;
   private signer: any;
+  private connection: Connection | null = null;
 
   constructor(options: { publicKey: PublicKey | null; signer: any }) {
     this.publicKey = options.publicKey;
@@ -59,9 +78,56 @@ export default class SolanaWallet {
   }
 
   getConnection() {
-    const solanaRpcUrls: string[] = getChainRpcUrl("Solana").rpcUrls;
-    return createSolanaFallbackConnection(solanaRpcUrls);
+    if (!this.connection) {
+      const solanaRpcUrls: string[] = getChainRpcUrl("Solana").rpcUrls;
+      this.connection = createSolanaFallbackConnection(solanaRpcUrls);
+    }
+    return this.connection;
   };
+
+  /** Travels with sendParam so the broadcast telemetry knows which route and fee produced the hash. */
+  private buildBroadcastMeta(params: {
+    route: string;
+    fromTokenSymbol?: string;
+    computeBudget?: ComputeBudgetResult;
+  }): SolanaBroadcastContext {
+    const { route, fromTokenSymbol, computeBudget } = params;
+    return {
+      route,
+      fromTokenSymbol,
+      computeUnitLimit: computeBudget?.unitLimit,
+      computeUnitPriceMicroLamports: computeBudget?.microLamports,
+      priorityFeeLamports: computeBudget?.priorityFeeLamports,
+      feeSource: computeBudget?.feeSource,
+      unitsConsumed: computeBudget?.unitsConsumed,
+    };
+  }
+
+  /**
+   * Broadcast once and hand the signature back immediately, letting a background loop keep
+   * re-sending it. Nothing here waits for the transaction to land.
+   */
+  private async broadcastAndRebroadcast(params: {
+    connection: Connection;
+    signedTransaction: any;
+    lastValidBlockHeight?: number;
+    report?: SolanaBroadcastContext;
+  }) {
+    const { connection, signedTransaction, lastValidBlockHeight, report } = params;
+
+    const rawTransaction = signedTransaction.serialize();
+    const signature = await connection.sendRawTransaction(rawTransaction, { skipPreflight: false });
+
+    startRebroadcast({
+      connection,
+      rawTransaction,
+      signature,
+      lastValidBlockHeight,
+      report,
+    });
+
+    return signature;
+  }
 
   // Transfer SOL
   async transferSOL(to: string, amount: string) {
@@ -82,17 +148,39 @@ export default class SolanaWallet {
     );
 
     const connection = this.getConnection();
-    const { blockhash } = await connection.getLatestBlockhash();
+
+    const computeBudget = await buildComputeBudgetIxs({
+      connection,
+      payer: fromPubkey,
+      instructions: transaction.instructions,
+      fallbackUnits: SOL_TRANSFER_FALLBACK_UNITS,
+    });
+    transaction.instructions.unshift(...computeBudget.ixs);
+
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+    // Pin the endpoint that just issued the blockhash for the send and the rebroadcast.
+    const sendConnection = getActiveSolanaConnection(connection);
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = fromPubkey;
 
     const signedTransaction = await this.signTransaction(transaction);
-    const signature = await connection.sendRawTransaction(
-      signedTransaction.serialize()
-    );
 
-    await connection.confirmTransaction(signature);
-    return signature;
+    return await this.broadcastAndRebroadcast({
+      connection: sendConnection,
+      signedTransaction,
+      lastValidBlockHeight,
+      report: {
+        route: "solana_transfer",
+        address: fromPubkey.toBase58(),
+        fromTokenSymbol: "SOL",
+        computeUnitLimit: computeBudget.unitLimit,
+        computeUnitPriceMicroLamports: computeBudget.microLamports,
+        priorityFeeLamports: computeBudget.priorityFeeLamports,
+        feeSource: computeBudget.feeSource,
+        unitsConsumed: computeBudget.unitsConsumed,
+        rpcEndpoint: getRpcEndpointHost(sendConnection),
+      },
+    });
   }
 
   // Transfer SPL token
@@ -140,18 +228,38 @@ export default class SolanaWallet {
       )
     );
 
-    const { blockhash } = await connection.getLatestBlockhash();
+    const computeBudget = await buildComputeBudgetIxs({
+      connection,
+      payer: fromPubkey,
+      instructions: transaction.instructions,
+      fallbackUnits: TOKEN_TRANSFER_FALLBACK_UNITS,
+    });
+    transaction.instructions.unshift(...computeBudget.ixs);
+
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+    // Pin the endpoint that just issued the blockhash for the send and the rebroadcast.
+    const sendConnection = getActiveSolanaConnection(connection);
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = fromPubkey;
 
     const signedTransaction = await this.signTransaction(transaction);
-    const signature = await connection.sendRawTransaction(
-      signedTransaction.serialize()
-    );
 
-    await connection.confirmTransaction(signature);
-
-    return signature;
+    return await this.broadcastAndRebroadcast({
+      connection: sendConnection,
+      signedTransaction,
+      lastValidBlockHeight,
+      report: {
+        route: "solana_transfer",
+        address: fromPubkey.toBase58(),
+        fromTokenSymbol: tokenMint,
+        computeUnitLimit: computeBudget.unitLimit,
+        computeUnitPriceMicroLamports: computeBudget.microLamports,
+        priorityFeeLamports: computeBudget.priorityFeeLamports,
+        feeSource: computeBudget.feeSource,
+        unitsConsumed: computeBudget.unitsConsumed,
+        rpcEndpoint: getRpcEndpointHost(sendConnection),
+      },
+    });
   }
 
   // Generic transfer method
@@ -268,8 +376,8 @@ export default class SolanaWallet {
         await getAccount(connection, toTokenAccount);
         // Account exists, no additional fee
       } catch (error) {
-        // Account doesn't exist, will need to create it (additional fee)
-        estimatedFee += 5000n;
+        // Account doesn't exist. Creating it costs a rent-exempt deposit, not another signature fee.
+        estimatedFee += BigInt(await getAssociatedTokenAccountRent(connection));
       }
     }
 
@@ -301,55 +409,59 @@ export default class SolanaWallet {
       versionedTx,
       fromToken,
       prices,
+      priorityFeeLamports = 0,
+      fallbackRentLamports = 0,
     } = params;
-
-    const connection = this.getConnection();
 
     const nativeTokenPrice = getPrice(prices, fromToken.nativeToken.symbol);
 
-    let estimatedFee = 5000n;
-    if (!dry) {
-      try {
-        const sendSim = await connection.simulateTransaction(versionedTx, {
-          sigVerify: false,
-          replaceRecentBlockhash: true,
-        });
-        csl("Solana estimateTransaction", "purple-400", "sendSim: %o", sendSim);
-        // Even if simulation fails (e.g., insufficient funds), we can still get the fee estimate
-        if (!sendSim.value.err) {
-          // @ts-ignore Solana base fee is 5000 lamports per signature
-          estimatedFee = (sendSim.value as any).fee || 5000n;
-        } else {
-          // If simulation fails, log it but continue with default fee
-          console.warn('Send simulation failed (this is normal in quote phase):', sendSim.value.err);
-          // @ts-ignore Try to get fee even if simulation failed
-          const fee = (sendSim.value as any).fee;
-          if (fee) {
-            estimatedFee = fee;
-          }
-        }
-      } catch (error) {
-        // csl("Solana estimateTransaction", "red-500", "estimateTransaction failed: %o", error);
+    // Network fee only: the base fee per signature plus the priority fee.
+    // Rent for accounts the transaction creates is a separate cost, reported on its own below.
+    const signatureCount = BigInt(versionedTx?.message?.header?.numRequiredSignatures || 1);
+    const estimatedFee = 5000n * signatureCount + BigInt(priorityFeeLamports || 0);
+
+    let accountRentLamports = 0n;
+    if (!dry && versionedTx) {
+      const { usable, rentLamports, simulationError } = await resolveNewAccountRentLamports({
+        connection: this.getConnection(),
+        versionedTx,
+      });
+      if (usable) {
+        accountRentLamports = BigInt(rentLamports);
+      } else {
+        // Simulation failing during a quote is common (insufficient funds, stale state).
+        // The caller knows which accounts its own instructions create, so trust its number.
+        csl("Solana estimateTransaction", "yellow-400", "simulation unusable, fallback rent: %o, err: %o", fallbackRentLamports, simulationError);
+        accountRentLamports = BigInt(fallbackRentLamports || 0);
       }
     }
 
     const result = {
-      estimateSourceGasLimit: BigInt(estimatedFee),
-      estimateSourceGas: 0n,
+      estimateSourceGasLimit: estimatedFee,
+      estimateSourceGas: 0n as bigint,
       estimateSourceGasUsd: "0",
+      accountRentLamports,
+      accountRentUsd: "0",
     };
 
-    const setDefaultGasLimit = async () => {
-      const { usd, wei } = await this.getEstimateGas({
-        gasLimit: estimatedFee,
+    const { usd, wei } = await this.getEstimateGas({
+      gasLimit: estimatedFee,
+      price: nativeTokenPrice,
+      nativeToken: fromToken.nativeToken,
+    });
+    result.estimateSourceGas = wei;
+    result.estimateSourceGasUsd = usd;
+
+    if (accountRentLamports > 0n) {
+      const rent = await this.getEstimateGas({
+        gasLimit: accountRentLamports,
         price: nativeTokenPrice,
         nativeToken: fromToken.nativeToken,
       });
-      result.estimateSourceGas = wei;
-      result.estimateSourceGasUsd = usd;
-    };
+      result.accountRentUsd = rent.usd;
+      csl("Solana estimateTransaction", "purple-400", "account rent: %o lamports (%s)", accountRentLamports, rent.usd);
+    }
 
-    await setDefaultGasLimit();
     return result;
   }
 
@@ -633,6 +745,7 @@ export default class SolanaWallet {
       result.fees.lzTokenFee = lzTokenFee.toString();
 
       let sendTx: any;
+      let sendComputeBudget: ComputeBudgetResult | undefined;
       if (!dry) {
         // send
         const sendSendHelper = new SendHelper();
@@ -676,11 +789,18 @@ export default class SolanaWallet {
         });
 
         execTime.breakpoint();
-        const computeSendIx = ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 });
+        const lookupTables = await fetchLookupTableAccounts({ connection, addresses: [lookupTable] });
+        sendComputeBudget = await buildComputeBudgetIxs({
+          connection,
+          payer: userPubkey,
+          instructions: [sendIx],
+          lookupTables,
+          fallbackUnits: OFT_SEND_FALLBACK_UNITS,
+        });
         sendTx = await buildVersionedTransaction(
           connection as any,
           userPubkey,
-          [computeSendIx, sendIx],
+          [...sendComputeBudget.ixs, sendIx],
           undefined,
           undefined,
           lookupTable,
@@ -693,12 +813,14 @@ export default class SolanaWallet {
         versionedTx: sendTx,
         fromToken,
         prices,
+        priorityFeeLamports: sendComputeBudget?.priorityFeeLamports,
       });
 
       result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+      result.fees.accountRentUsd = ett.accountRentUsd;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
-      result.totalEstimateSourceGas += ett.estimateSourceGas;
+      result.totalEstimateSourceGas += ett.estimateSourceGas + ett.accountRentLamports;
 
       // 0.03% fee for Legacy Mesh transfers only (native USDT0 transfers are free)
       result.fees.legacyMeshFeeUsd = numberRemoveEndZero(Big(amountLdClean || 0).div(10 ** params.fromToken.decimals).times(USDT0_LEGACY_MESH_TRANSFTER_FEE).toFixed(params.fromToken.decimals));
@@ -717,6 +839,14 @@ export default class SolanaWallet {
       result.sendParam = {
         transaction: sendTx,
         versionedTx: sendTx,
+        // Services re-run estimateTransaction with `...sendParam`; carrying these keeps the
+        // refreshed estimate identical to the one produced here.
+        priorityFeeLamports: sendComputeBudget?.priorityFeeLamports,
+        broadcastMeta: this.buildBroadcastMeta({
+          route: ServiceBackend[Service.Usdt0],
+          fromTokenSymbol: fromToken?.symbol,
+          computeBudget: sendComputeBudget,
+        }),
       };
 
       // Calculate total fees
@@ -738,7 +868,7 @@ export default class SolanaWallet {
   }
 
   async sendTransaction(params: any) {
-    const { transaction } = params;
+    const { transaction, broadcastMeta } = params;
 
     const connection = this.getConnection();
 
@@ -753,7 +883,6 @@ export default class SolanaWallet {
     const hasAnySignature = (sig: Uint8Array | Buffer | null | undefined) =>
       !!sig && sig.length > 0 && Array.from(sig).some((byte) => byte !== 0);
     let latestBlockhash: Awaited<ReturnType<Connection["getLatestBlockhash"]>> | null = null;
-    let didRefreshBlockhash = false;
 
     // Only refresh blockhash for unsigned transactions.
     // For pre-signed CCTP txs, mutating recentBlockhash invalidates existing signatures.
@@ -765,7 +894,6 @@ export default class SolanaWallet {
         if (!transaction.feePayer) {
           transaction.feePayer = this.publicKey;
         }
-        didRefreshBlockhash = true;
       }
     } else if (transaction instanceof VersionedTransaction) {
       const isUnsigned = transaction.signatures.every((signature) => !hasAnySignature(signature));
@@ -773,23 +901,23 @@ export default class SolanaWallet {
         latestBlockhash = await connection.getLatestBlockhash("confirmed");
         // web3.js does not expose a convenient mutator here in typings, but runtime object is mutable.
         (transaction.message as any).recentBlockhash = latestBlockhash.blockhash;
-        didRefreshBlockhash = true;
       }
     }
+
+    // Pin the endpoint that just issued the blockhash for the send and the rebroadcast.
+    const sendConnection = getActiveSolanaConnection(connection);
 
     // Sign the transaction
     const signedTransaction = await this.signTransaction(transaction);
 
+    const rawTransaction = signedTransaction.serialize();
+
     let signature: string;
     try {
-      // Send the transaction
-      signature = await connection.sendRawTransaction(
-        signedTransaction.serialize(),
-        {
-          skipPreflight: false,
-          maxRetries: 3
-        }
-      );
+      // Send the transaction.
+      // No maxRetries cap: the RPC node keeps rebroadcasting on its own until the blockhash expires.
+      // skipPreflight stays false so transactions that cannot succeed never produce an unfindable hash.
+      signature = await sendConnection.sendRawTransaction(rawTransaction, { skipPreflight: false });
     } catch (error: any) {
       if (error instanceof SendTransactionError) {
         try {
@@ -804,24 +932,19 @@ export default class SolanaWallet {
 
     csl("Solana sendTransaction", "green-400", "Transaction sent with signature: %o", signature);
 
-    // // Confirm the transaction
-    // // If adding confirmation, you need to catch errors because it may throw a TransactionExpiredBlockheightExceededError.
-    // const confirmation = didRefreshBlockhash && latestBlockhash
-    //   ? await connection.confirmTransaction(
-    //     {
-    //       signature,
-    //       blockhash: latestBlockhash.blockhash,
-    //       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-    //     },
-    //     "confirmed"
-    //   )
-    //   : await connection.confirmTransaction(signature, "confirmed");
-
-    // if (confirmation.value.err) {
-    //   throw new Error(
-    //     `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
-    //   );
-    // }
+    // Keep re-sending in the background. The caller gets the hash right away and reports it,
+    // so nothing here waits for the transaction to land.
+    startRebroadcast({
+      connection: sendConnection,
+      rawTransaction,
+      signature,
+      lastValidBlockHeight: latestBlockhash?.lastValidBlockHeight,
+      report: {
+        address: this.publicKey.toBase58(),
+        ...(broadcastMeta || {}),
+        rpcEndpoint: getRpcEndpointHost(sendConnection),
+      },
+    });
 
     return signature;
   }
@@ -908,9 +1031,11 @@ export default class SolanaWallet {
       const transaction = new Transaction();
 
       execTime.breakpoint();
+      let needCreateToTokenAccount = false;
       try {
         await getAccount(connection, toTokenAccount);
       } catch (error) {
+        needCreateToTokenAccount = true;
         transaction.add(
           createAssociatedTokenAccountInstruction(
             userPubkey,
@@ -941,6 +1066,16 @@ export default class SolanaWallet {
       transaction.add(transferInstruction);
 
       execTime.breakpoint();
+      const computeBudget = await buildComputeBudgetIxs({
+        connection,
+        payer: userPubkey,
+        instructions: transaction.instructions,
+        fallbackUnits: ONECLICK_PROXY_FALLBACK_UNITS,
+      });
+      transaction.instructions.unshift(...computeBudget.ixs);
+      execTime.log("buildComputeBudgetIxs");
+
+      execTime.breakpoint();
       const { blockhash } = await connection.getLatestBlockhash();
       execTime.log("getLatestBlockhash");
       transaction.recentBlockhash = blockhash;
@@ -954,17 +1089,30 @@ export default class SolanaWallet {
         versionedTx,
         fromToken,
         prices,
+        priorityFeeLamports: computeBudget.priorityFeeLamports,
+        // The recipient token account we are about to create is the only rent this route pays.
+        fallbackRentLamports: needCreateToTokenAccount ? await getAssociatedTokenAccountRent(connection) : 0,
       });
       execTime.log("estimateTransaction");
 
       result.sendParam = {
         transaction,
         versionedTx,
+        // Services re-run estimateTransaction with `...sendParam`; carrying these keeps the
+        // refreshed estimate identical to the one produced here.
+        priorityFeeLamports: computeBudget.priorityFeeLamports,
+        fallbackRentLamports: needCreateToTokenAccount ? await getAssociatedTokenAccountRent(connection) : 0,
+        broadcastMeta: this.buildBroadcastMeta({
+          route: ServiceBackend[Service.OneClick],
+          fromTokenSymbol: fromToken?.symbol,
+          computeBudget,
+        }),
       };
 
       result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+      result.fees.accountRentUsd = ett.accountRentUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
-      result.totalEstimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas + ett.accountRentLamports;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
       execTime.logTotal("quoteOneClickPorxy");
@@ -1105,13 +1253,20 @@ export default class SolanaWallet {
       execTime.log("estimateTransaction");
 
       result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+      result.fees.accountRentUsd = ett.accountRentUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
-      result.totalEstimateSourceGas = ett.estimateSourceGas;
+      result.totalEstimateSourceGas = ett.estimateSourceGas + ett.accountRentLamports;
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
       result.sendParam = {
         transaction: operatorTx,
         versionedTx,
+        // Pre-signed by the operator: adding instructions would invalidate the signature,
+        // so this route only gets the background rebroadcast.
+        broadcastMeta: this.buildBroadcastMeta({
+          route: ServiceBackend[Service.CCTP],
+          fromTokenSymbol: fromToken?.symbol,
+        }),
       };
 
       // Calculate total fees
@@ -1161,6 +1316,14 @@ export default class SolanaWallet {
         )
       );
 
+      const computeBudget = await buildComputeBudgetIxs({
+        connection,
+        payer: ownerPubkey,
+        instructions: transaction.instructions,
+        fallbackUnits: CREATE_ATA_FALLBACK_UNITS,
+      });
+      transaction.instructions.unshift(...computeBudget.ixs);
+
       const { blockhash } = await connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = ownerPubkey;
@@ -1171,6 +1334,7 @@ export default class SolanaWallet {
         signedTransaction.serialize()
       );
 
+      // Later steps need the ATA to actually exist, so this wait stays synchronous.
       await this.checkTransactionStatus(signature);
 
       return associatedTokenAccount;
@@ -1348,16 +1512,22 @@ export default class SolanaWallet {
     csl("Solana quoteFraxZero", "purple-500", "ix: %o", ix);
 
     const web3Instruction = toWeb3JsInstruction(ix.instruction);
-    const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
-      units: 600000, // Increase to 400k units (default is 200k)
+    execTime.breakpoint();
+    const computeBudget = await buildComputeBudgetIxs({
+      connection,
+      payer: new PublicKey(userPubkey),
+      instructions: [web3Instruction],
+      lookupTables: [lookupTableAccount],
+      fallbackUnits: FRAX_ZERO_FALLBACK_UNITS,
     });
+    execTime.log("buildComputeBudgetIxs");
     execTime.breakpoint();
     const { blockhash } = await connection.getLatestBlockhash();
     execTime.log("getLatestBlockhash");
     const messageV0 = new TransactionMessage({
       payerKey: new PublicKey(userPubkey),
       recentBlockhash: blockhash,
-      instructions: [computeBudgetIx, web3Instruction],
+      instructions: [...computeBudget.ixs, web3Instruction],
     }).compileToV0Message([lookupTableAccount]);
     const transaction = new VersionedTransaction(messageV0);
 
@@ -1366,6 +1536,14 @@ export default class SolanaWallet {
     result.sendParam = {
       transaction,
       versionedTx: transaction,
+      // Services re-run estimateTransaction with `...sendParam`; carrying this keeps the
+      // refreshed estimate identical to the one produced here.
+      priorityFeeLamports: computeBudget.priorityFeeLamports,
+      broadcastMeta: this.buildBroadcastMeta({
+        route: ServiceBackend[Service.FraxZero],
+        fromTokenSymbol: fromToken?.symbol,
+        computeBudget,
+      }),
     };
 
     execTime.breakpoint();
@@ -1374,6 +1552,7 @@ export default class SolanaWallet {
       versionedTx: transaction,
       fromToken,
       prices,
+      priorityFeeLamports: computeBudget.priorityFeeLamports,
     });
     execTime.log("estimateTransaction");
 
@@ -1388,9 +1567,10 @@ export default class SolanaWallet {
     result.fees.lzTokenFeeUsd = numberRemoveEndZero(lzTokenFeeUsd.toFixed(20));
 
     result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
+    result.fees.accountRentUsd = ett.accountRentUsd;
     result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
     result.estimateSourceGas = ett.estimateSourceGas;
-    result.totalEstimateSourceGas = ett.estimateSourceGas + nativeFee;
+    result.totalEstimateSourceGas = ett.estimateSourceGas + ett.accountRentLamports + nativeFee;
 
     result.fees.nativeFee = Big(nativeFee.toString())
       .div(10 ** fromToken.nativeToken.decimals)

@@ -25,6 +25,7 @@ export const TrackAction = {
   CreateSolanaATA: "create_solana_ata",
   Disconnect: "logout_wallet",
   ProphetEntrance: "prophet_entrance",
+  SolanaBroadcast: "solana_broadcast",
 } as const;
 export type TrackAction = (typeof TrackAction)[keyof typeof TrackAction];
 
@@ -41,10 +42,37 @@ type JSONArray = JSONValue[];
 type JSONValue = JSONLeaf | JSONObject | JSONArray;
 type JSONContainer = JSONObject | JSONArray;
 
+/**
+ * Non-hook reporting channel, usable from stores and background tasks.
+ * Returns whether the event reached the backend so callers can queue and retry.
+ */
+export async function trackEvent(params: TrackParams): Promise<boolean> {
+  const { sessionId, initSessionId } = useTrackStore.getState();
+
+  let _sessionId = sessionId;
+  if (!_sessionId) {
+    _sessionId = uuidv4();
+    initSessionId(_sessionId);
+    csl("useTrack", "yellow-700", "init session id: %o", _sessionId);
+  }
+
+  try {
+    await axios.post(`${BASE_API_URL}/v1/track`, {
+      source: "stableflow",
+      session_id: _sessionId,
+      ...params,
+    });
+    return true;
+  } catch (error) {
+    csl("useTrack", "red-500", "report track failed: %o", error);
+    return false;
+  }
+}
+
 export function useTrack(props?: { isRoot?: boolean; }) {
   const { isRoot } = props ?? {};
 
-  const { sessionId, initSessionId } = useTrackStore();
+  const { sessionId } = useTrackStore();
   const wallets = useWalletsStore();
   const walletStore = useWalletStore();
   const isMobile = useIsMobile();
@@ -63,31 +91,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     return [__accounts, __accountAddresses, __accountAddresses.join(",")];
   }, [wallets]);
 
-  const init = () => {
-    const _sessionId = uuidv4();
-    initSessionId(_sessionId);
-    csl("useTrack", "yellow-700", "init session id: %o", sessionId);
-    return _sessionId;
-  };
-
-  const add = async (params: TrackParams) => {
-    let _sessionId = sessionId;
-    if (!_sessionId) {
-      _sessionId = init();
-    }
-
-    const reportParams = {
-      source: "stableflow",
-      session_id: _sessionId,
-      ...params,
-    };
-
-    try {
-      await axios.post(`${BASE_API_URL}/v1/track`, reportParams);
-    } catch (error) {
-      csl("useTrack", "red-500", "report track failed: %o", error);
-    }
-  };
+  const add = (params: TrackParams) => trackEvent(params);
 
   const checkIsValidAddress = (addr?: string) => {
     if (!addr) return false;
