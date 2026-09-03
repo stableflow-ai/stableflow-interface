@@ -21,6 +21,7 @@ import Destination from "./destination";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import CostEfficientModal from "../cost-efficient-modal";
+import { isInTrustWallet } from "@/libs/wallets/utils/device";
 
 const Setting = lazy(() => import("@/sections/setting"));
 const Result = lazy(() => import("../result"));
@@ -48,10 +49,13 @@ export default function Networks({ addressValidation }: NetworksProps) {
 
   const toggleChain = async () => {
     if (toggleLoading || (!walletStore.fromToken && !walletStore.toToken)) return;
-    setToggleLoading(true);
 
     const fromToken = walletStore.fromToken;
     const toToken = walletStore.toToken;
+
+    if (isInTrustWallet() && toToken?.chainType === "tron") return;
+
+    setToggleLoading(true);
 
     if (toToken?.chainType === "evm") {
       await switchChainAsync({

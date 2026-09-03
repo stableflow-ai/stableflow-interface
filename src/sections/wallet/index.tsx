@@ -79,7 +79,8 @@ export default function Wallet() {
           Object.entries(stablecoinWithChains)
             .filter(([chain, tokens]) => !["evm"].includes(chain) && !!(tokens as any)[walletStore.selectedToken])
             .map(([chain, tokens]) => {
-              const isDisabled = chain === "tron" && isInTrustWallet();
+              const isTrustTron = chain === "tron" && isInTrustWallet();
+              const isDisabled = isTrustTron && !walletStore.isTo;
 
               return (
                 <div
@@ -96,6 +97,7 @@ export default function Wallet() {
                     type={chain as WalletType}
                     token={(tokens as any)[walletStore.selectedToken]}
                     isDisabled={isDisabled}
+                    isConnectDisabled={isTrustTron}
                   />
                   <TokenSimple
                     token={(tokens as any)[walletStore.selectedToken]}
