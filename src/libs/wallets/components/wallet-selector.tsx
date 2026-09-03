@@ -10,6 +10,7 @@ const WalletSelector = (props: any) => {
     onConnect,
     readyState,
     isCheckReadyState = true,
+    resolveDisplay,
   } = props;
 
   return (
@@ -49,7 +50,12 @@ const WalletSelector = (props: any) => {
         {/* Wallet List */}
         <div className="space-y-[8px] max-h-[400px] overflow-y-auto">
           {wallets
-            .map((_wallet: any) => (
+            .map((_wallet: any) => {
+              const display = resolveDisplay
+                ? resolveDisplay(_wallet)
+                : { name: _wallet.name, icon: _wallet.icon };
+
+              return (
               <button
                 key={_wallet.name}
                 onClick={() => {
@@ -66,10 +72,10 @@ const WalletSelector = (props: any) => {
               >
                 {/* Wallet Icon */}
                 <div className="w-[40px] h-[40px] rounded-[8px] bg-[#F5F5F5] flex items-center justify-center flex-shrink-0">
-                  {_wallet.icon ? (
+                  {display.icon ? (
                     <img
-                      src={_wallet.icon}
-                      alt={_wallet.name}
+                      src={display.icon}
+                      alt={display.name}
                       className="w-[24px] h-[24px]"
                     />
                   ) : (
@@ -80,9 +86,9 @@ const WalletSelector = (props: any) => {
                 {/* Wallet Info */}
                 <div className="flex-1 text-left">
                   <div className="text-[16px] font-[500] text-[#1A1A1A] mb-[2px]">
-                    {_wallet.name}
+                    {display.name}
                   </div>
-                  <div className="text-[14px] text-[#666666]">{_wallet.name}</div>
+                  <div className="text-[14px] text-[#666666]">{display.name}</div>
                 </div>
 
                 {/* Installed Badge */}
@@ -99,7 +105,8 @@ const WalletSelector = (props: any) => {
                   <div className="w-[20px] h-[20px] border-2 border-[#6284F5] border-t-transparent rounded-full animate-spin" />
                 )}
               </button>
-            ))}
+              );
+            })}
         </div>
 
         {/* Footer */}

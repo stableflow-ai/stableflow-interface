@@ -13,6 +13,7 @@ import { stablecoinWithChains } from "@/config/tokens";
 import { chainTypes } from "@/config/chains";
 import clsx from "clsx";
 import { isInTrustWallet } from "@/libs/wallets/utils/device";
+import { useInjectedTron } from "@/libs/wallets/tron/use-injected-tron";
 
 const Assets = lazy(() => import("@/views/bridge/components/assets"));
 const Total = lazy(() => import("./total"));
@@ -21,6 +22,7 @@ export default function Wallet() {
   const walletStore = useWalletStore();
   const walletsStore = useWalletsStore();
   const balancesStore = useBalancesStore();
+  const { hasInjected } = useInjectedTron();
   useEvmBalances(walletStore.showWallet);
 
   const walletConnected = useMemo(() => {
@@ -79,7 +81,7 @@ export default function Wallet() {
           Object.entries(stablecoinWithChains)
             .filter(([chain, tokens]) => !["evm"].includes(chain) && !!(tokens as any)[walletStore.selectedToken])
             .map(([chain, tokens]) => {
-              const isTrustTron = chain === "tron" && isInTrustWallet();
+              const isTrustTron = chain === "tron" && isInTrustWallet() && !hasInjected;
               const isDisabled = isTrustTron && !walletStore.isTo;
 
               return (
