@@ -134,6 +134,18 @@ export default function Result() {
                 formatNumber(quoteData?.estimateSourceGasUsd, 2, true, { prefix: "$", isZeroPrecision: true, round: Big.roundDown })
             }
           </ResultFeeItem>
+          {
+            // Solana charges a rent-exempt deposit for every account a transaction creates.
+            // It is not a network fee, so it gets its own line instead of inflating the gas fee.
+            Big(quoteData?.fees?.accountRentUsd || 0).gt(0) && (
+              <ResultFeeItem
+                label="Account rent"
+                loading={bridgeStore.getQuoting(bridgeStore.quoteDataService)}
+              >
+                {quoteData?.fees?.accountRentUsd}
+              </ResultFeeItem>
+            )
+          }
           <ResultFeeItem
             label="Time"
             precision={2}

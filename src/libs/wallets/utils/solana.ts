@@ -30,6 +30,17 @@ const isRpcUnavailableError = (error: unknown) => {
   );
 };
 
+const ACTIVE_CONNECTION_PROP = "__stableflowActiveConnection";
+
+/**
+ * Unwrap the fallback proxy to the endpoint that answered last.
+ * Sending a transaction to a different node than the one that issued the blockhash is a known way
+ * to lose it, so the whole send / rebroadcast sequence must stay on a single connection.
+ */
+export const getActiveSolanaConnection = (connection: Connection): Connection => {
+  return (connection as any)?.[ACTIVE_CONNECTION_PROP] ?? connection;
+};
+
 export const createSolanaFallbackConnection = (rpcUrls: string[]) => {
   if (!rpcUrls?.length) {
     throw new Error("No Solana RPC URLs configured");
@@ -45,6 +56,10 @@ export const createSolanaFallbackConnection = (rpcUrls: string[]) => {
 
   return new Proxy(connections[0], {
     get(_, prop, receiver) {
+      if (prop === ACTIVE_CONNECTION_PROP) {
+        return active;
+      }
+
       const activeValue = Reflect.get(active, prop, receiver);
       if (typeof activeValue !== "function") {
         return activeValue;

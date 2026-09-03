@@ -10,6 +10,7 @@ import { lazy, Suspense } from "react";
 import { useEvmGasFees } from "./hooks/use-evm-gas-fees";
 import { usePrices } from "./hooks/use-prices";
 import { useTradeReport } from "./hooks/use-trade-report";
+import { useSolanaBroadcastReport } from "./hooks/use-solana-broadcast-report";
 import ZendeskPrivider from "./components/zendesk-widget";
 
 const Bridge = lazy(() => import("./views/bridge"));
@@ -83,6 +84,7 @@ function App() {
   usePrices();
   useEvmGasFees();
   useTradeReport();
+  useSolanaBroadcastReport();
   return (
     <WalletsProvider>
       <ZendeskPrivider>

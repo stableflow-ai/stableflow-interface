@@ -350,7 +350,12 @@ export class OneClickService {
       const ett = await wallet.estimateTransaction(estimateTransactionParams);
       result.fees.estimateGasUsd = ett.estimateSourceGasUsd;
       result.estimateSourceGas = ett.estimateSourceGas;
-      result.totalEstimateSourceGas = ett.estimateSourceGas;
+      // Solana only: rent for the accounts this transaction creates. It is not a network fee,
+      // but the wallet still needs to hold it, so it belongs in the native balance gate.
+      if (ett.accountRentUsd) {
+        result.fees.accountRentUsd = ett.accountRentUsd;
+      }
+      result.totalEstimateSourceGas = ett.estimateSourceGas + (ett.accountRentLamports ? BigInt(ett.accountRentLamports) : 0n);
       result.estimateSourceGasUsd = ett.estimateSourceGasUsd;
 
       result.transferSourceGasFee = ett.estimateSourceGas;

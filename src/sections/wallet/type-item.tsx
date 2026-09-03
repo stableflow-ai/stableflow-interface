@@ -15,10 +15,11 @@ const LABEL = {
   sui: "Sui",
 };
 
-export default function TypeItem({ type = "evm", token, isDisabled }: { type: WalletType; token: any; isDisabled?: boolean; }) {
+export default function TypeItem({ type = "evm", token, isDisabled, isConnectDisabled }: { type: WalletType; token: any; isDisabled?: boolean; isConnectDisabled?: boolean; }) {
   const wallets = useWalletsStore();
   const wallet = wallets[type || "evm"];
   const walletStore = useWalletStore();
+  const connectDisabled = isDisabled || isConnectDisabled;
 
   return (
     <div
@@ -92,17 +93,17 @@ export default function TypeItem({ type = "evm", token, isDisabled }: { type: Wa
         <button
           className={clsx(
             "duration-300 h-[32px] rounded-[16px] bg-white shadow-[0_2px_6px_0_rgba(0,0,0,0.10)] text-[14px] text-[#444C59]",
-            isDisabled ? "cursor-not-allowed w-[120px]" : "cursor-pointer w-[90px] hover:bg-[#6284F5] hover:text-white",
+            connectDisabled ? "cursor-not-allowed w-[120px]" : "cursor-pointer w-[90px] hover:bg-[#6284F5] hover:text-white",
           )}
           onClick={(e) => {
             e.stopPropagation();
-            if (isDisabled) {
+            if (connectDisabled) {
               return;
             }
             wallet.connect();
           }}
         >
-          {isDisabled ? "Not supported" : "Connect"}
+          {connectDisabled ? "Not supported" : "Connect"}
         </button>
       )}
     </div>
