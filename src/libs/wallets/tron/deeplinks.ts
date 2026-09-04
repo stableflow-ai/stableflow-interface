@@ -1,22 +1,48 @@
+import { isInTrustWallet } from "../utils/device";
+
+export type InjectedTronWalletName = "TronLink" | "Trust";
+
+export function supportsNativeTrustTron() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const w = window as any;
+  return Boolean(w.trustwallet?.tronLink);
+}
+
+function hasInjectedTronProvider() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const w = window as any;
+  return Boolean(w.tronLink || w.tronWeb || w.tron || supportsNativeTrustTron());
+}
+
 // Detect which wallet's in-app DApp browser we are running inside and return
 // the matching adapter name. Returns null when running in a plain browser.
 // Note: this intentionally checks injected globals / user-agent instead of
 // adapter readyState, because on mobile TronLinkAdapter always reports "Found"
 // and WalletConnectAdapter always reports "Found".
-export function detectInjectedTronWalletName(): "TronLink" | null {
+export function detectInjectedTronWalletName(): InjectedTronWalletName | null {
   if (typeof window === "undefined") {
     return null;
   }
-  const w = window as any;
 
-  // TokenPocket / TronLink in-app browsers expose window.tronLink / tronWeb,
-  // both handled by TronLinkAdapter. (Trust's in-app browser only injects an
-  // EVM provider and has no Tron provider, so it is intentionally excluded.)
-  if (w.tronLink || w.tronWeb || w.tron) {
-    return "TronLink";
+  if (supportsNativeTrustTron()) {
+    return "Trust";
   }
 
-  return null;
+  if (!hasInjectedTronProvider()) {
+    return null;
+  }
+
+  if (isInTrustWallet()) {
+    return "Trust";
+  }
+
+  return "TronLink";
 }
 
 export function hasInjectedTronWallet() {

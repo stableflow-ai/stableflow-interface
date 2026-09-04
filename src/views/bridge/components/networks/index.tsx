@@ -22,6 +22,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import CostEfficientModal from "../cost-efficient-modal";
 import { isInTrustWallet } from "@/libs/wallets/utils/device";
+import { useInjectedTron } from "@/libs/wallets/tron/use-injected-tron";
 
 const Setting = lazy(() => import("@/sections/setting"));
 const Result = lazy(() => import("../result"));
@@ -41,6 +42,8 @@ export default function Networks({ addressValidation }: NetworksProps) {
   const balancesStore = useBalancesStore();
   const { loading: balanceLoading } = useTokenBalance(walletStore.fromToken, true);
 
+  const { hasInjected } = useInjectedTron();
+
   const timer = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [toggleLoading, setToggleLoading] = useState(false);
   const [isProgress, setIsProgress] = useState(false);
@@ -53,7 +56,7 @@ export default function Networks({ addressValidation }: NetworksProps) {
     const fromToken = walletStore.fromToken;
     const toToken = walletStore.toToken;
 
-    if (isInTrustWallet() && toToken?.chainType === "tron") return;
+    if (isInTrustWallet() && toToken?.chainType === "tron" && !hasInjected) return;
 
     setToggleLoading(true);
 

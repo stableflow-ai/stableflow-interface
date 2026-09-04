@@ -14,8 +14,9 @@ import { getChainRpcUrl } from "@/config/chains";
 import { metadata } from "../rainbow/metadata";
 import { csl } from "@/utils/log";
 import { generateRpcSignature } from "@/libs/signature";
-import { isInMobileBrowser, isInOKApp } from "../utils/device";
-import { detectInjectedTronWalletName, hasInjectedTronWallet } from "./deeplinks";
+import { isInMobileBrowser, isInOKApp, isInTrustWallet } from "../utils/device";
+import { supportsNativeTrustTron, type InjectedTronWalletName } from "./deeplinks";
+import { useInjectedTron } from "./use-injected-tron";
 
 const tronWeb = new TronWeb({
   fullHost: getChainRpcUrl("Tron").rpcUrl,
@@ -49,36 +50,55 @@ const wallets = [
   }),
 ];
 
+function resolveInjectedAdapter(injectedName: InjectedTronWalletName | null) {
+  if (!injectedName) {
+    return null;
+  }
+
+  if (injectedName === "Trust" && !supportsNativeTrustTron()) {
+    return wallets.find((wallet) => wallet.name === "TronLink") || null;
+  }
+
+  return wallets.find((wallet) => wallet.name === injectedName) || null;
+}
+
+function resolveWalletBrand(adapter: any) {
+  if (adapter && isInTrustWallet() && adapter.name === "TronLink") {
+    const trustAdapter = wallets.find((wallet) => wallet.name === "Trust");
+    return {
+      walletName: trustAdapter?.name || "Trust",
+      walletIcon: trustAdapter?.icon || adapter.icon,
+    };
+  }
+
+  return {
+    walletName: adapter?.name,
+    walletIcon: adapter?.icon,
+  };
+}
+
+function resolveWalletDisplay(wallet: any) {
+  if (isInTrustWallet() && !supportsNativeTrustTron() && wallet.name === "TronLink") {
+    const trustAdapter = wallets.find((item) => item.name === "Trust");
+    return {
+      name: trustAdapter?.name || "Trust",
+      icon: trustAdapter?.icon || wallet.icon,
+    };
+  }
+
+  return {
+    name: wallet.name,
+    icon: wallet.icon,
+  };
+}
+
 export default function TronProvider({
   children
 }: {
   children: React.ReactNode;
 }) {
   const isMobile = useIsMobile();
-
-  // Detect an injected Tron provider (in-app wallet browser). Poll briefly to
-  // catch providers injected slightly after initial render.
-  const [hasInjectedWallet, setHasInjectedWallet] = useState(hasInjectedTronWallet);
-
-  useEffect(() => {
-    if (hasInjectedTronWallet()) {
-      setHasInjectedWallet(true);
-      return;
-    }
-
-    let times = 0;
-    const timer = setInterval(() => {
-      times += 1;
-      if (hasInjectedTronWallet()) {
-        setHasInjectedWallet(true);
-        clearInterval(timer);
-      } else if (times >= 30) {
-        clearInterval(timer);
-      }
-    }, 100);
-
-    return () => clearInterval(timer);
-  }, []);
+  const { hasInjected, injectedName } = useInjectedTron();
 
   const isOKXSDK = useMemo(() => {
     if (!isMobile) {
@@ -87,11 +107,11 @@ export default function TronProvider({
     if (isInOKApp()) {
       return false;
     }
-    if (hasInjectedWallet) {
+    if (hasInjected) {
       return false;
     }
     return true;
-  }, [isMobile, hasInjectedWallet]);
+  }, [isMobile, hasInjected]);
 
   const detectTokenPocket = () => {
     // Only detect TokenPocket in-app browser (UA contains 'tokenpocket'), do not detect desktop TokenPocket extension
@@ -110,15 +130,21 @@ export default function TronProvider({
   return (
     <>
       {children}
-      {isOKXSDK ? <MobileWallet /> : <Content autoConnectInjected={isMobile} />}
+      {isOKXSDK ? (
+        <MobileWallet />
+      ) : (
+        <Content autoConnectInjected={isMobile} injectedName={injectedName} />
+      )}
     </>
   );
 }
 
 const Content = ({
   autoConnectInjected = false,
+  injectedName = null,
 }: {
   autoConnectInjected?: boolean;
+  injectedName?: InjectedTronWalletName | null;
 }) => {
   const setWallets = useWalletsStore((state) => state.set);
   const [adapter, setAdapter] = useState<any>(null);
@@ -126,6 +152,13 @@ const Content = ({
   const setBalancesStore = useBalancesStore((state) => state.set);
   const walletRef = useRef<TronWallet | null>(null);
   const autoConnectedRef = useRef(false);
+
+  const selectorWallets = useMemo(() => {
+    if (supportsNativeTrustTron()) {
+      return wallets;
+    }
+    return wallets.filter((wallet) => wallet.name !== "Trust");
+  }, [injectedName]);
 
   // Wallet selector
   const {
@@ -155,44 +188,21 @@ const Content = ({
       return;
     }
 
-    let times = 0;
-    let timer: ReturnType<typeof setInterval>;
+    if (autoConnectedRef.current) {
+      return;
+    }
 
-    const tryAutoConnect = () => {
-      if (autoConnectedRef.current) {
-        clearInterval(timer);
-        return;
-      }
+    const injectedAdapter = resolveInjectedAdapter(injectedName);
+    if (!injectedAdapter) {
+      return;
+    }
 
-      // Pick the adapter matching the wallet in-app browser we are in, instead
-      // of the first "Found" adapter (TronLinkAdapter always reports Found on
-      // mobile, which would select the wrong wallet).
-      const injectedName = detectInjectedTronWalletName();
-      const injectedAdapter = injectedName
-        ? wallets.find((wallet) => wallet.name === injectedName)
-        : null;
-
-      if (injectedAdapter) {
-        autoConnectedRef.current = true;
-        clearInterval(timer);
-        setAdapter(injectedAdapter);
-        injectedAdapter.connect().catch((error) => {
-          console.error("Tron injected wallet auto connect failed:", error);
-        });
-        return;
-      }
-
-      times += 1;
-      if (times >= 30) {
-        clearInterval(timer);
-      }
-    };
-
-    tryAutoConnect();
-    timer = setInterval(tryAutoConnect, 100);
-
-    return () => clearInterval(timer);
-  }, [autoConnectInjected]);
+    autoConnectedRef.current = true;
+    setAdapter(injectedAdapter);
+    injectedAdapter.connect().catch((error) => {
+      console.error("Tron injected wallet auto connect failed:", error);
+    });
+  }, [autoConnectInjected, injectedName]);
 
   const setWindowWallet = (address?: string) => {
     const _address = address || adapter?.address;
@@ -235,6 +245,8 @@ const Content = ({
       tronWalletAdapter: adapter.name
     });
 
+    const brand = resolveWalletBrand(adapter);
+
     const params = {
       connect: async () => {
         try {
@@ -261,8 +273,7 @@ const Content = ({
         account: adapter.address,
         wallet: walletRef.current,
         ...params,
-        walletIcon: adapter.icon,
-        walletName: adapter.name,
+        ...brand,
       }
     });
 
@@ -274,8 +285,7 @@ const Content = ({
           account: address,
           wallet: walletRef.current,
           ...params,
-          walletIcon: adapter.icon,
-          walletName: adapter.name,
+          ...resolveWalletBrand(adapter),
         }
       });
     });
@@ -312,7 +322,8 @@ const Content = ({
         tron: {
           account: newAccount,
           wallet: walletRef.current,
-          ...params
+          ...params,
+          ...resolveWalletBrand(adapter),
         }
       });
     });
@@ -324,7 +335,8 @@ const Content = ({
       onClose={onClose}
       onConnect={onConnect}
       isConnecting={isConnecting}
-      wallets={wallets}
+      wallets={selectorWallets}
+      resolveDisplay={resolveWalletDisplay}
       readyState={{ key: "_readyState", value: "Found" }}
       title="Select Tron Wallet"
     />
