@@ -198,6 +198,10 @@ export const chainsRpcUrls: Record<string, string[]> = {
   "Flow": [
     "https://mainnet.evm.nodes.onflow.org",
   ],
+  "Arc": [
+    `${ProxyRpcHost}/arc`,
+    "https://rpc.mainnet.arc.io",
+  ],
 };
 
 export const getChainRpcUrl = (chainName: string): { rpcUrls: string[]; rpcUrl: string; } => {
@@ -667,6 +671,22 @@ const chains: Record<string, ChainType> = {
       decimals: 18,
     },
     ...getChainRpcUrl("Flow"),
+  },
+  arc: {
+    chainName: "Arc",
+    blockchain: "arc",
+    chainIcon: getStableflowChainLogo("Arc"),
+    chainIconGray: getStableflowChainLogo("Arc-gray"),
+    chainType: chainTypes.evm.value,
+    chainId: 5042,
+    blockExplorerUrl: "https://explorer.arc.io/tx",
+    blockExplorerUrls: ["https://explorer.arc.io"],
+    primaryColor: "#1B3158",
+    nativeToken: {
+      symbol: "USDC",
+      decimals: 18,
+    },
+    ...getChainRpcUrl("Arc"),
   },
 };
 

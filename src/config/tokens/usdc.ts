@@ -110,6 +110,12 @@ export const usdcChains: Record<string, TokenChain> = {
     ...chains.pharos,
     services: [Service.CCTP],
   },
+  arc: {
+    ...usdc,
+    contractAddress: "0x3600000000000000000000000000000000000000",
+    ...chains.arc,
+    services: [Service.CCTP],
+  },
 };
 
 export const usdcSol = {
