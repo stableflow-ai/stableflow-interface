@@ -13,6 +13,7 @@ export const CCTP_DOMAINS: Record<string, number> = {
   Solana: 5,
   Base: 6,
   Pharos: 31,
+  Arc: 26,
 };
 
 export const CCTP_PROXY_RELAY_CONTRACT = "0x0da5336C5CEb9d15e7659Ae376CC41d86Edd8802";
