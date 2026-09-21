@@ -47,7 +47,7 @@ class SequentialFallbackProvider extends ethers.AbstractProvider {
   }
 }
 
-// RPC_CHAINS="tron,solana,aptos,aptos,sui,ethereum,arbitrum,bsc,avalanche,base,polygon,gnosis,optimism,berachain,xlayer,plasma,mantle,megaeth,ink,stable,celo,sei,fraxtal,katana,pharos"
+// RPC_CHAINS="tron,solana,aptos,aptos,sui,ethereum,arbitrum,bsc,avalanche,base,polygon,gnosis,optimism,berachain,xlayer,plasma,mantle,megaeth,ink,stable,celo,sei,fraxtal,katana,pharos,arc"
 const ChainNameMap: Record<string, string> = {
   "eth": "ethereum",
   "arb": "arbitrum",
@@ -69,6 +69,7 @@ const ChainNameMap: Record<string, string> = {
   "frax": "fraxtal",
   "katana": "katana",
   "pharos": "pharos",
+  "arc": "arc",
 };
 
 export function evmRpcFallbackProvider(chain: TokenChain): SignedRpcProvider {
