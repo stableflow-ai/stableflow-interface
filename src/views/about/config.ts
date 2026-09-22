@@ -1,4 +1,4 @@
-import { getStableflowLogo, getStableflowRouteLogo } from "@/utils/format/logo";
+import { getStableflowAboutAsset, getStableflowLogo, getStableflowRouteLogo } from "@/utils/format/logo";
 import { getAboutAsset } from "./utils";
 
 export const ABOUT_LINKS = {
@@ -18,42 +18,52 @@ export const HERO_ACTIONS = [
 ] as const;
 
 export const TOKEN_FLOW_TOKENS = [
-  { key: "usdt", label: "USDT", icon: getAboutAsset("tokens/token-usdt.png"), y: 30 },
-  { key: "usdc", label: "USDC", icon: getAboutAsset("tokens/token-usdc.png"), y: 155 },
-  { key: "usdt0", label: "USDT0", icon: getAboutAsset("tokens/token-usdt0.png"), y: 280 },
-  { key: "frxusd", label: "frxUSD", icon: getAboutAsset("tokens/token-frxusd.png"), y: 405 },
+  { key: "usdt", label: "USDT", icon: getStableflowAboutAsset("tokens/token-usdt.png"), y: 30 },
+  { key: "usdc", label: "USDC", icon: getStableflowAboutAsset("tokens/token-usdc.png"), y: 155 },
+  { key: "usdt0", label: "USDT0", icon: getStableflowAboutAsset("tokens/token-usdt0.png"), y: 280 },
+  { key: "frxusd", label: "frxUSD", icon: getStableflowAboutAsset("tokens/token-frxusd.png"), y: 405 },
 ] as const;
 
 export const TOKEN_FLOW_CHAINS = [
   [
-    { key: "eth", icon: getAboutAsset("chains/chain-eth.png"), y: 30 },
-    { key: "arb", icon: getAboutAsset("chains/chain-arb.png"), y: 105 },
-    { key: "avax", icon: getAboutAsset("chains/chain-avax.png"), y: 180 },
-    { key: "bsc", icon: getAboutAsset("chains/chain-bsc.png"), y: 255 },
-    { key: "op", icon: getAboutAsset("chains/chain-op.png"), y: 330 },
+    { key: "eth", icon: getStableflowAboutAsset("chains/chain-eth.png"), y: 30 },
+    { key: "arb", icon: getStableflowAboutAsset("chains/chain-arb.png"), y: 105 },
+    { key: "avax", icon: getStableflowAboutAsset("chains/chain-avax.png"), y: 180 },
+    { key: "bsc", icon: getStableflowAboutAsset("chains/chain-bsc.png"), y: 255 },
+    { key: "op", icon: getStableflowAboutAsset("chains/chain-op.png"), y: 330 },
+    { key: "base", icon: getStableflowAboutAsset("chains/chian-base.png"), y: 405 },
   ],
   [
-    { key: "pol", icon: getAboutAsset("chains/chain-pol.png"), y: 67 },
-    { key: "xlayer", icon: getAboutAsset("chains/chain-xlayer.png"), y: 142 },
-    { key: "bera", icon: getAboutAsset("chains/chain-bera.png"), y: 217 },
-    { key: "plasma", icon: getAboutAsset("chains/chain-plasma.png"), y: 292 },
-    { key: "mantle", icon: getAboutAsset("chains/chain-mantle.png"), y: 367 },
+    { key: "pol", icon: getStableflowAboutAsset("chains/chain-pol.png"), y: 67 },
+    { key: "xlayer", icon: getStableflowAboutAsset("chains/chain-xlayer.png"), y: 142 },
+    { key: "bera", icon: getStableflowAboutAsset("chains/chain-bera.png"), y: 217 },
+    { key: "plasma", icon: getStableflowAboutAsset("chains/chain-plasma.png"), y: 292 },
+    { key: "mantle", icon: getStableflowAboutAsset("chains/chain-mantle.png"), y: 367 },
   ],
   [
-    { key: "mega", icon: getAboutAsset("chains/chain-mega.png"), y: 30 },
-    { key: "ink", icon: getAboutAsset("chains/chain-ink.png"), y: 92 },
-    { key: "stable", icon: getAboutAsset("chains/chain-stable.png"), y: 155 },
-    { key: "celo", icon: getAboutAsset("chains/chain-celo.png"), y: 218 },
-    { key: "sei", icon: getAboutAsset("chains/chain-sei.png"), y: 281 },
-    { key: "flare", icon: getAboutAsset("chains/chain-flare.png"), y: 345 },
+    { key: "mega", icon: getStableflowAboutAsset("chains/chain-mega.png"), y: 30 },
+    { key: "ink", icon: getStableflowAboutAsset("chains/chain-ink.png"), y: 92 },
+    { key: "stable", icon: getStableflowAboutAsset("chains/chain-stable.png"), y: 155 },
+    { key: "celo", icon: getStableflowAboutAsset("chains/chain-celo.png"), y: 218 },
+    { key: "sei", icon: getStableflowAboutAsset("chains/chain-sei.png"), y: 281 },
+    { key: "flare", icon: getStableflowAboutAsset("chains/chain-flare.png"), y: 345 },
   ],
   [
-    { key: "frax", icon: getAboutAsset("chains/chain-frax.png"), y: 67 },
-    { key: "sol", icon: getAboutAsset("chains/chain-sol.png"), y: 142 },
-    { key: "near", icon: getAboutAsset("chains/chain-near.png"), y: 217 },
-    { key: "tron", icon: getAboutAsset("chains/chain-tron.png"), y: 292 },
-    { key: "aptos", icon: getAboutAsset("chains/chain-aptos.png"), y: 367 },
+    { key: "frax", icon: getStableflowAboutAsset("chains/chain-frax.png"), y: 67 },
+    { key: "sol", icon: getStableflowAboutAsset("chains/chain-sol.png"), y: 142 },
+    { key: "near", icon: getStableflowAboutAsset("chains/chain-near.png"), y: 217 },
+    { key: "tron", icon: getStableflowAboutAsset("chains/chain-tron.png"), y: 292 },
+    { key: "aptos", icon: getStableflowAboutAsset("chains/chain-aptos.png"), y: 367 },
   ],
+] as const;
+
+export const FLOW_ROUTE_CARD = getStableflowAboutAsset("routes/card.png");
+
+export const TOKEN_FLOW_ROUTES = [
+  { key: "near-intents", label: "NEAR Intents", logo: getStableflowRouteLogo("logo-near-intents.svg"), side: "left", row: "top" },
+  { key: "circle", label: "Circle", logo: getStableflowRouteLogo("logo-circle.svg"), side: "left", row: "bottom" },
+  { key: "usdt0", label: "USDT0", logo: getStableflowRouteLogo("logo-usdt0.svg"), side: "right", row: "top" },
+  { key: "fraxzero", label: "FraxZero", logo: getStableflowRouteLogo("logo-fraxzero-2.svg"), side: "right", row: "bottom" },
 ] as const;
 
 export const SMART_ROUTING_CARDS = [
