@@ -23,6 +23,9 @@ export const getStableflowRouteLogo = (name: string) => {
   name = formatPath(name);
   return getLogo(`/stableflow/routes${name}`);
 };
+export const getStableflowAboutAsset = (path: string) => {
+  return getLogo(`/stableflow/about${formatPath(path)}`);
+};
 export const getStableflowLogo = (name: string) => {
   name = name.toLowerCase();
   name = formatPath(name);
