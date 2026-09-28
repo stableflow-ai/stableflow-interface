@@ -11,7 +11,7 @@ const FAQ = () => {
       <div className="mx-auto mt-20 w-full max-w-[1000px] md:mt-30">
         <SectionTitle align="left" className="max-w-[292px] text-[32px] md:max-w-none md:text-center md:text-[42px]">Frequently Asked Questions</SectionTitle>
         <p className="mt-5 hidden text-center text-lg font-light leading-[150%] text-[#444C59] md:block">
-          Everything you need to know about Liminal and how it works.
+          Everything you need to know about StableFlow and how it works.
         </p>
         <div className="mt-5 md:mt-14">
           {FAQ_ITEMS.map((item, index) => (
