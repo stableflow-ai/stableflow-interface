@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { lazy, Suspense, useRef } from "react";
 import UserActions from "./user-actions";
 import LayoutContext from "./context";
+import { useAllTokensStore } from "@/all-tokens/store";
 
 // import useUpdateTxns from "@/hooks/use-update-txns";
 // import SupportButton from "@/components/support-button";
@@ -10,6 +11,7 @@ import LayoutContext from "./context";
 const Footer = lazy(() => import("./footer"));
 const Footer2 = lazy(() => import("./footer2"));
 const Wallet = lazy(() => import("@/sections/wallet"));
+const AllTokensWallet = lazy(() => import("@/all-tokens/wallet"));
 const PixelBlast = lazy(() => import("@/components/pixel-blast"));
 
 const LoadingSpinner = () => null;
@@ -18,6 +20,7 @@ export default function Layout() {
   const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
+  const allTokensEnabled = useAllTokensStore((state) => state.enabled);
   const isHomePage = location.pathname === "/";
   const ishistoryPage = location.pathname === "/history";
   const isFooter2 = !isHomePage && !ishistoryPage;
@@ -53,7 +56,7 @@ export default function Layout() {
           </Suspense>
           <Outlet />
           <Suspense fallback={<LoadingSpinner />}>
-            <Wallet />
+            {allTokensEnabled ? <AllTokensWallet /> : <Wallet />}
           </Suspense>
 
           {

@@ -928,6 +928,47 @@ export default class TronWallet {
   }
 
   /**
+   * Sign and send a Rhea Tron tx payload ({ kind: tron_transfer, amount, depositAddress, tokenAddress }).
+   * Amount is in sun / token smallest units from Rhea — do not run toSun again for TRX.
+   */
+  async sendRheaTx(tx: any): Promise<string> {
+    const kind = String(tx?.kind || "").toLowerCase();
+    if (kind !== "tron_transfer") {
+      throw new Error(`Unsupported Tron Rhea tx kind: ${tx?.kind}`);
+    }
+
+    const to = tx.depositAddress || tx.to;
+    if (!to) {
+      throw new Error("Invalid Rhea Tron tx: missing depositAddress");
+    }
+
+    const amount = tx.amount;
+    if (amount == null || amount === "") {
+      throw new Error("Invalid Rhea Tron tx: missing amount");
+    }
+
+    await this.waitForTronWeb();
+
+    const tokenAddress = tx.tokenAddress;
+    const standard = String(tx.standard || "").toLowerCase();
+    const isNative =
+      !tokenAddress ||
+      tokenAddress === "TRX" ||
+      tokenAddress === "trx" ||
+      standard === "trx";
+
+    if (isNative) {
+      const transaction = await this.tronWeb.transactionBuilder.sendTrx(
+        to,
+        Number(amount)
+      );
+      return this.sendTransaction({ tx: { transaction } });
+    }
+
+    return this.transferToken(tokenAddress, to, String(amount));
+  }
+
+  /**
    * Unified send method that routes to specific send methods based on type
    * @param type Send type from SendType enum
    * @param params Parameters for the send transaction

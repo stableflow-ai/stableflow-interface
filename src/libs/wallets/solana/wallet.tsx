@@ -1,3 +1,4 @@
+import { Buffer } from "buffer";
 import {
   Connection,
   PublicKey,
@@ -967,6 +968,31 @@ export default class SolanaWallet {
       default:
         throw new Error(`Unsupported quote type: ${type}`);
     }
+  }
+
+  /**
+   * Sign and send a Rhea Solana tx payload (base64 serialized transaction).
+   */
+  async sendRheaTx(tx: any) {
+    const serialized =
+      tx?.transaction ||
+      tx?.serializedTransaction ||
+      tx?.serialized ||
+      (typeof tx === "string" ? tx : null);
+
+    if (!serialized || typeof serialized !== "string") {
+      throw new Error("Invalid Solana Rhea tx payload: missing base64 transaction");
+    }
+
+    const raw = Buffer.from(serialized, "base64");
+    let transaction: Transaction | VersionedTransaction;
+    try {
+      transaction = VersionedTransaction.deserialize(raw);
+    } catch {
+      transaction = Transaction.from(raw);
+    }
+
+    return this.sendTransaction({ transaction });
   }
 
   /**

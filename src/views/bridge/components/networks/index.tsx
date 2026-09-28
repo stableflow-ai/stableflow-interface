@@ -23,8 +23,8 @@ import { Autoplay } from "swiper/modules";
 import CostEfficientModal from "../cost-efficient-modal";
 import { isInTrustWallet } from "@/libs/wallets/utils/device";
 import { useInjectedTron } from "@/libs/wallets/tron/use-injected-tron";
+import BridgeToolbar from "@/all-tokens/components/bridge-toolbar";
 
-const Setting = lazy(() => import("@/sections/setting"));
 const Result = lazy(() => import("../result"));
 const QuoteRoutes = lazy(() => import("../routes"));
 
@@ -32,9 +32,10 @@ type NetworksProps = {
   addressValidation?: {
     isValid?: boolean;
   } | null;
+  onRefreshQuote?: () => void;
 };
 
-export default function Networks({ addressValidation }: NetworksProps) {
+export default function Networks({ addressValidation, onRefreshQuote }: NetworksProps) {
   const walletStore = useWalletStore();
   const bridgeStore = useBridgeStore();
   const { switchChainAsync } = useSwitchChain();
@@ -96,6 +97,7 @@ export default function Networks({ addressValidation }: NetworksProps) {
   const hybridPath = routeHybridPath(quoteData, bridgeStore.quoteDataService);
   const isFromTron = quoteData?.quoteParam?.fromToken?.chainType === "tron";
   const isQuoting = bridgeStore.getQuoting(bridgeStore.quoteDataService);
+  const isRefreshing = bridgeStore.getQuoting();
   const isFromDisabled = !walletStore.fromToken || balanceLoading;
   const isToDisabled = isQuoting || !quoteData;
 
@@ -121,9 +123,9 @@ export default function Networks({ addressValidation }: NetworksProps) {
       <div className="w-full flex justify-between items-center">
         <div className="text-[#444C59] text-sm md:text-base w-full flex items-center gap-1">
           <div className="select-none">
-            Best price compared with
+            <span className="hidden md:inline">Best price</span> <span>compared</span> <span className="hidden md:inline">with</span>
           </div>
-          <div className="w-17.5 h-5 overflow-hidden">
+          <div className="w-17.5 h-5 overflow-hidden shrink-0">
             <Swiper
               className="w-full h-full"
               slidesPerView={1}
@@ -162,7 +164,7 @@ export default function Networks({ addressValidation }: NetworksProps) {
             />
           </button>
         </div>
-        <Setting />
+        <BridgeToolbar isQuoting={isRefreshing} onRefreshQuote={onRefreshQuote} />
       </div>
       <CostEfficientModal
         open={isCostModalOpen}

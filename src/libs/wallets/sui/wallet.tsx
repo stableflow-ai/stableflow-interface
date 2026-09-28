@@ -428,6 +428,57 @@ export default class SuiWallet {
     }
   }
 
+  /**
+   * Sign and send a Rhea Sui tx payload ({ kind: sui_transfer, amount, depositAddress, coinType }).
+   * Amount is already in mist / coin smallest units.
+   */
+  async sendRheaTx(tx: any): Promise<string> {
+    const kind = String(tx?.kind || "").toLowerCase();
+    if (kind !== "sui_transfer") {
+      throw new Error(`Unsupported Sui Rhea tx kind: ${tx?.kind}`);
+    }
+
+    if (!this.account) {
+      throw new Error("Wallet not connected");
+    }
+
+    const to = tx.depositAddress || tx.to;
+    if (!to) {
+      throw new Error("Invalid Rhea Sui tx: missing depositAddress");
+    }
+
+    const amount = tx.amount;
+    if (amount == null || amount === "") {
+      throw new Error("Invalid Rhea Sui tx: missing amount");
+    }
+
+    const coinType = tx.coinType || tx.tokenAddress || SUI_COIN_TYPE;
+    const amountBigInt = BigInt(amount);
+
+    if (coinType === SUI_COIN_TYPE) {
+      try {
+        const suiTx = new Transaction();
+        const [coinToSend] = suiTx.splitCoins(suiTx.gas, [amountBigInt]);
+        suiTx.transferObjects([coinToSend], to);
+
+        const result = await this.signAndExecuteTransaction({
+          transaction: suiTx,
+          options: {
+            showEffects: true,
+            showBalanceChanges: true,
+          },
+        });
+
+        return typeof result === "string" ? result : result.Transaction.digest;
+      } catch (error) {
+        csl("Sui sendRheaTx", "red-500", "Transfer SUI failed: %o", error);
+        throw error;
+      }
+    }
+
+    return this.transferToken(coinType, to, String(amount));
+  }
+
   async send(type: SendType, params: any) {
     switch (type) {
       case SendType.SEND:
