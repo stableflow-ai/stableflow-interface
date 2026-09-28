@@ -136,7 +136,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     }
   }
 
-  const formatQuoteData = (quoteData: any, service: Service) => {
+  const formatQuoteData = (quoteData: any, service: Service | string) => {
     try {
       const {
         fromToken,
@@ -264,7 +264,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     });
   };
 
-  const addQuote = (params: { quoteData: any; service: Service; }) => {
+  const addQuote = (params: { quoteData: any; service: Service | string; }) => {
     const { quoteData, service } = params;
 
     const { errMsg } = quoteData ?? {};
@@ -294,7 +294,7 @@ export function useTrack(props?: { isRoot?: boolean; }) {
     params: {
       type: "transfer_button" | "continue_button";
       quoteData?: any;
-      service: Service;
+      service: Service | string;
       errMsg?: string;
       sourceErrMsg?: string;
       txHash?: string;

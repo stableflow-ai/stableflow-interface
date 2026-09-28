@@ -17,7 +17,7 @@ export default function NavigationMenu() {
     <nav className="flex items-center gap-6 md:gap-7.5">
       <Link to="/" className="shrink-0 flex items-center">
         <img
-          src={getStableflowLogo("logo-stableflow-full.svg")}
+          src={getStableflowLogo("logo-stableflow-full-2.svg")}
           alt="StableFlow"
           className="w-33.5 h-8 md:h-8"
         />

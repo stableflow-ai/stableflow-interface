@@ -743,6 +743,42 @@ export default class RainbowWallet {
   }
 
   /**
+   * Sign and send a Rhea EVM tx payload ({ to, data, value, gasLimit }).
+   * Stablecoin contract calls stay on sendTransaction.
+   */
+  async sendRheaTx(tx: any) {
+    if (!tx?.to) {
+      throw new Error("Invalid Rhea tx: missing to");
+    }
+    const request: Record<string, any> = {
+      to: tx.to,
+      data: tx.data || "0x",
+      value: tx.value != null && tx.value !== "" ? BigInt(tx.value) : 0n,
+    };
+    if (tx.gasLimit != null && tx.gasLimit !== "") {
+      request.gasLimit = BigInt(tx.gasLimit);
+    }
+    if (tx.maxFeePerGas != null && tx.maxFeePerGas !== "") {
+      request.maxFeePerGas = BigInt(tx.maxFeePerGas);
+    }
+    if (tx.maxPriorityFeePerGas != null && tx.maxPriorityFeePerGas !== "") {
+      request.maxPriorityFeePerGas = BigInt(tx.maxPriorityFeePerGas);
+    }
+
+    try {
+      const hash = await this.signer.sendUncheckedTransaction(request);
+      return hash;
+    } catch (error: any) {
+      csl("EVM sendRheaTx", "red-500", "Error sending Rhea tx: %o", error);
+      let finalErrorMessage = `Transaction failed: ${error.message}`;
+      if (error?.message?.includes("user rejected action")) {
+        finalErrorMessage = error.message;
+      }
+      throw new Error(finalErrorMessage);
+    }
+  }
+
+  /**
    * Unified send method that routes to specific send methods based on type
    * @param type Send type from SendType enum
    * @param params Parameters for the send transaction

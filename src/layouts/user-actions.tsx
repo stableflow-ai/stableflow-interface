@@ -7,6 +7,8 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useLayoutContext } from "./context";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { stablecoinWithChains } from "@/config/tokens";
+import { useAllTokensStore } from "@/all-tokens/store";
+import { chainTypes as rheaChainTypes, RHEA_WALLET_TYPES } from "@/all-tokens/chains";
 import clsx from "clsx";
 import { menuItems } from "@/components/navigation-menu/menu-items";
 import { useTrack } from "@/hooks/use-track";
@@ -178,38 +180,14 @@ const ChainsButton = ({
   onClick,
 }: any) => {
   const walletsStore = useWalletsStore();
+  const allTokensEnabled = useAllTokensStore((state) => state.enabled);
 
-  const isMobile = useIsMobile();
-
-  // Get the list of chains to display
   const chainsToDisplay = useMemo(() => {
-    const allChains = Object.entries(stablecoinWithChains);
-
-    return allChains;
-
-    // if (!isMobile) {
-    //   // Desktop: show all chains
-    //   return allChains;
-    // }
-
-    // // Mobile: prioritize EVM, if EVM is not connected, show other connected wallet
-    // if (walletsStore.evm?.account) {
-    //   // EVM is connected, show EVM
-    //   return allChains.filter(([chain]) => chain === 'evm');
-    // }
-
-    // // EVM is not connected, find other connected wallet
-    // const connectedChain = allChains.find(([chain]) =>
-    //   walletsStore?.[chain as WalletType]?.account
-    // );
-
-    // if (connectedChain) {
-    //   return [connectedChain];
-    // }
-
-    // // None connected, default to first one (EVM)
-    // return allChains.slice(0, 1);
-  }, [isMobile, walletsStore.evm?.account, walletsStore.sol?.account, walletsStore.near?.account, walletsStore.tron?.account]);
+    if (allTokensEnabled) {
+      return RHEA_WALLET_TYPES.filter((type) => !!rheaChainTypes[type]);
+    }
+    return Object.keys(stablecoinWithChains);
+  }, [allTokensEnabled]);
 
   return (
     <button
@@ -217,11 +195,12 @@ const ChainsButton = ({
       className="p-[6px] flex justify-center items-center button rounded-[18px] bg-white shadow-[0_0_6px_0_rgba(0,0,0,0.10)]"
     >
       {
-        chainsToDisplay.map(([chain, _tokens], index) => {
+        chainsToDisplay.map((chain, index) => {
           return (
             <ChainIcon
-              key={index}
+              key={chain}
               chain={chain}
+              types={allTokensEnabled ? rheaChainTypes : undefined}
               connected={!!walletsStore?.[chain as WalletType]?.account}
               className={clsx("relative", index > 0 && "ml-[-8px]")}
               style={{

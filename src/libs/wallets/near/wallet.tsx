@@ -511,6 +511,60 @@ export default class NearWallet {
   }
 
   /**
+   * Sign and send a Rhea Near tx payload ({ receiverId, actions } or transaction array).
+   */
+  async sendRheaTx(tx: any): Promise<string> {
+    const rawTransactions = Array.isArray(tx)
+      ? tx
+      : Array.isArray(tx?.transactions)
+        ? tx.transactions
+        : tx?.receiverId
+          ? [tx]
+          : null;
+
+    if (!rawTransactions?.length) {
+      throw new Error("Invalid Near Rhea tx: missing receiverId/actions or transactions");
+    }
+
+    const transactions = rawTransactions.map((item: any) => {
+      if (!item?.receiverId || !Array.isArray(item.actions)) {
+        throw new Error("Invalid Near Rhea tx entry: receiverId and actions are required");
+      }
+
+      const actions = item.actions.map((action: any) => {
+        const type = action?.type || action?.enum;
+        const params = action?.params || action;
+
+        if (type === "FunctionCall" || params?.methodName) {
+          let args = params.args ?? {};
+          if (typeof args === "string") {
+            try {
+              args = JSON.parse(args);
+            } catch {
+              // keep string args if not valid JSON
+            }
+          }
+          return createFunctionCallAction(
+            params.methodName,
+            args,
+            String(params.gas ?? "30000000000000"),
+            String(params.deposit ?? "0")
+          );
+        }
+
+        return action;
+      });
+
+      return {
+        receiverId: item.receiverId,
+        actions,
+      };
+    });
+
+    return this.sendTransaction({ transactions });
+  }
+
+  /**
    * Unified send method that routes to specific send methods based on type
    * @param type Send type from SendType enum
    * @param params Parameters for the send transaction
