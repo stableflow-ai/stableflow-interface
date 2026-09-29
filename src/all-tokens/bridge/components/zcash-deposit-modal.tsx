@@ -6,7 +6,7 @@ import useBridgeStore from "@/all-tokens/bridge-store";
 import useCopy from "@/hooks/use-copy";
 import useToast from "@/hooks/use-toast";
 import { addTradeReport } from "@/stores/use-trade-report";
-import { rheaReport } from "@/all-tokens/services/rhea/status";
+import type { RheaReportPayload } from "@/all-tokens/services/rhea/status";
 import { useHistoryStore } from "@/stores/use-history";
 import { csl } from "@/utils/log";
 import { numberRemoveEndZero } from "@/utils/format/number";
@@ -48,14 +48,36 @@ export default function ZcashDepositModal() {
     const reportBase = depositInfo.reportBase || {};
 
     try {
+      const fromChain = String(depositInfo.fromChain ?? "");
+      const toChain = String(depositInfo.toChain ?? "");
+      const rheaReportData: RheaReportPayload = {
+        sender: depositInfo.sender,
+        recipient: depositInfo.recipient,
+        from_hash: orderId || "",
+        from_token: depositInfo.fromTokenAddress,
+        to_token: depositInfo.toTokenAddress,
+        deposit_address: depositInfo.depositAddress ?? "",
+        from_chain: fromChain,
+        to_chain: toChain,
+        amount_in: depositInfo.amount,
+        router,
+        estimated_out: depositInfo.estimatedOut,
+        min_amount_out: depositInfo.minAmountOut,
+        swap_id: orderId,
+        swapId: orderId,
+        is_cross_chain:
+          depositInfo.isCrossChain ??
+          depositInfo.selectedQuote?.isCrossChain ??
+          (fromChain !== toChain && !!fromChain && !!toChain),
+      };
       const reportData = {
         ...reportBase,
         deposit_address: orderId,
         tx_hash: "",
         status: 0,
-        order_id: orderId,
         router,
         volume: depositInfo.volume ?? reportBase.volume,
+        rhea_report_data: rheaReportData,
       };
       addTradeReport(reportData);
       requestPendingRefresh();
@@ -67,33 +89,6 @@ export default function ZcashDepositModal() {
           quoteData: depositInfo.selectedQuote,
           txHash: "",
         });
-      }
-
-      try {
-        const fromChain = String(depositInfo.fromChain ?? "");
-        const toChain = String(depositInfo.toChain ?? "");
-        await rheaReport({
-          sender: depositInfo.sender,
-          recipient: depositInfo.recipient,
-          from_hash: orderId || "",
-          from_token: depositInfo.fromTokenAddress,
-          to_token: depositInfo.toTokenAddress,
-          deposit_address: depositInfo.depositAddress ?? "",
-          from_chain: fromChain,
-          to_chain: toChain,
-          amount_in: depositInfo.amount,
-          router,
-          estimated_out: depositInfo.estimatedOut,
-          min_amount_out: depositInfo.minAmountOut,
-          swap_id: orderId,
-          swapId: orderId,
-          is_cross_chain:
-            depositInfo.isCrossChain ??
-            depositInfo.selectedQuote?.isCrossChain ??
-            (fromChain !== toChain && !!fromChain && !!toChain),
-        });
-      } catch (reportErr) {
-        csl("ZcashDepositModal", "yellow-600", "rhea report failed: %o", reportErr);
       }
 
       toast.success({ title: "Transfer submitted" });

@@ -199,43 +199,12 @@ export function normalizeQuoteResponse(
   bestKey?: string;
   meta: Pick<RheaQuoteResponse, "chainType" | "executionType" | "isCrossChain" | "errors">;
 } {
-  const all = Array.isArray(data.allQuotes) ? data.allQuotes : [];
   const bestRaw = data.bestQuote;
-  const bestRouter = bestRaw ? asString(bestRaw.router, "") : "";
-  const bestOut = bestRaw ? pickOut(bestRaw) : "";
-
-  const quotes = all.map((q, i) => {
-    const isBest =
-      !!bestRaw &&
-      asString(q.router, "") === bestRouter &&
-      pickOut(q) === bestOut;
-    return normalizeQuote(q, i, isBest, ctx);
-  });
-
-  // Ensure bestQuote is present even if missing from allQuotes
-  if (bestRaw && !quotes.some((q) => q.isBest)) {
-    quotes.unshift(normalizeQuote(bestRaw, -1, true, ctx));
-  }
-
-  // If still no best flag, mark first by output
-  if (quotes.length && !quotes.some((q) => q.isBest)) {
-    const sorted = [...quotes].sort((a, b) => {
-      try {
-        return BigInt(b.estimatedOut) > BigInt(a.estimatedOut) ? 1 : -1;
-      } catch {
-        return Number(b.estimatedOut) - Number(a.estimatedOut);
-      }
-    });
-    const top = sorted[0];
-    const idx = quotes.findIndex((q) => q.key === top.key);
-    if (idx >= 0) quotes[idx] = { ...quotes[idx], isBest: true };
-  }
-
-  const best = quotes.find((q) => q.isBest);
+  const quotes = bestRaw ? [normalizeQuote(bestRaw, 0, true, ctx)] : [];
 
   return {
     quotes,
-    bestKey: best?.key,
+    bestKey: quotes[0]?.key,
     meta: {
       chainType: data.chainType,
       executionType: data.executionType,
@@ -264,7 +233,7 @@ export async function rheaQuote(params: QuoteParams) {
     toToken: params.toToken,
   });
 
-  const data = await rheaSwapApi<RheaQuoteResponse>("/all_quote", {
+  const data = await rheaSwapApi<RheaQuoteResponse>("/quote", {
     method: "POST",
     body: JSON.stringify({
       fromChain: params.fromChain,

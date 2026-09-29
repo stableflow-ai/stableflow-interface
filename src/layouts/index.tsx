@@ -3,6 +3,7 @@ import { lazy, Suspense, useRef } from "react";
 import UserActions from "./user-actions";
 import LayoutContext from "./context";
 import { useAllTokensStore } from "@/all-tokens/store";
+import useWalletBalances from "@/all-tokens/hooks/use-wallet-balances";
 
 // import useUpdateTxns from "@/hooks/use-update-txns";
 // import SupportButton from "@/components/support-button";
@@ -15,6 +16,11 @@ const AllTokensWallet = lazy(() => import("@/all-tokens/wallet"));
 const PixelBlast = lazy(() => import("@/components/pixel-blast"));
 
 const LoadingSpinner = () => null;
+
+function AllTokensBalanceFetcher() {
+  useWalletBalances();
+  return null;
+}
 
 export default function Layout() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +61,7 @@ export default function Layout() {
             <UserActions />
           </Suspense>
           <Outlet />
+          {allTokensEnabled ? <AllTokensBalanceFetcher /> : null}
           <Suspense fallback={<LoadingSpinner />}>
             {allTokensEnabled ? <AllTokensWallet /> : <Wallet />}
           </Suspense>

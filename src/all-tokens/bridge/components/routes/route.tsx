@@ -18,7 +18,6 @@ const QuoteRoute = (props: any) => {
   const routerName = data?.routerName || getRouterDisplayName(router);
   const logo = getRouterLogo(router, isMobile);
   const estimateTime = data?.timeEstimate ?? data?.estimateTime ?? 0;
-  const totalFeeUsd = Number(data?.totalFeeUsd || 0) + Number(data?.estimateSourceGasUsd || 0);
 
   return (
     <motion.div
@@ -67,21 +66,6 @@ const QuoteRoute = (props: any) => {
         )}
       </div>
       <div className="flex items-center justify-end gap-1.5 md:gap-2.5 text-xs font-normal text-[#444C59] leading-[100%]">
-        <div className="flex items-center gap-[4px]">
-          <img
-            src={getStableflowIcon("icon-fee.svg")}
-            alt=""
-            className="w-[14px] h-[14px] object-center object-contain shrink-0"
-          />
-          <div>
-            {formatNumber(totalFeeUsd || 0, 2, true, {
-              prefix: "$",
-              isZeroPrecision: true,
-              round: Big.roundDown,
-            })}
-          </div>
-        </div>
-        <div className="w-[1px] h-[14px] bg-[#B3BBCE] shrink-0" />
         <div className="flex items-center gap-[4px]">
           <img
             src={getStableflowIcon("icon-time.svg")}
