@@ -18,15 +18,6 @@ const Result = (_props: any) => {
     return Array.isArray(fees) ? fees : [];
   }, [quoteData]);
 
-  const sourceGasUsd = useMemo(() => {
-    const raw =
-      quoteData?.estimateSourceGasUsd ??
-      quoteData?.normalized?.estimateSourceGasUsd;
-    if (raw == null) return null;
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : null;
-  }, [quoteData]);
-
   if (!quoteData && !isQuoting) return null;
 
   return (
@@ -59,16 +50,6 @@ const Result = (_props: any) => {
           {quoteData.priceImpactUsdPercent}%
         </ResultFeeItem>
       )}
-
-      <ResultFeeItem label="Source gas fee" isFormat={false} loading={isQuoting}>
-        {sourceGasUsd != null && sourceGasUsd > 0
-          ? formatNumber(sourceGasUsd, 2, true, {
-            prefix: "$",
-            isZeroPrecision: true,
-            round: Big.roundDown,
-          })
-          : "-"}
-      </ResultFeeItem>
 
       {feeRows.length > 0 && (
         <div className="flex flex-col gap-2">

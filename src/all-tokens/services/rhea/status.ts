@@ -1,5 +1,3 @@
-import { rheaSwapApi } from "./client";
-
 export type RheaReportPayload = {
   sender: string;
   recipient?: string;
@@ -18,10 +16,3 @@ export type RheaReportPayload = {
   swapId?: string;
   is_cross_chain?: boolean;
 };
-
-export async function rheaReport(payload: RheaReportPayload) {
-  return rheaSwapApi<unknown>("/report", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}

@@ -284,29 +284,6 @@ export default function Networks({ addressValidation, onRefreshQuote, isRoutes =
                       >
                         <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
                           <LazyImage
-                            src={getStableflowIcon("icon-fee.svg")}
-                            containerClassName="w-3 h-3.5 shrink-0"
-                          />
-                          {
-                            isToDisabled ? (
-                              <div className="">
-                                $-
-                              </div>
-                            ) : (
-                              <div className="">
-                                {formatNumber(
-                                  Number(quoteData?.totalFeeUsd || 0) +
-                                    Number(quoteData?.estimateSourceGasUsd || 0),
-                                  2,
-                                  true,
-                                  { prefix: "$", isZeroPrecision: true, round: Big.roundDown }
-                                )}
-                              </div>
-                            )
-                          }
-                        </div>
-                        <div className={clsx("flex items-center gap-1", isToDisabled ? "opacity-30" : "")}>
-                          <LazyImage
                             src={getStableflowIcon("icon-time.svg")}
                             containerClassName="w-3.5 h-3.5 shrink-0"
                           />

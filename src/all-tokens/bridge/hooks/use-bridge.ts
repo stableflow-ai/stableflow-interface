@@ -25,7 +25,7 @@ import { useTrack } from "@/hooks/use-track";
 import { tokenAddressForQuote, tokenHttpChainId } from "@/all-tokens/services/rhea/tokens";
 import { estimateSourceGasFromTransferResult } from "@/all-tokens/services/rhea/fee";
 import { executeRheaTx } from "@/all-tokens/wallets/execute-rhea-tx";
-import { rheaReport } from "@/all-tokens/services/rhea/status";
+import type { RheaReportPayload } from "@/all-tokens/services/rhea/status";
 import { ZCASH_MANUAL_WALLET_NAME } from "@/all-tokens/wallets/zcash/wallet";
 
 const TRANSFER_MIN_AMOUNT = ALL_TOKENS_MIN_AMOUNT;
@@ -489,14 +489,33 @@ export default function useBridge(_props?: any) {
           memo: swap.deposit.depositMemo || "",
         });
 
+        const fromChain = tokenHttpChainId(fromToken);
+        const toChain = tokenHttpChainId(toToken);
+        const rheaReportData: RheaReportPayload = {
+          sender,
+          recipient,
+          from_hash: hash,
+          from_token: tokenAddressForQuote(fromToken),
+          to_token: tokenAddressForQuote(toToken),
+          deposit_address: swap.deposit?.depositAddress ?? "",
+          from_chain: fromChain,
+          to_chain: toChain,
+          amount_in: amountWei,
+          router,
+          estimated_out: swap.estimatedOut || selectedQuote.estimatedOut,
+          min_amount_out: swap.minAmountOut || selectedQuote.minAmountOut,
+          swap_id: orderId,
+          swapId: orderId,
+          is_cross_chain: swap.isCrossChain ?? fromChain !== toChain,
+        };
         const reportData = {
           ...reportBase,
           deposit_address: hash,
           tx_hash: hash,
           status: 0,
-          order_id: orderId,
           router,
           volume,
+          rhea_report_data: rheaReportData,
         };
         addTradeReport(reportData);
         historyStore.requestPendingRefresh();
@@ -516,30 +535,6 @@ export default function useBridge(_props?: any) {
           ...addTrackParams,
           txHash: hash,
         });
-
-        try {
-          const fromChain = tokenHttpChainId(fromToken);
-          const toChain = tokenHttpChainId(toToken);
-          await rheaReport({
-            sender,
-            recipient,
-            from_hash: hash,
-            from_token: tokenAddressForQuote(fromToken),
-            to_token: tokenAddressForQuote(toToken),
-            deposit_address: swap.deposit?.depositAddress ?? "",
-            from_chain: fromChain,
-            to_chain: toChain,
-            amount_in: amountWei,
-            router,
-            estimated_out: swap.estimatedOut || selectedQuote.estimatedOut,
-            min_amount_out: swap.minAmountOut || selectedQuote.minAmountOut,
-            swap_id: orderId,
-            swapId: orderId,
-            is_cross_chain: swap.isCrossChain ?? fromChain !== toChain,
-          });
-        } catch (reportErr) {
-          csl("useBridge", "yellow-600", "rhea report failed: %o", reportErr);
-        }
 
         toast.success({ title: "Transfer submitted" });
         bridgeStore.set({ transferring: false, amount: "" });
@@ -568,15 +563,36 @@ export default function useBridge(_props?: any) {
       const txHash = execResult.txHash || "";
       const execOrderId = execResult.orderId || orderId;
       const depositAddress = txHash || execOrderId || "";
-      const reportData = {
+      const fromChain = tokenHttpChainId(fromToken);
+      const toChain = tokenHttpChainId(toToken);
+      const reportData: Record<string, any> = {
         ...reportBase,
         deposit_address: depositAddress,
         tx_hash: txHash,
         status: 0,
-        order_id: execOrderId,
         router,
         volume,
       };
+      if (txHash || execOrderId) {
+        const rheaReportData: RheaReportPayload = {
+          sender,
+          recipient,
+          from_hash: txHash || String(execOrderId),
+          from_token: tokenAddressForQuote(fromToken),
+          to_token: tokenAddressForQuote(toToken),
+          deposit_address: swap.deposit?.depositAddress ?? "",
+          from_chain: fromChain,
+          to_chain: toChain,
+          amount_in: amountWei,
+          router,
+          estimated_out: swap.estimatedOut || selectedQuote.estimatedOut,
+          min_amount_out: swap.minAmountOut || selectedQuote.minAmountOut,
+          swap_id: execOrderId,
+          swapId: execOrderId,
+          is_cross_chain: swap.isCrossChain ?? fromChain !== toChain,
+        };
+        reportData.rhea_report_data = rheaReportData;
+      }
       addTradeReport(reportData);
       historyStore.requestPendingRefresh();
       if (depositAddress) {
@@ -597,32 +613,6 @@ export default function useBridge(_props?: any) {
         ...addTrackParams,
         txHash,
       });
-
-      if (txHash || execOrderId) {
-        try {
-          const fromChain = tokenHttpChainId(fromToken);
-          const toChain = tokenHttpChainId(toToken);
-          await rheaReport({
-            sender,
-            recipient,
-            from_hash: txHash || String(execOrderId),
-            from_token: tokenAddressForQuote(fromToken),
-            to_token: tokenAddressForQuote(toToken),
-            deposit_address: swap.deposit?.depositAddress ?? "",
-            from_chain: fromChain,
-            to_chain: toChain,
-            amount_in: amountWei,
-            router,
-            estimated_out: swap.estimatedOut || selectedQuote.estimatedOut,
-            min_amount_out: swap.minAmountOut || selectedQuote.minAmountOut,
-            swap_id: execOrderId,
-            swapId: execOrderId,
-            is_cross_chain: swap.isCrossChain ?? fromChain !== toChain,
-          });
-        } catch (reportErr) {
-          csl("useBridge", "yellow-600", "rhea report failed: %o", reportErr);
-        }
-      }
 
       toast.success({ title: "Transfer submitted" });
       bridgeStore.set({ transferring: false, amount: "" });

@@ -2,14 +2,12 @@ import { Service } from "@/all-tokens/constants";
 import { rheaQuote } from "./rhea/quote";
 import { rheaSwap } from "./rhea/swap";
 import { executeRheaSwapResponse } from "./rhea/execute";
-import { rheaReport } from "./rhea/status";
 import { fetchRheaTokens, getCachedRheaTokens, tokenAddressForQuote, tokenHttpChainId } from "./rhea/tokens";
 
 export const rheaService = {
   quote: rheaQuote,
   swap: rheaSwap,
   execute: executeRheaSwapResponse,
-  report: rheaReport,
   fetchTokens: fetchRheaTokens,
   getCachedTokens: getCachedRheaTokens,
   tokenAddressForQuote,

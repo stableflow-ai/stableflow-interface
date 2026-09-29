@@ -67,7 +67,7 @@ export type RheaNormalizedQuote = {
 };
 
 export type RheaQuoteResponse = {
-  allQuotes?: RheaQuoteRaw[];
+  /** Single best route from /api/swap/quote */
   bestQuote?: RheaQuoteRaw;
   chainType?: string;
   executionType?: string;
