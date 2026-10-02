@@ -27,6 +27,7 @@ import stableflowProxyIdl from "@/services/oneclick/stableflow-proxy.json";
 import { quoteSignature } from "../utils/cctp";
 import { SendType } from "../types";
 import { Service, ServiceBackend } from "@/services/constants";
+import { QuoteErrorLevel } from "@/services/quote-error";
 import { deriveOftPdas, encodeQuoteSend, encodeSend, getPeerAddress, NATIVE_MSG_FEE_BUFFER } from "../utils/layerzero";
 import { buildVersionedTransaction, SendHelper } from "@layerzerolabs/lz-solana-sdk-v2";
 import { LZ_RECEIVE_VALUE, USDT0_LEGACY_MESH_TRANSFTER_FEE } from "@/services/usdt0/config";
@@ -574,6 +575,7 @@ export default class SolanaWallet {
 
       if (BigInt(amountLdClean) === 0n) {
         result.errMsg = "Amount below minimum cross-chain unit";
+        result.errLevel = QuoteErrorLevel.Business;
         return result;
       }
 
@@ -833,6 +835,7 @@ export default class SolanaWallet {
       csl("SolanaWallet quoteOFT", "red-600", "Minimum received amount: %o", Big(amountLdClean).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))).toFixed(6, 0));
       if (Big(result.outputAmount).lt(Big(amountLdClean).div(10 ** fromToken.decimals).times(Big(1).minus(Big(slippageTolerance || 0).div(100))))) {
         result.errMsg = "Slippage limit exceeded";
+        result.errLevel = QuoteErrorLevel.Business;
         return result;
       }
 
@@ -863,7 +866,7 @@ export default class SolanaWallet {
       return result;
     } catch (error: any) {
       csl("Solana quoteOFT", "red-500", "quoteOFT failed: %o", error);
-      return { errMsg: error.message };
+      return { errMsg: error.message, errLevel: QuoteErrorLevel.Fallback };
     }
   }
 
@@ -1230,6 +1233,7 @@ export default class SolanaWallet {
       csl("SolanaWallet quoteCCTP", "red-600", "cctpFeeRate: %o, slippageLimit: %o", cctpFeeRate.toFixed(6), slippageLimit.toFixed(6));
       if (max_fee && amountWei && cctpFeeRate.gt(slippageLimit)) {
         result.errMsg = "Slippage limit exceeded";
+        result.errLevel = QuoteErrorLevel.Business;
         return result;
       }
 
@@ -1283,7 +1287,7 @@ export default class SolanaWallet {
       return result;
     } catch (error: any) {
       csl("Solana quoteCCTP", "red-500", "quoteCCTP failed: %o", error);
-      return { errMsg: error.message };
+      return { errMsg: error.message, errLevel: QuoteErrorLevel.Fallback };
     }
   }
 
@@ -1391,6 +1395,7 @@ export default class SolanaWallet {
 
     if (BigInt(amountLdClean) === 0n) {
       result.errMsg = "Amount below minimum cross-chain unit";
+      result.errLevel = QuoteErrorLevel.Business;
       return result;
     }
 
